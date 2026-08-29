@@ -95,19 +95,21 @@ export default class LevelScene extends Phaser.Scene {
         } else if (ch === 'L') {
           this.add.image(cx, cy, 'mus-lamp');
           const beamH = worldH - cy - 40;
-          const beam = this.add.rectangle(cx, cy + 14 + beamH / 2, 36, beamH, 0xf2d580, 0.18);
-          this.add.rectangle(cx, cy + 14 + beamH / 2, 12, beamH, 0xf2e0a0, 0.14);
+          // halo + core move together in one container, so what you see is
+          // exactly what kills you
+          const beamHalo = this.add.rectangle(0, 0, 36, beamH, 0xf2d580, 0.18);
+          const beamCore = this.add.rectangle(0, 0, 12, beamH, 0xf2e0a0, 0.2);
+          const beam = this.add.container(cx - 48, cy + 14 + beamH / 2, [beamHalo, beamCore]);
           this.beams.push(beam);
           this.tweens.add({
             targets: beam,
-            x: cx + 64,
-            duration: 2200,
+            x: cx + 48,
+            duration: 2600,
             yoyo: true,
             repeat: -1,
             ease: 'sine.inout',
-            delay: this.beams.length * 900,
+            delay: this.beams.length * 1100,
           });
-          beam.x = cx - 64;
         } else if (ch === 'R') {
           const c = this.add.image(cx, cy, 'mus-critic');
           this.critics.push({ sprite: c, next: 0 });
@@ -329,7 +331,7 @@ export default class LevelScene extends Phaser.Scene {
 
     // sweeping spotlights: caught in the beam = thrown out
     for (const beam of this.beams) {
-      if (Math.abs(p.x - beam.x) < 18 && p.y > 120) {
+      if (Math.abs(p.x - beam.x) < 14 && p.y > 120) {
         this.hurt();
         break;
       }
@@ -340,16 +342,20 @@ export default class LevelScene extends Phaser.Scene {
       const dx = p.x - c.sprite.x;
       const dy = Math.abs(p.y - c.sprite.y);
       if (time > c.next && dy < 140 && Math.abs(dx) < 440 && Math.abs(dx) > 30) {
-        c.next = time + 1900;
-        const proj = this.projectiles.create(c.sprite.x, c.sprite.y, 'mus-shard');
-        proj.setVelocityX(Math.sign(dx) * 190);
-        proj.deathTime = time + 3200;
+        c.next = time + 2600;
+        const proj = this.projectiles.create(c.sprite.x, c.sprite.y + 10, 'mus-shard');
+        proj.setVelocityX(Math.sign(dx) * 150);
+        proj.deathTime = time + 3600;
         c.sprite.setFlipX(dx < 0);
       }
     }
     this.projectiles.children.iterate((pr) => {
       if (pr && time > pr.deathTime) pr.destroy();
     });
+    if (this.critics.length && !this.criticHint && Math.abs(p.x - 62 * T) < 48) {
+      this.criticHint = true;
+      this.floatText(p.x, p.y - 70, 'Duck [↓] under their words —\njump between the volleys!');
+    }
 
     // beat lights pulse: dim -> warn -> deadly
     for (const b of this.beats) {

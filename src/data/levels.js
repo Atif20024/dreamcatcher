@@ -36,16 +36,15 @@ function buildMusician() {
   put(rows, 19, 31, 'C');
   put(rows, 2, 34, 'L');
   put(rows, 2, 44, 'L');
-  put(rows, 19, 39, '^^');
+  put(rows, 19, 39, '^');
   put(rows, 19, 57, 'C');
-  // critics' gallery over the second pit
-  put(rows, 17, 62, '###');
-  put(rows, 15, 67, '###');
-  put(rows, 17, 72, '###');
+  // critics' gallery over the second pit — one critic, duck under his words
+  put(rows, 19, 60, 'C');
+  put(rows, 17, 62, '####');
+  put(rows, 15, 67, '####');
+  put(rows, 17, 72, '####');
   put(rows, 13, 66, '##');
   put(rows, 12, 66, 'R');
-  put(rows, 13, 72, '##');
-  put(rows, 12, 73, 'R');
   // sour notes + boards stretch
   put(rows, 19, 82, 'E');
   put(rows, 19, 86, '^^');
