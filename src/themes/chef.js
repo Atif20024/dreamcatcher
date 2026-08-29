@@ -34,6 +34,105 @@ const TABLE = {
   pal: { p: 0xe8e8e0, T: 0x7a583c, w: 0x4a3222 },
 };
 
+const ICE_TILE = {
+  rows: ['TTTTTTTT', 'IIIIIIII', 'IIiIIIII', 'IIIIIIII', 'IIIIiIII', 'IiIIIIII', 'IIIIIIII', 'IIIIIIII'],
+  pal: { T: 0xd8ecf8, I: 0x9ac4dc, i: 0xc0dcec },
+};
+const CRATE = {
+  rows: ['WWWWWWWW', 'WbbbbbbW', 'WbWWWWbW', 'WbWWWWbW', 'WbWWWWbW', 'WbWWWWbW', 'WbbbbbbW', 'WWWWWWWW'],
+  pal: { W: 0x8a6844, b: 0x6a4a32 },
+};
+const VENT = {
+  rows: ['s.s.s.s.', '.s.s.s.s', 'GGGGGGGG', 'GGGGGGGG'],
+  pal: { G: 0x6a6e7a, s: 0xd8ecf8 },
+};
+const PAN = {
+  rows: ['...hh...', '...hh...', '.HHHHHH.', 'HHHHHHHH', 'HHHHHHHH', '.HHHHHH.'],
+  pal: { h: 0x3a3a40, H: 0xb87333 },
+};
+const ICICLE = {
+  rows: ['IIIIII', 'IIIIII', '.IIII.', '.IIII.', '..II..', '..II..', '...I..'],
+  pal: { I: 0xc0dcec },
+};
+const SAFFRON = {
+  rows: ['..tttt..', '.tTTTTt.', '.tTrrTt.', '.tTrrTt.', '.tTTTTt.', '..tttt..'],
+  pal: { t: 0xb8862c, T: 0xd8a840, r: 0xc03a2a },
+};
+const GOLD_LEAF = {
+  rows: ['..gggg..', '.gGGGGg.', '.gGGGGg.', '.gGGGGg.', '..gggg..'],
+  pal: { g: 0xb8862c, G: 0xf2d580 },
+};
+const HEAT_LAMP = {
+  rows: ['HHHHHHHH', '.YYYYYY.', '..YYYY..'],
+  pal: { H: 0x3a3a40, Y: 0xf09040 },
+};
+const CRAWLER = {
+  rows: ['.b....b.', '..bbbb..', '.bBBBBb.', 'bBBBBBBb', '.b.bb.b.'],
+  pal: { b: 0x3a2a20, B: 0x5a3a28 },
+};
+const PEPPER_MILL = {
+  rows: ['..MMMM..', '..mMMm..', '.MMMMMM.', '.MMMMMM.', '.MmMMmM.', '.MMMMMM.', '.MMMMMM.', 'MMMMMMMM'],
+  pal: { M: 0x6a4a32, m: 0x4a3222 },
+};
+const CART = {
+  rows: ['SSSSSSSSSS', 'SsssssssaS', 'SSSSSSSSSS', '.w..ww..w.', '.w..ww..w.'],
+  pal: { S: 0x8a8e9a, s: 0xb8bcc8, a: 0xc03a2a, w: 0x2a2a30 },
+};
+const DOUGH = {
+  rows: ['..dddd..', '.dDDDDd.', 'dDDDDDDd', 'dDDDDDDd', '.dDDDDd.'],
+  pal: { d: 0xd8c8a0, D: 0xf0e4c8 },
+};
+const SUGAR = {
+  rows: ['SSSSSSSS', '.S.SS.S.', '..S..S..'],
+  pal: { S: 0xf0e8f8 },
+};
+const CREAM = {
+  rows: ['..cc..', '.cccc.', 'cccccc', '.cccc.'],
+  pal: { c: 0xf8f4ec },
+};
+const MERINGUE = {
+  rows: ['..mmm...', '.mmmmm..', 'mmWmmWm.', 'mmmmmmm.', '.mmmmm..'],
+  pal: { m: 0xf0e8e0, W: 0x2a2a30 },
+};
+const CAT = {
+  rows: ['.c...c..', '.cc.cc..', '.cccccc.', '.cCccCc.', '.cccccccc', '..cc..c.'],
+  pal: { c: 0x8a6844, C: 0x2a2a30 },
+};
+const BELL = {
+  rows: ['...bb...', '..BBBB..', '.BBBBBB.', '.BBBBBB.', 'BBBBBBBB', '...bb...'],
+  pal: { b: 0x8a6844, B: 0xd8a840 },
+};
+const PORTRAIT_M = {
+  rows: [
+    '..HHHHHH..',
+    '.HHHHHHHH.',
+    '.HSSSSSSH.',
+    '..SSSSSS..',
+    '..SbSSbS..',
+    '..SSSSSS..',
+    '..SssssS..',
+    '...SSSS...',
+    '..WWWWWW..',
+    '.WWWWWWWW.',
+  ],
+  pal: { H: 0x6a5a80, S: 0xc8a888, b: 0x2a2a30, s: 0xb08868, W: 0xe8e4d8 },
+};
+const PORTRAIT_A = {
+  rows: [
+    '..TTTTTT..',
+    '..TTTTTT..',
+    '..TTTTTT..',
+    '.TTTTTTTT.',
+    '..dddddd..',
+    '..dddddd..',
+    '..dSSSSd..',
+    '...SSSS...',
+    '..JJJJJJ..',
+    '.JJJJJJJJ.',
+  ],
+  pal: { T: 0xe8e4d8, d: 0x2a2230, S: 0x8a6a50, J: 0xe8e4d8 },
+};
+
 export const chefTheme = {
   tileKey: 'chef-tile',
   spikeKey: 'chef-knives',
@@ -49,6 +148,25 @@ export const chefTheme = {
     createPixelTexture(scene, 'chef-pot', POT.rows, POT.pal, 4);
     createPixelTexture(scene, 'chef-cloche', CLOCHE.rows, CLOCHE.pal, 4);
     createPixelTexture(scene, 'chef-table', TABLE.rows, TABLE.pal, 4);
+    createPixelTexture(scene, 'chef-ice', ICE_TILE.rows, ICE_TILE.pal, 4);
+    createPixelTexture(scene, 'chef-crate', CRATE.rows, CRATE.pal, 4);
+    createPixelTexture(scene, 'chef-vent', VENT.rows, VENT.pal, 4);
+    createPixelTexture(scene, 'chef-pan', PAN.rows, PAN.pal, 4);
+    createPixelTexture(scene, 'chef-icicle', ICICLE.rows, ICICLE.pal, 4);
+    createPixelTexture(scene, 'chef-saffron', SAFFRON.rows, SAFFRON.pal, 3);
+    createPixelTexture(scene, 'chef-gold', GOLD_LEAF.rows, GOLD_LEAF.pal, 3);
+    createPixelTexture(scene, 'chef-lamp', HEAT_LAMP.rows, HEAT_LAMP.pal, 4);
+    createPixelTexture(scene, 'chef-crawler', CRAWLER.rows, CRAWLER.pal, 3);
+    createPixelTexture(scene, 'chef-mill', PEPPER_MILL.rows, PEPPER_MILL.pal, 4);
+    createPixelTexture(scene, 'chef-cart', CART.rows, CART.pal, 4);
+    createPixelTexture(scene, 'chef-dough', DOUGH.rows, DOUGH.pal, 5);
+    createPixelTexture(scene, 'chef-sugar', SUGAR.rows, SUGAR.pal, 4);
+    createPixelTexture(scene, 'chef-cream', CREAM.rows, CREAM.pal, 3);
+    createPixelTexture(scene, 'chef-meringue', MERINGUE.rows, MERINGUE.pal, 4);
+    createPixelTexture(scene, 'chef-cat', CAT.rows, CAT.pal, 3);
+    createPixelTexture(scene, 'chef-bell', BELL.rows, BELL.pal, 3);
+    createPixelTexture(scene, 'portrait-marguerite', PORTRAIT_M.rows, PORTRAIT_M.pal, 5);
+    createPixelTexture(scene, 'portrait-aurelio', PORTRAIT_A.rows, PORTRAIT_A.pal, 5);
   },
 
   drawBackdrop(scene, worldW, worldH) {

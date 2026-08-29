@@ -1,8 +1,11 @@
 import Phaser from 'phaser';
 import { createJoTextures } from './jo.js';
+import { sfx } from '../systems/audio.js';
 
 const SPEED = 220;
 const JUMP = 560;
+const COYOTE_MS = 100;
+const BUFFER_MS = 120;
 
 export default class Player extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y) {
@@ -14,31 +17,122 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.setCollideWorldBounds(true);
 
     this.cursors = scene.input.keyboard.createCursorKeys();
-    this.keys = scene.input.keyboard.addKeys('W,A,S,D,SPACE,X');
+    this.keys = scene.input.keyboard.addKeys('W,A,S,D,SPACE,X,E');
     this.runFrameTimer = 0;
-    this.slippery = false; // set by the scene when standing on oil
+    this.slippery = false; // scene sets: 0 = normal, else lerp factor
+    this.slipFactor = 0.06;
+    this.reversedUntil = 0; // pepper clouds
+    this.lastGrounded = 0;
+    this.lastJumpPressed = -9999;
+    this.wasAirborne = false;
+    this.controlLockUntil = 0;
+    this.ladleCooldown = 0;
   }
 
-  update(_time, delta) {
+  dust(n = 3) {
+    for (let i = 0; i < n; i++) {
+      const c = this.scene.add.circle(
+        this.x + Phaser.Math.Between(-10, 10),
+        this.y + 22,
+        Phaser.Math.Between(2, 4),
+        0xc8c0b0,
+        0.6
+      );
+      this.scene.tweens.add({
+        targets: c,
+        y: c.y - Phaser.Math.Between(6, 14),
+        alpha: 0,
+        duration: 350,
+        onComplete: () => c.destroy(),
+      });
+    }
+  }
+
+  swingLadle() {
+    const now = this.scene.time.now;
+    if (now < this.ladleCooldown) return null;
+    this.ladleCooldown = now + 400;
+    sfx('swing');
+    const dir = this.flipX ? -1 : 1;
+    const arc = this.scene.add
+      .rectangle(this.x + dir * 26, this.y - 4, 36, 30, 0xd8d8e0, 0.35)
+      .setDepth(30);
+    this.scene.tweens.add({ targets: arc, alpha: 0, angle: dir * 60, duration: 180, onComplete: () => arc.destroy() });
+    return new Phaser.Geom.Rectangle(dir < 0 ? this.x - 48 : this.x + 8, this.y - 20, 40, 40);
+  }
+
+  update(time, delta) {
     const body = this.body;
-    const left = this.cursors.left.isDown || this.keys.A.isDown;
-    const right = this.cursors.right.isDown || this.keys.D.isDown;
-    const jump = this.cursors.up.isDown || this.keys.W.isDown || this.keys.SPACE.isDown;
+    const rev = time < this.reversedUntil;
+    let left = this.cursors.left.isDown || this.keys.A.isDown;
+    let right = this.cursors.right.isDown || this.keys.D.isDown;
+    if (rev) [left, right] = [right, left];
+    const jumpDown = this.cursors.up.isDown || this.keys.W.isDown || this.keys.SPACE.isDown;
+    const jumpJust =
+      Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
+      Phaser.Input.Keyboard.JustDown(this.keys.W) ||
+      Phaser.Input.Keyboard.JustDown(this.keys.SPACE);
     const crouch = this.cursors.down.isDown || this.keys.S.isDown;
+    const locked = time < this.controlLockUntil;
 
-    const target = left ? -SPEED : right ? SPEED : 0;
-    if (this.slippery && body.onFloor()) {
-      body.setVelocityX(Phaser.Math.Linear(body.velocity.x, target, 0.06));
+    if (body.onFloor()) {
+      this.lastGrounded = time;
+      if (this.wasAirborne) {
+        this.dust(4);
+        this.wasAirborne = false;
+      }
     } else {
-      body.setVelocityX(target);
+      this.wasAirborne = true;
     }
-    if (left) this.setFlipX(true);
-    if (right) this.setFlipX(false);
+    if (jumpJust) this.lastJumpPressed = time;
 
-    if (jump && body.onFloor()) {
+    // horizontal
+    if (!locked) {
+      const target = left ? -SPEED : right ? SPEED : 0;
+      if (this.slippery && body.onFloor()) {
+        body.setVelocityX(Phaser.Math.Linear(body.velocity.x, target, this.slipFactor));
+      } else {
+        const airFactor = body.onFloor() ? 1 : 0.7;
+        body.setVelocityX(Phaser.Math.Linear(body.velocity.x, target, 0.5 * airFactor));
+      }
+    }
+    if (left && !locked) this.setFlipX(true);
+    if (right && !locked) this.setFlipX(false);
+
+    // wall slide + wall jump
+    const pressingWall = (left && body.blocked.left) || (right && body.blocked.right);
+    const sliding = !body.onFloor() && pressingWall && body.velocity.y > 0;
+    if (sliding) {
+      body.setVelocityY(Math.min(body.velocity.y, 70));
+      if (jumpJust) {
+        const away = body.blocked.left ? 1 : -1;
+        body.setVelocityY(-JUMP * 0.92);
+        body.setVelocityX(away * 280);
+        this.setFlipX(away < 0);
+        this.controlLockUntil = time + 160;
+        this.dust(3);
+        sfx('jump');
+      }
+    }
+
+    // jump with coyote time + buffer
+    const canJump = body.onFloor() || time - this.lastGrounded < COYOTE_MS;
+    if (canJump && time - this.lastJumpPressed < BUFFER_MS) {
       body.setVelocityY(-JUMP);
+      this.lastJumpPressed = -9999;
+      this.lastGrounded = -9999;
+      sfx('jump');
+    }
+    // variable height: release early → cut the rise
+    if (!jumpDown && body.velocity.y < -160) {
+      body.setVelocityY(body.velocity.y * 0.82);
+    }
+    // fast-fall
+    if (crouch && !body.onFloor() && body.velocity.y > -50) {
+      body.setVelocityY(Math.max(body.velocity.y, 420));
     }
 
+    // animation frames
     const moving = left || right;
     if (moving && body.onFloor()) {
       this.runFrameTimer += delta;
@@ -51,7 +145,9 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     } else {
       this.setTexture('jo-stand');
     }
+    this.setTint(rev ? 0xd8f0a0 : 0xffffff);
 
+    // crouch hitbox
     if (crouch && body.onFloor()) {
       this.setScale(1, 0.7);
       body.setSize(24, 32, false).setOffset(4, 14);

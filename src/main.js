@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import SelectScene from './scenes/SelectScene.js';
 import IntroScene from './scenes/IntroScene.js';
 import LevelScene from './scenes/LevelScene.js';
+import ChefScene from './scenes/ChefScene.js';
 
 window.game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -19,5 +20,5 @@ window.game = new Phaser.Game({
       gravity: { y: 1200 },
     },
   },
-  scene: [SelectScene, IntroScene, LevelScene],
+  scene: [SelectScene, IntroScene, LevelScene, ChefScene],
 });
