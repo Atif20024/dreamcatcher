@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
-import PlaygroundScene from './scenes/PlaygroundScene.js';
+import LevelScene from './scenes/LevelScene.js';
 
-new Phaser.Game({
+window.game = new Phaser.Game({
   type: Phaser.AUTO,
   width: 960,
   height: 540,
@@ -13,5 +13,5 @@ new Phaser.Game({
       gravity: { y: 1200 },
     },
   },
-  scene: [PlaygroundScene],
+  scene: [LevelScene],
 });
