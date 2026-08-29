@@ -1,0 +1,40 @@
+import Phaser from 'phaser';
+import { LEVELS } from '../data/levels.js';
+
+// Temporary dream picker — replaced by the walkable Crossroads Station in M3.
+export default class SelectScene extends Phaser.Scene {
+  constructor() {
+    super('Select');
+  }
+
+  create() {
+    const g = this.add.graphics();
+    g.fillGradientStyle(0x1b1b3a, 0x1b1b3a, 0x3a2434, 0x2a1a28, 1);
+    g.fillRect(0, 0, 960, 540);
+
+    this.add
+      .text(480, 120, 'DREAMCATCHER', { fontFamily: 'monospace', fontSize: '42px', color: '#f2d580' })
+      .setOrigin(0.5);
+    this.add
+      .text(480, 165, 'which dream calls to you?', { fontFamily: 'monospace', fontSize: '16px', color: '#c8c0b0' })
+      .setOrigin(0.5);
+
+    const entries = Object.entries(LEVELS);
+    entries.forEach(([key, lvl], i) => {
+      this.add
+        .text(480, 260 + i * 50, `[${i + 1}]  ${lvl.name}`, {
+          fontFamily: 'monospace',
+          fontSize: '22px',
+          color: '#e8dcc8',
+        })
+        .setOrigin(0.5);
+      this.input.keyboard.addKey(`${['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE'][i]}`).on('down', () => {
+        this.scene.start('Intro', { levelKey: key });
+      });
+    });
+
+    this.add
+      .text(480, 470, 'Crossroads Station opens in M3', { fontFamily: 'monospace', fontSize: '12px', color: '#6a6478' })
+      .setOrigin(0.5);
+  }
+}

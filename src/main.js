@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import SelectScene from './scenes/SelectScene.js';
+import IntroScene from './scenes/IntroScene.js';
 import LevelScene from './scenes/LevelScene.js';
 
 window.game = new Phaser.Game({
@@ -13,5 +15,5 @@ window.game = new Phaser.Game({
       gravity: { y: 1200 },
     },
   },
-  scene: [LevelScene],
+  scene: [SelectScene, IntroScene, LevelScene],
 });
