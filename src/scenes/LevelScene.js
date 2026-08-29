@@ -100,14 +100,14 @@ export default class LevelScene extends Phaser.Scene {
           this.beams.push(beam);
           this.tweens.add({
             targets: beam,
-            x: cx + 96,
-            duration: 1700,
+            x: cx + 64,
+            duration: 2200,
             yoyo: true,
             repeat: -1,
             ease: 'sine.inout',
-            delay: this.beams.length * 550,
+            delay: this.beams.length * 900,
           });
-          beam.x = cx - 96;
+          beam.x = cx - 64;
         } else if (ch === 'R') {
           const c = this.add.image(cx, cy, 'mus-critic');
           this.critics.push({ sprite: c, next: 0 });
@@ -177,6 +177,18 @@ export default class LevelScene extends Phaser.Scene {
       .text(16, 52, this.level.name, { fontFamily: 'monospace', fontSize: '14px', color: '#e8dcc8' })
       .setScrollFactor(0)
       .setDepth(50);
+    this.add
+      .text(this.cameras.main.width - 16, 30, '[Esc] pause', { fontFamily: 'monospace', fontSize: '12px', color: '#8a8478' })
+      .setOrigin(1, 0.5)
+      .setScrollFactor(0)
+      .setDepth(50);
+
+    this.keyEsc = this.input.keyboard.addKey('ESC');
+    this.keyQ = this.input.keyboard.addKey('Q');
+    this.input.keyboard.on('keydown-F', () => {
+      if (this.scale.isFullscreen) this.scale.stopFullscreen();
+      else this.scale.startFullscreen();
+    });
   }
 
   spawnOrb(cx, cy) {
@@ -206,8 +218,15 @@ export default class LevelScene extends Phaser.Scene {
     this.hearts.forEach((h, i) => h.setAlpha(i < this.lives ? 1 : 0.25));
     if (this.lives <= 0) {
       this.showCard(
-        ['You gave everything… and it slipped away.', '', 'Do you really want to pursue this dream?', '', '[X] Try again'],
-        () => this.scene.restart({ levelKey: this.levelKey })
+        [
+          'You gave everything… and it slipped away.',
+          '',
+          'Do you really want to pursue this dream?',
+          '',
+          '[X] Try again      [Q] Choose another dream',
+        ],
+        () => this.scene.restart({ levelKey: this.levelKey }),
+        () => this.scene.start('Select')
       );
       return;
     }
@@ -232,16 +251,16 @@ export default class LevelScene extends Phaser.Scene {
     );
   }
 
-  showCard(lines, onConfirm) {
+  showCard(lines, onConfirm, onAlt = null) {
     this.cardActive = true;
     this.physics.pause();
     this.tweens.pauseAll();
     const cam = this.cameras.main;
-    this.add
+    this.cardOverlay = this.add
       .rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x000000, 0.75)
       .setScrollFactor(0)
       .setDepth(100);
-    this.add
+    this.cardText = this.add
       .text(cam.width / 2, cam.height / 2, lines.join('\n'), {
         fontFamily: 'monospace',
         fontSize: '18px',
@@ -253,14 +272,37 @@ export default class LevelScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(101);
     this.cardConfirm = onConfirm;
+    this.cardAlt = onAlt;
+  }
+
+  closeCard() {
+    this.cardActive = false;
+    this.cardOverlay.destroy();
+    this.cardText.destroy();
+    this.physics.resume();
+    this.tweens.resumeAll();
   }
 
   update(time, delta) {
     if (this.cardActive) {
       if (Phaser.Input.Keyboard.JustDown(this.player.keys.X)) {
-        this.tweens.resumeAll();
-        this.cardConfirm();
+        const fn = this.cardConfirm;
+        this.closeCard();
+        if (fn) fn();
+      } else if (this.cardAlt && Phaser.Input.Keyboard.JustDown(this.keyQ)) {
+        const fn = this.cardAlt;
+        this.closeCard();
+        fn();
       }
+      return;
+    }
+
+    if (Phaser.Input.Keyboard.JustDown(this.keyEsc)) {
+      this.showCard(
+        ['Paused', '', '[X] Keep dreaming', '[Q] Choose another dream'],
+        null,
+        () => this.scene.start('Select')
+      );
       return;
     }
 
@@ -287,7 +329,7 @@ export default class LevelScene extends Phaser.Scene {
 
     // sweeping spotlights: caught in the beam = thrown out
     for (const beam of this.beams) {
-      if (Math.abs(p.x - beam.x) < 26 && p.y > 120) {
+      if (Math.abs(p.x - beam.x) < 18 && p.y > 120) {
         this.hurt();
         break;
       }

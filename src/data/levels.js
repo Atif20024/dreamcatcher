@@ -32,12 +32,11 @@ function buildMusician() {
   put(rows, 17, 16, 'KK');
   put(rows, 17, 20, 'KK');
   put(rows, 17, 24, 'KK');
-  // spotlight corridor with broken boards
+  // spotlight corridor with broken boards — checkpoint before, safe lane between sweeps
+  put(rows, 19, 31, 'C');
   put(rows, 2, 34, 'L');
-  put(rows, 2, 41, 'L');
-  put(rows, 2, 48, 'L');
-  put(rows, 19, 37, '^^');
-  put(rows, 19, 44, '^^');
+  put(rows, 2, 44, 'L');
+  put(rows, 19, 39, '^^');
   put(rows, 19, 57, 'C');
   // critics' gallery over the second pit
   put(rows, 17, 62, '###');

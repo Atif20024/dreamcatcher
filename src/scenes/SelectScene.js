@@ -34,7 +34,19 @@ export default class SelectScene extends Phaser.Scene {
     });
 
     this.add
+      .text(480, 440, '[F] fullscreen  ·  [Esc] pause inside a dream', {
+        fontFamily: 'monospace',
+        fontSize: '13px',
+        color: '#8a8478',
+      })
+      .setOrigin(0.5);
+    this.add
       .text(480, 470, 'Crossroads Station opens in M3', { fontFamily: 'monospace', fontSize: '12px', color: '#6a6478' })
       .setOrigin(0.5);
+
+    this.input.keyboard.on('keydown-F', () => {
+      if (this.scale.isFullscreen) this.scale.stopFullscreen();
+      else this.scale.startFullscreen();
+    });
   }
 }
