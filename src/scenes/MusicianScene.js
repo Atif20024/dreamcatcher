@@ -2,7 +2,10 @@ import Phaser from 'phaser';
 import Player from '../entities/Player.js';
 import BaseLevel from './BaseLevel.js';
 import { THEMES } from '../themes/index.js';
-import { buildMusicianMap, M_GATES, M_DIALOGUES, M_MOMENTS, SONGS, noRests, ZONES, GROUND } from '../data/musicianData.js';
+import { M_DIALOGUES, M_MOMENTS, SONGS, noRests, ZONES, GROUND } from '../data/musicianData.js';
+import RoomBuilder from '../builders/RoomBuilder.js';
+import musicianRooms from '../data/musician/rooms.js';
+import musicianTiles from '../data/musician/tiles.js';
 import Phrases from '../systems/rhythm.js';
 import { tuning, playTheRoom, theMix } from '../systems/puzzles.js';
 import { completeDream } from '../utils/save.js';
@@ -19,23 +22,23 @@ export default class MusicianScene extends BaseLevel {
 
   create() {
     this.theme = THEMES.musician;
-    const map = buildMusicianMap();
-    const worldW = 400 * T;
-    const worldH = 44 * T;
-
     this.theme.createTextures(this);
+
+    // D2/D3 — generic RoomBuilder terrain: autotiled, supported, with slopes,
+    // stairs, one-ways and the climbable fire-escape wall.
+    const built = RoomBuilder.build(this, musicianRooms, musicianTiles);
+    this.built = built;
+    const worldW = built.worldW;
+    const worldH = built.worldH;
     this.theme.drawBackdrop(this, worldW, worldH);
-    // day palettes
     for (const [c0, c1, color, alpha] of ZONES) {
       this.add.rectangle(((c0 + c1) / 2) * T, worldH / 2, (c1 - c0) * T, worldH, color, alpha).setDepth(2);
     }
 
-    this.solids = this.physics.add.staticGroup();
-    map.forEach((row, ty) => {
-      [...row].forEach((ch, tx) => {
-        if (ch === '#') this.solids.add(this.add.image(px(tx), px(ty), 'mus-tile'));
-      });
-    });
+    this.solids = built.solids;
+    this.oneWays = built.oneWays;
+    this.slopeGrid = built.slopeGrid;
+    this.climbGrid = built.climbGrid;
 
     const spawn = { x: px(3), y: px(GROUND - 2) };
     this.player = new Player(this, spawn.x, spawn.y);
@@ -61,10 +64,9 @@ export default class MusicianScene extends BaseLevel {
 
     this.flags = this.physics.add.staticGroup();
     this.orbs = this.physics.add.staticGroup();
-    [
-      [22, 35], [57, 35], [84, 35], [149, 35], [156, 35], [207, 35],
-      [227, 35], [249, 35], [276, 35], [314, 35], [327, 35], [362, 31],
-    ].forEach(([c, r]) => this.flags.create(px(c), px(r), 'flag'));
+    built.objects
+      .filter((o) => o.type === 'checkpoint')
+      .forEach((c) => this.flags.create(c.wx, c.wy, 'flag'));
 
     this.buildGates();
     this.buildDay0();
@@ -77,6 +79,7 @@ export default class MusicianScene extends BaseLevel {
     this.buildDay7();
 
     this.physics.add.collider(this.player, this.solids);
+    this.physics.add.collider(this.player, this.oneWays);
     this.physics.add.collider(this.walkers, this.solids);
     this.physics.add.collider(this.bottles, this.solids, (b) => b.destroy());
     this.physics.add.overlap(this.player, this.flags, (_p, f) => this.activateCheckpoint(f));
@@ -134,17 +137,22 @@ export default class MusicianScene extends BaseLevel {
     this.refreshGates();
   }
 
+  // D2/D4 — gates from the room object lists.
   buildGates() {
-    this.gates = M_GATES.map((g) => {
-      const tiles = [];
-      for (let r = g.rows[0]; r <= g.rows[1]; r++) {
-        const img = this.add.image(px(g.col), px(r), 'mus-tile').setTint(0x6a4a5a);
-        this.solids.add(img);
-        tiles.push(img);
-      }
-      const light = this.add.circle(px(g.col), px(g.rows[0]) - 18, 5, 0xe83a2a).setDepth(20);
-      return { ...g, tiles, light, open: false };
-    });
+    this.gates = this.built.objects
+      .filter((o) => o.type === 'gate')
+      .map((g) => {
+        const tiles = [];
+        for (let r = g.ty; r < g.ty + (g.h || 5); r++) {
+          const img = this.add.image(g.wx, px(r), `${musicianTiles.key}_s_15_${(g.tx * 7 + r * 13) % 3}`).setTint(0x6a4a5a);
+          this.physics.add.existing(img, true);
+          this.solids.add(img);
+          tiles.push(img);
+        }
+        const light = this.add.circle(g.wx, px(g.ty) - 18, 5, 0xe83a2a).setDepth(20);
+        this.add.rectangle(g.wx, px(g.ty) - 18, 22, 3, 0x2a2a34).setDepth(19);
+        return { ...g, id: g.id, requires: g.requires || [], tiles, light, open: false };
+      });
   }
 
   refreshGates() {

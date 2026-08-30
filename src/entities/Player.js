@@ -1,9 +1,13 @@
 import Phaser from 'phaser';
 import { createJoTextures } from './jo.js';
 import { sfx } from '../systems/audio.js';
+import { slopeSurface } from '../builders/legend.js';
 
-const SPEED = 220;
-const JUMP = 560;
+// D1: px figures from the other docs are doubled for the 32px scale
+// (run 140 -> 280, jump 300 -> 600, look-ahead 48 -> 96).
+const T = 32;
+const SPEED = 280;
+const JUMP = 600;
 const COYOTE_MS = 100;
 const BUFFER_MS = 120;
 
@@ -75,7 +79,31 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     const crouch = this.cursors.down.isDown || this.keys.S.isDown;
     const locked = time < this.controlLockUntil;
 
-    if (body.onFloor()) {
+    // D3 — slopes: Arcade has none, so resolve the surface by hand and treat
+    // the result as ground for every other check this frame.
+    this.onSlope = false;
+    const sg = this.scene.slopeGrid;
+    if (sg) {
+      const footTx = Math.floor(this.x / T);
+      const footY = body.bottom;
+      for (const ty of [Math.floor(footY / T), Math.floor(footY / T) - 1]) {
+        const role = sg[ty] && sg[ty][footTx];
+        if (!role) continue;
+        const fx = this.x / T - footTx;
+        const surfaceY = ty * T + slopeSurface(role, fx) * T;
+        if (footY >= surfaceY - 8 && footY <= surfaceY + T && body.velocity.y >= -10) {
+          this.y += surfaceY - footY;
+          body.y += surfaceY - footY;
+          body.velocity.y = 0;
+          body.blocked.down = true;
+          this.onSlope = true;
+          break;
+        }
+      }
+    }
+    const grounded = body.onFloor() || this.onSlope;
+
+    if (grounded) {
       this.lastGrounded = time;
       if (this.wasAirborne) {
         this.dust(4);
@@ -89,19 +117,29 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     // horizontal
     if (!locked) {
       const target = left ? -SPEED : right ? SPEED : 0;
-      if (this.slippery && body.onFloor()) {
+      if (this.slippery && grounded) {
         body.setVelocityX(Phaser.Math.Linear(body.velocity.x, target, this.slipFactor));
       } else {
-        const airFactor = body.onFloor() ? 1 : 0.7;
+        const airFactor = grounded ? 1 : 0.7;
         body.setVelocityX(Phaser.Math.Linear(body.velocity.x, target, 0.5 * airFactor));
       }
     }
     if (left && !locked) this.setFlipX(true);
     if (right && !locked) this.setFlipX(false);
 
-    // wall slide + wall jump
-    const pressingWall = (left && body.blocked.left) || (right && body.blocked.right);
-    const sliding = !body.onFloor() && pressingWall && body.velocity.y > 0;
+    // wall slide + wall jump — D7: ONLY on a climbable '|' tile, so a plain
+    // wall can never be scaled to skip a gate.
+    const cg = this.scene.climbGrid;
+    const climbableSide = (dx) => {
+      if (!cg) return false;
+      const tx = Math.floor((this.x + dx) / T);
+      const ty0 = Math.floor((this.y - 10) / T);
+      const ty1 = Math.floor((this.y + 10) / T);
+      return !!(cg[ty0]?.[tx] || cg[ty1]?.[tx]);
+    };
+    const pressingWall =
+      (left && body.blocked.left && climbableSide(-18)) || (right && body.blocked.right && climbableSide(18));
+    const sliding = !grounded && pressingWall && body.velocity.y > 0;
     if (sliding) {
       body.setVelocityY(Math.min(body.velocity.y, 70));
       if (jumpJust) {
@@ -116,7 +154,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     // jump with coyote time + buffer
-    const canJump = body.onFloor() || time - this.lastGrounded < COYOTE_MS;
+    const canJump = grounded || time - this.lastGrounded < COYOTE_MS;
     if (canJump && time - this.lastJumpPressed < BUFFER_MS) {
       body.setVelocityY(-JUMP);
       this.lastJumpPressed = -9999;
@@ -128,19 +166,19 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       body.setVelocityY(body.velocity.y * 0.82);
     }
     // fast-fall
-    if (crouch && !body.onFloor() && body.velocity.y > -50) {
+    if (crouch && !grounded && body.velocity.y > -50) {
       body.setVelocityY(Math.max(body.velocity.y, 420));
     }
 
     // animation frames
     const moving = left || right;
-    if (moving && body.onFloor()) {
+    if (moving && grounded) {
       this.runFrameTimer += delta;
       if (this.runFrameTimer > 120) {
         this.runFrameTimer = 0;
         this.setTexture(this.texture.key === 'jo-run' ? 'jo-stand' : 'jo-run');
       }
-    } else if (!body.onFloor()) {
+    } else if (!grounded) {
       this.setTexture('jo-run');
     } else {
       this.setTexture('jo-stand');
@@ -148,7 +186,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.setTint(rev ? 0xd8f0a0 : 0xffffff);
 
     // crouch hitbox
-    if (crouch && body.onFloor()) {
+    if (crouch && grounded) {
       this.setScale(1, 0.7);
       body.setSize(24, 32, false).setOffset(4, 14);
     } else if (!crouch && this.scaleY !== 1) {

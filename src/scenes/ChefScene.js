@@ -2,7 +2,10 @@ import Phaser from 'phaser';
 import Player from '../entities/Player.js';
 import BaseLevel from './BaseLevel.js';
 import { THEMES } from '../themes/index.js';
-import { buildChefMap, GATES, DIALOGUES, MOMENTS } from '../data/chefMap.js';
+import { DIALOGUES, MOMENTS } from '../data/chefMap.js';
+import RoomBuilder from '../builders/RoomBuilder.js';
+import chefRooms from '../data/chef/rooms.js';
+import chefTiles from '../data/chef/tiles.js';
 import { freezerValve, ticketRail, piping } from '../systems/puzzles.js';
 import { completeDream } from '../utils/save.js';
 import { sfx, music } from '../systems/audio.js';
@@ -18,45 +21,34 @@ export default class ChefScene extends BaseLevel {
 
   create() {
     this.theme = THEMES.chef;
-    const map = buildChefMap();
-    const worldW = 320 * T;
-    const worldH = 40 * T;
-
     this.theme.createTextures(this);
+
+    // D2/D3 — terrain comes from the generic RoomBuilder (autotiled, with
+    // supports, slopes, one-ways and climbable walls).
+    const built = RoomBuilder.build(this, chefRooms, chefTiles);
+    this.built = built;
+    const worldW = built.worldW;
+    const worldH = built.worldH;
     this.theme.drawBackdrop(this, worldW, worldH);
 
-    this.solids = this.physics.add.staticGroup();
-    this.spikes = this.physics.add.staticGroup();
+    this.solids = built.solids;
+    this.oneWays = built.oneWays;
+    this.spikes = built.hazards;
+    this.slopeGrid = built.slopeGrid;
+    this.climbGrid = built.climbGrid;
+    this.surfaceGrid = built.surfaceGrid;
     this.orbs = this.physics.add.staticGroup();
     this.flags = this.physics.add.staticGroup();
     this.enemies = this.physics.add.group();
     this.projectiles = this.physics.add.group();
-    this.conveyorGrid = {};
-    this.oilGrid = {};
-    this.iceGrid = {};
     this.chocoZones = [];
-
-    map.forEach((row, ty) => {
-      [...row].forEach((ch, tx) => {
-        const cx = px(tx);
-        const cy = px(ty);
-        if (ch === '#') this.solids.add(this.add.image(cx, cy, 'chef-tile'));
-        else if (ch === '*') {
-          this.solids.add(this.add.image(cx, cy, 'chef-ice'));
-          (this.iceGrid[ty] ||= {})[tx] = true;
-        } else if (ch === 'I') {
-          this.solids.add(this.add.image(cx, cy, 'chef-oil'));
-          (this.oilGrid[ty] ||= {})[tx] = true;
-        } else if (ch === '<' || ch === '>') {
-          this.solids.add(this.add.image(cx, cy, 'chef-belt').setFlipX(ch === '<'));
-          (this.conveyorGrid[ty] ||= {})[tx] = ch === '<' ? -1 : 1;
-        } else if (ch === '~') {
-          this.add.rectangle(cx, cy, T, T, 0x4a2c1a, 0.9);
-          this.add.rectangle(cx, cy - 10, T, 6, 0x6a4028, 0.9);
-          this.chocoZones.push(new Phaser.Geom.Rectangle(cx - 16, cy - 10, 32, 42));
+    for (let ty = 0; ty < built.height; ty++) {
+      for (let tx = 0; tx < built.width; tx++) {
+        if (built.surfaceGrid[ty] && built.surfaceGrid[ty][tx] === 'liquid') {
+          this.chocoZones.push(new Phaser.Geom.Rectangle(px(tx) - 16, px(ty) - 10, 32, 42));
         }
-      });
-    });
+      }
+    }
 
     const spawn = { x: px(3), y: px(32) };
     this.player = new Player(this, spawn.x, spawn.y);
@@ -80,6 +72,7 @@ export default class ChefScene extends BaseLevel {
     this.decorate();
 
     this.physics.add.collider(this.player, this.solids);
+    this.physics.add.collider(this.player, this.oneWays);
     this.physics.add.collider(this.enemies, this.solids);
     this.physics.add.collider(this.projectiles, this.solids, (pr) => pr.hazard && pr.destroy());
     this.physics.add.overlap(this.player, this.flags, (_p, f) => this.activateCheckpoint(f));
@@ -107,17 +100,22 @@ export default class ChefScene extends BaseLevel {
     this.refreshGates();
   }
 
+  // D2/D4 — gates come from the room object lists, not from code.
   buildGates() {
-    this.gates = GATES.map((g) => {
-      const tiles = [];
-      for (let r = g.rows[0]; r <= g.rows[1]; r++) {
-        const img = this.add.image(px(g.col), px(r), 'chef-tile').setTint(0xa05a4a);
-        this.solids.add(img);
-        tiles.push(img);
-      }
-      const light = this.add.circle(px(g.col), px(g.rows[0]) - 20, 5, 0xe83a2a).setDepth(20);
-      return { ...g, tiles, light, open: false };
-    });
+    this.gates = this.built.objects
+      .filter((o) => o.type === 'gate')
+      .map((g) => {
+        const tiles = [];
+        for (let r = g.ty; r < g.ty + (g.h || 5); r++) {
+          const img = this.add.image(g.wx, px(r), `${chefTiles.key}_s_15_${(g.tx * 7 + r * 13) % 3}`).setTint(0xa05a4a);
+          this.physics.add.existing(img, true);
+          this.solids.add(img);
+          tiles.push(img);
+        }
+        const light = this.add.circle(g.wx, px(g.ty) - 20, 5, 0xe83a2a).setDepth(20);
+        this.add.rectangle(g.wx, px(g.ty) - 20, 22, 3, 0x2a2a34).setDepth(19);
+        return { ...g, id: g.id, requires: g.requires || [], tiles, light, open: false };
+      });
   }
 
   refreshGates() {
@@ -135,15 +133,9 @@ export default class ChefScene extends BaseLevel {
   }
 
   buildCheckpoints() {
-    [
-      [23, 33],
-      [79, 29],
-      [129, 33],
-      [132, 33],
-      [200, 33],
-      [258, 13],
-      [266, 33],
-    ].forEach(([c, r]) => this.flags.create(px(c), px(r), 'flag'));
+    this.built.objects
+      .filter((o) => o.type === 'checkpoint')
+      .forEach((c) => this.flags.create(c.wx, c.wy, 'flag'));
   }
 
   addInteract(x, y, label, cb, { radius = 40, once = true, when = () => true } = {}) {
@@ -706,18 +698,19 @@ export default class ChefScene extends BaseLevel {
     const footTx = Math.floor(p.x / T);
     const footTy = Math.floor((p.y + p.body.height / 2 + 6) / T);
 
+    const surface = this.surfaceGrid[footTy] && this.surfaceGrid[footTy][footTx];
     p.slippery = false;
-    if (this.iceGrid[footTy]?.[footTx]) {
+    if (surface === 'ice') {
       p.slippery = true;
       p.slipFactor = this.F.freezer_valve ? 0.3 : 0.04;
-    } else if (this.oilGrid[footTy]?.[footTx]) {
+    } else if (surface === 'grease') {
       p.slippery = true;
       p.slipFactor = 0.08;
     }
     p.update(time, delta);
     if (p.body.blocked.down) {
-      const dir = this.conveyorGrid[footTy]?.[footTx];
-      if (dir) p.body.velocity.x += dir * 90;
+      if (surface === 'conveyor_l') p.body.velocity.x -= 90;
+      else if (surface === 'conveyor_r') p.body.velocity.x += 90;
     }
     if (this.stickies.some((s) => time < s.until && overlaps(pb, s.rect))) {
       p.body.velocity.x *= 0.5;
