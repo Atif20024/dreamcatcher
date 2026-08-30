@@ -38,7 +38,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     // frame, so Jo bobbles instead of moving like a decal.
     this.hat = scene.add.image(x, y, 'jo-hat').setDepth(this.depth + 1);
     this.tool = scene.add
-      .image(x, y, scene.textures.exists('tool-trumpet') && scene.dreamKey === 'musician' ? 'tool-trumpet' : 'tool-ladle')
+      .image(x, y, scene.scene.key === 'Musician' ? 'tool-trumpet' : 'tool-ladle')
       .setDepth(this.depth + 1)
       .setAlpha(0.95);
     this.lastPos = { x, y };

@@ -70,6 +70,13 @@ export default class MusicianScene extends BaseLevel {
       .filter((o) => o.type === 'checkpoint')
       .forEach((c) => this.flags.create(c.wx, c.wy, 'flag'));
 
+    // D6 — the people of this dream (bouncer, hecklers, scalper, the Saltbox
+    // manager, the roadies) run on the confrontation system. The abstract
+    // creatures keep their bespoke behaviours below.
+    this.initFoes('musician');
+    this.spawnRoomFoes(built.objects, (o) => o.human);
+    this.addHideSpots(built.objects);
+
     this.buildGates();
     this.buildDay0();
     this.buildDay1();
@@ -872,6 +879,7 @@ export default class MusicianScene extends BaseLevel {
     }
 
     this.updateMusicRoom(); // D7 room-driven mix
+    this.updateFoes(time); // D6 people: patrol / alert / grab / stagger
     this.updateBusking(time);
     this.updateHazards(time, pb, dt);
     this.updateNia(time);
