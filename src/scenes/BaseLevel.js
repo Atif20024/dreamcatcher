@@ -3,6 +3,9 @@ import { createPixelTexture } from '../utils/pixelart.js';
 import { getDifficulty } from '../utils/save.js';
 import DialogueBox from '../systems/DialogueBox.js';
 import { sfx, music } from '../systems/audio.js';
+import Foe from '../entities/Foe.js';
+import { FOES } from '../data/kinds.js';
+import { showTutorial } from '../systems/tutorial.js';
 
 const HEART = { rows: ['.hh.hh.', 'hhhhhhh', 'hhhhhhh', '.hhhhh.', '..hhh..', '...h...'], pal: { h: 0xe86a6a } };
 const ORB = {
@@ -77,6 +80,130 @@ export default class BaseLevel extends Phaser.Scene {
       if (this.scale.isFullscreen) this.scale.stopFullscreen();
       else this.scale.startFullscreen();
     });
+  }
+
+  // ---- D6 confrontation ------------------------------------------------
+
+  initFoes(dreamKey) {
+    this.dreamKey = dreamKey;
+    this.foes = [];
+    this.hideSpots = [];
+    this.playerHidden = false;
+    this.foeGroup = this.physics.add.group();
+  }
+
+  addFoe(def) {
+    const reg = (FOES[this.dreamKey] || {})[def.kind] || {};
+    const merged = { ...reg, ...def };
+    if (merged.minDifficulty !== undefined && this.difficulty < merged.minDifficulty) return null;
+    const foe = new Foe(this, merged, merged.texture || 'chef-crawler');
+    if (merged.tint) foe.setTint(merged.tint);
+    if (merged.floats || merged.ranged) foe.body.setAllowGravity(false);
+    this.foeGroup.add(foe);
+    this.foes.push(foe);
+    if (merged.human) showTutorial(this, 'shove');
+    return foe;
+  }
+
+  spawnRoomFoes(objects, filter = () => true) {
+    objects
+      .filter((o) => o.type === 'foe' && filter(o))
+      .forEach((o) => this.addFoe({ ...o, wx: o.wx, wy: o.wy }));
+  }
+
+  addHideSpots(objects) {
+    objects
+      .filter((o) => o.type === 'hide')
+      .forEach((o) => {
+        this.hideSpots.push({ x: o.wx, y: o.wy, id: o.id });
+        this.add.rectangle(o.wx, o.wy + 6, 34, 34, 0x2a2a34, 0.55).setDepth(9).setStrokeStyle(1, 0x6a6478);
+      });
+  }
+
+  // D6.1 — caught by a person: not death, ejection.
+  throwOut(foe) {
+    if (this.thrownOut || this.cardActive) return;
+    this.thrownOut = true;
+    sfx('fail');
+    this.cameras.main.shake(200, 0.008);
+    this.player.controlLockUntil = this.time.now + 1500;
+    this.player.body.setVelocity(0, 0);
+    if (this.dropCarry) this.dropCarry();
+
+    const cam = this.cameras.main;
+    const wipe = this.add
+      .rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x000000, 0)
+      .setScrollFactor(0)
+      .setDepth(230);
+    const label = this.add
+      .text(cam.width / 2, cam.height / 2, 'THROWN OUT', { fontFamily: 'monospace', fontSize: '26px', color: '#e8dcc8' })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(231)
+      .setAlpha(0);
+    this.tweens.add({ targets: [wipe], alpha: 0.9, duration: 500 });
+    this.tweens.add({ targets: [label], alpha: 1, duration: 500 });
+    this.time.delayedCall(1000, () => {
+      this.player.setPosition(this.checkpoint.x, this.checkpoint.y);
+      this.player.setVelocity(0, 0);
+      this.tweens.add({
+        targets: [wipe, label],
+        alpha: 0,
+        duration: 500,
+        onComplete: () => {
+          wipe.destroy();
+          label.destroy();
+          this.thrownOut = false;
+        },
+      });
+      this.loseHeart();
+    });
+  }
+
+  loseHeart() {
+    this.lives -= 1;
+    this.updateHearts();
+    if (this.lives <= 0) this.sectionRestart();
+  }
+
+  // D6.3 — hearts are lives per section: at zero the section restarts.
+  sectionRestart() {
+    music.stop();
+    this.showCard(
+      [
+        'You gave everything… and it slipped away.',
+        '',
+        'Do you really want to pursue this dream?',
+        '',
+        '[X] Try again      [Q] Choose another dream',
+      ],
+      () => this.scene.restart(),
+      () => this.scene.start('Select')
+    );
+  }
+
+  updateFoes(time) {
+    const p = this.player;
+    // hide spots: crouch inside one and people lose you
+    const spot = this.hideSpots.find((h) => Math.abs(h.x - p.x) < 24 && Math.abs(h.y - p.y) < 34);
+    const crouching = p.cursors.down.isDown || p.keys.S.isDown;
+    const wasHidden = this.playerHidden;
+    this.playerHidden = !!(spot && crouching);
+    if (spot && !wasHidden && !this.playerHidden) showTutorial(this, 'hide');
+    if (this.playerHidden && !wasHidden) this.floatText(p.x, p.y - 46, 'hidden', '#88b8d8');
+
+    for (const foe of this.foes) {
+      if (!foe.active) continue;
+      foe.update(time, p);
+      // D6.2 trip: a person knocked onto a hazard tile removes themselves
+      if (foe.human && foe.state === 'staggered' && this.surfaceGrid) {
+        const tx = Math.floor(foe.x / 32);
+        const ty = Math.floor((foe.y + 20) / 32);
+        const s = this.surfaceGrid[ty] && this.surfaceGrid[ty][tx];
+        if (s === 'liquid' || s === 'grease' || s === 'conveyor_l' || s === 'conveyor_r') foe.trip();
+      }
+    }
+    this.foes = this.foes.filter((f) => f.active);
   }
 
   setObjective(text) {

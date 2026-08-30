@@ -2,9 +2,19 @@ const KEY = 'dreamcatcher.save';
 
 function load() {
   try {
-    return JSON.parse(localStorage.getItem(KEY)) || { dreamsCaught: 0, dreams: {} };
+    const s = JSON.parse(localStorage.getItem(KEY)) || {};
+    return { dreamsCaught: 0, dreams: {}, seen: [], ...s };
   } catch {
-    return { dreamsCaught: 0, dreams: {} };
+    return { dreamsCaught: 0, dreams: {}, seen: [] };
+  }
+}
+
+// D8 — remember which just-in-time tutorial cards have been shown.
+export function markSeen(id) {
+  const s = load();
+  if (!s.seen.includes(id)) {
+    s.seen.push(id);
+    localStorage.setItem(KEY, JSON.stringify(s));
   }
 }
 

@@ -39,7 +39,6 @@ export default class ChefScene extends BaseLevel {
     this.surfaceGrid = built.surfaceGrid;
     this.orbs = this.physics.add.staticGroup();
     this.flags = this.physics.add.staticGroup();
-    this.enemies = this.physics.add.group();
     this.projectiles = this.physics.add.group();
     this.chocoZones = [];
     for (let ty = 0; ty < built.height; ty++) {
@@ -59,6 +58,12 @@ export default class ChefScene extends BaseLevel {
     this.interacts = [];
     this.carry = null;
     this.carrySprite = null;
+
+    // D6 — foes from the room lists; `enemies` stays as the collider group.
+    this.initFoes('chef');
+    this.enemies = this.foeGroup;
+    this.spawnRoomFoes(built.objects, (o) => !o.wave);
+    this.addHideSpots(built.objects);
 
     this.buildGates();
     this.buildCheckpoints();
@@ -195,19 +200,18 @@ export default class ChefScene extends BaseLevel {
     });
   }
 
+  // legacy shim: scene sequences still spawn by short name
   spawnEnemy(kind, x, y, opts = {}) {
-    const tex = { crawler: 'chef-crawler', blob: 'chef-pot', mill: 'chef-mill', meringue: 'chef-meringue', pot: 'chef-pot' }[kind];
-    const e = this.enemies.create(x, y, tex);
-    e.kind = kind;
-    e.patrol = opts.patrol;
-    e.speedBase = (opts.speed || 60) * (1 + 0.08 * this.difficulty);
-    e.setVelocityX(-e.speedBase);
-    if (kind === 'meringue') {
-      e.body.setAllowGravity(false);
-      e.setVelocity(0, 0);
-    }
-    if (kind === 'mill') e.sprayNext = this.time.now + 2500;
-    return e;
+    const map = { crawler: 'crawler', blob: 'grease_blob', mill: 'pepper_mill', meringue: 'meringue', pot: 'grease_blob' };
+    const foe = this.addFoe({
+      kind: map[kind] || kind,
+      wx: x,
+      wy: y,
+      patrol: opts.patrol ? opts.patrol.map((v) => v / T) : null,
+      speed: opts.speed,
+    });
+    if (foe && map[kind] === 'pepper_mill') foe.sprayNext = this.time.now + 2500;
+    return foe;
   }
 
   // ---------- sections -------------------------------------------------
@@ -717,26 +721,28 @@ export default class ChefScene extends BaseLevel {
     }
     if (this.carrySprite) this.carrySprite.setPosition(p.x, p.y - 42);
 
-    // ladle
+    // ladle — D6.2: shoves people, destroys creatures
     if (Phaser.Input.Keyboard.JustDown(p.keys.X)) {
       const hit = p.swingLadle();
       if (hit) {
-        this.enemies.children.iterate((e) => {
-          if (!e || !overlaps(hit, e.getBounds())) return;
-          if (e.kind === 'blob' && !e.isSmall) {
-            sfx('squish');
+        for (const e of this.foes) {
+          if (!e.active || !overlaps(hit, e.getBounds())) continue;
+          if (e.human) {
+            e.shove(p.x);
+          } else if (e.kind === 'grease_blob' && !e.isSmall) {
             const { x, y } = e;
-            e.destroy();
+            e.die();
             [-1, 1].forEach((d) => {
               const s = this.spawnEnemy('blob', x + d * 14, y, { speed: 90 });
-              s.isSmall = true;
-              s.setScale(0.55);
+              if (s) {
+                s.isSmall = true;
+                s.setScale(0.55);
+              }
             });
           } else {
-            sfx('pop');
-            e.destroy();
+            e.die();
           }
-        });
+        }
       }
     }
 
@@ -1071,8 +1077,10 @@ export default class ChefScene extends BaseLevel {
   }
 
   updateEnemies(time, pb) {
-    this.enemies.children.iterate((e) => {
-      if (!e || !e.body) return;
+    this.updateFoes(time); // D6 AI: patrol / alert / wind-up / grab / stagger
+    for (const e of this.foes) {
+      if (!e.active || !e.body) continue;
+      if (e.human) continue; // people never damage on contact — they grab
       if (e.kind === 'meringue') {
         const dx = this.player.x - e.x;
         const dy = this.player.y - e.y;
@@ -1082,13 +1090,9 @@ export default class ChefScene extends BaseLevel {
           this.player.body.velocity.x += (dx > 0 ? -1 : 1) * 160;
           this.player.body.velocity.y -= 80;
         }
-        return;
+        continue;
       }
-      if (e.kind === 'mill') {
-        if (e.patrol) {
-          if (e.x < e.patrol[0]) e.setVelocityX(e.speedBase);
-          if (e.x > e.patrol[1]) e.setVelocityX(-e.speedBase);
-        }
+      if (e.kind === 'pepper_mill') {
         if (time > e.sprayNext && Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y) < 90) {
           e.sprayNext = time + 4000;
           const cloud = this.add.circle(e.x, e.y - 10, 46, 0xd8f0a0, 0.35).setDepth(18);
@@ -1100,19 +1104,15 @@ export default class ChefScene extends BaseLevel {
           }
         }
       }
-      // walkers: turn at walls/edges; stomp check
-      const dir = Math.sign(e.body.velocity.x) || -1;
-      if (e.body.blocked.left) e.setVelocityX(e.speedBase);
-      else if (e.body.blocked.right) e.setVelocityX(-e.speedBase);
+      // D6.1 creatures: stomp destroys, contact hurts
       if (overlaps(pb, e.getBounds())) {
         if (this.player.body.velocity.y > 60 && this.player.y < e.y - 8) {
-          sfx('squish');
-          e.destroy();
           this.player.body.setVelocityY(-350);
+          e.die();
         } else {
           this.hurt();
         }
       }
-    });
+    }
   }
 }
