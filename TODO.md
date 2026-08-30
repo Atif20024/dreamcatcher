@@ -17,6 +17,20 @@
   discipline, "8 props per screen" density bar (partial), speedrun/first-time
   duration acceptance tests.
 
+## Musician spec deviations (dream_musician_big_stage.md) — revisit later
+- [ ] Rhythm windows ±140ms (spec ±60) until an input-latency calibration
+      screen exists; no Perfect/Good tiers yet.
+- [ ] Trumpet/bass are synthesized, not sampled; pitch follows a scale
+      pattern rather than per-phrase melodies.
+- [ ] Cut/simplified: washing-line swings, coin-scatter wind, van interior
+      rest screens (dialogue plays at map spots), lantern/firework scale,
+      Delphine pavilion cameo is text-only, crowd wave animation, pyro and
+      camera-crane hazards in songs 2/3, d≥3 checkpoint removal, Nia
+      barrel/plank pathing (she walks or teleports on F), Day-6 riser
+      lanes splitting per song.
+- [ ] Small Moment #1/#3 are E-interacts rather than hidden scenes; the
+      busking Kid uses an [E] prompt instead of ambient detection.
+
 ## Level quality bar (from playtest feedback, 2026-08-29)
 Every dream level must be:
 - [ ] LARGE — several screens wide (150+ tiles), vertical sections too.
