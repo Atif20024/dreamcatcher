@@ -78,6 +78,31 @@ const SFX = {
   fail: () => [300, 240, 180].forEach((f, i) => tone(f, 0.25, 'square', 0.25, i * 0.15)),
 };
 
+// Jo's trumpet: 12 pitches, brassy square+saw blend. Nia's bass: 6 pitches.
+const TRUMPET_SCALE = [262, 294, 330, 349, 392, 440, 494, 523, 587, 659, 698, 784];
+const BASS_SCALE = [65, 73, 82, 87, 98, 110];
+
+export function trumpet(pitchIdx = 4, dur = 0.35, vol = 0.3) {
+  try {
+    const f = TRUMPET_SCALE[((pitchIdx % 12) + 12) % 12];
+    tone(f, dur, 'square', vol * 0.55);
+    tone(f, dur, 'sawtooth', vol * 0.25);
+    tone(f * 2, dur * 0.7, 'sine', vol * 0.15);
+  } catch {
+    /* silent */
+  }
+}
+
+export function bassNote(pitchIdx = 2, dur = 0.5, vol = 0.35) {
+  try {
+    const f = BASS_SCALE[((pitchIdx % 6) + 6) % 6];
+    tone(f, dur, 'triangle', vol);
+    tone(f * 2, dur * 0.5, 'sine', vol * 0.3);
+  } catch {
+    /* silent */
+  }
+}
+
 export function sfx(name) {
   try {
     if (SFX[name]) SFX[name]();

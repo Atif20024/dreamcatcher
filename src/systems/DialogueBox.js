@@ -9,8 +9,10 @@ export default class DialogueBox {
     this.active = false;
   }
 
-  // entries: [{name, text, portrait}] — portrait is a texture key or null
+  // entries: [{name, text, portrait, choices?: [{label, value}]}]
+  // Resolves with the value of the last choice made (or null).
   show(entries) {
+    this.choiceValue = null;
     return new Promise((resolve) => {
       const s = this.scene;
       const cam = s.cameras.main;
@@ -53,11 +55,50 @@ export default class DialogueBox {
       this.resolve = resolve;
       this.startEntry();
 
+      this.choiceTexts = [];
+      this.choiceIdx = 0;
       this.keyHandler = (e) => {
+        if (this.choosing) {
+          const entry = this.entries[this.idx];
+          if (['ArrowUp', 'ArrowLeft'].includes(e.code)) {
+            this.choiceIdx = (this.choiceIdx + entry.choices.length - 1) % entry.choices.length;
+            this.renderChoices();
+          } else if (['ArrowDown', 'ArrowRight'].includes(e.code)) {
+            this.choiceIdx = (this.choiceIdx + 1) % entry.choices.length;
+            this.renderChoices();
+          } else if (['KeyX', 'KeyE', 'Space', 'Enter'].includes(e.code)) {
+            this.choiceValue = entry.choices[this.choiceIdx].value;
+            this.choosing = false;
+            this.choiceTexts.forEach((t) => t.destroy());
+            this.choiceTexts = [];
+            this.idx += 1;
+            if (this.idx < this.entries.length) this.startEntry();
+            else this.close();
+          }
+          return;
+        }
         if (['KeyX', 'KeyE', 'Space'].includes(e.code)) this.advance();
       };
       s.input.keyboard.on('keydown', this.keyHandler);
     });
+  }
+
+  renderChoices() {
+    const s = this.scene;
+    const cam = s.cameras.main;
+    const entry = this.entries[this.idx];
+    this.choiceTexts.forEach((t) => t.destroy());
+    this.choiceTexts = entry.choices.map((c, i) =>
+      s.add
+        .text(cam.width / 2 + (i - (entry.choices.length - 1) / 2) * 220, cam.height - 62, `${i === this.choiceIdx ? '▸ ' : '  '}${c.label}`, {
+          fontFamily: 'monospace',
+          fontSize: '14px',
+          color: i === this.choiceIdx ? '#f2d580' : '#8a8478',
+        })
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(202)
+    );
   }
 
   startEntry() {
@@ -90,6 +131,13 @@ export default class DialogueBox {
       this.bodyText.setText(this.full);
       return;
     }
+    const entry = this.entries[this.idx];
+    if (entry.choices && !this.choosing) {
+      this.choosing = true;
+      this.choiceIdx = 0;
+      this.renderChoices();
+      return;
+    }
     this.idx += 1;
     if (this.idx < this.entries.length) {
       this.startEntry();
@@ -101,10 +149,12 @@ export default class DialogueBox {
   close() {
     const s = this.scene;
     s.input.keyboard.off('keydown', this.keyHandler);
-    [...this.bars, this.box, this.nameText, this.bodyText, this.hint, this.portrait].forEach((o) => o.destroy());
+    [...this.bars, this.box, this.nameText, this.bodyText, this.hint, this.portrait, ...this.choiceTexts].forEach((o) =>
+      o.destroy()
+    );
     this.active = false;
     s.dialogActive = false;
     if (!s.cardActive && !s.puzzleActive) s.physics.resume();
-    this.resolve();
+    this.resolve(this.choiceValue);
   }
 }

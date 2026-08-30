@@ -119,7 +119,7 @@ export default class IntroScene extends Phaser.Scene {
     this.tweens.add({ targets: this.jo, alpha: 0, duration: 350 });
     this.cameras.main.fadeOut(500);
     this.time.delayedCall(550, () =>
-      this.scene.start(this.levelKey === 'chef' ? 'Chef' : 'Level', { levelKey: this.levelKey })
+      this.scene.start(this.levelKey === 'chef' ? 'Chef' : 'Musician', { levelKey: this.levelKey })
     );
   }
 
