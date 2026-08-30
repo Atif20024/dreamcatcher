@@ -3,7 +3,7 @@ import { createJoTextures } from './jo.js';
 import { sfx } from '../systems/audio.js';
 import { slopeSurface } from '../builders/legend.js';
 import { JO_DUST } from './jo.js';
-import { dreamDust, squash } from '../systems/effects.js';
+import { dreamDust } from '../systems/effects.js';
 
 // D1: px figures from the other docs are doubled for the 32px scale
 // (run 140 -> 280, jump 300 -> 600, look-ahead 48 -> 96).
@@ -34,6 +34,17 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.controlLockUntil = 0;
     this.ladleCooldown = 0;
 
+    // Jo is drawn by `art`, never by this sprite: Arcade resizes a body along
+    // with its Game Object's scale, so squashing the physics sprite left the
+    // hitbox short and Jo rendered sunk into the floor. The physics sprite now
+    // stays at scale 1 forever and every squish is cosmetic.
+    this.setVisible(false);
+    this.shown = true; // scenes toggle this, not `visible`
+    this.crouching = false;
+    this.squashScale = { x: 1, y: 1 };
+    this.hatKnock = { y: 0, angle: 0 };
+    this.art = scene.add.image(x, y, 'jo-stand').setDepth(this.depth);
+
     // D5 — hat and tool are separate sprites that trail the body by one
     // frame, so Jo bobbles instead of moving like a decal.
     this.hat = scene.add.image(x, y, 'jo-hat').setDepth(this.depth + 1);
@@ -42,6 +53,12 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       .setDepth(this.depth + 1)
       .setAlpha(0.95);
     this.lastPos = { x, y };
+
+    // Physics writes the sprite's position after scene update, so the drawing
+    // is synced on post-update or it would trail the hitbox by a frame.
+    this._sync = () => this.syncAttachments();
+    scene.events.on('postupdate', this._sync);
+    scene.events.once('shutdown', () => scene.events.off('postupdate', this._sync));
   }
 
   // D5 — Jo bursting into dream-dust, not vanishing
@@ -49,26 +66,63 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     dreamDust(this.scene, this, { colors: JO_DUST, count: 22, spread: 20 });
   }
 
+  // the cosmetic squish: crouch and land-squash multiplied together
+  visualScale() {
+    return { x: this.squashScale.x, y: this.squashScale.y * (this.crouching ? 0.7 : 1) };
+  }
+
+  // D5 — land squash, on the drawing only. Feet stay planted (see below).
+  landSquash() {
+    if (this._squashTween) this._squashTween.remove();
+    this.squashScale.x = 1.2;
+    this.squashScale.y = 0.8;
+    this._squashTween = this.scene.tweens.add({
+      targets: this.squashScale,
+      x: 1,
+      y: 1,
+      duration: 140,
+      ease: 'quad.out',
+    });
+  }
+
   syncAttachments() {
+    const { x: sx, y: sy } = this.visualScale();
+    // The grids are 48 tall with a centred origin, so any vertical squish has
+    // to be paid back in y or Jo's feet leave the ground he is standing on.
+    this.art
+      .setPosition(this.x, this.y + 24 * (1 - sy))
+      .setScale(sx, sy)
+      .setFlipX(this.flipX)
+      .setVisible(this.shown)
+      .setAlpha(this.alpha);
+
     // one-frame lag
     const lx = this.lastPos.x;
     const ly = this.lastPos.y;
-    this.hat.setPosition(lx, ly - 18 * this.scaleY).setFlipX(this.flipX).setScale(1, this.scaleY);
-    this.hat.setVisible(this.visible).setAlpha(this.alpha);
+    const feet = ly + 24;
+    this.hat
+      .setPosition(lx, feet - 42 * sy + this.hatKnock.y)
+      .setScale(sx, sy)
+      .setAngle(this.hatKnock.angle)
+      .setFlipX(this.flipX);
+    this.hat.setVisible(this.shown).setAlpha(this.alpha);
     const dir = this.flipX ? -1 : 1;
-    this.tool.setPosition(lx + dir * 14, ly + 6 * this.scaleY).setFlipX(this.flipX);
-    this.tool.setVisible(this.visible).setAlpha(this.alpha * 0.95);
+    this.tool.setPosition(lx + dir * 14 * sx, feet - 18 * sy).setFlipX(this.flipX);
+    this.tool.setVisible(this.shown).setAlpha(this.alpha * 0.95);
     this.lastPos = { x: this.x, y: this.y };
   }
 
   knockHat() {
     this.scene.tweens.add({
-      targets: this.hat,
-      y: this.hat.y - 16,
+      targets: this.hatKnock,
+      y: -16,
       angle: this.flipX ? 30 : -30,
       duration: 180,
       yoyo: true,
-      onComplete: () => this.hat.setAngle(0),
+      onComplete: () => {
+        this.hatKnock.y = 0;
+        this.hatKnock.angle = 0;
+      },
     });
   }
 
@@ -146,7 +200,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       this.lastGrounded = time;
       if (this.wasAirborne) {
         this.dust(4);
-        squash(this.scene, this); // D5 land squash
+        this.landSquash();
         this.wasAirborne = false;
       }
     } else {
@@ -216,24 +270,22 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       this.runFrameTimer += delta;
       if (this.runFrameTimer > 120) {
         this.runFrameTimer = 0;
-        this.setTexture(this.texture.key === 'jo-run' ? 'jo-stand' : 'jo-run');
+        this.art.setTexture(this.art.texture.key === 'jo-run' ? 'jo-stand' : 'jo-run');
       }
     } else if (!grounded) {
-      this.setTexture('jo-run');
+      this.art.setTexture('jo-run');
     } else {
-      this.setTexture('jo-stand');
+      this.art.setTexture('jo-stand');
     }
-    this.setTint(rev ? 0xd8f0a0 : 0xffffff);
+    this.art.setTint(rev ? 0xd8f0a0 : 0xffffff);
 
-    // crouch hitbox
-    if (crouch && grounded) {
-      this.setScale(1, 0.7);
-      body.setSize(24, 32, false).setOffset(4, 14);
-    } else if (!crouch && this.scaleY !== 1) {
-      this.setScale(1, 1);
-      body.setSize(24, 44, false).setOffset(4, 2);
+    // Crouch hitbox. Both bodies keep their bottom at y+22, so ducking never
+    // moves Jo's feet — only the drawing shrinks (see syncAttachments).
+    const wantCrouch = crouch && grounded;
+    if (wantCrouch !== this.crouching) {
+      this.crouching = wantCrouch;
+      if (wantCrouch) body.setSize(24, 32, false).setOffset(4, 14);
+      else body.setSize(24, 44, false).setOffset(4, 2);
     }
-
-    this.syncAttachments();
   }
 }

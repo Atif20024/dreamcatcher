@@ -167,7 +167,7 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
     }
     if (this.state === 'grabbing') {
       const reach = Math.abs(player.x - this.x) < 42 && Math.abs(player.y - this.y) < 50;
-      const ducking = player.scaleY < 1; // slipping under the grab
+      const ducking = player.crouching; // slipping under the grab
       if (reach && !ducking) {
         this.scene.throwOut(this);
         this.enter('staggered', 900);
