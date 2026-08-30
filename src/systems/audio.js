@@ -111,7 +111,105 @@ export function sfx(name) {
   }
 }
 
-// --- generative stems ---------------------------------------------------
+// --- D7 MusicDirector ----------------------------------------------------
+// Five states; each stem has its own gain that crossfades over one beat when
+// the state changes. The beat clock is derived from audioCtx.currentTime and
+// the current room's bpm, and is emitted on the scene so periodic hazards can
+// fire on the beat instead of on their own timers.
+const STATE_MIX = {
+  quiet: { bass: 0.45, brushes: 0.0, piano: 0.25, trumpet: 0.0, pad: 0.35 },
+  explore: { bass: 1.0, brushes: 0.55, piano: 0.5, trumpet: 0.0, pad: 0.0 },
+  danger: { bass: 1.0, brushes: 1.0, piano: 0.3, trumpet: 0.45, pad: 0.0 },
+  setpiece: { bass: 1.0, brushes: 1.0, piano: 0.7, trumpet: 1.0, pad: 0.0 },
+  caught: { bass: 0.2, brushes: 0.0, piano: 0.0, trumpet: 0.0, pad: 0.7 },
+};
+
+const WALK = [98, 110, 123, 131, 147, 131, 123, 110];
+const CHORD = [262, 330, 392, 494];
+
+export class MusicDirector {
+  constructor() {
+    this.state = 'quiet';
+    this.bpm = 100;
+    this.beat = 0;
+    this.scene = null;
+    this.timer = null;
+    this.gains = {};
+    this.level = { bass: 0, brushes: 0, piano: 0, trumpet: 0, pad: 0 };
+  }
+
+  attach(scene) {
+    this.scene = scene;
+    this.start();
+  }
+
+  setBpm(bpm) {
+    if (bpm && bpm !== this.bpm) {
+      this.bpm = bpm;
+      this.start();
+    }
+  }
+
+  setState(state) {
+    if (!STATE_MIX[state] || state === this.state) return;
+    this.state = state;
+  }
+
+  start() {
+    this.stop();
+    const beatMs = 60000 / this.bpm;
+    try {
+      ac();
+    } catch {
+      /* no audio */
+    }
+    this.timer = setInterval(() => this.tick(), beatMs);
+  }
+
+  tick() {
+    const target = STATE_MIX[this.state];
+    // crossfade one beat's worth toward the target mix
+    for (const k of Object.keys(this.level)) {
+      this.level[k] += (target[k] - this.level[k]) * 0.5;
+    }
+    const b = this.beat++;
+    try {
+      if (this.level.bass > 0.05) tone(WALK[b % 8], 0.3, 'triangle', 0.2 * this.level.bass);
+      if (this.level.brushes > 0.05 && b % 2 === 1) noise(0.09, 0.09 * this.level.brushes, 6000);
+      if (this.level.piano > 0.05 && b % 4 === 0) {
+        CHORD.forEach((f, i) => tone(f, 0.5, 'sine', 0.05 * this.level.piano, i * 0.03));
+      }
+      if (this.level.trumpet > 0.05 && b % 2 === 0) {
+        tone([392, 440, 523, 587][(b >> 1) % 4], 0.25, 'square', 0.05 * this.level.trumpet);
+      }
+      if (this.level.pad > 0.05 && b % 8 === 0) tone(131, 3.2, 'sine', 0.06 * this.level.pad);
+    } catch {
+      /* silent */
+    }
+    if (this.scene && this.scene.events) this.scene.events.emit('beat', b);
+  }
+
+  stop() {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
+  }
+}
+
+export const musicDirector = new MusicDirector();
+
+// D7 — stingers
+export const sting = {
+  checkpoint: () => [784, 1047].forEach((f, i) => tone(f, 0.35, 'sine', 0.25, i * 0.08)),
+  gate: () => {
+    tone(150, 0.5, 'square', 0.18);
+    noise(0.35, 0.2, 400);
+  },
+  secret: () => [659, 880, 1319].forEach((f, i) => tone(f, 0.4, 'triangle', 0.2, i * 0.1)),
+  foeOut: () => tone(180, 0.4, 'sawtooth', 0.2, 0, 70),
+  death: () => [330, 262, 196, 147].forEach((f, i) => tone(f, 0.7, 'triangle', 0.22, i * 0.12)),
+};
+
+// --- generative stems (legacy helpers kept for the gig sequences) --------
 const BASS_WALK = [98, 110, 123, 131, 147, 131, 123, 110];
 const PIANO_CHORD = [262, 330, 392, 494];
 

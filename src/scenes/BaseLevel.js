@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 import { createPixelTexture } from '../utils/pixelart.js';
 import { getDifficulty } from '../utils/save.js';
 import DialogueBox from '../systems/DialogueBox.js';
-import { sfx, music } from '../systems/audio.js';
+import { sfx, music, musicDirector, sting } from '../systems/audio.js';
+import RoomBuilder from '../builders/RoomBuilder.js';
 import Foe from '../entities/Foe.js';
 import { FOES } from '../data/kinds.js';
 import { showTutorial } from '../systems/tutorial.js';
@@ -73,6 +74,17 @@ export default class BaseLevel extends Phaser.Scene {
       .setOrigin(1, 0.5)
       .setScrollFactor(0)
       .setDepth(150);
+
+    // D7 — the director drives the mix and the beat clock for this level
+    musicDirector.attach(this);
+    this.beatNum = 0;
+    this.events.on('beat', (b) => {
+      this.beatNum = b;
+    });
+    this.events.once('shutdown', () => {
+      musicDirector.stop();
+      this.events.off('beat');
+    });
 
     this.keyEsc = this.input.keyboard.addKey('ESC');
     this.keyQ = this.input.keyboard.addKey('Q');
@@ -265,8 +277,26 @@ export default class BaseLevel extends Phaser.Scene {
     if (flagSprite.texture.key === 'flag') {
       flagSprite.setTexture('flag-lit');
       this.checkpoint = { x: flagSprite.x, y: flagSprite.y - 8 };
-      sfx('bell');
+      sting.checkpoint();
     }
+  }
+
+  // D7 — room-driven music: bpm and state follow whichever room Jo is in,
+  // escalating to `danger` whenever a person has noticed him.
+  updateMusicRoom() {
+    if (!this.built || !this.built.rooms) return;
+    const room = RoomBuilder.roomAt(this.built.rooms, this.player.x);
+    if (room !== this._room) {
+      this._room = room;
+      if (room.music) {
+        musicDirector.setBpm(room.music.bpm);
+        this._roomState = room.music.state || 'explore';
+      }
+      if (room.vista) this.cameras.main.zoomTo(0.8, 800);
+      else if (this.cameras.main.zoom !== 1) this.cameras.main.zoomTo(1, 600);
+    }
+    const hunted = (this.foes || []).some((f) => f.human && (f.state === 'alert' || f.state === 'windup'));
+    musicDirector.setState(this.thrownOut ? 'caught' : hunted ? 'danger' : this._roomState || 'explore');
   }
 
   showCard(lines, onConfirm, onAlt = null) {

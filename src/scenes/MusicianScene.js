@@ -9,7 +9,7 @@ import musicianTiles from '../data/musician/tiles.js';
 import Phrases from '../systems/rhythm.js';
 import { tuning, playTheRoom, theMix } from '../systems/puzzles.js';
 import { completeDream } from '../utils/save.js';
-import { sfx, music, trumpet, bassNote } from '../systems/audio.js';
+import { sfx, music, sting, trumpet, bassNote } from '../systems/audio.js';
 
 const T = 32;
 const px = (t) => t * T + T / 2;
@@ -160,7 +160,7 @@ export default class MusicianScene extends BaseLevel {
       if (!g.open && g.requires.every((f) => this.F[f])) {
         g.open = true;
         g.light.setFillStyle(0x50c878);
-        sfx('clang');
+        sting.gate(); // D7: distant clank, heard level-wide
         g.tiles.forEach((t) => {
           if (t.body) t.body.enable = false;
           this.tweens.add({ targets: t, alpha: 0, duration: 400 });
@@ -869,6 +869,7 @@ export default class MusicianScene extends BaseLevel {
       if (this.scalper && this.scalper.state === 'flee' && this.scalper.x > px(104)) this.scalper.setVelocityX(0);
     }
 
+    this.updateMusicRoom(); // D7 room-driven mix
     this.updateBusking(time);
     this.updateHazards(time, pb, dt);
     this.updateNia(time);

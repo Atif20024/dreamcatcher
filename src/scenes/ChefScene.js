@@ -8,7 +8,7 @@ import chefRooms from '../data/chef/rooms.js';
 import chefTiles from '../data/chef/tiles.js';
 import { freezerValve, ticketRail, piping } from '../systems/puzzles.js';
 import { completeDream } from '../utils/save.js';
-import { sfx, music } from '../systems/audio.js';
+import { sfx, music, sting } from '../systems/audio.js';
 
 const T = 32;
 const overlaps = (a, b) => Phaser.Geom.Intersects.RectangleToRectangle(a, b);
@@ -128,7 +128,7 @@ export default class ChefScene extends BaseLevel {
       if (!g.open && g.requires.every((f) => this.F[f])) {
         g.open = true;
         g.light.setFillStyle(0x50c878);
-        sfx('clang');
+        sting.gate(); // D7: distant clank, heard level-wide
         g.tiles.forEach((t) => {
           if (t.body) t.body.enable = false;
           this.tweens.add({ targets: t, alpha: 0, duration: 400 });
@@ -327,12 +327,27 @@ export default class ChefScene extends BaseLevel {
       img: this.add.image(px(c), px(30) + 12, 'chef-flame').setAlpha(0),
       x: px(c),
       baseY: px(30) + 16,
-      phase: (i % 3) * 500,
+      beatOffset: i % 4,
       active: false,
     }));
-    this.vents = [149, 152, 155, 177, 179].map((c) => {
+    this.vents = [149, 152, 155, 177, 179].map((c, i) => {
       this.add.image(px(c), px(33) + 10, 'chef-vent');
-      return { x: px(c), y: px(33), phase: (c % 3) * 600 };
+      return { x: px(c), y: px(33), beatOffset: i % 3 };
+    });
+
+    // D7 — periodic hazards ride the beat clock instead of their own timers,
+    // so the kitchen fires in time with the music.
+    const mod = (a, n) => ((a % n) + n) % n;
+    this.events.on('beat', (b) => {
+      const now = this.time.now;
+      const every = Math.max(2, 4 - Math.floor(this.difficulty / 2));
+      for (const f of this.flames) {
+        if (mod(b - f.beatOffset, every) === 0) f.warnAt = now;
+        if (mod(b - f.beatOffset - 1, every) === 0) f.fireAt = now;
+      }
+      for (const v of this.vents) {
+        if (mod(b - v.beatOffset, 3) === 0) v.blowAt = now;
+      }
     });
 
     this.spawnEnemy('blob', px(162), px(33), { speed: 40 });
@@ -764,6 +779,7 @@ export default class ChefScene extends BaseLevel {
       this.promptText.setVisible(false);
     }
 
+    this.updateMusicRoom(); // D7 room-driven mix
     this.updateAlley(pb);
     this.updateDryStore(time);
     this.updateFreezer(time, dt, pb);
@@ -880,36 +896,34 @@ export default class ChefScene extends BaseLevel {
   }
 
   updateLine(time, pb) {
-    const d = this.difficulty;
-    const period = 2000 - 150 * d;
+    // D7 — beat-driven burners: warn on one beat, fire on the next
     for (const f of this.flames) {
-      const t = (time + f.phase) % period;
-      const warnAt = period * 0.5;
-      const fireAt = period * 0.7;
-      if (t < warnAt) {
-        f.img.setAlpha(0);
-        f.active = false;
-      } else if (t < fireAt) {
-        f.img.setAlpha(0.5).setScale(1, 0.4);
-        f.img.y = f.baseY - 8;
-        f.active = false;
-        if (t - warnAt < 40) sfx('click');
-      } else {
+      const sinceFire = time - (f.fireAt ?? -1e9);
+      const sinceWarn = time - (f.warnAt ?? -1e9);
+      const firing = sinceFire >= 0 && sinceFire < 420;
+      const warning = !firing && sinceWarn >= 0 && sinceWarn < 400;
+      f.active = firing;
+      if (firing) {
         f.img.setAlpha(1).setScale(1, 1);
         f.img.y = f.baseY - 20;
-        f.active = true;
+      } else if (warning) {
+        f.img.setAlpha(0.5).setScale(1, 0.4);
+        f.img.y = f.baseY - 8;
+        if (sinceWarn < 40) sfx('click');
+      } else {
+        f.img.setAlpha(0);
       }
       if (f.active && overlaps(pb, new Phaser.Geom.Rectangle(f.x - 14, f.baseY - 40, 28, 40))) this.hurt();
     }
 
     for (const v of this.vents) {
-      const t = (time + v.phase) % 1800;
-      const active = t > 1200;
+      const sinceBlow = time - (v.blowAt ?? -1e9);
+      const active = sinceBlow >= 0 && sinceBlow < 500;
       if (active && Math.abs(this.player.x - v.x) < 20 && Math.abs(this.player.y - v.y) < 30) {
         this.player.body.setVelocityY(-760);
         sfx('steam');
       }
-      if (active && (time + v.phase) % 200 < 30) {
+      if (active && sinceBlow < 60) {
         const plume = this.add.circle(v.x, v.y - 10, 8, 0xd8ecf8, 0.4);
         this.tweens.add({ targets: plume, y: v.y - 90, alpha: 0, duration: 500, onComplete: () => plume.destroy() });
       }
