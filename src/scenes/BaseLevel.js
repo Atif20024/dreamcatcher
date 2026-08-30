@@ -8,6 +8,7 @@ import Parallax from '../builders/parallax.js';
 import Foe from '../entities/Foe.js';
 import { FOES } from '../data/kinds.js';
 import { showTutorial } from '../systems/tutorial.js';
+import { hitStop } from '../systems/effects.js';
 
 const HEART = { rows: ['.hh.hh.', 'hhhhhhh', 'hhhhhhh', '.hhhhh.', '..hhh..', '...h...'], pal: { h: 0xe86a6a } };
 const ORB = {
@@ -182,6 +183,7 @@ export default class BaseLevel extends Phaser.Scene {
   // D6.3 — hearts are lives per section: at zero the section restarts.
   sectionRestart() {
     music.stop();
+    sting.death();
     this.showCard(
       [
         'You gave everything… and it slipped away.',
@@ -242,7 +244,10 @@ export default class BaseLevel extends Phaser.Scene {
     if (this.cardActive || this.dialogActive || this.puzzleActive) return;
     if (this.time.now < this.invulnUntil) return;
     sfx('hurt');
-    this.cameras.main.shake(120, 0.004);
+    hitStop(this, 60); // D5
+    this.cameras.main.shake(240, 0.008); // D1: shake doubled for 32px scale
+    this.player.burst();
+    this.player.knockHat();
     this.onHurtExtra();
     this.lives -= 1;
     this.updateHearts();

@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { createJoTextures } from './jo.js';
 import { sfx } from '../systems/audio.js';
 import { slopeSurface } from '../builders/legend.js';
+import { JO_DUST } from './jo.js';
+import { dreamDust, squash } from '../systems/effects.js';
 
 // D1: px figures from the other docs are doubled for the 32px scale
 // (run 140 -> 280, jump 300 -> 600, look-ahead 48 -> 96).
@@ -31,6 +33,43 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.wasAirborne = false;
     this.controlLockUntil = 0;
     this.ladleCooldown = 0;
+
+    // D5 — hat and tool are separate sprites that trail the body by one
+    // frame, so Jo bobbles instead of moving like a decal.
+    this.hat = scene.add.image(x, y, 'jo-hat').setDepth(this.depth + 1);
+    this.tool = scene.add
+      .image(x, y, scene.textures.exists('tool-trumpet') && scene.dreamKey === 'musician' ? 'tool-trumpet' : 'tool-ladle')
+      .setDepth(this.depth + 1)
+      .setAlpha(0.95);
+    this.lastPos = { x, y };
+  }
+
+  // D5 — Jo bursting into dream-dust, not vanishing
+  burst() {
+    dreamDust(this.scene, this, { colors: JO_DUST, count: 22, spread: 20 });
+  }
+
+  syncAttachments() {
+    // one-frame lag
+    const lx = this.lastPos.x;
+    const ly = this.lastPos.y;
+    this.hat.setPosition(lx, ly - 18 * this.scaleY).setFlipX(this.flipX).setScale(1, this.scaleY);
+    this.hat.setVisible(this.visible).setAlpha(this.alpha);
+    const dir = this.flipX ? -1 : 1;
+    this.tool.setPosition(lx + dir * 14, ly + 6 * this.scaleY).setFlipX(this.flipX);
+    this.tool.setVisible(this.visible).setAlpha(this.alpha * 0.95);
+    this.lastPos = { x: this.x, y: this.y };
+  }
+
+  knockHat() {
+    this.scene.tweens.add({
+      targets: this.hat,
+      y: this.hat.y - 16,
+      angle: this.flipX ? 30 : -30,
+      duration: 180,
+      yoyo: true,
+      onComplete: () => this.hat.setAngle(0),
+    });
   }
 
   dust(n = 3) {
@@ -107,6 +146,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       this.lastGrounded = time;
       if (this.wasAirborne) {
         this.dust(4);
+        squash(this.scene, this); // D5 land squash
         this.wasAirborne = false;
       }
     } else {
@@ -193,5 +233,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       this.setScale(1, 1);
       body.setSize(24, 44, false).setOffset(4, 2);
     }
+
+    this.syncAttachments();
   }
 }

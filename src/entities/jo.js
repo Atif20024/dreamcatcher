@@ -16,11 +16,21 @@ const PALETTE = {
   B: 0x1e1e28, // shoes
 };
 
-const HEAD_AND_TORSO = [
+// D5 — the hat is its own sprite so it can lag a frame behind the body and
+// get knocked askew on a hit. The body grids keep four blank rows where it
+// used to sit so every other offset stays put.
+export const HAT = [
   '.....HHHHHH.....',
   '....HHHHHHHH....',
   '....hhhhhhhh....',
   '..HHHHHHHHHHHH..',
+];
+
+const HEAD_AND_TORSO = [
+  '................',
+  '................',
+  '................',
+  '................',
   '.....SSSSSS.....',
   '....SSSSSSSS....',
   '..GGLLSSSLLGG...',
@@ -59,7 +69,18 @@ const RUN = [
   'BBBB........BBBB',
 ];
 
+// the level tool: a ladle in the kitchen, a trumpet on the stage
+const LADLE = ['.mmmmmm.', '........', '..bbbb..', '.bBBBBb.', '.bBBBBb.', '..bbbb..'];
+const TRUMPET = ['..bbbbb.', '.bBBBBBb', 'bBB....b', '.bBBBBBb', '..bbbbb.'];
+const TOOL_PAL = { m: 0x9a9aa8, b: 0x8a6a2c, B: 0xd8a840 };
+
 export function createJoTextures(scene) {
   createPixelTexture(scene, 'jo-stand', STAND, PALETTE, 2);
   createPixelTexture(scene, 'jo-run', RUN, PALETTE, 2);
+  createPixelTexture(scene, 'jo-hat', HAT, PALETTE, 2);
+  createPixelTexture(scene, 'tool-ladle', LADLE, TOOL_PAL, 3);
+  createPixelTexture(scene, 'tool-trumpet', TRUMPET, TOOL_PAL, 3);
 }
+
+// D5 — dust colours for Jo's own death burst
+export const JO_DUST = [0x3d5a80, 0x8a5a3b, 0xe8e4d8, 0x23233a];
