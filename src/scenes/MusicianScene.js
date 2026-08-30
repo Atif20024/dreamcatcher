@@ -4,6 +4,7 @@ import BaseLevel from './BaseLevel.js';
 import { THEMES } from '../themes/index.js';
 import { M_DIALOGUES, M_MOMENTS, SONGS, noRests, ZONES, GROUND } from '../data/musicianData.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
+import Parallax from '../builders/parallax.js';
 import musicianRooms from '../data/musician/rooms.js';
 import musicianTiles from '../data/musician/tiles.js';
 import Phrases from '../systems/rhythm.js';
@@ -30,7 +31,8 @@ export default class MusicianScene extends BaseLevel {
     this.built = built;
     const worldW = built.worldW;
     const worldH = built.worldH;
-    this.theme.drawBackdrop(this, worldW, worldH);
+    // D7 — three parallax layers + foreground + per-room landmark
+    this.parallax = new Parallax(this, built.rooms);
     for (const [c0, c1, color, alpha] of ZONES) {
       this.add.rectangle(((c0 + c1) / 2) * T, worldH / 2, (c1 - c0) * T, worldH, color, alpha).setDepth(2);
     }

@@ -4,6 +4,7 @@ import { getDifficulty } from '../utils/save.js';
 import DialogueBox from '../systems/DialogueBox.js';
 import { sfx, music, musicDirector, sting } from '../systems/audio.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
+import Parallax from '../builders/parallax.js';
 import Foe from '../entities/Foe.js';
 import { FOES } from '../data/kinds.js';
 import { showTutorial } from '../systems/tutorial.js';
@@ -292,9 +293,11 @@ export default class BaseLevel extends Phaser.Scene {
         musicDirector.setBpm(room.music.bpm);
         this._roomState = room.music.state || 'explore';
       }
+      if (this.parallax) this.parallax.setRoom(room);
       if (room.vista) this.cameras.main.zoomTo(0.8, 800);
       else if (this.cameras.main.zoom !== 1) this.cameras.main.zoomTo(1, 600);
     }
+    if (this.parallax) this.parallax.update();
     const hunted = (this.foes || []).some((f) => f.human && (f.state === 'alert' || f.state === 'windup'));
     musicDirector.setState(this.thrownOut ? 'caught' : hunted ? 'danger' : this._roomState || 'explore');
   }

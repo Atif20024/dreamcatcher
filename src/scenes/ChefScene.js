@@ -4,6 +4,7 @@ import BaseLevel from './BaseLevel.js';
 import { THEMES } from '../themes/index.js';
 import { DIALOGUES, MOMENTS } from '../data/chefMap.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
+import Parallax from '../builders/parallax.js';
 import chefRooms from '../data/chef/rooms.js';
 import chefTiles from '../data/chef/tiles.js';
 import { freezerValve, ticketRail, piping } from '../systems/puzzles.js';
@@ -29,7 +30,8 @@ export default class ChefScene extends BaseLevel {
     this.built = built;
     const worldW = built.worldW;
     const worldH = built.worldH;
-    this.theme.drawBackdrop(this, worldW, worldH);
+    // D7 — three parallax layers + foreground + per-room landmark
+    this.parallax = new Parallax(this, built.rooms);
 
     this.solids = built.solids;
     this.oneWays = built.oneWays;
