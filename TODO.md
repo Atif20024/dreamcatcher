@@ -1,5 +1,23 @@
 # TODO
 
+## Part D — remaining work
+All eight D10 retrofit steps are in. Still outstanding:
+- [ ] Migrate the musician's abstract creatures (wisps, metronome walkers,
+      bottles) onto `Foe` too — right now only the *people* use D6.
+- [ ] Move the remaining periodic hazards (icicles, cold jets, pendulums,
+      piping bags, moving heads) onto the beat clock; only the chef
+      burners and vents ride it so far.
+- [ ] Use the `Interactable`/`Gate` entity classes in the scenes — they
+      exist and are exercised by the builders, but the scenes still use
+      their own `addInteract` list and gate records.
+- [ ] `pixelart.js animation()` helper + the per-C1.2 frame counts; only
+      the hat/tool separation and squash landed.
+- [ ] Chef `sous_chef`/`dock_hand` need real sprites (they borrow the
+      roadie person grid with a tint).
+- [ ] Parallax layer art is procedural placeholder — wants a real pass.
+- [ ] Spec conflict noted: Part D lists '.' as both a 22.5° slope half and
+      empty. Empty won; the halves are ',' and ';'.
+
 ## Spec deviations (dreamcatcher_spec.md) — deliberate, revisit later
 - Stack stays **JavaScript** (not TS), tiles stay 32px/960×540 (not 16px/640×360),
   maps are code-built text grids (not Tiled .tmj), art is code-generated pixel
