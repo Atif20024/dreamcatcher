@@ -10,6 +10,26 @@ const put = (rows, r, c, s) => {
 const fill = (rows, r0, r1, c0, c1, ch) => {
   for (let r = r0; r <= r1; r++) put(rows, r, c0, ch.repeat(c1 - c0 + 1));
 };
+// D3 anti-box: a walkable ramp up onto a one-tile step, so no section is a
+// perfectly flat corridor. `dir` 'r' rises rightward, 'l' leftward.
+const ramp = (rows, floorRow, c, len, dir = 'r') => {
+  const stepRow = floorRow - 1;
+  if (dir === 'r') {
+    put(rows, stepRow, c, '/');
+    fill(rows, stepRow, stepRow, c + 1, c + len, '#');
+    put(rows, stepRow, c + len + 1, '\\');
+  } else {
+    put(rows, stepRow, c, '\\');
+    fill(rows, stepRow, stepRow, c + 1, c + len, '#');
+    put(rows, stepRow, c + len + 1, '/');
+  }
+};
+const stairs = (rows, floorRow, c, steps, dir = 'r') => {
+  for (let i = 0; i < steps; i++) {
+    const col = dir === 'r' ? c + i : c - i;
+    fill(rows, floorRow - 1 - i, floorRow - 1 - i, col, col, 'S');
+  }
+};
 
 export function buildChefMap() {
   const rows = blank();
@@ -78,6 +98,20 @@ export function buildChefMap() {
 
   // S6 — rooftop beehive
   fill(rows, 32, 33, 314, 315, '#');
+
+  // D3 — terrain relief: one ramp or stair per section (no flat corridors)
+  ramp(rows, 34, 18, 3); // arrival: kerb up to the service door
+  ramp(rows, 34, 57, 3); // dock: loading ramp
+  stairs(rows, 34, 118, 3); // freezer: step down from the shelving
+  ramp(rows, 34, 174, 2); // the line: raised duckboard
+  ramp(rows, 14, 243, 3); // loft: sugar-work rise
+  stairs(rows, 34, 292, 3); // the pass: the dais
+  ramp(rows, 34, 308, 3); // rooftop: planter kerb
+
+  // D3 — catch ledges so no drop is an unbroken void
+  fill(rows, 24, 24, 243, 246, '=');
+  fill(rows, 24, 24, 250, 253, '=');
+  fill(rows, 28, 28, 246, 250, '=');
 
   return rows;
 }

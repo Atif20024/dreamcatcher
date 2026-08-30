@@ -11,6 +11,25 @@ const put = (rows, r, c, s) => {
 const fill = (rows, r0, r1, c0, c1, ch) => {
   for (let r = r0; r <= r1; r++) put(rows, r, c0, ch.repeat(c1 - c0 + 1));
 };
+// D3 anti-box: ramps and stairs so no day is a flat corridor.
+const ramp = (rows, floorRow, c, len, dir = 'r') => {
+  const stepRow = floorRow - 1;
+  if (dir === 'r') {
+    put(rows, stepRow, c, '/');
+    fill(rows, stepRow, stepRow, c + 1, c + len, '#');
+    put(rows, stepRow, c + len + 1, '\\');
+  } else {
+    put(rows, stepRow, c, '\\');
+    fill(rows, stepRow, stepRow, c + 1, c + len, '#');
+    put(rows, stepRow, c + len + 1, '/');
+  }
+};
+const stairs = (rows, floorRow, c, steps, dir = 'r') => {
+  for (let i = 0; i < steps; i++) {
+    const col = dir === 'r' ? c + i : c - i;
+    fill(rows, floorRow - 1 - i, floorRow - 1 - i, col, col, 'S');
+  }
+};
 
 export function buildMusicianMap() {
   const rows = blank();
@@ -55,6 +74,19 @@ export function buildMusicianMap() {
   fill(rows, 28, 28, 332, 344, '#');
   fill(rows, 32, 32, 346, 380, '#'); // the stage deck
   // risers live above the deck as moving platforms (objects)
+
+  // D3 — terrain relief, one per day
+  ramp(rows, GROUND, 18, 3); // D0: kerb under the marquee
+  ramp(rows, GROUND, 64, 3); // D1: cellar step
+  ramp(rows, GROUND, 141, 3); // D2: repair-shop stoop
+  ramp(rows, GROUND, 172, 3); // D3: basement rise
+  ramp(rows, GROUND, 230, 3); // D4: pavilion bank
+  ramp(rows, GROUND, 308, 3); // D5: studio riser
+  stairs(rows, 32, 346, 4, 'l'); // D6: stairs up onto the stage deck
+  ramp(rows, GROUND, 388, 3); // D7: backstage kerb
+
+  // D3 — climbable wall so the fire-escape route is legal wall-jumping
+  fill(rows, 30, 35, 37, 37, '|');
 
   return rows;
 }
