@@ -5,6 +5,7 @@ import { THEMES } from '../themes/index.js';
 import { DIALOGUES, MOMENTS } from '../data/chefMap.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
 import Parallax from '../builders/parallax.js';
+import { D } from '../builders/depths.js';
 import chefRooms from '../data/chef/rooms.js';
 import chefTiles from '../data/chef/tiles.js';
 import { freezerValve, ticketRail, piping } from '../systems/puzzles.js';
@@ -202,7 +203,9 @@ export default class ChefScene extends BaseLevel {
     });
   }
 
-  // legacy shim: scene sequences still spawn by short name
+  // Runtime spawns only (set-piece waves, blob splits). Anything standing
+  // in the level at load time is declared in data/chef/rooms.js -- spawning it
+  // here as well put two identical foes on the same tile.
   spawnEnemy(kind, x, y, opts = {}) {
     const map = { crawler: 'crawler', blob: 'grease_blob', mill: 'pepper_mill', meringue: 'meringue', pot: 'grease_blob' };
     const foe = this.addFoe({
@@ -239,7 +242,7 @@ export default class ChefScene extends BaseLevel {
         });
       },
     });
-    [44, 48, 52].forEach((c) => this.spawnEnemy('crawler', px(c), px(33), { speed: 70 }));
+    // (the three crawlers here are declared in data/chef/rooms.js)
   }
 
   buildDryStore() {
@@ -320,7 +323,7 @@ export default class ChefScene extends BaseLevel {
       this.setObjective('deliver saffron → risotto station');
       await this.dialog.show(DIALOGUES.d2);
     }, { once: false, when: () => !this.F.has_saffron || (!this.carry && !this.F.saffron_delivered) });
-    this.add.image(px(127), px(18), 'chef-saffron').setDepth(3).setAlpha(0.5);
+    this.add.image(px(127), px(18), 'chef-saffron').setDepth(D.BEHIND).setAlpha(0.5);
     this.moment('m2', px(91), px(33));
   }
 
@@ -352,10 +355,7 @@ export default class ChefScene extends BaseLevel {
       }
     });
 
-    this.spawnEnemy('blob', px(162), px(33), { speed: 40 });
-    this.spawnEnemy('blob', px(165), px(33), { speed: 40 });
-    this.spawnEnemy('mill', px(170), px(29), { speed: 50, patrol: [px(168), px(173)] });
-    if (this.difficulty >= 1) this.spawnEnemy('mill', px(145), px(30), { speed: 50, patrol: [px(140), px(155)] });
+    // (blobs, mills and the sous chef are declared in data/chef/rooms.js)
 
     this.addInteract(px(140), px(30), 'risotto', async () => {
       if (this.carry !== 'saffron') {
@@ -475,7 +475,7 @@ export default class ChefScene extends BaseLevel {
     this.creamBags = [228, 240].map((c, i) => ({ x: px(c), y: px(8), next: 0, phase: i * 1200 }));
     this.stickies = [];
 
-    [245, 250, 255].forEach((c, i) => this.spawnEnemy('meringue', px(c), px(10 + (i % 3)), {}));
+    // (the meringues are declared in data/chef/rooms.js)
 
     this.addInteract(px(252), px(13), 'plating table', async () => {
       const ok = await piping(this);
@@ -666,7 +666,7 @@ export default class ChefScene extends BaseLevel {
     // (the dawn wash used to be a hard-edged rectangle sitting in the sky —
     // the `dawn` parallax layer carries that light now)
     [0, 1, 2].forEach((i) => {
-      const gull = this.add.circle(px(310 + i * 3), px(24 - i), 6, 0xe8e4d8).setDepth(3);
+      const gull = this.add.circle(px(310 + i * 3), px(24 - i), 6, 0xe8e4d8).setDepth(D.BEHIND);
       this.tweens.add({ targets: gull, x: gull.x + 90, y: gull.y - 20, duration: 3000 + i * 800, yoyo: true, repeat: -1, ease: 'sine.inout' });
     });
     const o = this.orbs.create(px(314), px(29), 'orb').setDepth(95);

@@ -1,3 +1,4 @@
+import { D } from './depths.js';
 import { createPixelTexture } from '../utils/pixelart.js';
 
 // D3 — auto-supports: nothing floats unexplained. For every platform tile with
@@ -15,7 +16,7 @@ export function buildSupportTextures(scene, key, kind, colorDark, colorLight) {
 }
 
 // grid: array of strings; isSolid(tx,ty): bool; needsSupport(tx,ty): bool
-export function addSupports(scene, { key, T, width, height, isSolid, needsSupport, depth = 3 }) {
+export function addSupports(scene, { key, T, width, height, isSolid, needsSupport, depth = D.SUPPORT }) {
   for (let ty = 0; ty < height; ty++) {
     for (let tx = 0; tx < width; tx++) {
       if (!needsSupport(tx, ty)) continue;

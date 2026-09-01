@@ -74,12 +74,16 @@ const LADLE = ['.mmmmmm.', '........', '..bbbb..', '.bBBBBb.', '.bBBBBb.', '..bb
 const TRUMPET = ['..bbbbb.', '.bBBBBBb', 'bBB....b', '.bBBBBBb', '..bbbbb.'];
 const TOOL_PAL = { m: 0x9a9aa8, b: 0x8a6a2c, B: 0xd8a840 };
 
+// a dark rim on every piece of Jo, so he reads against a pale pavement and a
+// dark kitchen alike
+const RIM = { outline: 0x14141c };
+
 export function createJoTextures(scene) {
-  createPixelTexture(scene, 'jo-stand', STAND, PALETTE, 2);
-  createPixelTexture(scene, 'jo-run', RUN, PALETTE, 2);
-  createPixelTexture(scene, 'jo-hat', HAT, PALETTE, 2);
-  createPixelTexture(scene, 'tool-ladle', LADLE, TOOL_PAL, 3);
-  createPixelTexture(scene, 'tool-trumpet', TRUMPET, TOOL_PAL, 3);
+  createPixelTexture(scene, 'jo-stand', STAND, PALETTE, 2, RIM);
+  createPixelTexture(scene, 'jo-run', RUN, PALETTE, 2, RIM);
+  createPixelTexture(scene, 'jo-hat', HAT, PALETTE, 2, RIM);
+  createPixelTexture(scene, 'tool-ladle', LADLE, TOOL_PAL, 3, RIM);
+  createPixelTexture(scene, 'tool-trumpet', TRUMPET, TOOL_PAL, 3, RIM);
 }
 
 // D5 — dust colours for Jo's own death burst

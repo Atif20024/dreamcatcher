@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { sfx } from '../systems/audio.js';
 import { dreamDust, hitStop } from '../systems/effects.js';
 import { showTutorial } from '../systems/tutorial.js';
+import { frameKeys } from '../utils/pixelart.js';
+import { D } from '../builders/depths.js';
 
 const T = 32;
 
@@ -19,7 +21,17 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
     super(scene, def.wx, def.wy, texture);
     scene.add.existing(this);
     scene.physics.add.existing(this);
-    this.setDepth(12);
+    this.setDepth(D.FOE);
+    if (def.big) this.setScale(1.2);
+
+    // C1.2 — frames are stepped by distance travelled, never by a timer, so a
+    // foe's legs always match the speed it is actually moving at.
+    this.walkFrames = frameKeys(scene, texture, 3);
+    this.walkPhase = 0;
+    this.frameStep = def.human ? 26 : 18;
+    // a contact shadow: without one, a foe reads as pasted onto the backdrop
+    this.shadow = scene.add.ellipse(this.x, this.y, 26, 8, 0x000000, 0.35).setDepth(D.FOE - 1);
+    this.alertMark = null;
 
     this.def = def;
     this.kind = def.kind;
@@ -38,7 +50,12 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
     this.seenPlayerAt = 0;
 
     if (this.human) {
-      this.sightCone = scene.add.rectangle(this.x, this.y, 140, 70, 0xf2e0a0, 0.09).setDepth(11);
+      // an actual cone, not a slab: a rectangle at this size reads as a
+      // floating panel now that the foreground is brighter
+      const r = this.sightRange;
+      this.sightCone = scene.add
+        .triangle(this.x, this.y, 0, 0, r, -r * 0.42, r, r * 0.42, 0xf2e0a0, 0.07)
+        .setDepth(D.FOE - 2);
     }
   }
 
@@ -96,8 +113,7 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
   }
 
   cleanup() {
-    if (this.sightCone) this.sightCone.destroy();
-    this.destroy();
+    this.destroy(); // destroy() takes the shadow, mark and cone with it
   }
 
   enter(state, ms) {
@@ -117,8 +133,47 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
     return Math.sign(dx) === (this.flipX ? -1 : 1) || Math.abs(dx) < 40;
   }
 
+  // called first thing each update: walk cycle, shadow, alert mark
+  animate(time) {
+    const vx = this.body.velocity.x;
+    if (this.walkFrames.length > 1) {
+      this.walkPhase += Math.abs(vx) * 0.016;
+      if (Math.abs(vx) < 4) this.walkPhase = 0;
+      const f = Math.floor(this.walkPhase / this.frameStep) % this.walkFrames.length;
+      const key = Math.abs(vx) < 4 ? this.walkFrames[0] : this.walkFrames[f];
+      if (this.texture.key !== key) this.setTexture(key);
+    }
+    // the grab telegraph leans in. (A stagger has its own tween on `angle`,
+    // so don't write to it here or the shove wobble gets flattened.)
+    if (this.state === 'windup') this.setAngle(this.flipX ? -9 : 9);
+    else if (this.state !== 'staggered' && this.angle !== 0 && !this.scene.tweens.isTweening(this)) this.setAngle(0);
+    if (this.shadow) {
+      this.shadow.setPosition(this.x, this.y + this.displayHeight / 2 - 1);
+      this.shadow.setVisible(this.visible);
+    }
+    const alert = this.state === 'alert' || this.state === 'windup';
+    if (alert && !this.alertMark) {
+      this.alertMark = this.scene.add
+        .text(this.x, this.y - 34, '!', { fontFamily: 'monospace', fontSize: '18px', color: '#f2d580' })
+        .setOrigin(0.5)
+        .setDepth(D.FOE + 1);
+    } else if (!alert && this.alertMark) {
+      this.alertMark.destroy();
+      this.alertMark = null;
+    }
+    if (this.alertMark) this.alertMark.setPosition(this.x, this.y - 34 - Math.sin(time / 120) * 3);
+  }
+
+  destroy(fromScene) {
+    if (this.shadow) this.shadow.destroy();
+    if (this.alertMark) this.alertMark.destroy();
+    if (this.sightCone) this.sightCone.destroy();
+    super.destroy(fromScene);
+  }
+
   update(time, player) {
     if (!this.body) return;
+    this.animate(time);
 
     // creatures: simple patrol, contact handled by the scene
     if (!this.human) {
@@ -139,8 +194,11 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
     // people
     if (this.sightCone) {
       const facing = this.flipX ? -1 : 1;
-      this.sightCone.setPosition(this.x + facing * 70, this.y);
-      this.sightCone.setFillStyle(0xf2e0a0, this.state === 'alert' || this.state === 'windup' ? 0.16 : 0.07);
+      this.sightCone.setPosition(this.x + facing * 6, this.y - 4).setScale(facing, 1);
+      this.sightCone.setFillStyle(
+        this.state === 'windup' ? 0xf2a060 : 0xf2e0a0,
+        this.state === 'alert' || this.state === 'windup' ? 0.14 : 0.06
+      );
     }
 
     if (this.state === 'thrown') return;

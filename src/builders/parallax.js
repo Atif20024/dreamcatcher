@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { isSolidChar } from './legend.js';
+import { D } from './depths.js';
 
 // D7 — parallax backdrops.
 //
@@ -13,6 +14,12 @@ const W = 512;
 // how fast each slot tracks the camera: 0 = pinned to the screen, 1 = pinned
 // to the terrain. The gaps are wide so the three read as separate distances.
 const F = { far: 0.12, scenery: 0.22, mid: 0.34, near: 0.62 };
+
+// Aerial perspective: the further back a layer is, the more it washes out
+// into the sky behind it. This is what lets the play layer read as "in
+// front" -- a backdrop drawn at full strength competes with the terrain no
+// matter how pretty it is.
+const HAZE = { far: 0.62, scenery: 0.74, mid: 0.86, near: 1 };
 
 // ---------------------------------------------------------------------------
 // texture generators — content sits on the BOTTOM edge of a transparent
@@ -440,7 +447,7 @@ function drawPrimitives(g, prims) {
 
 // Landmarks are single readable shapes so each room is recognisable.
 function drawLandmark(scene, name) {
-  const c = scene.add.container(0, 0).setDepth(3).setScrollFactor(0);
+  const c = scene.add.container(0, 0).setDepth(D.BG_LANDMARK).setScrollFactor(0);
   const add = (o) => {
     c.add(o);
     return o;
@@ -553,7 +560,7 @@ export default class Parallax {
         .setOrigin(0)
         .setDisplaySize(this.camW, this.camH)
         .setScrollFactor(0)
-        .setDepth(0);
+        .setDepth(D.SKY);
     this.sky = [sky(), sky().setAlpha(0)];
 
     const slot = (depth) => {
@@ -565,11 +572,14 @@ export default class Parallax {
           // world 1:1 so a layer standing on the ground stays on the ground
           .setScrollFactor(0, 1)
           .setDepth(depth);
-      return { pair: [mk(), mk().setAlpha(0)], i: 0, name: null };
+      return { pair: [mk(), mk().setAlpha(0)], i: 0, name: null, haze: 1 };
     };
-    this.far = slot(1);
-    this.mid = slot(2);
-    this.near = slot(3);
+    this.far = slot(D.BG_FAR);
+    this.far.haze = HAZE.far;
+    this.mid = slot(D.BG_MID);
+    this.mid.haze = HAZE.mid;
+    this.near = slot(D.BG_NEAR);
+    this.near.haze = HAZE.near;
     this.slots = [
       ['far', this.far, F.far],
       ['mid', this.mid, F.mid],
@@ -603,11 +613,11 @@ export default class Parallax {
     this.applyTexture(incoming, name, slotName);
     slot.i = 1 - slot.i;
     if (ms <= 0) {
-      incoming.setAlpha(1);
+      incoming.setAlpha(slot.haze);
       outgoing.setAlpha(0);
       return;
     }
-    this.scene.tweens.add({ targets: incoming, alpha: 1, duration: ms });
+    this.scene.tweens.add({ targets: incoming, alpha: slot.haze, duration: ms });
     this.scene.tweens.add({ targets: outgoing, alpha: 0, duration: ms });
   }
 
@@ -618,7 +628,7 @@ export default class Parallax {
     const [, main, accent] = layerDef(bg.mid || bg.far || 'city');
     const rand = new Phaser.Math.RandomDataGenerator([room.id || String(room._x0)]);
     const f = F.scenery;
-    const cont = this.scene.add.container(0, 0).setScrollFactor(f, 1).setDepth(1.5).setAlpha(0);
+    const cont = this.scene.add.container(0, 0).setScrollFactor(f, 1).setDepth(D.BG_SCENERY).setAlpha(0);
 
     // Outdoors the cast is rooftop furniture, so it stands above the street
     // facade instead of hiding behind it.
@@ -681,13 +691,13 @@ export default class Parallax {
     retire(this.landmark);
 
     this.scenery = this.buildScenery(room);
-    this.scene.tweens.add({ targets: this.scenery, alpha: 1, duration: ms || 1 });
+    this.scene.tweens.add({ targets: this.scenery, alpha: HAZE.scenery, duration: ms || 1 });
 
     if (bg.landmark) {
-      this.landmark = drawLandmark(this.scene, bg.landmark).setScrollFactor(F.mid, 1).setDepth(2.6).setAlpha(0);
+      this.landmark = drawLandmark(this.scene, bg.landmark).setScrollFactor(F.mid, 1).setDepth(D.BG_LANDMARK).setAlpha(0);
       const centre = (room._x0 + Math.max(...room.grid.map((g) => g.length)) / 2) * 32;
       this.landmark.x = (this.camW / 2) * (1 - F.mid) + centre * F.mid;
-      this.scene.tweens.add({ targets: this.landmark, alpha: 1, duration: ms || 1 });
+      this.scene.tweens.add({ targets: this.landmark, alpha: HAZE.mid, duration: ms || 1 });
     } else {
       this.landmark = null;
     }

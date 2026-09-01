@@ -6,6 +6,7 @@ import { sfx, music, musicDirector, sting } from '../systems/audio.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
 import Parallax from '../builders/parallax.js';
 import Foe from '../entities/Foe.js';
+import { createFoeTextures } from '../entities/foeArt.js';
 import { FOES } from '../data/kinds.js';
 import { showTutorial } from '../systems/tutorial.js';
 import { hitStop } from '../systems/effects.js';
@@ -99,6 +100,7 @@ export default class BaseLevel extends Phaser.Scene {
   // ---- D6 confrontation ------------------------------------------------
 
   initFoes(dreamKey) {
+    createFoeTextures(this);
     this.dreamKey = dreamKey;
     this.foes = [];
     this.hideSpots = [];
@@ -110,7 +112,7 @@ export default class BaseLevel extends Phaser.Scene {
     const reg = (FOES[this.dreamKey] || {})[def.kind] || {};
     const merged = { ...reg, ...def };
     if (merged.minDifficulty !== undefined && this.difficulty < merged.minDifficulty) return null;
-    const foe = new Foe(this, merged, merged.texture || 'chef-crawler');
+    const foe = new Foe(this, merged, merged.texture || 'foe-crawler');
     if (merged.tint) foe.setTint(merged.tint);
     if (merged.floats || merged.ranged) foe.body.setAllowGravity(false);
     this.foeGroup.add(foe);

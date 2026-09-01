@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { roleOf, isSolidChar, isSlopeChar, SLOPES } from './legend.js';
 import { buildTileset, maskAt, wearAt } from './autotile.js';
 import { buildSupportTextures, addSupports } from './supports.js';
+import { D } from './depths.js';
 
 const T = 32;
 
@@ -65,7 +66,7 @@ export default class RoomBuilder {
         const wear = wearAt(tx, ty);
 
         if (isSlopeChar(ch)) {
-          scene.add.image(cx, cy, `${theme.key}_sl_${role}_${wear}`).setDepth(4);
+          scene.add.image(cx, cy, `${theme.key}_sl_${role}_${wear}`).setDepth(D.TERRAIN);
           (out.slopeGrid[ty] ||= {})[tx] = role;
           continue;
         }
@@ -80,20 +81,20 @@ export default class RoomBuilder {
           continue;
         }
         if (role === 'hazard') {
-          const img = scene.add.image(cx, cy + 4, `${theme.key}_hazard`).setDepth(5);
+          const img = scene.add.image(cx, cy + 4, `${theme.key}_hazard`).setDepth(D.HAZARD);
           scene.physics.add.existing(img, true);
           img.body.setSize(24, 16).setOffset(4, 16);
           out.hazards.add(img);
           continue;
         }
         if (role === 'ladder') {
-          scene.add.image(cx, cy, `${theme.key}_ladder`).setDepth(4);
+          scene.add.image(cx, cy, `${theme.key}_ladder`).setDepth(D.TERRAIN);
           out.ladders.push({ tx, ty, x: cx, y: cy });
           continue;
         }
         if (role === 'liquid') {
-          scene.add.rectangle(cx, cy, T, T, theme.liquid || 0x4a2c1a, 0.9).setDepth(4);
-          scene.add.rectangle(cx, cy - 10, T, 6, theme.liquidTop || 0x6a4028, 0.9).setDepth(5);
+          scene.add.rectangle(cx, cy, T, T, theme.liquid || 0x4a2c1a, 0.9).setDepth(D.TERRAIN);
+          scene.add.rectangle(cx, cy - 10, T, 6, theme.liquidTop || 0x6a4028, 0.9).setDepth(D.LIQUID_TOP);
           (out.surfaceGrid[ty] ||= {})[tx] = 'liquid';
           continue;
         }
@@ -102,7 +103,7 @@ export default class RoomBuilder {
         const mask = maskAt(solidAt, tx, ty);
         let tex = `${theme.key}_s_${mask}_${wear}`;
         if (role === 'climbable') tex = `${theme.key}_climb`;
-        const img = scene.add.image(cx, cy, tex).setDepth(4);
+        const img = scene.add.image(cx, cy, tex).setDepth(D.TERRAIN);
         // buried tiles get darker the further they are from daylight, so a
         // thick floor reads as ground rather than one flat slab
         let buried = 0;

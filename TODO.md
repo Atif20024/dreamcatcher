@@ -10,10 +10,8 @@ All eight D10 retrofit steps are in. Still outstanding:
 - [ ] Use the `Interactable`/`Gate` entity classes in the scenes — they
       exist and are exercised by the builders, but the scenes still use
       their own `addInteract` list and gate records.
-- [ ] `pixelart.js animation()` helper + the per-C1.2 frame counts; only
-      the hat/tool separation and squash landed.
-- [ ] Chef `sous_chef`/`dock_hand` need real sprites (they borrow the
-      roadie person grid with a tint).
+- [x] `pixelart.js` frames + outlines; every foe has its own silhouette and
+      a walk cycle stepped by distance travelled (entities/foeArt.js).
 - [ ] Spec conflict noted: Part D lists '.' as both a 22.5° slope half and
       empty. Empty won; the halves are ',' and ';'.
 
@@ -55,6 +53,15 @@ Every dream level must be:
       dream (no generic reuse beyond the engine).
 - [ ] UNIQUE — at least one mechanic that exists only in that level.
 - [ ] DECENTLY COMPLEX — multi-step tasks, not just run-right-and-jump.
+
+## Readability
+- [x] One depth scale (builders/depths.js). The terrain used to sit above
+      every prop a scene added without a depth, so those props were
+      invisible. Backdrop and terrain are negative now; depth 0 is safe.
+- [x] Aerial perspective on the backdrop (haze 0.62/0.74/0.86/1.0) so the
+      play layer reads in front.
+- [ ] Interactable props still use theme art without rims — give the ones
+      that matter the same outline treatment the characters got.
 
 ## Art polish (M6)
 - [x] Backdrops rebuilt: sky gradient + horizon-anchored layers, seven layer
