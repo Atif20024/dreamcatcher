@@ -561,7 +561,9 @@ export default class Parallax {
         scene.add
           .tileSprite(0, 0, this.camW, 200, ensureLayerTexture(scene, 'city'))
           .setOrigin(0, 1)
-          .setScrollFactor(0)
+          // x is screen-space (tilePositionX does the parallax); y tracks the
+          // world 1:1 so a layer standing on the ground stays on the ground
+          .setScrollFactor(0, 1)
           .setDepth(depth);
       return { pair: [mk(), mk().setAlpha(0)], i: 0, name: null };
     };
@@ -584,11 +586,12 @@ export default class Parallax {
     if (kind === 'wall' && slotName !== 'far') kind = 'facade';
     sprite.setTexture(ensureLayerTexture(this.scene, name, kind));
     sprite.kind = kind;
-    if (kind === 'wall') {
-      sprite.setOrigin(0, 0).setSize(this.camW, this.camH);
-    } else {
-      sprite.setOrigin(0, 1).setSize(this.camW, KIND_H[kind]);
-    }
+    // A wall is hung from the same ground line as everything else, just tall
+    // enough to cover the view from well below it to several screens above.
+    sprite.setOrigin(0, 1);
+    if (kind === 'wall') sprite.setSize(this.camW, this.camH * 5);
+    else sprite.setSize(this.camW, KIND_H[kind]);
+    sprite.wallBand = kind === 'wall';
     return sprite;
   }
 
@@ -615,7 +618,7 @@ export default class Parallax {
     const [, main, accent] = layerDef(bg.mid || bg.far || 'city');
     const rand = new Phaser.Math.RandomDataGenerator([room.id || String(room._x0)]);
     const f = F.scenery;
-    const cont = this.scene.add.container(0, 0).setScrollFactor(f, 0).setDepth(1.5).setAlpha(0);
+    const cont = this.scene.add.container(0, 0).setScrollFactor(f, 1).setDepth(1.5).setAlpha(0);
 
     // Outdoors the cast is rooftop furniture, so it stands above the street
     // facade instead of hiding behind it.
@@ -681,7 +684,7 @@ export default class Parallax {
     this.scene.tweens.add({ targets: this.scenery, alpha: 1, duration: ms || 1 });
 
     if (bg.landmark) {
-      this.landmark = drawLandmark(this.scene, bg.landmark).setScrollFactor(F.mid, 0).setDepth(2.6).setAlpha(0);
+      this.landmark = drawLandmark(this.scene, bg.landmark).setScrollFactor(F.mid, 1).setDepth(2.6).setAlpha(0);
       const centre = (room._x0 + Math.max(...room.grid.map((g) => g.length)) / 2) * 32;
       this.landmark.x = (this.camW / 2) * (1 - F.mid) + centre * F.mid;
       this.scene.tweens.add({ targets: this.landmark, alpha: 1, duration: ms || 1 });
@@ -692,28 +695,22 @@ export default class Parallax {
 
   update() {
     const cam = this.scene.cameras.main;
+    // Depth is a HORIZONTAL cue only. Everything back here stands on the same
+    // ground Jo does, so the layers are pinned to the world's horizon and move
+    // with the terrain exactly -- give them a vertical parallax factor instead
+    // and every jump pans the camera and slides the buildings out of the
+    // ground. Being world-anchored also means no one-frame lag against the
+    // camera, so nothing shimmers on landing.
     const horizon = this.current ? this.current._horizon : cam.scrollY + this.camH * 0.66;
-    const groundScreenY = horizon - cam.scrollY;
-    const anchor = this.camH * 0.66;
 
     for (const [, slot, f] of this.slots) {
-      // y: 0 = pinned to the viewport, 1 = pinned to the terrain
-      const y = Phaser.Math.Clamp(anchor + (groundScreenY - anchor) * f, this.camH * 0.3, this.camH * 1.8);
       for (const s of slot.pair) {
-        if (s.kind === 'wall') {
-          s.y = 0;
-          s.tilePositionY = cam.scrollY * f * 0.6;
-        } else {
-          s.y = y;
-          s.tilePositionY = 0;
-        }
+        s.y = s.wallBand ? horizon + this.camH : horizon;
         s.tilePositionX = cam.scrollX * f;
       }
     }
 
-    const at = (f) =>
-      Phaser.Math.Clamp(anchor + (groundScreenY - anchor) * f, this.camH * 0.3, this.camH * 1.8);
-    if (this.scenery) this.scenery.y = at(F.scenery) - this.scenery.lift;
-    if (this.landmark) this.landmark.y = at(F.mid) - 18;
+    if (this.scenery) this.scenery.y = horizon - this.scenery.lift;
+    if (this.landmark) this.landmark.y = horizon - 18;
   }
 }
