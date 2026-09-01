@@ -14,7 +14,6 @@ All eight D10 retrofit steps are in. Still outstanding:
       the hat/tool separation and squash landed.
 - [ ] Chef `sous_chef`/`dock_hand` need real sprites (they borrow the
       roadie person grid with a tint).
-- [ ] Parallax layer art is procedural placeholder — wants a real pass.
 - [ ] Spec conflict noted: Part D lists '.' as both a 22.5° slope half and
       empty. Empty won; the halves are ',' and ';'.
 
@@ -58,11 +57,13 @@ Every dream level must be:
 - [ ] DECENTLY COMPLEX — multi-step tasks, not just run-right-and-jump.
 
 ## Art polish (M6)
-- [ ] Backdrop buildings look flat/repetitive — more silhouette variety
-      (water towers, antennas, fire escapes), softer window glow, haze layers.
+- [x] Backdrops rebuilt: sky gradient + horizon-anchored layers, seven layer
+      kinds (skyline/facade/wall/strip/hanging/railing/glow), 32 named
+      background props cast per place, room-to-room crossfades.
 - [ ] Replace code-generated sprites with a real pixel-art pass (Jo animation
       frames, tiles, hazards).
-- [ ] Add parallax depth layers (far skyline / near rooftops).
+- [ ] Backdrop props are silhouettes — they could use interior detail and
+      a haze band between the far and mid layers.
 
 ## Later
 - [ ] Music + SFX (jazz motif that degrades as dreams are caught).

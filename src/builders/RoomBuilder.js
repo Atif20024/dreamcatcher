@@ -103,6 +103,14 @@ export default class RoomBuilder {
         let tex = `${theme.key}_s_${mask}_${wear}`;
         if (role === 'climbable') tex = `${theme.key}_climb`;
         const img = scene.add.image(cx, cy, tex).setDepth(4);
+        // buried tiles get darker the further they are from daylight, so a
+        // thick floor reads as ground rather than one flat slab
+        let buried = 0;
+        while (buried < 7 && solidAt(tx, ty - 1 - buried)) buried++;
+        if (buried > 0 && role === 'solid') {
+          const k = 1 - Math.min(buried, 7) * 0.085;
+          img.setTint(Phaser.Display.Color.GetColor(255 * k, 255 * k, 255 * k));
+        }
         if (role === 'ice') img.setTint(0x9ac4dc);
         if (role === 'grease') img.setTint(0x4a5060);
         if (role === 'loose') img.setTint(0xc0a880);

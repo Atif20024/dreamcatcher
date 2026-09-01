@@ -43,14 +43,16 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.crouching = false;
     this.squashScale = { x: 1, y: 1 };
     this.hatKnock = { y: 0, angle: 0 };
-    this.art = scene.add.image(x, y, 'jo-stand').setDepth(this.depth);
+    // above the terrain (depth 4) and the backdrop, below the HUD
+    this.setDepth(12);
+    this.art = scene.add.image(x, y, 'jo-stand').setDepth(12);
 
     // D5 — hat and tool are separate sprites that trail the body by one
     // frame, so Jo bobbles instead of moving like a decal.
-    this.hat = scene.add.image(x, y, 'jo-hat').setDepth(this.depth + 1);
+    this.hat = scene.add.image(x, y, 'jo-hat').setDepth(13);
     this.tool = scene.add
       .image(x, y, scene.scene.key === 'Musician' ? 'tool-trumpet' : 'tool-ladle')
-      .setDepth(this.depth + 1)
+      .setDepth(13)
       .setAlpha(0.95);
     this.lastPos = { x, y };
 

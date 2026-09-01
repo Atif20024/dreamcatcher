@@ -663,7 +663,8 @@ export default class ChefScene extends BaseLevel {
   }
 
   buildRoof() {
-    this.add.rectangle(px(312), px(20), 480, 700, 0xf2b878, 0.1).setDepth(2);
+    // (the dawn wash used to be a hard-edged rectangle sitting in the sky —
+    // the `dawn` parallax layer carries that light now)
     [0, 1, 2].forEach((i) => {
       const gull = this.add.circle(px(310 + i * 3), px(24 - i), 6, 0xe8e4d8).setDepth(3);
       this.tweens.add({ targets: gull, x: gull.x + 90, y: gull.y - 20, duration: 3000 + i * 800, yoyo: true, repeat: -1, ease: 'sine.inout' });
