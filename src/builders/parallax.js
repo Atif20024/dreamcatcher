@@ -188,6 +188,14 @@ const LAYERS = {
   pans: ['wall', 0x3a3844, 0xb87333, 0x2a2833, 0x2a2833],
   sugar: ['glow', 0x6a5a72, 0xe8d8ec, 0x4a3f52, 0x8a7a90],
   dining_room: ['glow', 0x3a2a30, 0xf2d580, 0x2a1e24, 0x5a3f3a],
+  // --- the station ---
+  hall_vault: ['wall', 0xe8dcc0, 0xc4a25c, 0xd9cbb0, 0xd9cbb0],
+  gate_dark: ['wall', 0x2e3a30, 0x1e2a22, 0x1a241c, 0x1a241c],
+  station_facade: ['facade', 0xd8cbb0, 0xc4a25c],
+  ticket_hall: ['facade', 0xcfc0a2, 0x2e6a4a],
+  ticket_booths: ['strip', 0x4a3a2a, 0x50c878],
+  shed_ribs: ['poles', 0x4a4650, 0x8a8490],
+  shed_lamps: ['hanging', 0x3a3a44, 0xf2d580],
   // --- mid ---
   brick: ['facade', 0x46332d, 0xd8a060],
   theatre: ['facade', 0x3f1e28, 0xf2d580],
@@ -427,6 +435,8 @@ const SCENERY = {
   pans: ['pot_rack', 'extractor', 'prep_table'],
   sugar: ['mixer', 'cake_stand', 'shelf_ladder', 'prep_table'],
   dining_room: ['column', 'table_setting', 'cake_stand'],
+  hall_vault: ['column', 'streetlamp', 'bench', 'phone_booth'],
+  gate_dark: ['crate_stack', 'pylon'],
 };
 
 function drawPrimitives(g, prims) {
@@ -515,6 +525,36 @@ function drawLandmark(scene, name) {
         add(scene.add.triangle(i * 34, -30, -14, 40, 14, 40, 0, 0, 0xf2d580, 0.06));
       }
       break;
+    case 'great_clock':
+      add(scene.add.circle(0, -150, 46, 0xf2e6cc));
+      add(scene.add.circle(0, -150, 42, 0x2a2230).setStrokeStyle(2, 0xc4a25c));
+      add(scene.add.rectangle(0, -162, 3, 24, 0xf2e6cc));
+      add(scene.add.rectangle(10, -150, 20, 2, 0xf2e6cc));
+      for (let i = -3; i <= 3; i++) add(scene.add.rectangle(i * 70, -60, 8, 160, 0xc4a25c, 0.35));
+      break;
+    case 'train_shed':
+      add(scene.add.rectangle(0, -170, 420, 10, 0x4a4650));
+      for (let i = -4; i <= 4; i++) add(scene.add.rectangle(i * 50, -120, 6, 100, 0x4a4650, 0.8));
+      add(scene.add.rectangle(0, -60, 420, 4, 0x4a4650, 0.5));
+      label('PLATFORMS  1 — 4', '#f2e6cc', 13);
+      break;
+    case 'shed_clock':
+      add(scene.add.rectangle(0, -170, 420, 10, 0x4a4650));
+      for (let i = -4; i <= 4; i++) add(scene.add.rectangle(i * 50, -120, 6, 100, 0x4a4650, 0.8));
+      add(scene.add.circle(0, -120, 22, 0xf2e6cc));
+      add(scene.add.rectangle(0, -128, 2, 14, 0x2a2230));
+      label('PLATFORMS  5 — 8', '#f2e6cc', 13);
+      break;
+    case 'no_passengers':
+      add(scene.add.rectangle(0, -100, 140, 220, 0x1e2a22, 0.9));
+      for (let i = 0; i < 40; i++) add(scene.add.rectangle(-50 + (i % 10) * 11, -190 + Math.floor(i / 10) * 30, 1, 10, 0xd8cbb0, 0.5));
+      break;
+    case 'station_sign':
+      add(scene.add.rectangle(0, -70, 380, 52, 0x2e3a52));
+      add(scene.add.rectangle(0, -70, 372, 44, 0x1e2a3c).setStrokeStyle(2, 0xc4a25c));
+      label('CROSSROADS  STATION', '#f2e6cc', 18);
+      for (let i = -8; i <= 8; i++) add(scene.add.circle(i * 22, -96, 3, 0xf2d580, 0.9));
+      break;
     case 'folding_chair':
       add(scene.add.rectangle(0, 0, 40, 6, 0x8a8494));
       add(scene.add.rectangle(-16, -20, 6, 40, 0x8a8494));
@@ -551,14 +591,19 @@ export default class Parallax {
     const cam = scene.cameras.main;
     this.camW = cam.width;
     this.camH = cam.height;
+    // Screen-space layers shrink with the camera zoom, so at the vista zoom
+    // (0.62) a viewport-sized band would leave bare canvas at the edges.
+    // Everything is drawn wider and centred, and covers down to zoom 0.55.
+    this.spanW = Math.ceil(this.camW / 0.55);
+    this.spanX = -(this.spanW - this.camW) / 2;
     for (const room of rooms) room._horizon = horizonOf(room);
 
     // Two of everything: a room change crossfades instead of popping.
     const sky = () =>
       scene.add
-        .image(0, 0, ensureSkyTexture(scene, 'city'))
+        .image(this.spanX, -this.camH, ensureSkyTexture(scene, 'city'))
         .setOrigin(0)
-        .setDisplaySize(this.camW, this.camH)
+        .setDisplaySize(this.spanW, this.camH * 3)
         .setScrollFactor(0)
         .setDepth(D.SKY);
     this.sky = [sky(), sky().setAlpha(0)];
@@ -566,7 +611,7 @@ export default class Parallax {
     const slot = (depth) => {
       const mk = () =>
         scene.add
-          .tileSprite(0, 0, this.camW, 200, ensureLayerTexture(scene, 'city'))
+          .tileSprite(this.spanX, 0, this.spanW, 200, ensureLayerTexture(scene, 'city'))
           .setOrigin(0, 1)
           // x is screen-space (tilePositionX does the parallax); y tracks the
           // world 1:1 so a layer standing on the ground stays on the ground
@@ -599,8 +644,8 @@ export default class Parallax {
     // A wall is hung from the same ground line as everything else, just tall
     // enough to cover the view from well below it to several screens above.
     sprite.setOrigin(0, 1);
-    if (kind === 'wall') sprite.setSize(this.camW, this.camH * 5);
-    else sprite.setSize(this.camW, KIND_H[kind]);
+    if (kind === 'wall') sprite.setSize(this.spanW, this.camH * 5);
+    else sprite.setSize(this.spanW, KIND_H[kind]);
     sprite.wallBand = kind === 'wall';
     return sprite;
   }
@@ -668,7 +713,7 @@ export default class Parallax {
       this._skyName = bg.far;
       const inc = this.sky[1 - (this._skyI || 0)];
       const out = this.sky[this._skyI || 0];
-      inc.setTexture(ensureSkyTexture(this.scene, bg.far)).setDisplaySize(this.camW, this.camH);
+      inc.setTexture(ensureSkyTexture(this.scene, bg.far)).setDisplaySize(this.spanW, this.camH * 3);
       this._skyI = 1 - (this._skyI || 0);
       if (ms <= 0) {
         inc.setAlpha(1);

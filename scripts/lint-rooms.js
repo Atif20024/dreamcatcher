@@ -1,10 +1,11 @@
 // D2 — room validation. `npm run lint:rooms`
 import chefRooms from '../src/data/chef/rooms.js';
 import musicianRooms from '../src/data/musician/rooms.js';
+import hubRooms from '../src/data/hub/rooms.js';
 import { roleOf, isSolidChar, isSlopeChar } from '../src/builders/legend.js';
 import { maskAt, wearAt } from '../src/builders/autotile.js';
 
-const DREAMS = { chef: chefRooms, musician: musicianRooms };
+const DREAMS = { chef: chefRooms, musician: musicianRooms, hub: hubRooms };
 let failures = 0;
 let warnings = 0;
 

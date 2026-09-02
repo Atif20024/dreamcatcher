@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { createPixelTexture } from '../utils/pixelart.js';
 import { getDifficulty } from '../utils/save.js';
 import DialogueBox from '../systems/DialogueBox.js';
-import { sfx, music, musicDirector, sting } from '../systems/audio.js';
+import { sfx, music, musicDirector, sting, isMusicOff, toggleMusic } from '../systems/audio.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
 import Parallax from '../builders/parallax.js';
 import Foe from '../entities/Foe.js';
@@ -88,6 +88,17 @@ export default class BaseLevel extends Phaser.Scene {
       musicDirector.stop();
       this.events.off('beat');
     });
+
+    // music on/off: a HUD button you can click, and [M]
+    this.musicBtn = this.add
+      .text(cam.width - 16, cam.height - 18, '', { fontFamily: 'monospace', fontSize: '12px', color: '#c8c0b0', backgroundColor: '#14101c', padding: { x: 6, y: 3 } })
+      .setOrigin(1, 0.5)
+      .setScrollFactor(0)
+      .setDepth(150)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => this.setMusicLabel(toggleMusic()));
+    this.setMusicLabel(isMusicOff());
+    this.input.keyboard.on('keydown-M', () => this.setMusicLabel(toggleMusic()));
 
     this.keyEsc = this.input.keyboard.addKey('ESC');
     this.keyQ = this.input.keyboard.addKey('Q');
@@ -195,7 +206,7 @@ export default class BaseLevel extends Phaser.Scene {
         '[X] Try again      [Q] Choose another dream',
       ],
       () => this.scene.restart(),
-      () => this.scene.start('Select')
+      () => this.scene.start('Hub')
     );
   }
 
@@ -221,6 +232,10 @@ export default class BaseLevel extends Phaser.Scene {
       }
     }
     this.foes = this.foes.filter((f) => f.active);
+  }
+
+  setMusicLabel(off) {
+    if (this.musicBtn) this.musicBtn.setText(off ? '[M] ♪ music: off' : '[M] ♪ music: on');
   }
 
   setObjective(text) {
@@ -264,7 +279,7 @@ export default class BaseLevel extends Phaser.Scene {
           '[X] Try again      [Q] Choose another dream',
         ],
         () => this.scene.restart(),
-        () => this.scene.start('Select')
+        () => this.scene.start('Hub')
       );
       return;
     }
@@ -357,9 +372,9 @@ export default class BaseLevel extends Phaser.Scene {
       return true;
     }
     if (Phaser.Input.Keyboard.JustDown(this.keyEsc)) {
-      this.showCard(['Paused', '', '[X] Keep dreaming', '[Q] Choose another dream'], null, () => {
+      this.showCard(['Paused', '', '[X] Keep dreaming', '[Q] Back to Crossroads Station'], null, () => {
         music.stop();
-        this.scene.start('Select');
+        this.scene.start('Hub');
       });
       return true;
     }

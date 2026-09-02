@@ -22,6 +22,7 @@ export default class Phrases {
     this.onPhrase = opts.onPhrase || (() => {});
     this.onDone = opts.onDone || (() => {});
     this.onBeatHit = opts.onBeatHit || (() => {});
+    this.voice = opts.voice || trumpet; // the busker answers on an accordion
     this.pitchStep = 0;
 
     this.phraseIdx = 0;
@@ -85,11 +86,11 @@ export default class Phrases {
       if (this.pattern[best] === 0) {
         // filled a rest on the producer's orders — it should feel wrong
         this.icons[best].setFillStyle(0xa0c860);
-        trumpet(9, 0.25, 0.3);
+        this.voice(9, 0.25, 0.3);
         this.onRestFilled(best);
       } else {
         this.icons[best].setFillStyle(0x7ec87e);
-        trumpet(this.pitchStep++ % 12, 0.3);
+        this.voice(this.pitchStep++ % 12, 0.3);
       }
       this.onBeatHit(best);
     } else if (best >= 0 && this.pattern[best] === 0 && this.enforceRests && !this.invertRests && bestD <= this.window) {
@@ -97,7 +98,7 @@ export default class Phrases {
       this.icons[best].setStrokeStyle(3, 0xe86a6a);
       sfx('fail');
     } else {
-      trumpet(this.pitchStep % 12, 0.15, 0.15); // stray note, no judgement
+      this.voice(this.pitchStep % 12, 0.15, 0.15); // stray note, no judgement
     }
   }
 
@@ -112,7 +113,7 @@ export default class Phrases {
         this.previewed[beat] = true;
         const icon = this.icons[beat];
         this.scene.tweens.add({ targets: icon, scale: 1.5, duration: 90, yoyo: true });
-        if (this.pattern[beat] === 1) trumpet(beat % 12, 0.25, 0.18);
+        if (this.pattern[beat] === 1) this.voice(beat % 12, 0.25, 0.18);
         else sfx('click');
       }
       if (t >= barLen + this.beatMs * 0.5) {

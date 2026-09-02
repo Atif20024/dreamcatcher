@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import SelectScene from './scenes/SelectScene.js';
+import HubScene from './scenes/HubScene.js';
 import IntroScene from './scenes/IntroScene.js';
 import MusicianScene from './scenes/MusicianScene.js';
 import ChefScene from './scenes/ChefScene.js';
@@ -20,5 +20,6 @@ window.game = new Phaser.Game({
       gravity: { y: 1200 },
     },
   },
-  scene: [SelectScene, IntroScene, MusicianScene, ChefScene],
+  // the game opens mid-life, at the station's front steps -- never on a menu
+  scene: [HubScene, IntroScene, MusicianScene, ChefScene],
 });

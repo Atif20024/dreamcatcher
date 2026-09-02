@@ -4,6 +4,31 @@ let ctx = null;
 let master = null;
 const stems = {};
 
+// Music can be switched off ([M] or the HUD button); one-shot SFX and the
+// instruments Jo plays himself stay audible. Remembered between sessions.
+const MUTE_KEY = 'dreamcatcher.musicOff';
+let musicOff = false;
+try {
+  musicOff = localStorage.getItem(MUTE_KEY) === '1';
+} catch {
+  /* no storage */
+}
+export function isMusicOff() {
+  return musicOff;
+}
+export function setMusicOff(off) {
+  musicOff = !!off;
+  try {
+    localStorage.setItem(MUTE_KEY, musicOff ? '1' : '0');
+  } catch {
+    /* no storage */
+  }
+  return musicOff;
+}
+export function toggleMusic() {
+  return setMusicOff(!musicOff);
+}
+
 function ac() {
   if (!ctx) {
     ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -76,6 +101,19 @@ const SFX = {
   purr: () => tone(70, 0.8, 'sine', 0.15),
   pop: () => tone(500, 0.1, 'sine', 0.3, 0, 900),
   fail: () => [300, 240, 180].forEach((f, i) => tone(f, 0.25, 'square', 0.25, i * 0.15)),
+  // --- station ---
+  clack: () => noise(0.03, 0.22, 3200),
+  whistle: () => {
+    tone(880, 0.5, 'sine', 0.18);
+    tone(1175, 0.5, 'sine', 0.12, 0.02);
+  },
+  scrape: () => noise(1.4, 0.3, 700),
+  knock: () => tone(90, 0.18, 'square', 0.3, 0, 60),
+  scratch: () => noise(0.12, 0.18, 4200),
+  adding: () => [0, 0.09, 0.18, 0.3].forEach((w) => noise(0.03, 0.12, 2600, w)),
+  tick: () => noise(0.015, 0.1, 5000),
+  drip: () => tone(1400, 0.08, 'sine', 0.08, 0, 700),
+  tea: () => [523, 659].forEach((f, i) => tone(f, 0.3, 'triangle', 0.14, i * 0.12)),
 };
 
 // Jo's trumpet: 12 pitches, brassy square+saw blend. Nia's bass: 6 pitches.
@@ -91,6 +129,15 @@ export function trumpet(pitchIdx = 4, dur = 0.35, vol = 0.3) {
   } catch {
     /* silent */
   }
+}
+
+// a reedy accordion: two detuned squares under a low-pass, for the busker
+export function accordion(pitchIdx = 4, dur = 0.4, vol = 0.22) {
+  const scale = [262, 294, 330, 349, 392, 440, 494, 523, 587, 659, 698, 784];
+  const f = scale[Math.max(0, Math.min(11, pitchIdx))];
+  tone(f, dur, 'square', vol * 0.45);
+  tone(f * 1.006, dur, 'sawtooth', vol * 0.25);
+  tone(f / 2, dur, 'triangle', vol * 0.3);
 }
 
 export function bassNote(pitchIdx = 2, dur = 0.5, vol = 0.35) {
@@ -135,7 +182,18 @@ export class MusicDirector {
     this.scene = null;
     this.timer = null;
     this.gains = {};
-    this.level = { bass: 0, brushes: 0, piano: 0, trumpet: 0, pad: 0 };
+    this.level = { bass: 0, brushes: 0, piano: 0, trumpet: 0, pad: 0, hum: 0 };
+    this.custom = null;
+  }
+
+  // The station drives its own mix from the HubState table rather than from
+  // a named state; `custom` wins over `state` while set.
+  setMix(mix) {
+    this.custom = { bass: 0, brushes: 0, piano: 0, trumpet: 0, pad: 0, hum: 0, ...mix };
+  }
+
+  clearMix() {
+    this.custom = null;
   }
 
   attach(scene) {
@@ -167,7 +225,13 @@ export class MusicDirector {
   }
 
   tick() {
-    const target = STATE_MIX[this.state];
+    const target = this.custom || { ...STATE_MIX[this.state], hum: 0 };
+    if (musicOff) {
+      // keep the beat clock alive for hazards; just don't sound it
+      const b = this.beat++;
+      if (this.scene && this.scene.events) this.scene.events.emit('beat', b);
+      return;
+    }
     // crossfade one beat's worth toward the target mix
     for (const k of Object.keys(this.level)) {
       this.level[k] += (target[k] - this.level[k]) * 0.5;
@@ -183,6 +247,10 @@ export class MusicDirector {
         tone([392, 440, 523, 587][(b >> 1) % 4], 0.25, 'square', 0.05 * this.level.trumpet);
       }
       if (this.level.pad > 0.05 && b % 8 === 0) tone(131, 3.2, 'sine', 0.06 * this.level.pad);
+      // the sweeper humming the Orb melody, unaccompanied
+      if (this.level.hum > 0.05 && b % 2 === 0) {
+        tone([659, 784, 988, 1319, 988, 784][(b >> 1) % 6] / 2, 0.9, 'sine', 0.05 * this.level.hum);
+      }
     } catch {
       /* silent */
     }
@@ -192,6 +260,7 @@ export class MusicDirector {
   stop() {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
+    this.custom = null;
   }
 }
 
@@ -216,7 +285,15 @@ const PIANO_CHORD = [262, 330, 392, 494];
 function startStem(name, intervalMs, fire) {
   if (stems[name]) return;
   ac();
-  stems[name] = { step: 0, id: setInterval(() => fire(stems[name].step++), intervalMs) };
+  stems[name] = {
+    step: 0,
+    id: setInterval(() => {
+      const st = stems[name];
+      if (!st) return;
+      const step = st.step++;
+      if (!musicOff) fire(step);
+    }, intervalMs),
+  };
 }
 
 export const music = {

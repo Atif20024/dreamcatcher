@@ -196,6 +196,43 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         }
       }
     }
+    // Ladders ('H'): hold up/down inside one to climb; gravity is off while
+    // on it, and a jump or stepping off the column lets go.
+    const lg = this.scene.ladderGrid;
+    const onLadderTile = (dy) => {
+      if (!lg) return false;
+      const tx = Math.floor(this.x / T);
+      const ty = Math.floor((this.y + dy) / T);
+      return !!(lg[ty] && lg[ty][tx]);
+    };
+    const wantsClimb = this.cursors.up.isDown || this.keys.W.isDown || crouch;
+    // (+40 = the tile under the one Jo stands on: pressing DOWN on a floor
+    // tile that has a ladder beneath it climbs down through the floor)
+    if (!this.climbing && wantsClimb && !locked && (onLadderTile(0) || onLadderTile(20) || (crouch && onLadderTile(40)))) {
+      this.climbing = true;
+      body.setAllowGravity(false);
+      body.setVelocity(0, 0);
+    }
+    if (this.climbing) {
+      const stillOn = onLadderTile(0) || onLadderTile(20) || onLadderTile(-20) || onLadderTile(40);
+      const up = this.cursors.up.isDown || this.keys.W.isDown;
+      if (!stillOn || (Phaser.Input.Keyboard.JustDown(this.keys.SPACE) && !up)) {
+        this.climbing = false;
+        body.setAllowGravity(true);
+      } else {
+        body.setVelocityY(up ? -150 : crouch ? 150 : 0);
+        body.setVelocityX(0);
+        // snap to the rung column so Jo doesn't drift off the rib
+        const cx = Math.floor(this.x / T) * T + T / 2;
+        this.x += (cx - this.x) * 0.3;
+        if (body.onFloor() && crouch) {
+          this.climbing = false;
+          body.setAllowGravity(true);
+        }
+        this.art && this.art.setTexture('jo-run');
+        return;
+      }
+    }
     const grounded = body.onFloor() || this.onSlope;
 
     if (grounded) {

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { createJoTextures } from '../entities/jo.js';
 import { drawCityBackdrop } from '../utils/backdrop.js';
+import { toggleMusic } from '../systems/audio.js';
 
 // Close-up entry shots: a zoomed street scene, Jo walks to the door, fade in.
 const INTROS = {
@@ -108,6 +109,7 @@ export default class IntroScene extends Phaser.Scene {
     this.tweens.add({ targets: this.cameras.main, zoom: 1.15, duration: 3400, ease: 'sine.out' });
 
     this.keyX = this.input.keyboard.addKey('X');
+    this.input.keyboard.on('keydown-M', () => toggleMusic());
     this.started = false;
   }
 

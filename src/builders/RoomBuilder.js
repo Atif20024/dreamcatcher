@@ -47,6 +47,7 @@ export default class RoomBuilder {
       oneWays: scene.physics.add.staticGroup(),
       hazards: scene.physics.add.staticGroup(),
       ladders: [],
+      ladderGrid: {},
       climbGrid: {},
       slopeGrid: {},
       surfaceGrid: {},
@@ -90,6 +91,7 @@ export default class RoomBuilder {
         if (role === 'ladder') {
           scene.add.image(cx, cy, `${theme.key}_ladder`).setDepth(D.TERRAIN);
           out.ladders.push({ tx, ty, x: cx, y: cy });
+          (out.ladderGrid[ty] ||= {})[tx] = true;
           continue;
         }
         if (role === 'liquid') {
@@ -146,6 +148,7 @@ export default class RoomBuilder {
         const ch = charAt(tx, ty);
         const role = roleOf(ch);
         if (role !== 'solid' && role !== 'oneway') return false;
+        if (theme.noSupports) return false;
         if (solidAt(tx, ty + 1)) return false;
         // a lone floor row at the world's base doesn't need legs
         return ty < height - 2;

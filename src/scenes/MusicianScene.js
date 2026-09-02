@@ -1147,7 +1147,7 @@ export default class MusicianScene extends BaseLevel {
     lines.push('', '[X] Return to Crossroads Station');
     this.showCard(lines, () => {
       music.stop();
-      this.scene.start('Select');
+      this.scene.start('Hub', { returnedFrom: 'musician' });
     });
   }
 }

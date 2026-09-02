@@ -1,5 +1,22 @@
 # TODO
 
+## Crossroads Station (hub_crossroads_station.md) — built, deviations
+- [x] The hub is the OPENING scene: no title screen and no Tutorial Street
+      exist yet, so the game starts on the station's front steps in rain
+      (the spec assumed the street ends there). Tutorial Street is still M3.
+- [ ] Only Chef and Musician lines run. The other six platforms carry a
+      red NOT IN SERVICE bar and a dark, unlit train; the board says DELAYED.
+- [ ] THE LAST STOP boards to a placeholder card — The Counter (M4) is not
+      built. The gate voice, chain drop and tally all work.
+- [ ] Undercroft/roof are vertical zones of the five rooms, not separate
+      rooms; the "luggage-room stairs" are a ladder under the floor at
+      col 77 (press DOWN on it). The dumbwaiter is cosmetic (Bilal teleports).
+- [ ] No per-platform ambient loops yet (sizzle/tuning/pistol); music is the
+      director's hub mix from the §4 table + the sweeper's hum at N=5.
+- [ ] Tween timing cannot be verified in the stepped test harness (Phaser's
+      tween clock reads the game loop's own delta); camera moves are chained
+      by callbacks so nothing can overlap regardless of clock.
+
 ## Part D — remaining work
 All eight D10 retrofit steps are in. Still outstanding:
 - [ ] Migrate the musician's abstract creatures (wisps, metronome walkers,
