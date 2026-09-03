@@ -30,7 +30,7 @@ export default [
     music: { section: 'delivery', bpm: 100, state: 'explore' },
     bg: { far: 'city', mid: 'brick', near: 'crates', landmark: 'loading_dock' },
     objects: [
-      { type: 'foe', kind: 'runaway_cart', x: L(38, 26), y: 33, patrol: [L(27, 26), L(38, 26)], human: false },
+      { type: 'foe', kind: 'runaway_cart', x: L(31, 26), y: 33, patrol: [L(27, 26), L(32, 26)], human: false }, // charges the open alley; the crate stack at 33-34 pens it in
       { type: 'foe', kind: 'crawler', x: L(44, 26), y: 33, human: false },
       { type: 'foe', kind: 'crawler', x: L(48, 26), y: 33, human: false },
       { type: 'foe', kind: 'crawler', x: L(52, 26), y: 33, human: false },

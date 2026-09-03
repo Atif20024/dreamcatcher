@@ -222,27 +222,10 @@ export default class ChefScene extends BaseLevel {
   // ---------- sections -------------------------------------------------
 
   buildAlleyAndDock() {
+    // The runaway cart is a D6 foe declared in data/chef/rooms.js (it patrols
+    // the dock and collides with the world). The old tweened cart that ghosted
+    // through the gate and vanished at the street is gone.
     this.carts = [];
-    this.time.addEvent({
-      delay: 6000,
-      loop: true,
-      callback: () => {
-        if (this.player.x > px(20) && this.player.x < px(50)) sfx('crack');
-        if (this.player.x > px(56)) return;
-        const cart = this.add.image(px(38), px(33), 'chef-cart').setDepth(15);
-        this.carts.push(cart);
-        this.tweens.add({
-          targets: cart,
-          x: px(27),
-          duration: 1900,
-          onComplete: () => {
-            this.carts = this.carts.filter((c) => c !== cart);
-            cart.destroy();
-          },
-        });
-      },
-    });
-    // (the three crawlers here are declared in data/chef/rooms.js)
   }
 
   buildDryStore() {

@@ -170,12 +170,41 @@ export const CREATURES = {
     size: 4,
   },
   'foe-cart': {
+    // a loaded delivery trolley: stacked crates, a handle, big wheels and a
+    // hazard stripe -- readable as "cart" from across the dock. Frame 2 has
+    // the load bouncing and the wheels turned.
     art: [
-      ['SSSSSSSSSS', 'SsssssssaS', 'SSSSSSSSSS', '.w..ww..w.', '..w.ww.w..'],
-      ['SSSSSSSSSS', 'SsssssssaS', 'SSSSSSSSSS', '..w.ww.w..', '.w..ww..w.'],
+      [
+        '....CCCCCC......',
+        '....CcccCC......',
+        '..CCCCCCCCCC..h.',
+        '..CccccCcccC..h.',
+        '..CCCCCCCCCC..h.',
+        'SSSSSSSSSSSSSShh',
+        'SrSrSrSrSrSrSrSS',
+        'SSSSSSSSSSSSSSSS',
+        '.ww..........ww.',
+        'wWWw........wWWw',
+        'wWWw........wWWw',
+        '.ww..........ww.',
+      ],
+      [
+        '....CCCCCC......',
+        '....CcccCC......',
+        '..CCCCCCCCCC..h.',
+        '..CccccCcccC..h.',
+        '..CCCCCCCCCC..h.',
+        'SSSSSSSSSSSSSShh',
+        'SrSrSrSrSrSrSrSS',
+        'SSSSSSSSSSSSSSSS',
+        '.ww..........ww.',
+        'wWwW........wWwW',
+        'wWwW........wWwW',
+        '.ww..........ww.',
+      ],
     ],
-    pal: { S: 0x9a9eaa, s: 0xc8ccd8, a: 0xc03a2a, w: 0x2a2a30 },
-    size: 4,
+    pal: { C: 0x8a6844, c: 0x5a4632, S: 0x9a9eaa, r: 0xc03a2a, h: 0x6a6e7a, w: 0x2a2a30, W: 0x5a5e6a },
+    size: 3,
   },
   'foe-walker': {
     art: [

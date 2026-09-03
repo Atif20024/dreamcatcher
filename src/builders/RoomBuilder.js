@@ -166,6 +166,10 @@ export default class RoomBuilder {
           ty: o.y,
           wx: (o.x + r._x0) * T + T / 2,
           wy: o.y * T + T / 2,
+          // any other tile-column fields are room-local too: a patrol range
+          // left un-offset sent foes marching into the previous room
+          patrol: o.patrol ? o.patrol.map((c) => c + r._x0) : undefined,
+          x0: o.x0 !== undefined ? o.x0 + r._x0 : undefined,
         });
       }
     }
