@@ -9,8 +9,9 @@
 - [ ] THE LAST STOP boards to a placeholder card — The Counter (M4) is not
       built. The gate voice, chain drop and tally all work.
 - [ ] Undercroft/roof are vertical zones of the five rooms, not separate
-      rooms; the "luggage-room stairs" are a ladder under the floor at
-      col 77 (press DOWN on it). The dumbwaiter is cosmetic (Bilal teleports).
+      rooms; the "luggage-room stairs" are a signed grate in the concourse
+      (LEFT LUGGAGE, [↓] down) over a ladder. Bilal rides the dumbwaiter to
+      Jo's floor only when Jo is near the café on the other level.
 - [ ] No per-platform ambient loops yet (sizzle/tuning/pistol); music is the
       director's hub mix from the §4 table + the sweeper's hum at N=5.
 - [ ] Tween timing cannot be verified in the stepped test harness (Phaser's

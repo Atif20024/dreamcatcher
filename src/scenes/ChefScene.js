@@ -230,8 +230,12 @@ export default class ChefScene extends BaseLevel {
 
   buildDryStore() {
     // pushable crates of heights 1/2/3 (visualised by scale)
+    // the crates stand where data/chef/rooms.js puts them: behind the dock
+    // hand, so they have to be carried past him
+    const spots = this.built.objects.filter((o) => o.type === 'carryable' && o.kind === 'crate');
     this.crates = [1, 2, 3].map((h, i) => {
-      const c = this.physics.add.image(px(63 + i * 3), px(33) - (h * 32) / 2 + 8, 'chef-crate');
+      const cx = spots[i] ? spots[i].wx : px(63 + i * 3);
+      const c = this.physics.add.image(cx, px(33) - (h * 32) / 2 + 8, 'chef-crate');
       c.setScale(1, h).setImmovable(false);
       c.body.setDragX(600).setMaxVelocityX(80);
       this.physics.add.collider(c, this.solids);

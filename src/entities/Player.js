@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { createJoTextures } from './jo.js';
 import { sfx } from '../systems/audio.js';
-import { slopeSurface } from '../builders/legend.js';
+import { resolveSlope } from './slopes.js';
 import { JO_DUST } from './jo.js';
 import { dreamDust } from '../systems/effects.js';
 
@@ -176,26 +176,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
     // D3 — slopes: Arcade has none, so resolve the surface by hand and treat
     // the result as ground for every other check this frame.
-    this.onSlope = false;
-    const sg = this.scene.slopeGrid;
-    if (sg) {
-      const footTx = Math.floor(this.x / T);
-      const footY = body.bottom;
-      for (const ty of [Math.floor(footY / T), Math.floor(footY / T) - 1]) {
-        const role = sg[ty] && sg[ty][footTx];
-        if (!role) continue;
-        const fx = this.x / T - footTx;
-        const surfaceY = ty * T + slopeSurface(role, fx) * T;
-        if (footY >= surfaceY - 8 && footY <= surfaceY + T && body.velocity.y >= -10) {
-          this.y += surfaceY - footY;
-          body.y += surfaceY - footY;
-          body.velocity.y = 0;
-          body.blocked.down = true;
-          this.onSlope = true;
-          break;
-        }
-      }
-    }
+    this.onSlope = resolveSlope(this.scene, this, body);
     // Ladders ('H'): hold up/down inside one to climb; gravity is off while
     // on it, and a jump or stepping off the column lets go.
     const lg = this.scene.ladderGrid;
@@ -208,13 +189,13 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     const wantsClimb = this.cursors.up.isDown || this.keys.W.isDown || crouch;
     // (+40 = the tile under the one Jo stands on: pressing DOWN on a floor
     // tile that has a ladder beneath it climbs down through the floor)
-    if (!this.climbing && wantsClimb && !locked && (onLadderTile(0) || onLadderTile(20) || (crouch && onLadderTile(40)))) {
+    if (!this.climbing && wantsClimb && !locked && (onLadderTile(0) || onLadderTile(20) || (crouch && (onLadderTile(40) || onLadderTile(56))))) {
       this.climbing = true;
       body.setAllowGravity(false);
       body.setVelocity(0, 0);
     }
     if (this.climbing) {
-      const stillOn = onLadderTile(0) || onLadderTile(20) || onLadderTile(-20) || onLadderTile(40);
+      const stillOn = onLadderTile(0) || onLadderTile(20) || onLadderTile(-20) || onLadderTile(40) || onLadderTile(56);
       const up = this.cursors.up.isDown || this.keys.W.isDown;
       if (!stillOn || (Phaser.Input.Keyboard.JustDown(this.keys.SPACE) && !up)) {
         this.climbing = false;
@@ -225,7 +206,21 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         // snap to the rung column so Jo doesn't drift off the rib
         const cx = Math.floor(this.x / T) * T + T / 2;
         this.x += (cx - this.x) * 0.3;
-        if (body.onFloor() && crouch) {
+        // reaching the ladder's foot lets go -- unless the "floor" is a lid
+        // with more ladder under it
+        if (body.onFloor() && crouch && !onLadderTile(56)) {
+          this.climbing = false;
+          body.setAllowGravity(true);
+        }
+        // climbing DOWN onto solid ground that is not a rung: stand on it.
+        // (The solids collider is off while climbing, so without this the
+        // descent would carry on through the floor.)
+        const solidAt = this.scene.built && this.scene.built.solidAt;
+        const footRow = Math.floor((this.y + 26) / T);
+        const tx = Math.floor(this.x / T);
+        if (crouch && solidAt && !onLadderTile(56) && solidAt(tx, footRow) && !(lg[footRow] && lg[footRow][tx])) {
+          this.y = footRow * T - 24;
+          body.reset(this.x, this.y);
           this.climbing = false;
           body.setAllowGravity(true);
         }

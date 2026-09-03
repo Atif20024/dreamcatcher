@@ -113,6 +113,12 @@ export function buildChefMap() {
   fill(rows, 24, 24, 250, 253, '=');
   fill(rows, 28, 28, 246, 250, '=');
 
+  // D6 — the dock hand works the flat dock under a solid beam (cols 62-67,
+  // rows 27-31): two tiles of clearance the whole length of his beat and
+  // nothing to land on above it, so Jo gets past a person only by slipping
+  // under the grab, shoving, hiding or timing him -- never by jumping over.
+  // The step before it (58-60) is where you wait.
+  fill(rows, 27, 31, 62, 67, '#');
   return rows;
 }
 

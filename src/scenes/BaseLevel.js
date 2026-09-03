@@ -10,6 +10,7 @@ import { createFoeTextures } from '../entities/foeArt.js';
 import { FOES } from '../data/kinds.js';
 import { showTutorial } from '../systems/tutorial.js';
 import { hitStop } from '../systems/effects.js';
+import { D } from '../builders/depths.js';
 
 const HEART = { rows: ['.hh.hh.', 'hhhhhhh', 'hhhhhhh', '.hhhhh.', '..hhh..', '...h...'], pal: { h: 0xe86a6a } };
 const ORB = {
@@ -64,16 +65,16 @@ export default class BaseLevel extends Phaser.Scene {
       this.add.image(28 + i * 30, 30, 'heart').setScrollFactor(0).setDepth(150)
     );
     this.add
-      .text(16, 52, levelName, { fontFamily: 'monospace', fontSize: '14px', color: '#e8dcc8' })
+      .text(16, 52, levelName, { fontFamily: 'monospace', fontSize: '14px', color: '#e8dcc8', stroke: '#14101c', strokeThickness: 4 })
       .setScrollFactor(0)
       .setDepth(150);
     this.objectiveText = this.add
-      .text(cam.width - 16, 52, '', { fontFamily: 'monospace', fontSize: '13px', color: '#f2d580', align: 'right' })
+      .text(cam.width - 16, 52, '', { fontFamily: 'monospace', fontSize: '13px', color: '#f2d580', align: 'right', stroke: '#14101c', strokeThickness: 4 })
       .setOrigin(1, 0)
       .setScrollFactor(0)
       .setDepth(150);
     this.add
-      .text(cam.width - 16, 26, '[Esc] pause', { fontFamily: 'monospace', fontSize: '12px', color: '#8a8478' })
+      .text(cam.width - 16, 26, '[Esc] pause', { fontFamily: 'monospace', fontSize: '12px', color: '#c8c0b0', stroke: '#14101c', strokeThickness: 3 })
       .setOrigin(1, 0.5)
       .setScrollFactor(0)
       .setDepth(150);
@@ -128,7 +129,6 @@ export default class BaseLevel extends Phaser.Scene {
     if (merged.floats || merged.ranged) foe.body.setAllowGravity(false);
     this.foeGroup.add(foe);
     this.foes.push(foe);
-    if (merged.human) showTutorial(this, 'shove');
     return foe;
   }
 
@@ -142,8 +142,20 @@ export default class BaseLevel extends Phaser.Scene {
     objects
       .filter((o) => o.type === 'hide')
       .forEach((o) => {
-        this.hideSpots.push({ x: o.wx, y: o.wy, id: o.id });
-        this.add.rectangle(o.wx, o.wy + 6, 34, 34, 0x2a2a34, 0.55).setDepth(9).setStrokeStyle(1, 0x6a6478);
+        // a stack of crates with a dark gap Jo can crouch into. The crates
+        // draw in front of him so ducking behind them reads as hiding.
+        const tex = this.textures.exists('chef-crate') ? 'chef-crate' : this.textures.exists('hub-suitcase') ? 'hub-suitcase' : null;
+        const floor = o.wy + 16;
+        const gap = this.add.rectangle(o.wx, floor - 20, 36, 40, 0x0a0a12, 0.85).setDepth(9);
+        const front = tex
+          ? [this.add.image(o.wx - 12, floor - 14, tex).setDepth(D.FOE + 2), this.add.image(o.wx + 14, floor - 12, tex).setDepth(D.FOE + 2).setScale(0.8), this.add.image(o.wx - 4, floor - 40, tex).setDepth(D.FOE + 2).setScale(0.9)]
+          : [this.add.rectangle(o.wx, floor - 20, 40, 40, 0x6a4a32).setDepth(D.FOE + 2)];
+        const prompt = this.add
+          .text(o.wx, floor - 76, '[\u2193] hide', { fontFamily: 'monospace', fontSize: '12px', color: '#88b8d8', backgroundColor: '#14101c' })
+          .setOrigin(0.5)
+          .setDepth(80)
+          .setVisible(false);
+        this.hideSpots.push({ x: o.wx, y: o.wy, id: o.id, gap, front, prompt });
       });
   }
 
@@ -219,6 +231,13 @@ export default class BaseLevel extends Phaser.Scene {
     this.playerHidden = !!(spot && crouching);
     if (spot && !wasHidden && !this.playerHidden) showTutorial(this, 'hide');
     if (this.playerHidden && !wasHidden) this.floatText(p.x, p.y - 46, 'hidden', '#88b8d8');
+    for (const h of this.hideSpots) {
+      if (!h.prompt) continue;
+      const near = Math.abs(h.x - p.x) < 40 && Math.abs(h.y - p.y) < 40;
+      h.prompt.setVisible(near && !this.playerHidden);
+      h.front.forEach((f) => f.setAlpha(near ? 1 : 0.85));
+      h.gap.setFillStyle(0x0a0a12, this.playerHidden && spot === h ? 0.95 : 0.85);
+    }
 
     for (const foe of this.foes) {
       if (!foe.active) continue;

@@ -346,11 +346,30 @@ export default class HubScene extends BaseLevel {
     }
     this.add.rectangle(px(47.5), mezzY - 22, 22 * T, 3, 0xa08f70).setDepth(D.INTERACT - 4);
     for (let c = 37; c <= 58; c += 2) this.add.rectangle(px(c), mezzY - 11, 2, 22, 0xa08f70).setDepth(D.INTERACT - 4);
+    // the balcony's own slab: the one-way lip alone reads as a wire
+    this.add.rectangle(px(47), mezzY + 4, 23 * T, 10, 0xc9b894).setDepth(D.TERRAIN + 1).setStrokeStyle(2, 0xa08f70);
+
+    // the way down: an open grate in the floor, a sign, and a prompt
+    const hatchX = px(77);
+    this.add.rectangle(hatchX, FLOOR + 3, 34, 8, 0x0a0a12).setDepth(D.TERRAIN + 1);
+    this.add.rectangle(hatchX, FLOOR + 3, 38, 12, 0xc4a25c, 0).setStrokeStyle(2, 0xc4a25c).setDepth(D.TERRAIN + 1);
+    this.add.rectangle(hatchX + 36, FLOOR - 30, 4, 60, 0x4a4650).setDepth(D.INTERACT - 3);
+    this.add.rectangle(hatchX + 36, FLOOR - 58, 96, 22, 0x2e3a52).setStrokeStyle(2, 0xc4a25c).setDepth(D.INTERACT - 3);
+    this.add
+      .text(hatchX + 36, FLOOR - 58, '\u2193 LEFT LUGGAGE', { fontFamily: 'monospace', fontSize: '9px', color: '#f2e6cc' })
+      .setOrigin(0.5)
+      .setDepth(D.INTERACT - 2);
+    this.hatchPrompt = this.add
+      .text(hatchX, FLOOR - 40, '[\u2193] down', { fontFamily: 'monospace', fontSize: '12px', color: '#88b8d8', backgroundColor: '#14101c' })
+      .setOrigin(0.5)
+      .setDepth(80)
+      .setVisible(false);
+    this.hatchX = hatchX;
 
     // mezzanine café: Bilal, the dumbwaiter he calls the express
     const cafe = this.obj('cafe');
     this.add.image(cafe.wx, line(cafe.ty) - 12, 'hub-cafe').setDepth(D.INTERACT - 2);
-    const bl = this.npc('bilal', this.obj('npc', (o) => o.who === 'bilal'));
+    const bl = this.npc('bilal', this.obj('npc', (o) => o.who === 'bilal'), { still: true });
     this.addInteract(bl.x, bl.y, 'bilal', () => this.tea());
     this.dumbwaiters = this.objs('dumbwaiter').map((o) => this.add.image(o.wx, line(o.ty) - 12, 'hub-dumbwaiter').setDepth(D.INTERACT - 2));
     this.bilalUpstairs = true;
@@ -838,6 +857,7 @@ export default class HubScene extends BaseLevel {
       { name: 'Mr. Pemberton', text: "People usually don't. They just get on the first one that stops.", portrait: 'hub-pemberton' },
     ]);
     this.setObjective('board any train');
+    this.floatText(this.hatchX, FLOOR - 90, 'the grate past the fountain goes down', '#88b8d8');
   }
 
   async talkPemberton() {
@@ -850,6 +870,10 @@ export default class HubScene extends BaseLevel {
       return this.say('pemberton', PEMBERTON_RETURN[this.N] || 'Back again.');
     }
     if (this.save.flags.hub.gateOpened) return this.say('pemberton', 'Mind the gap.');
+    if (this.N > 0 && !this.visitLines.luggage) {
+      this.visitLines.luggage = true;
+      return this.say('pemberton', "Left luggage is downstairs, sir -- the grate past the fountain. You'll want to see whose name is on the tag.");
+    }
     return this.say('pemberton', this.N === 0 ? 'Any platform, sir. They all leave now.' : `${this.N} caught. The board keeps the count.`);
   }
 
@@ -1151,16 +1175,42 @@ export default class HubScene extends BaseLevel {
       }
     }
 
-    // Bilal takes the express to whichever floor Jo is on
+    // Bilal takes the express -- the dumbwaiter -- to whichever floor Jo is
+    // on: he steps into the one on his level, and steps out of the other.
     const bl = this.npcs.bilal;
-    if (bl) {
+    if (bl && !this.bilalRiding) {
+      // he stays in his café unless Jo is on the other floor AND nearby --
+      // then the tea comes to you
       const wantUp = p.y < FLOOR - 120;
-      if (wantUp !== this.bilalUpstairs && Math.abs(p.x - bl.x) > 320) {
-        this.bilalUpstairs = wantUp;
-        bl.y = (wantUp ? line(17) : FLOOR) - 24;
-        bl.lamp.y = bl.y - 6;
-        const it = this.interacts.find((i) => i.label === 'bilal');
-        if (it) it.y = bl.y;
+      if (wantUp !== this.bilalUpstairs && Math.abs(p.x - bl.x) < 420) {
+        this.bilalRiding = true;
+        const [upDw, downDw] = this.dumbwaiters;
+        const from = this.bilalUpstairs ? upDw : downDw;
+        const to = this.bilalUpstairs ? downDw : upDw;
+        this.tweens.add({
+          targets: bl,
+          x: from.x,
+          duration: 700,
+          onComplete: () => {
+            sfx('click');
+            this.tweens.add({
+              targets: [bl, bl.lamp],
+              alpha: 0,
+              duration: 250,
+              onComplete: () => {
+                this.bilalUpstairs = wantUp;
+                bl.setPosition(to.x, to.y + 12 - 24);
+                bl.lamp.setPosition(bl.x, bl.y - 6);
+                const it = this.interacts.find((i) => i.label === 'bilal');
+                if (it) {
+                  it.x = bl.x;
+                  it.y = bl.y;
+                }
+                this.tweens.add({ targets: [bl, bl.lamp], alpha: 1, duration: 250, onComplete: () => (this.bilalRiding = false) });
+              },
+            });
+          },
+        });
       }
     }
 
@@ -1172,6 +1222,12 @@ export default class HubScene extends BaseLevel {
       this.kite.x += ((holder.x + 70 + wind) - this.kite.x) * 0.04;
       this.kite.y += ((ROOF - 130 + Math.sin(time / 900) * 14) - this.kite.y) * 0.04;
       this.kiteString.clear().lineStyle(1, 0xf2e6cc, 0.7).lineBetween(holder.x + 8, holder.y - 4, this.kite.x, this.kite.y + 12);
+    }
+
+    // the hatch prompt: standing on the grate, and downstairs at the ladder
+    if (this.hatchPrompt) {
+      const onGrate = Math.abs(p.x - this.hatchX) < 24 && Math.abs(p.y - (FLOOR - 24)) < 20;
+      this.hatchPrompt.setVisible(onGrate && !p.climbing);
     }
 
     // vista from the roof

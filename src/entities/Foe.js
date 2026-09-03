@@ -4,6 +4,7 @@ import { dreamDust, hitStop } from '../systems/effects.js';
 import { showTutorial } from '../systems/tutorial.js';
 import { frameKeys } from '../utils/pixelart.js';
 import { D } from '../builders/depths.js';
+import { resolveSlope } from './slopes.js';
 
 const T = 32;
 
@@ -55,6 +56,7 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
       const r = this.sightRange;
       this.sightCone = scene.add
         .triangle(this.x, this.y, 0, 0, r, -r * 0.42, r, r * 0.42, 0xf2e0a0, 0.07)
+        .setOrigin(0, 0.5) // apex at the eyes, so it only ever points where he looks
         .setDepth(D.FOE - 2);
     }
   }
@@ -171,9 +173,31 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
     super.destroy(fromScene);
   }
 
+  // walkers cross ramps and hop one-tile kerbs instead of jittering at them
+  footing(time) {
+    const body = this.body;
+    this.onSlope = resolveSlope(this.scene, this, body);
+    const grounded = body.onFloor() || this.onSlope;
+    const wall = (this.dir < 0 && body.blocked.left) || (this.dir > 0 && body.blocked.right);
+    if (wall && grounded && time > (this.stepAt || 0)) {
+      const tx = Math.floor((this.x + this.dir * (body.width / 2 + 6)) / 32);
+      const tyHead = Math.floor((body.top - 4) / 32);
+      const tyStep = Math.floor((body.bottom - 20) / 32);
+      const solid = this.scene.built && this.scene.built.solidAt;
+      // hop only if it is a single step with headroom above it
+      if (solid && solid(tx, tyStep) && !solid(tx, tyStep - 1) && !solid(tx, tyHead)) {
+        body.setVelocityY(-330);
+        this.stepAt = time + 500;
+        return false; // not a wall: keep going
+      }
+    }
+    return wall;
+  }
+
   update(time, player) {
     if (!this.body) return;
     this.animate(time);
+    const wall = this.footing(time);
 
     // creatures: simple patrol, contact handled by the scene
     if (!this.human) {
@@ -184,8 +208,7 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
         if (this.x < this.homeX - 70) this.dir = 1;
         else if (this.x > this.homeX + 70) this.dir = -1;
       }
-      if (this.body.blocked.left) this.dir = 1;
-      if (this.body.blocked.right) this.dir = -1;
+      if (wall) this.dir = -this.dir;
       this.setVelocityX(this.dir * this.speedBase);
       this.setFlipX(this.dir < 0);
       return;
@@ -244,6 +267,7 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
         sfx('click');
         return;
       }
+      if (this.state !== 'alert') showTutorial(this.scene, 'shove'); // first notice: how to get past a person
       this.enter('alert', 0);
       this.setVelocityX(Math.sign(dx) * this.speedBase * 0.9);
       this.setFlipX(dx < 0);
@@ -256,8 +280,7 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
       if (this.x < this.patrol[0]) this.dir = 1;
       if (this.x > this.patrol[1]) this.dir = -1;
     }
-    if (this.body.blocked.left) this.dir = 1;
-    if (this.body.blocked.right) this.dir = -1;
+    if (wall) this.dir = -this.dir;
     this.setVelocityX(this.dir * this.speedBase * 0.6);
     this.setFlipX(this.dir < 0);
   }

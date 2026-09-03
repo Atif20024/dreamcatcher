@@ -34,11 +34,14 @@ export default [
       { type: 'foe', kind: 'crawler', x: L(44, 26), y: 33, human: false },
       { type: 'foe', kind: 'crawler', x: L(48, 26), y: 33, human: false },
       { type: 'foe', kind: 'crawler', x: L(52, 26), y: 33, human: false },
-      { type: 'foe', kind: 'dock_hand', x: L(58, 26), y: 33, human: true, patrol: [L(56, 26), L(62, 26)] },
-      { type: 'hide', x: L(60, 26), y: 33, id: 'crate_stack' },
-      { type: 'carryable', kind: 'crate', x: L(63, 26), y: 33, id: 'crate1', height: 1 },
-      { type: 'carryable', kind: 'crate', x: L(66, 26), y: 33, id: 'crate2', height: 2 },
-      { type: 'carryable', kind: 'crate', x: L(69, 26), y: 33, id: 'crate3', height: 3 },
+      // The dock hand works the dock under a low canopy; the crates the
+      // hatch plate needs are BEHIND you, among the roaches, so you carry
+      // them past him -- and a grab costs you the crate.
+      { type: 'foe', kind: 'dock_hand', x: L(64, 26), y: 33, human: true, patrol: [L(62, 26), L(67, 26)] },
+      { type: 'hide', x: L(60, 26), y: 32, id: 'crate_stack' },
+      { type: 'carryable', kind: 'crate', x: L(45, 26), y: 33, id: 'crate1', height: 1 },
+      { type: 'carryable', kind: 'crate', x: L(49, 26), y: 33, id: 'crate2', height: 2 },
+      { type: 'carryable', kind: 'crate', x: L(51, 26), y: 33, id: 'crate3', height: 3 },
       { type: 'plate', x: L(72, 26), y: 33, id: 'dry_plate', needs: 2, opens: 'hatch' },
       { type: 'moment', x: L(77, 26), y: 33, id: 'm1' },
       { type: 'checkpoint', x: L(79, 26), y: 29, id: 'CP1' },
