@@ -19,13 +19,13 @@ export default class Silhouettes {
 
   add(x) {
     const s = this.scene.add
-      .image(x, this.y - 11, 'hub-traveler')
+      .image(x, this.y - 11, 'hub', 'hub-traveler_0')
       .setDepth(D.INTERACT - 4)
       .setAlpha(0.28)
       .setTint(Phaser.Utils.Array.GetRandom([0x2a2a34, 0x2e2630, 0x262a30]));
     s.speed = Phaser.Math.Between(26, 54);
     s.phase = Math.random() * 100;
-    s.setScale(0.75 + Math.random() * 0.15);
+    s.setScale(2 * (0.75 + Math.random() * 0.15));
     this.list.push(s);
   }
 
@@ -39,7 +39,7 @@ export default class Silhouettes {
     for (const s of this.list) {
       s.x += s.speed * dt;
       s.phase += s.speed * dt;
-      s.setTexture(Math.floor(s.phase / 22) % 2 ? 'hub-traveler#1' : 'hub-traveler');
+      s.setFrame(Math.floor(s.phase / 22) % 2 ? 'hub-traveler_1' : 'hub-traveler_0');
       if (s.x > this.x1) s.x = this.spawnX - Phaser.Math.Between(0, 200);
     }
   }

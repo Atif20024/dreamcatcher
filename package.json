@@ -4,8 +4,11 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "atlas": "node scripts/build-atlas.js",
+    "atlas:watch": "node scripts/build-atlas.js --watch",
+    "sheet": "node scripts/sheet.js",
+    "dev": "node scripts/build-atlas.js && vite",
+    "build": "node scripts/build-atlas.js && vite build",
     "preview": "vite preview",
     "lint:rooms": "node scripts/lint-rooms.js"
   },

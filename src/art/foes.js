@@ -1,4 +1,3 @@
-import { createFrames } from '../utils/pixelart.js';
 
 // D4/C1.2 — every foe gets a silhouette you can name at a glance and frames
 // that move when it moves. Before this, seven of the fifteen kinds shared one
@@ -225,11 +224,17 @@ export const CREATURES = {
   },
 };
 
-export function createFoeTextures(scene) {
-  for (const [key, def] of Object.entries(PEOPLE)) {
-    createFrames(scene, key, def.art, def.pal, 2, { outline: OUTLINE });
-  }
-  for (const [key, def] of Object.entries(CREATURES)) {
-    createFrames(scene, key, def.art, def.pal, def.size, { outline: OUTLINE });
-  }
+// Every foe as atlas frames: `<kind>_<i>`. Palettes here are literal
+// colours, so the pack maps letters straight through. `size` is the old
+// pixel scale; the atlas is 1x and the runtime scales the sprite instead.
+export function foeFrames() {
+  const out = [];
+  const push = (key, def, size) => {
+    def.art.forEach((grid, i) => {
+      out.push({ anim: key, index: i, grid, palette: def.pal, outline: OUTLINE, scale: size, origin: [Math.floor(grid[0].length / 2), grid.length - 1] });
+    });
+  };
+  for (const [key, def] of Object.entries(PEOPLE)) push(key, def, 2);
+  for (const [key, def] of Object.entries(CREATURES)) push(key, def, def.size);
+  return out;
 }

@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { sfx } from '../systems/audio.js';
 import { dreamDust, hitStop } from '../systems/effects.js';
 import { showTutorial } from '../systems/tutorial.js';
-import { frameKeys } from '../utils/pixelart.js';
+import { atlasFrames, atlasMeta } from '../systems/atlases.js';
 import { D } from '../builders/depths.js';
 import { resolveSlope } from './slopes.js';
 
@@ -19,15 +19,20 @@ const T = 32;
 // CREATURES & THINGS (human: false) are stomped or swatted into dream-dust.
 export default class Foe extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, def, texture) {
-    super(scene, def.wx, def.wy, texture);
+    const frames = atlasFrames(scene, 'foes', texture);
+    super(scene, def.wx, def.wy, 'foes', frames[0]);
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(D.FOE);
-    if (def.big) this.setScale(1.2);
+    // the atlas is 1x; each kind records the pixel size it was drawn for
+    const meta = atlasMeta(scene, 'foes');
+    const px = (meta.scale && meta.scale[texture]) || 2;
+    this.setScale(px * (def.big ? 1.2 : 1));
+    this.body.setSize(this.width, this.height); // the body is the unscaled frame; Arcade scales it with the sprite
 
     // C1.2 — frames are stepped by distance travelled, never by a timer, so a
     // foe's legs always match the speed it is actually moving at.
-    this.walkFrames = frameKeys(scene, texture, 3);
+    this.walkFrames = frames;
     this.walkPhase = 0;
     this.frameStep = def.human ? 26 : 18;
     // a contact shadow: without one, a foe reads as pasted onto the backdrop
@@ -143,7 +148,7 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
       if (Math.abs(vx) < 4) this.walkPhase = 0;
       const f = Math.floor(this.walkPhase / this.frameStep) % this.walkFrames.length;
       const key = Math.abs(vx) < 4 ? this.walkFrames[0] : this.walkFrames[f];
-      if (this.texture.key !== key) this.setTexture(key);
+      if (this.frame.name !== key) this.setFrame(key);
     }
     // the grab telegraph leans in. (A stagger has its own tween on `angle`,
     // so don't write to it here or the shove wobble gets flattened.)

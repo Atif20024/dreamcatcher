@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
-import { createJoTextures } from './jo.js';
+import { atlasFrames, atlasMeta } from '../systems/atlases.js';
 import { sfx } from '../systems/audio.js';
 import { resolveSlope } from './slopes.js';
-import { JO_DUST } from './jo.js';
+import { JO_DUST } from '../art/jo.js';
 import { dreamDust } from '../systems/effects.js';
 
 // D1: px figures from the other docs are doubled for the 32px scale
@@ -15,8 +15,7 @@ const BUFFER_MS = 120;
 
 export default class Player extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y) {
-    createJoTextures(scene);
-    super(scene, x, y, 'jo-stand');
+    super(scene, x, y, 'jo', 'idle_0');
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.body.setSize(24, 44).setOffset(4, 2);
@@ -43,18 +42,28 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.crouching = false;
     this.squashScale = { x: 1, y: 1 };
     this.hatKnock = { y: 0, angle: 0 };
-    // above the terrain (depth 4) and the backdrop, below the HUD
+    // D11 — the drawing comes from the `jo` atlas (rig frames at 1x, drawn
+    // at 2x), anchored at the feet so the contact row sits on the floor.
     this.setDepth(12);
-    this.art = scene.add.image(x, y, 'jo-stand').setDepth(12);
+    this.walkFrames = atlasFrames(scene, 'jo', 'walk');
+    this.idleFrames = atlasFrames(scene, 'jo', 'idle');
+    const meta = atlasMeta(scene, 'jo');
+    this.stride = (meta.stride && meta.stride.walk) || 10; // S, 1x px
+    this.contacts = (meta.contacts && meta.contacts.walk) || [];
+    this.art = scene.add.image(x, y, 'jo', this.walkFrames[0]).setOrigin(0.5, 1).setScale(2).setDepth(12);
+    this.walkPhase = 0; // 1x px of ground travelled this cycle
+    this.frameIndex = 0;
+    this.idleTime = 0;
 
     // D5 — hat and tool are separate sprites that trail the body by one
     // frame, so Jo bobbles instead of moving like a decal.
-    this.hat = scene.add.image(x, y, 'jo-hat').setDepth(13);
+    this.hat = scene.add.image(x, y, 'jo', 'hat').setOrigin(0.5, 1).setScale(2).setDepth(13);
     this.tool = scene.add
-      .image(x, y, scene.scene.key === 'Musician' ? 'tool-trumpet' : 'tool-ladle')
+      .image(x, y, 'jo', scene.scene.key === 'Musician' ? 'tool_trumpet' : 'tool_ladle')
+      .setScale(3)
       .setDepth(13)
       .setAlpha(0.95);
-    this.lastPos = { x, y };
+    this.lastPos = { x, y, feet: y + 22 };
 
     // Physics writes the sprite's position after scene update, so the drawing
     // is synced on post-update or it would trail the hitbox by a frame.
@@ -89,29 +98,30 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
   syncAttachments() {
     const { x: sx, y: sy } = this.visualScale();
-    // The grids are 48 tall with a centred origin, so any vertical squish has
-    // to be paid back in y or Jo's feet leave the ground he is standing on.
+    // the art is feet-anchored (origin 0.5,1) on the body's bottom edge, so
+    // any squish scales about the ground and the feet never leave it
+    const feetNow = this.body.bottom;
     this.art
-      .setPosition(this.x, this.y + 24 * (1 - sy))
-      .setScale(sx, sy)
+      .setPosition(this.x + (this.artShift || 0), feetNow)
+      .setScale(2 * sx, 2 * sy)
       .setFlipX(this.flipX)
       .setVisible(this.shown)
       .setAlpha(this.alpha);
 
-    // one-frame lag
+    // one-frame lag for the hat and the tool
     const lx = this.lastPos.x;
-    const ly = this.lastPos.y;
-    const feet = ly + 24;
+    const feet = this.lastPos.feet;
+    const hatY = feet - 74 * sy; // the rig's hat row (y=5 of 40) at 2x
     this.hat
-      .setPosition(lx, feet - 42 * sy + this.hatKnock.y)
-      .setScale(sx, sy)
+      .setPosition(lx, hatY + this.hatKnock.y)
+      .setScale(2 * sx, 2 * sy)
       .setAngle(this.hatKnock.angle)
       .setFlipX(this.flipX);
     this.hat.setVisible(this.shown).setAlpha(this.alpha);
     const dir = this.flipX ? -1 : 1;
-    this.tool.setPosition(lx + dir * 14 * sx, feet - 18 * sy).setFlipX(this.flipX);
+    this.tool.setPosition(lx + dir * 18 * sx, feet - 34 * sy).setFlipX(this.flipX);
     this.tool.setVisible(this.shown).setAlpha(this.alpha * 0.95);
-    this.lastPos = { x: this.x, y: this.y };
+    this.lastPos = { x: this.x, y: this.y, feet: feetNow };
   }
 
   knockHat() {
@@ -224,7 +234,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
           this.climbing = false;
           body.setAllowGravity(true);
         }
-        this.art && this.art.setTexture('jo-run');
+        this.art && this.art.setFrame(this.walkFrames[2 % this.walkFrames.length]);
         return;
       }
     }
@@ -298,18 +308,38 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       body.setVelocityY(Math.max(body.velocity.y, 420));
     }
 
-    // animation frames
+    // Ground-speed lock (motion skill §2): the walk frame is a function of
+    // distance travelled, never of time. With N frames over a full cycle of
+    // 2S px, one frame per 2S/N px of ground — identical to
+    // fps = v * N / (2S), set from the body's real velocity every frame.
+    // Below the 8 fps equivalent the cycle blends to idle. Units are 1x px:
+    // the world runs at 2x, so v1x = |vx| / 2.
     const moving = left || right;
-    if (moving && grounded) {
-      this.runFrameTimer += delta;
-      if (this.runFrameTimer > 120) {
-        this.runFrameTimer = 0;
-        this.art.setTexture(this.art.texture.key === 'jo-run' ? 'jo-stand' : 'jo-run');
+    const v1x = Math.abs(body.velocity.x) / 2;
+    const N = this.walkFrames.length;
+    const pxPerFrame = (2 * this.stride) / N;
+    this.artShift = 0;
+    if (grounded && v1x >= 8 * pxPerFrame && N > 1) {
+      this.walkPhase = (this.walkPhase + (v1x * delta) / 1000) % (2 * this.stride);
+      const idx = Math.floor(this.walkPhase / pxPerFrame) % N;
+      if (idx !== this.frameIndex) {
+        if (idx === 0 || idx === N / 2) this.dust(1); // footsteps on the contact frames
+        this.frameIndex = idx;
       }
+      this.art.setFrame(this.walkFrames[idx]);
+      // draw at the frame's phase boundary so the planted foot holds its
+      // pixel until the frame steps (see RigTestScene for the measurement)
+      const dir = this.flipX ? -1 : 1;
+      this.artShift = -dir * (this.walkPhase - idx * pxPerFrame) * 2;
     } else if (!grounded) {
-      this.art.setTexture('jo-run');
+      this.walkPhase = 0;
+      this.art.setFrame(this.walkFrames[3 % N]); // legs reaching: the high pose
     } else {
-      this.art.setTexture('jo-stand');
+      this.walkPhase = 0;
+      this.frameIndex = 0;
+      this.idleTime += delta;
+      const iN = this.idleFrames.length;
+      this.art.setFrame(this.idleFrames[Math.floor(this.idleTime / 140) % iN]);
     }
     this.art.setTint(rev ? 0xd8f0a0 : 0xffffff);
 

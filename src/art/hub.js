@@ -1,4 +1,4 @@
-import { createPixelTexture, createFrames } from '../utils/pixelart.js';
+import { DREAMS } from '../data/dreams.js';
 
 // The people and furniture of Crossroads Station. The workers keep full
 // saturation while the hall drains (HubState never tints them), so their
@@ -145,30 +145,31 @@ const EMBLEMS = {
   star: ['.eE.', 'eEEe', 'EEEE', 'e..e'],
   cross: ['.EE.', 'EEEE', 'EEEE', '.EE.'],
 };
-export function createTrainTexture(scene, id, livery) {
-  const key = `hub-train-${id}`;
-  if (scene.textures.exists(key)) return key;
+function trainGrid(livery) {
   const emblem = EMBLEMS[livery.emblem] || EMBLEMS.stripe;
-  const rows = TRAIN_ROWS.map((r, y) => {
+  return TRAIN_ROWS.map((r, y) => {
     if (y < 2 || y > 5) return r;
-    const er = emblem[y - 2];
-    return r.slice(0, 14) + er + r.slice(18);
+    return r.slice(0, 14) + emblem[y - 2] + r.slice(18);
   });
-  return createPixelTexture(scene, key, rows, { R: livery.body, t: livery.trim, W: livery.window, e: livery.trim, E: livery.window, k: 0x2a2a30 }, 4);
 }
-// a dark, unlit version for lines that are not running
-export function createDeadTrainTexture(scene, id) {
-  const key = `hub-train-${id}-dark`;
-  if (scene.textures.exists(key)) return key;
-  return createPixelTexture(scene, key, TRAIN_ROWS, { R: 0x2e2e36, t: 0x3a3a44, W: 0x1e1e26, e: 0x2e2e36, E: 0x3a3a44, k: 0x1a1a20 }, 4);
-}
+const DEAD_PAL = { R: 0x2e2e36, t: 0x3a3a44, W: 0x1e1e26, e: 0x2e2e36, E: 0x3a3a44, k: 0x1a1a20 };
 
-export function createHubTextures(scene) {
+// Every hub texture as atlas frames. People: `hub-<who>_<i>`; travelers:
+// `hub-traveler_<i>`; props by name; trains `train_<dream>` and
+// `train_<dream>_dark` (not running). `scale` is the old pixel size.
+export function hubFrames() {
+  const out = [];
   for (const [who, def] of Object.entries(HUB_PEOPLE)) {
-    createFrames(scene, `hub-${who}`, def.art, def.pal, 2, RIM);
+    def.art.forEach((grid, i) => out.push({ anim: `hub-${who}`, index: i, grid, palette: def.pal, outline: RIM.outline, scale: 2, origin: [8, grid.length - 1] }));
   }
-  createFrames(scene, 'hub-traveler', TRAVELER, TRAVELER_PAL, 2);
+  TRAVELER.forEach((grid, i) => out.push({ anim: 'hub-traveler', index: i, grid, palette: TRAVELER_PAL, scale: 2, origin: [8, grid.length - 1] }));
   for (const [key, p] of Object.entries(PROPS)) {
-    createPixelTexture(scene, key, p.rows, p.pal, p.size, key === 'hub-train' || key === 'hub-rain' ? {} : RIM);
+    out.push({ anim: key, grid: p.rows, palette: p.pal, outline: key === 'hub-train' || key === 'hub-rain' ? undefined : RIM.outline, scale: p.size, origin: [Math.floor(p.rows[0].length / 2), Math.floor(p.rows.length / 2)] });
   }
+  for (const d of DREAMS) {
+    const rows = trainGrid(d.livery);
+    out.push({ anim: `train_${d.id}`, grid: rows, palette: { R: d.livery.body, t: d.livery.trim, W: d.livery.window, e: d.livery.trim, E: d.livery.window, k: 0x2a2a30 }, scale: 4, origin: [16, 4] });
+    out.push({ anim: `train_${d.id}_dark`, grid: TRAIN_ROWS, palette: DEAD_PAL, scale: 4, origin: [16, 4] });
+  }
+  return out;
 }

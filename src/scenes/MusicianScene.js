@@ -233,8 +233,8 @@ export default class MusicianScene extends BaseLevel {
   buildDay1() {
     this.anchors.push({ x: px(38), y: px(31), dir: 1, len: 5 * T, row: 29 });
     this.hecklers = [
-      { x: px(36), y: px(27), next: 0, img: this.add.image(px(36), px(27), 'foe-heckler').setDepth(10) },
-      { x: px(43), y: px(27), next: 0, img: this.add.image(px(43), px(27), 'foe-heckler').setDepth(10) },
+      { x: px(36), y: px(27), next: 0, img: this.add.image(px(36), px(27), 'foes', 'foe-heckler_0').setScale(2).setDepth(10) },
+      { x: px(43), y: px(27), next: 0, img: this.add.image(px(43), px(27), 'foes', 'foe-heckler_0').setScale(2).setDepth(10) },
     ];
     // dead neon → ladder
     this.neonLadder = [];
@@ -436,7 +436,7 @@ export default class MusicianScene extends BaseLevel {
       this.dogCalmUntil = this.time.now + 10000;
       this.floatText(px(238), px(33), 'the dog settles.');
     }, { once: false });
-    this.manager = { x0: px(240), x1: px(246), img: this.add.image(px(240), px(35), 'foe-manager').setDepth(11), dir: 1 };
+    this.manager = { x0: px(240), x1: px(246), img: this.add.image(px(240), px(35), 'foes', 'foe-manager_0').setScale(2).setDepth(11), dir: 1 };
     this.managerCone = this.add.rectangle(px(240), px(34), 90, 80, 0xf2e0a0, 0.12).setDepth(10);
     this.addInteract(px(247), px(34), 'office vent', () => {
       if (this.niaNear()) {
@@ -558,7 +558,7 @@ export default class MusicianScene extends BaseLevel {
   buildDay6() {
     // roadies on the catwalk
     this.roadies = [334, 340].map((c) => {
-      const r = this.add.image(px(c), px(27), 'foe-roadie').setDepth(12);
+      const r = this.add.image(px(c), px(27), 'foes', 'foe-roadie_0').setScale(2).setDepth(12);
       this.tweens.add({ targets: r, x: px(c + 3), duration: 2600, yoyo: true, repeat: -1 });
       return r;
     });
@@ -641,7 +641,7 @@ export default class MusicianScene extends BaseLevel {
     this.setObjective('SONG 1 — "Tuesday"');
     await this.runGig({ phrases: song(SONGS.stage1), bpm: 128, label: 'THE BIG STAGE — Tuesday' });
     this.setObjective('SONG 2 — "The Corner"');
-    this.hecklers.push({ x: px(352), y: px(26), next: 0, img: this.add.image(px(352), px(26), 'foe-heckler').setDepth(10) });
+    this.hecklers.push({ x: px(352), y: px(26), next: 0, img: this.add.image(px(352), px(26), 'foes', 'foe-heckler_0').setScale(2).setDepth(10) });
     await this.runGig({ phrases: song(SONGS.stage2), bpm: 128, label: 'THE BIG STAGE — The Corner', keepNerve: true });
     this.setObjective('SONG 3 — "The Road"');
     const part1 = song(SONGS.stage3).slice(0, 6);

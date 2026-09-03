@@ -104,8 +104,10 @@ export default class DialogueBox {
   startEntry() {
     const e = this.entries[this.idx];
     this.nameText.setText(e.name || '');
-    if (e.portrait && this.scene.textures.exists(e.portrait)) {
-      this.portrait.setTexture(e.portrait).setVisible(true);
+    // 'key' or 'pack:frame' (atlas frames are 1x; show them at 2x)
+    const [pKey, pFrame] = e.portrait ? String(e.portrait).split(':') : [];
+    if (pKey && this.scene.textures.exists(pKey) && (!pFrame || this.scene.textures.get(pKey).has(pFrame))) {
+      this.portrait.setTexture(pKey, pFrame).setScale(pFrame ? 2 : 1).setVisible(true);
     } else {
       this.portrait.setVisible(false);
     }

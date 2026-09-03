@@ -12,7 +12,7 @@ export default class Train {
     this.groundY = groundY;
     this.state = 'idle';
     this.outOfService = !!opts.outOfService;
-    this.sprite = scene.add.image(x, groundY - 18, opts.texture || 'hub-train').setDepth(D.INTERACT - 2);
+    this.sprite = scene.add.image(x, groundY - 18, 'hub', opts.texture || 'hub-train').setScale(4).setDepth(D.INTERACT - 2);
     this.lamps = [-52, -20, 20, 52].map((dx) =>
       scene.add.circle(x + dx, groundY - 42, 3, 0xf2d580, this.outOfService ? 0.08 : 0.9).setDepth(D.INTERACT - 1)
     );

@@ -1,5 +1,25 @@
 # TODO
 
+## D11 asset pipeline / character rigs — status
+- [x] `Rig.compose` (src/art/Rig.js), rig format in `src/data/rigs/`, and
+      `scripts/build-atlas.js` (string-art -> `public/atlas/<pack>.png|json|meta.json`,
+      `sheets/<pack>-<anim>.png` review strips + onion skins, `--only`, `--watch`).
+      `npm run dev` / `npm run build` build the atlases first; `npm run sheet jo walk`.
+- [x] Runtime loads atlases only for Jo (`jo`), foes (`foes`) and the station
+      (`hub`); string-art for those moved to `src/art/`. Ground-speed lock in
+      Player: walk frame = f(distance), i.e. fps = v·N/(2S), drawn at the frame's
+      phase boundary. Proof scene: `?scene=rigtest` (three speeds, tiled floor,
+      planted-foot drift ≤ 1 px at every frame step).
+- [ ] Jo's rig is a PLACEHOLDER: walk + idle only, arms are stubs, no 3-tone
+      detail pass. Every other animation in the skill's table (run, turn,
+      jump*, land, ledge*, climb, push, carry, hurt, caught, death…) is unbuilt;
+      the runtime still shows a walk frame in the air.
+- [ ] Foes and NPCs are not rigs yet (still 2-3 frame monolithic grids, now
+      atlas frames). Tiles, UI/fonts and props still go through pixelart.js
+      at runtime (D11.4 steps 2-3).
+- [ ] Jo is now 2.5 tiles tall on screen while his hitbox is still the old
+      24x44; the room lint does not yet enforce 3 tiles of headroom.
+
 ## Crossroads Station (hub_crossroads_station.md) — built, deviations
 - [x] The hub is the OPENING scene: no title screen and no Tutorial Street
       exist yet, so the game starts on the station's front steps in rain

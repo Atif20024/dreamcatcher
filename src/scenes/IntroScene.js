@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { createJoTextures } from '../entities/jo.js';
+import { loadAtlases, loadAtlasMeta, atlasFrames } from '../systems/atlases.js';
 import { drawCityBackdrop } from '../utils/backdrop.js';
 import { toggleMusic } from '../systems/audio.js';
 
@@ -68,16 +68,23 @@ export default class IntroScene extends Phaser.Scene {
     this.levelKey = data.levelKey;
   }
 
+  preload() {
+    loadAtlases(this, ['jo']);
+    loadAtlasMeta(this, ['jo']);
+  }
+
   create() {
     const intro = INTROS[this.levelKey];
     if (!intro) {
       this.scene.start('Level', { levelKey: this.levelKey });
       return;
     }
-    createJoTextures(this);
     const { groundY } = intro.draw(this);
 
-    this.jo = this.add.image(120, groundY - 24, 'jo-stand');
+    const walk = atlasFrames(this, 'jo', 'walk');
+    this.jo = this.add.image(120, groundY, 'jo', walk[0]).setOrigin(0.5, 1).setScale(2);
+    this.hat = this.add.image(120, groundY - 74, 'jo', 'hat').setOrigin(0.5, 1).setScale(2);
+    this.walkFrames = walk;
     this.cameras.main.setZoom(1.5);
     this.cameras.main.centerOn(430, 360);
     this.cameras.main.fadeIn(500);
@@ -95,10 +102,17 @@ export default class IntroScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(10);
 
+    // the walk-in is a tween over 3.2 s across 580 px at 2x = 290 px at 1x;
+    // the frame follows distance, same lock as in play (S=10, N=8)
     this.walkTimer = this.time.addEvent({
-      delay: 130,
+      delay: 16,
       loop: true,
-      callback: () => this.jo.setTexture(this.jo.texture.key === 'jo-run' ? 'jo-stand' : 'jo-run'),
+      callback: () => {
+        const travelled = (this.jo.x - 120) / 2;
+        const idx = Math.floor(travelled / 2.5) % this.walkFrames.length;
+        this.jo.setFrame(this.walkFrames[idx]);
+        this.hat.setPosition(this.jo.x, this.jo.y - 74);
+      },
     });
     this.tweens.add({
       targets: this.jo,
@@ -117,8 +131,8 @@ export default class IntroScene extends Phaser.Scene {
     if (this.started) return;
     this.started = true;
     this.walkTimer.remove();
-    this.jo.setTexture('jo-stand');
-    this.tweens.add({ targets: this.jo, alpha: 0, duration: 350 });
+    this.jo.setFrame(this.walkFrames[0]);
+    this.tweens.add({ targets: [this.jo, this.hat], alpha: 0, duration: 350 });
     this.cameras.main.fadeOut(500);
     this.time.delayedCall(550, () =>
       this.scene.start(this.levelKey === 'chef' ? 'Chef' : 'Musician', { levelKey: this.levelKey })

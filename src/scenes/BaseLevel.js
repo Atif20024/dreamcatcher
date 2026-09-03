@@ -6,7 +6,7 @@ import { sfx, music, musicDirector, sting, isMusicOff, toggleMusic } from '../sy
 import RoomBuilder from '../builders/RoomBuilder.js';
 import Parallax from '../builders/parallax.js';
 import Foe from '../entities/Foe.js';
-import { createFoeTextures } from '../entities/foeArt.js';
+import { loadAtlases, loadAtlasMeta } from '../systems/atlases.js';
 import { FOES } from '../data/kinds.js';
 import { showTutorial } from '../systems/tutorial.js';
 import { hitStop } from '../systems/effects.js';
@@ -111,8 +111,14 @@ export default class BaseLevel extends Phaser.Scene {
 
   // ---- D6 confrontation ------------------------------------------------
 
+  // D11 — every level draws Jo and its foes from atlases. Subclasses that
+  // override preload() must call this first.
+  preload() {
+    loadAtlases(this, ['jo', 'foes']);
+    loadAtlasMeta(this, ['jo', 'foes']);
+  }
+
   initFoes(dreamKey) {
-    createFoeTextures(this);
     this.dreamKey = dreamKey;
     this.foes = [];
     this.hideSpots = [];
