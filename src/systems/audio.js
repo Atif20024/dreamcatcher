@@ -114,6 +114,9 @@ const SFX = {
   tick: () => noise(0.015, 0.1, 5000),
   drip: () => tone(1400, 0.08, 'sine', 0.08, 0, 700),
   tea: () => [523, 659].forEach((f, i) => tone(f, 0.3, 'triangle', 0.14, i * 0.12)),
+  coin_drop: () => [520, 390, 290].forEach((f, i) => tone(f, 0.12, 'square', 0.14, i * 0.05)),
+  shard: () => [659, 880, 1319, 1760].forEach((f, i) => tone(f, 0.5, 'sine', 0.16, i * 0.09)),
+  buy: () => [880, 660, 880, 1100].forEach((f, i) => tone(f, 0.1, 'triangle', 0.16, i * 0.06)),
 };
 
 // Jo's trumpet: 12 pitches, brassy square+saw blend. Nia's bass: 6 pitches.
@@ -145,6 +148,19 @@ export function bassNote(pitchIdx = 2, dur = 0.5, vol = 0.35) {
     const f = BASS_SCALE[((pitchIdx % 6) + 6) % 6];
     tone(f, dur, 'triangle', vol);
     tone(f * 2, dur * 0.5, 'sine', vol * 0.3);
+  } catch {
+    /* silent */
+  }
+}
+
+// Collectibles §8 — the coin stinger's pitch rises with each coin taken
+// within a second of the last (a combo), then resets.
+export function coinSfx(combo = 0) {
+  try {
+    const step = Math.min(12, combo);
+    const f = 784 * Math.pow(2, step / 12);
+    tone(f, 0.12, 'square', 0.14);
+    tone(f * 2, 0.1, 'sine', 0.08, 0.02);
   } catch {
     /* silent */
   }

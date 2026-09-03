@@ -88,9 +88,10 @@ export default class DialogueBox {
     const cam = s.cameras.main;
     const entry = this.entries[this.idx];
     this.choiceTexts.forEach((t) => t.destroy());
+    const gap = Math.min(220, Math.floor((cam.width - 100) / Math.max(1, entry.choices.length)));
     this.choiceTexts = entry.choices.map((c, i) =>
       s.add
-        .text(cam.width / 2 + (i - (entry.choices.length - 1) / 2) * 220, cam.height - 62, `${i === this.choiceIdx ? '▸ ' : '  '}${c.label}`, {
+        .text(cam.width / 2 + (i - (entry.choices.length - 1) / 2) * gap, cam.height - 62, `${i === this.choiceIdx ? '▸ ' : '  '}${c.label}`, {
           fontFamily: 'monospace',
           fontSize: '14px',
           color: i === this.choiceIdx ? '#f2d580' : '#8a8478',

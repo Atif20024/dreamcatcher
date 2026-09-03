@@ -4,6 +4,8 @@ import { sfx } from '../systems/audio.js';
 import { resolveSlope } from './slopes.js';
 import { JO_DUST } from './jo.js';
 import { dreamDust } from '../systems/effects.js';
+import { getSave } from '../utils/save.js';
+import { hatById } from '../data/hats.js';
 
 // D1: px figures from the other docs are doubled for the 32px scale
 // (run 140 -> 280, jump 300 -> 600, look-ahead 48 -> 96).
@@ -48,8 +50,15 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.art = scene.add.image(x, y, 'jo-stand').setDepth(12);
 
     // D5 — hat and tool are separate sprites that trail the body by one
-    // frame, so Jo bobbles instead of moving like a decal.
+    // frame, so Jo bobbles instead of moving like a decal. The hat wears
+    // whatever Bilal sold last (data/hats.js).
     this.hat = scene.add.image(x, y, 'jo-hat').setDepth(13);
+    try {
+      const worn = hatById(getSave().shop.hat);
+      if (worn) this.hat.setTint(worn.tint);
+    } catch {
+      /* no save */
+    }
     this.tool = scene.add
       .image(x, y, scene.scene.key === 'Musician' ? 'tool-trumpet' : 'tool-ladle')
       .setDepth(13)

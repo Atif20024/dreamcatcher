@@ -5,6 +5,9 @@ import hubRooms from '../src/data/hub/rooms.js';
 import { roleOf, isSolidChar, isSlopeChar } from '../src/builders/legend.js';
 import { maskAt, wearAt } from '../src/builders/autotile.js';
 
+// collectibles budgets (references/dream-items.md); the hub keeps no coins
+const BUDGETS = { chef: [60, 80], musician: [120, 150] };
+
 const DREAMS = { chef: chefRooms, musician: musicianRooms, hub: hubRooms };
 let failures = 0;
 let warnings = 0;
@@ -115,6 +118,43 @@ for (const [dream, rooms] of Object.entries(DREAMS)) {
     const next = ri < rooms.length - 1 && roomHasSlope[ri + 1];
     if (!prev && !next) fail(dream, room.id, 'no slope/stair and no neighbour with one');
   });
+
+  // (C) collectibles — the placement law (skill §3, §7 step 6)
+  const PICKUPS = new Set(['coin', 'coins', 'shard', 'moment', 'carryable', 'panel', 'plate', 'orb', 'pickup', 'resonant', 'gig', 'choice', 'npc']);
+  let coinTotal = 0;
+  for (const room of rooms) {
+    const width = Math.max(...room.grid.map((g) => g.length));
+    const objs = room.objects || [];
+    for (const o of objs) if (o.type === 'coin') coinTotal += 1;
+    for (const o of objs) if (o.type === 'coins') coinTotal += o.n || 3;
+    // §3.10 — every screen (30 cols) has something to want
+    for (let s0 = 0; s0 < width; s0 += 30) {
+      const any = objs.some((o) => PICKUPS.has(o.type) && o.x >= s0 && o.x < s0 + 30);
+      // (the hub keeps no coins by design — its screens are exempt)
+      if (!any && width > 20 && dream !== 'hub') warn(dream, room.id, `screen at cols ${s0}-${Math.min(width, s0 + 30)} has nothing to want`);
+    }
+    // anti-pattern: coins on the floor right after a checkpoint (free money)
+    for (const cp of objs.filter((o) => o.type === 'checkpoint')) {
+      for (const c of objs.filter((o) => (o.type === 'coin' || o.type === 'coins') && !o.breadcrumb)) {
+        if (Math.abs(c.x - cp.x) <= 3 && Math.abs(c.y - cp.y) <= 1) warn(dream, room.id, `coins at x=${c.x} sit on the checkpoint at x=${cp.x} (free money)`);
+      }
+    }
+    // §4 — a shard room pays consolation coins nearby
+    for (const sh of objs.filter((o) => o.type === 'shard')) {
+      const near = objs.filter((o) => (o.type === 'coin' || o.type === 'coins') && Math.abs(o.x - sh.x) <= 8).reduce((k, o) => k + (o.type === 'coins' ? o.n || 3 : 1), 0);
+      if (near < 2) warn(dream, room.id, `shard at x=${sh.x} has no consolation coins beside it`);
+    }
+    // §3.5 approximation — a story carryable must sit behind at least one
+    // foe or hazard in its room (no free key items)
+    for (const k of objs.filter((o) => o.type === 'carryable' && o.story)) {
+      const guarded = objs.some((o) => (o.type === 'foe' || o.type === 'hazard') && o.x < k.x);
+      if (!guarded) fail(dream, room.id, `key item ${k.id} at x=${k.x} is reachable without passing a foe or hazard`);
+    }
+  }
+  const budget = BUDGETS[dream];
+  if (budget && (coinTotal < budget[0] || coinTotal > budget[1])) {
+    warn(dream, 'level', `coin count ${coinTotal} outside the dream's budget ${budget[0]}-${budget[1]}`);
+  }
 
   // (4) sections
   const exempt = new Set(rooms.filter((r) => r.allowNoFoes).map((r) => r.section));

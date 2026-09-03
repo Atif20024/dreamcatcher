@@ -54,6 +54,7 @@ export default class ChefScene extends BaseLevel {
 
     const spawn = { x: px(3), y: px(32) };
     this.player = new Player(this, spawn.x, spawn.y);
+    this.dreamCoinId = 'chef';
     this.setupCommon({ worldW, worldH, levelName: 'DREAM 03 — FIVE-STAR DREAM', spawn });
 
     this.F = {};
@@ -67,6 +68,7 @@ export default class ChefScene extends BaseLevel {
     this.enemies = this.foeGroup;
     this.spawnRoomFoes(built.objects, (o) => !o.wave);
     this.addHideSpots(built.objects);
+    this.spawnPickups(built.objects);
 
     this.buildGates();
     this.buildCheckpoints();
@@ -152,6 +154,26 @@ export default class ChefScene extends BaseLevel {
     return it;
   }
 
+  // Collectibles §5 — a key item sits on a lit pedestal: base, spotlight
+  // cone, a slow glint, and a one-line pickup card when taken.
+  addPedestal(x, y, texKey, line) {
+    this.add.rectangle(x, y + 22, 30, 8, 0xc4a25c).setDepth(D.INTERACT - 1).setStrokeStyle(1, 0x8a6a2c);
+    this.add.rectangle(x, y + 27, 22, 4, 0x8a6a2c).setDepth(D.INTERACT - 1);
+    this.add.triangle(x, y - 6, 0, -46, -26, 30, 26, 30, 0xf2e0a0, 0.1).setDepth(D.INTERACT - 2);
+    const item = this.add.image(x, y, texKey).setDepth(D.INTERACT);
+    this.tweens.add({ targets: item, y: y - 3, duration: 1000, yoyo: true, repeat: -1, ease: 'sine.inout' });
+    this.time.addEvent({
+      delay: 2600,
+      loop: true,
+      callback: () => {
+        if (!item.visible) return;
+        const g = this.add.rectangle(x + 8, y - 10, 3, 3, 0xffffff, 0.9).setDepth(30);
+        this.tweens.add({ targets: g, scale: 2.4, alpha: 0, duration: 380, onComplete: () => g.destroy() });
+      },
+    });
+    return { item, card: () => this.floatText(x, y - 60, line, '#f2d580') };
+  }
+
   take(id, texKey) {
     this.carry = id;
     if (this.carrySprite) this.carrySprite.destroy();
@@ -162,8 +184,14 @@ export default class ChefScene extends BaseLevel {
   dropCarry() {
     if (!this.carry) return;
     this.floatText(this.player.x, this.player.y - 56, `the ${this.carry} is lost!`, '#e86a6a');
-    if (this.carry === 'saffron') this.saffronItem.used = false;
-    if (this.carry === 'gold leaf') this.goldItem.used = false;
+    if (this.carry === 'saffron') {
+      this.saffronItem.used = false;
+      if (this.saffronPedestal) this.saffronPedestal.item.setVisible(true); // back to its pedestal (§3.8)
+    }
+    if (this.carry === 'gold leaf') {
+      this.goldItem.used = false;
+      if (this.goldPedestal) this.goldPedestal.item.setVisible(true);
+    }
     if (this.rush && this.rush.active && this.rush.sources[this.carry]) this.rush.sources[this.carry].used = false;
     if (this.service && this.service.order) this.service.plateLost = true;
     this.carry = null;
@@ -304,13 +332,15 @@ export default class ChefScene extends BaseLevel {
       }
     }, { once: false, when: () => !this.F.freezer_valve });
 
+    this.saffronPedestal = this.addPedestal(px(127), px(18), 'chef-saffron', 'SAFFRON — the whole order dies without it');
     this.saffronItem = this.addInteract(px(127), px(18), 'saffron', async () => {
       this.take('saffron', 'chef-saffron');
+      this.saffronPedestal.item.setVisible(false);
+      this.saffronPedestal.card();
       this.setFlag('has_saffron');
       this.setObjective('deliver saffron → risotto station');
       await this.dialog.show(DIALOGUES.d2);
     }, { once: false, when: () => !this.F.has_saffron || (!this.carry && !this.F.saffron_delivered) });
-    this.add.image(px(127), px(18), 'chef-saffron').setDepth(D.BEHIND).setAlpha(0.5);
     this.moment('m2', px(91), px(33));
   }
 
@@ -472,8 +502,11 @@ export default class ChefScene extends BaseLevel {
       }
     }, { once: false, when: () => !this.F.piping });
 
+    this.goldPedestal = this.addPedestal(px(254), px(13), 'chef-gold', 'GOLD LEAF — carried, never trusted to anyone');
     this.goldItem = this.addInteract(px(254), px(13), 'gold leaf', async () => {
       this.take('gold leaf', 'chef-gold');
+      this.goldPedestal.item.setVisible(false);
+      this.goldPedestal.card();
       this.setFlag('has_gold_leaf');
       await this.dialog.show(DIALOGUES.d5);
       this.setObjective('bring the gold to the pass — yourself');
@@ -770,6 +803,12 @@ export default class ChefScene extends BaseLevel {
     }
 
     this.updateMusicRoom(); // D7 room-driven mix
+    this.updatePickups(time, delta);
+    const want = this.carry ? [this.carry] : [];
+    if (want.join() !== this.satchel.join()) {
+      this.satchel = want;
+      this.updateSatchelHud();
+    }
     this.updateAlley(pb);
     this.updateDryStore(time);
     this.updateFreezer(time, dt, pb);

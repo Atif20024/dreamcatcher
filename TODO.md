@@ -1,5 +1,32 @@
 # TODO
 
+## Collectibles (dreamcatcher-collectibles skill) — built, deviations
+- [x] Coins (per-dream worth, bob/spin/magnet/combo stinger), wallet in the
+      save, death scatter + 8s re-collect, heart shards (3 = +1 heart),
+      HUD (coin count + $ under the objective, ✦ under hearts, satchel row).
+- [x] Placement per the law: chef 66 coins (budget 60-80), musician 119 + up
+      to 12 busking (budget 120-150); tiers, breadcrumbs, P1/P2/P5/P7
+      patterns; 2 shards per dream with consolation coins.
+- [x] Bilal's stall "THE EXPRESS" in the undercroft: tea 20, shards
+      150/300/600, postcards 100, return ticket 250, six hats 50-400; all
+      effects live (tea +1 heart next dream, ticket forgives one zero,
+      postcard marks the moments, hat tints Jo). "Keep the change." at N=5.
+      Pemberton's ledger + tally strokes under the gate counter; the
+      busker's hat drops the station's one coin after the Duet.
+- [x] Lint: per-screen "something to want", coin budgets, checkpoint free
+      money, shard consolation, guarded story carryables.
+- [ ] Key items are only PARTLY on the skill's model: saffron + gold leaf
+      got pedestals/spotlight/pickup cards and the satchel HUD mirrors the
+      carry slot, but the satchel-of-3, `Gate.requires('item:…')`, and the
+      new items in references/dream-items.md (crate hook, stockpot lid,
+      copper whisk, ticket spike, set list, fuse…) are not built.
+- [ ] §3.9 difficulty-scaled placement (riskier coins at d≥2, no
+      breadcrumbs at d≥3) not implemented.
+- [ ] Only 2 shards per dream, not one per section; hub coin HUD shows a
+      musician coin (the station "pays in busker change") — revisit.
+- [ ] d5 studio coins ring the combo stinger during the silent run — decide
+      whether coins there should be silent or removed.
+
 ## Crossroads Station (hub_crossroads_station.md) — built, deviations
 - [x] The hub is the OPENING scene: no title screen and no Tutorial Street
       exist yet, so the game starts on the station's front steps in rain

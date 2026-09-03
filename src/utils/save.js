@@ -9,12 +9,23 @@ const DEFAULTS = {
   flags: { hub: { moment1: false, moment2: false, moment3: false, gateOpened: false, gateSpoke: false, visits: 0 } },
   stationSeconds: 0,
   lastDream: null,
+  // collectibles: the wallet persists across dreams; shards are permanent
+  // (3 = +1 max heart); shop holds Bilal's stall purchases.
+  wallet: { total: 0, byDream: {} },
+  shards: 0,
+  shop: { shardsBought: 0, postcards: {}, tea: false, ticket: false, hats: [], hat: null },
 };
 
 function load() {
   try {
     const s = JSON.parse(localStorage.getItem(KEY)) || {};
-    return { ...DEFAULTS, ...s, flags: { ...DEFAULTS.flags, ...(s.flags || {}), hub: { ...DEFAULTS.flags.hub, ...((s.flags || {}).hub || {}) } } };
+    return {
+      ...DEFAULTS,
+      ...s,
+      flags: { ...DEFAULTS.flags, ...(s.flags || {}), hub: { ...DEFAULTS.flags.hub, ...((s.flags || {}).hub || {}) } },
+      wallet: { ...DEFAULTS.wallet, ...(s.wallet || {}), byDream: { ...((s.wallet || {}).byDream || {}) } },
+      shop: { ...DEFAULTS.shop, ...(s.shop || {}), postcards: { ...((s.shop || {}).postcards || {}) }, hats: [...(((s.shop || {}).hats) || [])] },
+    };
   } catch {
     return JSON.parse(JSON.stringify(DEFAULTS));
   }

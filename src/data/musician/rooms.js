@@ -18,6 +18,8 @@ export default [
       { type: 'spawn', x: 3, y: 34 },
       { type: 'dialogue', x: 5, y: 35, id: 'd0', auto: true },
       { type: 'resonant', x: 8, y: 34, id: 'shop_horn', reaction: 'ring' },
+      { type: 'coin', x: 12, y: 34, breadcrumb: true },
+      { type: 'coin', x: 24, y: 34, breadcrumb: true }, // marks the gate
       { type: 'checkpoint', x: 22, y: 35, id: 'CP0' },
       { type: 'gate', x: 25, y: 31, h: 5, id: 'g0', requires: ['d0'] },
     ],
@@ -36,6 +38,18 @@ export default [
       { type: 'anchor', x: L(38, 26), y: 31, len: 5, row: 29 },
       { type: 'resonant', x: L(44, 26), y: 31, id: 'dead_neon', reaction: 'ladder' },
       { type: 'hazard', kind: 'boom_mic', x: L(52, 26), y: 28, len: 62 },
+      // the fire-escape wall pays on the way up (tier 2)
+      { type: 'coins', x: L(37, 26), y: 34, n: 4, dx: 0, dy: -1 },
+      // the rooftops belong to the hecklers' bottles (tier 3)
+      { type: 'coins', x: L(35, 26), y: 27, n: 3 },
+      { type: 'coins', x: L(41, 26), y: 26, n: 4 },
+      // under the boom mic's sweep, along the high platform (tier 3)
+      { type: 'coins', x: L(47, 26), y: 25, n: 6 },
+      // P7 — past the bouncer's beat on the floor
+      { type: 'coins', x: L(36, 26), y: 34, n: 3 },
+      // the drop back off the platform, spent well (tier 1)
+      { type: 'coins', x: L(59, 26), y: 30, n: 2, dy: 1 },
+      { type: 'coins', x: L(62, 26), y: 34, n: 2 },
       { type: 'npc', who: 'delphine', x: L(56, 26), y: 35, dialogue: 'd1' },
       { type: 'checkpoint', x: L(57, 26), y: 35, id: 'CP1a' },
       { type: 'npc', who: 'ray', x: L(62, 26), y: 35 },
@@ -66,6 +80,17 @@ export default [
       { type: 'panel', x: L(145, 86), y: 35, id: 'tuning', puzzle: 'tuning', sets: 'valve_fixed', dialogue: 'd3' },
       { type: 'checkpoint', x: L(149, 86), y: 35, id: 'CP2' },
       { type: 'npc', who: 'nia', x: L(148, 86), y: 35, dialogue: 'd4', requires: ['valve_fixed'], sets: 'met_nia' },
+      // the walkers own the rooftops; the pay is on their beat (tier 3-4)
+      { type: 'coins', x: L(107, 86), y: 29, n: 3 },
+      { type: 'coins', x: L(110, 86), y: 25, n: 5, dx: 2 },
+      { type: 'coins', x: L(125, 86), y: 25, n: 4 },
+      { type: 'coins', x: L(139, 86), y: 29, n: 3 },
+      // shard: the far ledge past the last walker — the hardest hop in the day
+      { type: 'shard', x: L(141, 86), y: 32 },
+      { type: 'coins', x: L(138, 86), y: 32, n: 2 },
+      // the way back down from the roofs (tier 1)
+      { type: 'coins', x: L(120, 86), y: 29, n: 3, dx: 2 },
+      { type: 'coins', x: L(131, 86), y: 33, n: 3 },
       { type: 'gate', x: L(105, 86), y: 31, h: 5, id: 'g2', requires: ['busking_done'] },
       { type: 'gate', x: L(150, 86), y: 31, h: 5, id: 'g3', requires: ['met_nia'] },
     ],
@@ -91,6 +116,16 @@ export default [
       { type: 'panel', x: L(206, 151), y: 35, id: 'play_the_room', puzzle: 'playTheRoom', sets: 'ray_lesson', requires: ['jam_done'] },
       { type: 'checkpoint', x: L(207, 151), y: 35, id: 'CP3b' },
       { type: 'moment', x: L(208, 151), y: 35, id: 'm3', requires: ['jam_done'] },
+      // the boiler steps: pay on the climb (tier 2)
+      { type: 'coins', x: L(160, 151), y: 32, n: 2 },
+      { type: 'coins', x: L(163, 151), y: 30, n: 2 },
+      { type: 'coins', x: L(166, 151), y: 26, n: 2 },
+      { type: 'coins', x: L(181, 151), y: 29, n: 2 },
+      { type: 'coins', x: L(185, 151), y: 23, n: 2 },
+      // the wisp den pays if you can keep them off you (tier 3)
+      { type: 'coins', x: L(190, 151), y: 33, n: 5 },
+      // Ray's alley, behind the jam (tier 1)
+      { type: 'coins', x: L(199, 151), y: 34, n: 4 },
       { type: 'gate', x: L(178, 151), y: 31, h: 5, id: 'g3b', requires: ['rehearsal'] },
       { type: 'gate', x: L(210, 151), y: 31, h: 5, id: 'g4', requires: ['ray_lesson'] },
     ],
@@ -116,6 +151,15 @@ export default [
       { type: 'checkpoint', x: L(276, 211), y: 35, id: 'CP4c' },
       { type: 'choice', x: L(275, 211), y: 35, id: 'd8', writes: 'marcus_left', sets: 'd8_done', requires: ['saltbox_done'] },
       { type: 'resonant', x: L(288, 211), y: 34, id: 'payphone', reaction: 'ring_out', sets: 'tour_done' },
+      // P2 — the arc over the broken road
+      { type: 'coin', x: L(263, 211), y: 34 },
+      { type: 'coins', x: L(265, 211), y: 33, n: 2 },
+      { type: 'coin', x: L(268, 211), y: 34 },
+      // the guardrail line: long, low pay for the patient (tier 2)
+      { type: 'coins', x: L(231, 211), y: 34, n: 6, dx: 2 },
+      { type: 'coins', x: L(244, 211), y: 34, n: 5, dx: 2 },
+      { type: 'coins', x: L(272, 211), y: 34, n: 5, dx: 2 },
+      { type: 'coins', x: L(283, 211), y: 33, n: 3 },
       { type: 'gate', x: L(290, 211), y: 31, h: 5, id: 'g5', requires: ['tour_done'] },
     ],
   },
@@ -134,6 +178,9 @@ export default [
       { type: 'checkpoint', x: L(314, 291), y: 35, id: 'CP5' },
       { type: 'npc', who: 'tally', x: L(320, 291), y: 35 },
       { type: 'choice', x: L(320, 291), y: 35, id: 'd9', writes: 'choice', sets: 'offer_done', requires: ['mix_done'] },
+      // the silent run: coins along the red-light corridor (tier 3)
+      { type: 'coins', x: L(330, 291), y: 27, n: 5, dx: 2 },
+      { type: 'coins', x: L(340, 291), y: 32, n: 4 },
       { type: 'gate', x: L(325, 291), y: 31, h: 5, id: 'g6', requires: ['choice_made'] },
     ],
   },
@@ -154,6 +201,12 @@ export default [
       { type: 'foe', kind: 'wisp', x: L(341, 326), y: 26, human: false },
       { type: 'foe', kind: 'wisp', x: L(343, 326), y: 26, human: false },
       { type: 'wing', x: L(344, 326), y: 27, id: 'wing', sets: 'wing_done' },
+      // the rig climb: pay on the stairs and the beam (tier 3)
+      { type: 'coins', x: L(333, 326), y: 27, n: 4, dx: 2 },
+      { type: 'coins', x: L(344, 326), y: 27, n: 3, dy: 1 },
+      // the wings, past the moving heads
+      { type: 'coins', x: L(357, 326), y: 31, n: 5 },
+      { type: 'coins', x: L(350, 326), y: 30, n: 4, dx: 2 },
       { type: 'gate', x: L(345, 326), y: 26, h: 10, id: 'g7', requires: ['choice_final'] },
       { type: 'riser', x: L(350, 326), y: 30, phase: 0 },
       { type: 'riser', x: L(356, 326), y: 30, phase: 1 },
@@ -173,6 +226,7 @@ export default [
     bg: { far: 'dawn', mid: 'flightcases', near: 'banner', landmark: 'folding_chair' },
     vista: true,
     objects: [
+      { type: 'coins', x: L(384, 381), y: 34, n: 4, dx: 2 },
       { type: 'gate', x: L(381, 381), y: 26, h: 10, id: 'g8', requires: ['set_done'] },
       { type: 'dialogue', x: L(384, 381), y: 35, id: 'd_after' },
       { type: 'orb', x: L(392, 381), y: 31 },

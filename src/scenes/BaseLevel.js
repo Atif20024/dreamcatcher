@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { createPixelTexture } from '../utils/pixelart.js';
-import { getDifficulty } from '../utils/save.js';
+import { getDifficulty, getSave, updateSave } from '../utils/save.js';
 import DialogueBox from '../systems/DialogueBox.js';
 import { sfx, music, musicDirector, sting, isMusicOff, toggleMusic } from '../systems/audio.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
@@ -10,6 +10,9 @@ import { createFoeTextures } from '../entities/foeArt.js';
 import { FOES } from '../data/kinds.js';
 import { showTutorial } from '../systems/tutorial.js';
 import { hitStop } from '../systems/effects.js';
+import CoinManager, { createCoinTextures, createShardTexture } from '../entities/Coin.js';
+import { getWallet, coinWorth, deductWorth } from '../systems/wallet.js';
+import { dreamById } from '../data/dreams.js';
 import { D } from '../builders/depths.js';
 
 const HEART = { rows: ['.hh.hh.', 'hhhhhhh', 'hhhhhhh', '.hhhhh.', '..hhh..', '...h...'], pal: { h: 0xe86a6a } };
@@ -29,8 +32,15 @@ const FLAG = {
 export default class BaseLevel extends Phaser.Scene {
   setupCommon({ worldW, worldH, levelName, spawn }) {
     this.difficulty = getDifficulty();
-    this.maxLives = Math.min(5, 3 + this.difficulty);
+    const save = getSave();
+    this.maxLives = Math.min(6, 3 + this.difficulty + Math.floor((save.shards || 0) / 3));
     this.lives = this.maxLives;
+    // Bilal's tea: a heart refill banked for the next dream's first section —
+    // here it simply tops the section up over the max by one.
+    if (save.shop && save.shop.tea && this.scene.key !== 'Hub') {
+      this.lives += 1;
+      updateSave((sv) => (sv.shop.tea = false));
+    }
     this.cardActive = false;
     this.dialogActive = false;
     this.puzzleActive = false;
@@ -78,6 +88,34 @@ export default class BaseLevel extends Phaser.Scene {
       .setOrigin(1, 0.5)
       .setScrollFactor(0)
       .setDepth(150);
+
+    // Collectibles §8 — HUD: the dream's coin + count this level under the
+    // objective, with the wallet's worth total; shard tally under hearts.
+    this.levelCoins = 0;
+    this.dream = dreamById(this.dreamCoinId || '');
+    if (this.dream && this.dream.coin) {
+      createCoinTextures(this, this.dream.id, this.dream.coin.pal);
+      createShardTexture(this);
+      this.coinMgr = new CoinManager(this, this.dream.id);
+      this.add.image(cam.width - 150, 82, `coin-${this.dream.id}-0`).setScrollFactor(0).setDepth(150).setScale(0.8);
+      this.coinHud = this.add
+        .text(cam.width - 138, 82, '', { fontFamily: 'monospace', fontSize: '13px', color: '#f2d580' })
+        .setOrigin(0, 0.5)
+        .setScrollFactor(0)
+        .setDepth(150);
+      this.updateCoinHud();
+    }
+    this.shardHud = this.add
+      .text(16, 74, '', { fontFamily: 'monospace', fontSize: '12px', color: '#7ec8d8' })
+      .setScrollFactor(0)
+      .setDepth(150);
+    this.updateShardHud();
+    this.satchel = [];
+    this.satchelHud = this.add
+      .text(16, 92, '', { fontFamily: 'monospace', fontSize: '11px', color: '#c8c0b0' })
+      .setScrollFactor(0)
+      .setDepth(150);
+    this.coinsSinceCP = 0;
 
     // D7 — the director drives the mix and the beat clock for this level
     musicDirector.attach(this);
@@ -163,6 +201,7 @@ export default class BaseLevel extends Phaser.Scene {
   throwOut(foe) {
     if (this.thrownOut || this.cardActive) return;
     this.thrownOut = true;
+    this.scatterCoins();
     sfx('fail');
     this.cameras.main.shake(200, 0.008);
     this.player.controlLockUntil = this.time.now + 1500;
@@ -202,7 +241,20 @@ export default class BaseLevel extends Phaser.Scene {
   loseHeart() {
     this.lives -= 1;
     this.updateHearts();
-    if (this.lives <= 0) this.sectionRestart();
+    if (this.lives <= 0 && !this.tryReturnTicket()) this.sectionRestart();
+  }
+
+  // Bilal's return ticket: one bad night, forgiven — instead of the restart
+  // card, hearts refill and the ticket is punched.
+  tryReturnTicket() {
+    const sv = getSave();
+    if (!sv.shop || !sv.shop.ticket) return false;
+    updateSave((x) => (x.shop.ticket = false));
+    this.lives = this.maxLives;
+    this.updateHearts();
+    sfx('buy');
+    this.floatText(this.player.x, this.player.y - 70, 'return ticket, punched.', '#f2d580');
+    return true;
   }
 
   // D6.3 — hearts are lives per section: at zero the section restarts.
@@ -257,6 +309,85 @@ export default class BaseLevel extends Phaser.Scene {
     if (this.musicBtn) this.musicBtn.setText(off ? '[M] ♪ music: off' : '[M] ♪ music: on');
   }
 
+  // ---- collectibles ----------------------------------------------------
+
+  updateCoinHud() {
+    if (!this.coinHud) return;
+    this.coinHud.setText(`${this.levelCoins}   $${getWallet().total}`);
+  }
+
+  updateShardHud() {
+    const sv = getSave();
+    this.shardHud.setText(sv.shards > 0 ? `\u2726 ${sv.shards % 3}/3` + (Math.floor(sv.shards / 3) ? `  (+${Math.floor(sv.shards / 3)} heart)` : '') : '');
+  }
+
+  updateSatchelHud() {
+    this.satchelHud.setText(this.satchel.map((it) => `[${it}]`).join(' '));
+  }
+
+  // room objects: { type:'coin' } / { type:'coins', n, dx, dy } / { type:'shard' }
+  spawnPickups(objects) {
+    if (!this.coinMgr) return;
+    const T = 32;
+    for (const o of objects) {
+      if (o.type === 'coin') this.coinMgr.spawn(o.wx, o.wy);
+      else if (o.type === 'coins') {
+        const n = o.n || 3;
+        const dx = o.dx === undefined ? 1 : o.dx;
+        const dy = o.dy || 0;
+        for (let i = 0; i < n; i++) this.coinMgr.spawn(o.wx + i * dx * T, o.wy + i * dy * T);
+      } else if (o.type === 'moment' && getSave().shop.postcards[this.dream && this.dream.id]) {
+        // the postcard marks the small moments (§2)
+        const mk = this.add
+          .text(o.wx, o.wy - 54, '\u2318', { fontFamily: 'monospace', fontSize: '14px', color: '#f2c078' })
+          .setOrigin(0.5)
+          .setDepth(21)
+          .setAlpha(0.9);
+        this.tweens.add({ targets: mk, y: mk.y - 5, duration: 1100, yoyo: true, repeat: -1, ease: 'sine.inout' });
+      } else if (o.type === 'shard') {
+        const img = this.add.image(o.wx, o.wy, 'heart-shard').setDepth(21);
+        this.tweens.add({ targets: img, y: o.wy - 4, duration: 900, yoyo: true, repeat: -1, ease: 'sine.inout' });
+        this.tweens.add({ targets: img, alpha: 0.6, duration: 1400, yoyo: true, repeat: -1 });
+        (this.shardItems ||= []).push(img);
+      }
+    }
+  }
+
+  updatePickups(time, delta) {
+    if (this.coinMgr) {
+      this.coinMgr.update(time, delta / 1000, this.player, (n) => {
+        this.levelCoins += n;
+        this.coinsSinceCP += n;
+        this.updateCoinHud();
+      });
+    }
+    for (const img of this.shardItems || []) {
+      if (!img.active) continue;
+      if (Phaser.Math.Distance.Between(this.player.x, this.player.y, img.x, img.y) < 22) {
+        img.destroy();
+        sfx('shard');
+        const sv = updateSave((x) => (x.shards = (x.shards || 0) + 1));
+        this.updateShardHud();
+        this.floatText(this.player.x, this.player.y - 60, sv.shards % 3 === 0 ? 'a heart, whole.' : `heart shard — ${sv.shards % 3}/3`, '#7ec8d8');
+        if (sv.shards % 3 === 0) {
+          this.maxLives = Math.min(6, this.maxLives + 1);
+          this.lives += 1;
+          this.updateHearts();
+        }
+      }
+    }
+  }
+
+  // §3.8 — death drops the coins taken since the last checkpoint
+  scatterCoins() {
+    if (!this.coinMgr || this.coinsSinceCP <= 0) return;
+    deductWorth(this.dream.id, this.coinsSinceCP * coinWorth(this.dream.id));
+    this.levelCoins = Math.max(0, this.levelCoins - this.coinsSinceCP);
+    this.coinMgr.scatter(this.player.x, this.player.y, this.coinsSinceCP);
+    this.coinsSinceCP = 0;
+    this.updateCoinHud();
+  }
+
   setObjective(text) {
     this.objectiveText.setText(text);
     this.tweens.add({ targets: this.objectiveText, alpha: 0.2, duration: 120, yoyo: true, repeat: 2 });
@@ -280,6 +411,7 @@ export default class BaseLevel extends Phaser.Scene {
     if (this.cardActive || this.dialogActive || this.puzzleActive) return;
     if (this.time.now < this.invulnUntil) return;
     sfx('hurt');
+    this.scatterCoins();
     hitStop(this, 60); // D5
     this.cameras.main.shake(240, 0.008); // D1: shake doubled for 32px scale
     this.player.burst();
@@ -287,7 +419,9 @@ export default class BaseLevel extends Phaser.Scene {
     this.onHurtExtra();
     this.lives -= 1;
     this.updateHearts();
-    if (this.lives <= 0) {
+    if (this.lives <= 0 && this.tryReturnTicket()) {
+      // fall through to the normal respawn below
+    } else if (this.lives <= 0) {
       music.stop();
       this.showCard(
         [
@@ -319,6 +453,7 @@ export default class BaseLevel extends Phaser.Scene {
     if (flagSprite.texture.key === 'flag') {
       flagSprite.setTexture('flag-lit');
       this.checkpoint = { x: flagSprite.x, y: flagSprite.y - 8 };
+      this.coinsSinceCP = 0; // banked: death can no longer scatter these
       sting.checkpoint();
     }
   }
