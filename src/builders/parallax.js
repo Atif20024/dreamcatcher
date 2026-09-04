@@ -227,6 +227,30 @@ const LAYERS = {
   lanterns: ['hanging', 0x3a2e28, 0xf2c078],
   banner: ['strip', 0x40243a, 0x8a4a5a],
   loading_dock: ['strip', 0x3a3540, 0x5c5768],
+  // --- the quiet above ---
+  gym_wall: ['wall', 0x4a4a3c, 0x8a8a6a, 0x34342a, 0x34342a],
+  gym_kit: ['strip', 0x4a3c34, 0xc03a2a],
+  ropes: ['railing', 0x3a2a28, 0xc03a2a],
+  pool_tiles: ['wall', 0x2e4a56, 0x6aa0b4, 0x22363e, 0x22363e],
+  lane_ropes: ['railing', 0x2a3a44, 0xe8762a],
+  study_shelves: ['strip', 0x4a3e32, 0xd8c8a0],
+  gate_grey: ['wall', 0x46464e, 0x5c5c66, 0x33333a, 0x33333a],
+  chairs: ['strip', 0x3c3c46, 0x6a6a76],
+  campus: ['skyline', 0x35404e, 0xe8a030, 0x1d2634, 0x4c5a6e],
+  hangars: ['facade', 0x3e4650, 0xe8762a],
+  night_forest: ['wall', 0x1c2820, 0x2e4030, 0x121a14, 0x121a14],
+  pines: ['facade', 0x22301f, 0x38503a],
+  gantry: ['poles', 0x4a4650, 0xe8762a],
+  space: ['glow', 0x08080f, 0x1a1a2c, 0x030308, 0x0a0a16],
+  earth_glow: ['glow', 0x11182a, 0x4a80c0, 0x060810, 0x1a2a4a],
+  module_ribs: ['poles', 0x8a8e9a, 0xd8dce8],
+  hull_plates: ['railing', 0x6a6e7a, 0xb8bcc8],
+  moon_black: ['glow', 0x08080a, 0x141418, 0x040405, 0x0a0a0c],
+  moon_hills: ['skyline', 0x2a2a2e, 0x4a4a50, 0x0a0a0c, 0x1a1a1e],
+  regolith: ['railing', 0x38383e, 0x5a5a62],
+  crater_wall: ['wall', 0x1a1a1e, 0x2c2c32, 0x0c0c0f, 0x0c0c0f],
+  grass_far: ['facade', 0x2e4a30, 0x8ab060],
+  grass_near: ['railing', 0x26401f, 0x6a9a4a],
 };
 
 function layerDef(name) {
@@ -437,6 +461,15 @@ const SCENERY = {
   dining_room: ['column', 'table_setting', 'cake_stand'],
   hall_vault: ['column', 'streetlamp', 'bench', 'phone_booth'],
   gate_dark: ['crate_stack', 'pylon'],
+  gym_wall: ['poster_board', 'crate_stack', 'bench', 'shelf_ladder'],
+  gate_grey: ['bench', 'poster_board'],
+  campus: ['water_tower', 'pylon', 'crane', 'radio_mast', 'billboard'],
+  night_forest: ['tree', 'tree', 'hedge'],
+  dawn_pad: ['pylon', 'radio_mast'],
+  space: [],
+  moon_black: [],
+  crater_wall: [],
+  grass_far: ['tree', 'hedge', 'bench'],
 };
 
 function drawPrimitives(g, prims) {
@@ -558,6 +591,85 @@ function drawLandmark(scene, name) {
     case 'folding_chair':
       add(scene.add.rectangle(0, 0, 40, 6, 0x8a8494));
       add(scene.add.rectangle(-16, -20, 6, 40, 0x8a8494));
+      break;
+    // --- the quiet above ---
+    case 'adaeze_sign':
+      add(scene.add.rectangle(0, -76, 300, 60, 0x3a3428));
+      label("ADAEZE'S", '#f2d580', 18);
+      add(scene.add.text(0, -52, 'BOXING · POOL · "COME AS YOU ARE."', { fontFamily: 'monospace', fontSize: '10px', color: '#c8c0b0' }).setOrigin(0.5));
+      break;
+    case 'lv3_poster':
+      add(scene.add.rectangle(0, -90, 130, 170, 0x1e2a4a));
+      add(scene.add.rectangle(0, -100, 18, 90, 0xd8dce8));
+      add(scene.add.triangle(0, -152, -9, 14, 9, 14, 0, -10, 0xd8dce8));
+      add(scene.add.rectangle(0, -78, 22, 3, 0xe8762a));
+      add(scene.add.rectangle(0, -104, 22, 3, 0xe8762a));
+      add(scene.add.text(0, -36, 'MERIDIAN LV-3\nTHREE STAGES', { fontFamily: 'monospace', fontSize: '10px', color: '#88b8d8', align: 'center' }).setOrigin(0.5));
+      break;
+    case 'lane_numbers':
+      add(scene.add.rectangle(0, -60, 260, 40, 0x2e4a56));
+      add(scene.add.text(0, -60, 'LANES  1 · 9 · 7 · 4', { fontFamily: 'monospace', fontSize: '14px', color: '#9ac4dc' }).setOrigin(0.5));
+      break;
+    case 'fight_poster':
+      add(scene.add.rectangle(0, -84, 120, 150, 0x4a2020).setAngle(-2));
+      add(scene.add.text(0, -108, 'ADAEZE', { fontFamily: 'monospace', fontSize: '16px', color: '#f2d580' }).setOrigin(0.5).setAngle(-2));
+      add(scene.add.text(0, -72, '31 — 2', { fontFamily: 'monospace', fontSize: '20px', color: '#e8dcc8' }).setOrigin(0.5).setAngle(-2));
+      break;
+    case 'study_lamp':
+      add(scene.add.rectangle(0, -50, 4, 60, 0x3a3a44));
+      add(scene.add.circle(0, -84, 10, 0xf2e0a0, 0.95));
+      add(scene.add.circle(0, -80, 30, 0xf2e0a0, 0.14));
+      break;
+    case 'board_door':
+      add(scene.add.rectangle(0, -70, 70, 140, 0x3a3228));
+      add(scene.add.circle(0, -148, 7, 0xe83a2a, 0.9));
+      add(scene.add.text(0, -34, 'SELECTION\nBOARD', { fontFamily: 'monospace', fontSize: '10px', color: '#8a8478', align: 'center' }).setOrigin(0.5));
+      break;
+    case 'centrifuge_dome':
+      add(scene.add.arc(0, -20, 110, 180, 360, false, 0x4e565e));
+      add(scene.add.rectangle(0, -14, 210, 8, 0x3a4048));
+      add(scene.add.rectangle(0, -60, 8, 50, 0xe8762a, 0.8));
+      break;
+    case 'nb_sign':
+      add(scene.add.rectangle(0, -70, 260, 44, 0x2e4a56));
+      label('NEUTRAL BUOYANCY FACILITY', '#9ac4dc', 12);
+      break;
+    case 'sim_shed':
+      add(scene.add.rectangle(0, -50, 180, 90, 0x3e4650));
+      add(scene.add.rectangle(0, -84, 190, 8, 0x2c323a));
+      label('SIM  BAY  2', '#e8a030', 12);
+      break;
+    case 'far_pad':
+      add(scene.add.rectangle(60, -46, 10, 60, 0x4a4650, 0.8));
+      add(scene.add.rectangle(74, -60, 6, 74, 0xd8dce8, 0.7));
+      add(scene.add.circle(74, -20, 3, 0xe83a2a, 0.9));
+      break;
+    case 'the_stack':
+      add(scene.add.rectangle(0, -130, 34, 230, 0xd8dce8));
+      add(scene.add.triangle(0, -258, -17, 14, 17, 14, 0, -22, 0xd8dce8));
+      add(scene.add.rectangle(0, -60, 38, 5, 0xe8762a));
+      add(scene.add.rectangle(0, -160, 38, 5, 0xe8762a));
+      add(scene.add.rectangle(-40, -120, 14, 210, 0x4a4650));
+      for (let i = 0; i < 5; i++) add(scene.add.rectangle(-28, -50 - i * 44, 14, 3, 0x4a4650));
+      break;
+    case 'earth_window':
+      add(scene.add.circle(0, -80, 64, 0x2a5a9a));
+      add(scene.add.circle(-18, -96, 26, 0x3a7ac0, 0.9));
+      add(scene.add.circle(20, -66, 20, 0x2e6a4a, 0.8));
+      add(scene.add.circle(-8, -60, 14, 0xd8dce8, 0.5));
+      add(scene.add.circle(26, -100, 12, 0xd8dce8, 0.4));
+      add(scene.add.circle(0, -80, 70, 0x88b8d8, 0.12));
+      break;
+    case 'small_earth':
+      add(scene.add.circle(0, -170, 13, 0x2a5a9a));
+      add(scene.add.circle(-4, -173, 6, 0x3a7ac0, 0.9));
+      add(scene.add.circle(4, -167, 4, 0x2e6a4a, 0.8));
+      add(scene.add.circle(0, -170, 17, 0x88b8d8, 0.14));
+      break;
+    case 'capsule':
+      add(scene.add.rectangle(0, -20, 60, 40, 0xd8dce8));
+      add(scene.add.arc(0, -40, 30, 180, 360, false, 0xb8862c));
+      add(scene.add.rectangle(-50, -60, 3, 60, 0xe8762a, 0.6).setAngle(24));
       break;
     default:
       add(scene.add.circle(0, -40, 30, 0x6a6478, 0.35));
@@ -685,7 +797,7 @@ export default class Parallax {
     const x1 = x0 + Math.max(...room.grid.map((g) => g.length)) * 32;
     let wx = x0 + rand.between(40, 220);
     let n = 0;
-    while (wx < x1 && n < 14) {
+    while (wx < x1 && n < 14 && kinds.length > 0) {
       const kind = kinds[rand.between(0, kinds.length - 1)];
       const depth = rand.frac(); // 0 = further back and paler, 1 = nearer
       const g = this.scene.add.graphics();

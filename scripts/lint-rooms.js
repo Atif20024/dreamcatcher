@@ -2,13 +2,14 @@
 import chefRooms from '../src/data/chef/rooms.js';
 import musicianRooms from '../src/data/musician/rooms.js';
 import hubRooms from '../src/data/hub/rooms.js';
+import astronautRooms from '../src/data/astronaut/rooms.js';
 import { roleOf, isSolidChar, isSlopeChar } from '../src/builders/legend.js';
 import { maskAt, wearAt } from '../src/builders/autotile.js';
 
 // collectibles budgets (references/dream-items.md); the hub keeps no coins
-const BUDGETS = { chef: [60, 80], musician: [120, 150] };
+const BUDGETS = { chef: [60, 80], musician: [120, 150], astronaut: [45, 55] };
 
-const DREAMS = { chef: chefRooms, musician: musicianRooms, hub: hubRooms };
+const DREAMS = { chef: chefRooms, musician: musicianRooms, astronaut: astronautRooms, hub: hubRooms };
 let failures = 0;
 let warnings = 0;
 
@@ -116,7 +117,7 @@ for (const [dream, rooms] of Object.entries(DREAMS)) {
     if (roomHasSlope[ri]) return;
     const prev = ri > 0 && roomHasSlope[ri - 1];
     const next = ri < rooms.length - 1 && roomHasSlope[ri + 1];
-    if (!prev && !next) fail(dream, room.id, 'no slope/stair and no neighbour with one');
+    if (!prev && !next && !room.phys) fail(dream, room.id, 'no slope/stair and no neighbour with one');
   });
 
   // (C) collectibles — the placement law (skill §3, §7 step 6)

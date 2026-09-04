@@ -1,5 +1,51 @@
 # TODO
 
+## Astronaut — THE QUIET ABOVE (docs/dream_astronaut_quiet_above.md) — built, deviations
+- [x] The full six-phase arc plays to the orb: gym (stat training) → the
+      Board (rejection AND selection paths) → campus training → launch →
+      station 0g → EVA → moon → crevasses → probe/core → crater rescue →
+      winch → re-entry → the field. `dreams.astronaut = true` verified.
+- [x] Stats (lungs/grip/legs/nerve, pips on the clipboard HUD): track laps,
+      pool hoops in one breath (+ deep-end shard dive), the climbing wall's
+      staggered crumbling holds to the bell (they re-chalk after 5s in the
+      gym, not on the moon), and four boxing rounds — round 4 is Priya, won
+      only by NOT swinging until she opens (the Nerve lesson).
+- [x] Puzzle-boxes: P1 flashcards, P2 the Board (7 questions from Phase 1
+      clues + the notebook, 3 strikes, stat minimum 3 (+1 at d≥2), the
+      rigged letter, the grey twelve months), P3 momentum docking with a
+      fuel budget and the depress checklist, P4 six-bolt hinge with the
+      code plate and the floating bolt, plus the lander's thrust descent
+      (soft/hard outcomes — hard costs a heart and the power budget).
+- [x] Three gravities: 1g; 0g push-off/rails/hand-over-hand crawl (velocity
+      crawl snags Arcade tile seams — the crawl moves the sprite directly);
+      the EVA tether ([F] clips, taut line springs back, pushing off
+      unclipped = the drift-away death against Earth); ⅙g bounds tuned so
+      the 6/8/10-tile crevasses take real edge run-ups, sealed shafts with
+      spikes so nobody slips under the world.
+- [x] Suit: O₂ (40s + 10s×Lungs, refills at airlocks/lander), power (dust
+      devils + tether reel drain it), punctures from sharp rocks (patch kit,
+      30s), Tab visor (lightens the deep-shadow zones), the radio signal
+      HUD (0 in the crater — the music stops), Priya carry twice (rain and
+      ⅙g), the alarm silenced by [F] once she's conscious, the winch reel
+      up the clear column (speed = Grip).
+- [x] Coins: mission patch, worth 10, 55 placed (budget 45-55), the moon's
+      pay only on the crevasse arcs; 2 shards (pool deep end, crater
+      terrace + consolation). Lint 0/0.
+- [x] Hub wiring: platform 6 runs THE QUIET ABOVE (replaces the 'pilot'
+      working name), white LV-3 livery, conductor question, intro shot.
+- [ ] Compressions vs the spec: the Study flashcards are P1 but not
+      drag-labels; the cleaner escorts via the normal catch (no buffer
+      cinematic); no thief-crow badge steal on the campus; the two-person
+      tasks are [F]-then-[E] beats, not a full companion AI; the sim runs
+      once, not three times; centrifuge G-lock is a darkening overlay; the
+      moon walk-back to the lander doubles as the quiet coda (no separate
+      descent for the return); music stems are the director's existing
+      states, not the five-stem score; small moments m1/m2/m3 wired as
+      interacts (postcard markers work) but not scripted vignettes.
+- [ ] Difficulty hooks in (§7 partially): stat minimum 4 at d≥2, debris
+      count +d, docking fuel −2/d. Not in: tether interval 4 at d≥2,
+      crevasse +1 tile, second-year mandatory hard rooms.
+
 ## Collectibles (dreamcatcher-collectibles skill) — built, deviations
 - [x] Coins (per-dream worth, bob/spin/magnet/combo stinger), wallet in the
       save, death scatter + 8s re-collect, heart shards (3 = +1 heart),

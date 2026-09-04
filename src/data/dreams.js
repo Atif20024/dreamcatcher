@@ -40,10 +40,11 @@ export const DREAMS = [
     conductor: 'The Corner Office. Forty floors up, and the window does not open.', roLine: "New shoes. Too new. They hurt, don't they.",
   },
   {
-    id: 'pilot', platform: 6, title: 'THE HIGH ROAD', propsKind: 'crates', ambientLoop: 'engines',
-    coin: { name: 'wing pin', worth: 15, budget: [30, 40], pal: { c: 0x6a6e7a, C: 0xb8bcc8, h: 0xf0f4ff } },
-    livery: { body: 0x88b8d8, trim: 0xf2e6cc, window: 0x2a2a34, emblem: 'wings' },
-    conductor: 'The High Road. Everything looks small from up there. Including home.', roLine: 'Salt on the leather. Wind off the sea.',
+    id: 'astronaut', platform: 6, title: 'THE QUIET ABOVE', scene: 'Astronaut', propsKind: 'crates', ambientLoop: 'engines',
+    coin: { name: 'mission patch', worth: 10, budget: [45, 55], pal: { c: 0x3a5a80, C: 0x88b8d8, h: 0xf0f4ff } },
+    livery: { body: 0xf0f2f6, trim: 0x2a2a34, window: 0x88b8d8, emblem: 'wings' },
+    conductor: 'The Quiet Above. A year on the ground for eleven days in the sky.\nEvery mile up is a mile away from everyone you know. Still going?',
+    roLine: 'You keep looking up, love. The tea is down here.',
   },
   {
     id: 'actor', platform: 7, title: 'THE MARQUEE', propsKind: 'lights', ambientLoop: 'applause',
