@@ -145,7 +145,7 @@ export default [
       // inside the mock-up maze (tier 2)
       { type: 'coins', x: L(178, 171), y: 40, n: 2, dx: 3 },
       { type: 'coins', x: L(187, 171), y: 38, n: 1, dx: 2 },
-      { type: 'checkpoint', x: L(197, 171), y: 29, id: 'CP3b' },
+      { type: 'checkpoint', x: L(197, 171), y: 30, id: 'CP3b' },
     ],
   },
   {

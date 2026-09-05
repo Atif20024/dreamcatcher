@@ -1222,7 +1222,30 @@ export default class AstronautScene extends BaseLevel {
     const vx = left ? -150 : right ? 150 : 0;
     const vy = up ? -140 : down ? 140 : 20;
     b.setVelocityX(Phaser.Math.Linear(b.velocity.x, vx, 0.12));
-    b.setVelocityY(Phaser.Math.Linear(b.velocity.y, vy, 0.12));
+    // the vault out of the water is immune to the swim damping for a beat,
+    // or the deck lip stays unreachable and the pool is a trap
+    if (time < (this.vaultUntil || 0)) {
+      // keep the upward impulse
+    } else {
+      b.setVelocityY(Phaser.Math.Linear(b.velocity.y, vy, 0.12));
+    }
+    const jumpJust =
+      Phaser.Input.Keyboard.JustDown(p.keys.SPACE) ||
+      Phaser.Input.Keyboard.JustDown(p.cursors.up) ||
+      Phaser.Input.Keyboard.JustDown(p.keys.W);
+    // "near the surface" is one tile of grace — demanding a dry head makes
+    // the vault miss whenever a ripple of sink drops him a few pixels
+    const nearSurface = this.built.charAt(Math.floor(p.x / T), Math.floor((p.y - 34) / T)) !== '~' || this.built.charAt(Math.floor(p.x / T), Math.floor((p.y - 58) / T)) !== '~';
+    if (jumpJust && nearSurface) {
+      this.vaultUntil = time + 300;
+      p.y -= 10; // clear the surface tile at once so the boost isn't re-damped
+      b.setVelocityY(-540);
+      sfx('jump');
+      for (let i = 0; i < 4; i++) {
+        const dr = this.add.circle(p.x + Phaser.Math.Between(-8, 8), p.y + 8, 2, 0x9ac4dc, 0.8).setDepth(D.PLAYER + 1);
+        this.tweens.add({ targets: dr, y: dr.y + 24, alpha: 0, duration: 500, onComplete: () => dr.destroy() });
+      }
+    }
     if (left) p.setFlipX(true);
     if (right) p.setFlipX(false);
     p.art.setTexture('jo-run');
@@ -1451,6 +1474,10 @@ export default class AstronautScene extends BaseLevel {
     } else {
       this.earthPrep();
       if (this.railHold) this.railHold = null;
+      // bobbing at the water line flickers between swim and freefall; in the
+      // freefall frames the surface still counts as ground for a jump
+      const overWater = this.built.charAt(Math.floor(p.x / T), Math.floor((p.y + 26) / T)) === '~';
+      if (overWater && !p.body.onFloor()) p.lastGrounded = time;
       p.update(time, delta);
       if (this.carryingPriya) {
         p.body.velocity.x = Phaser.Math.Clamp(p.body.velocity.x, -140, 140);

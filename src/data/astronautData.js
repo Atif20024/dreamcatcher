@@ -78,8 +78,9 @@ export function buildAstroMap() {
   fill(rows, 44, 44, 173, 195, '#');
   fill(rows, 32, 43, 173, 173, '#');
   fill(rows, 32, 43, 195, 195, '#');
-  fill(rows, 31, 31, 168, 173, '#'); // the dive deck
-  fill(rows, 31, 31, 195, 200, '#');
+  fill(rows, 31, 31, 168, 171, '#'); // the dive deck
+  fill(rows, 32, 32, 172, 173, '#'); // waterline step: the way back OUT
+  fill(rows, 32, 32, 195, 200, '#'); // right deck at the waterline: climbable exit
   // mock-up module walls inside the tank
   fill(rows, 38, 43, 180, 180, '#');
   fill(rows, 36, 38, 186, 186, '#');
