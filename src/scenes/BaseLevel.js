@@ -141,7 +141,9 @@ export default class BaseLevel extends Phaser.Scene {
 
     this.keyEsc = this.input.keyboard.addKey('ESC');
     this.keyQ = this.input.keyboard.addKey('Q');
-    this.input.keyboard.on('keydown-F', () => {
+    // fullscreen lives on a key no dream uses for play ([F] is the tether /
+    // the companion call): a stray toggle used to eject people to the pause card
+    this.input.keyboard.on('keydown-B', () => {
       if (this.scale.isFullscreen) this.scale.stopFullscreen();
       else this.scale.startFullscreen();
     });
@@ -480,6 +482,7 @@ export default class BaseLevel extends Phaser.Scene {
 
   showCard(lines, onConfirm, onAlt = null) {
     this.cardActive = true;
+    this.cardShownAt = this.time.now;
     this.physics.pause();
     this.tweens.pauseAll();
     const cam = this.cameras.main;
@@ -514,6 +517,13 @@ export default class BaseLevel extends Phaser.Scene {
   handleModalUpdate() {
     if (this.dialogActive || this.puzzleActive) return true;
     if (this.cardActive) {
+      // a card that appears mid-mash must not be confirmed by the mash:
+      // swallow X/Q for the first moments so the player reads it first
+      if (this.time.now - (this.cardShownAt || 0) < 700) {
+        Phaser.Input.Keyboard.JustDown(this.player.keys.X);
+        Phaser.Input.Keyboard.JustDown(this.keyQ);
+        return true;
+      }
       if (Phaser.Input.Keyboard.JustDown(this.player.keys.X)) {
         const fn = this.cardConfirm;
         this.closeCard();

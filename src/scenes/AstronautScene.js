@@ -210,6 +210,17 @@ export default class AstronautScene extends BaseLevel {
     this.time.delayedCall(5000, () => this.tweens.add({ targets: [t1, t2], alpha: 0, duration: 800, onComplete: () => [t1, t2].forEach((t) => t.destroy()) }));
   }
 
+
+  // NPCs and standing props were placed by tile centre, which left their
+  // feet a half-tile in the air. Drop them onto the first solid below.
+  snap(img) {
+    const tx = Math.floor(img.x / T);
+    let ty = Math.floor(img.y / T);
+    while (ty < 62 && !this.built.solidAt(tx, ty)) ty++;
+    img.y = ty * T - img.displayHeight / 2;
+    return img;
+  }
+
   // ------- HUD -----------------------------------------------------------
 
   buildHud() {
@@ -276,7 +287,7 @@ export default class AstronautScene extends BaseLevel {
       .setOrigin(0.5)
       .setDepth(D.INTERACT);
     const ad = this.built.objects.find((v) => v.type === 'npc' && v.who === 'adaeze');
-    this.adaeze = this.add.image(ad.wx, ad.wy, 'npc-adaeze').setDepth(D.FOE);
+    this.adaeze = this.snap(this.add.image(ad.wx, ad.wy, 'npc-adaeze').setDepth(D.FOE));
     this.addInteract(ad.wx, ad.wy, 'Coach Adaeze', async () => {
       await this.dialog.show(A_DIALOGUES.d0);
       this.setFlag('d0');
@@ -307,7 +318,7 @@ export default class AstronautScene extends BaseLevel {
 
     // -- the Wall (Grip): the bell at the top
     const bell = this.obj('bell');
-    this.bellImg = this.add.image(bell.wx, bell.wy, 'astro-bell').setDepth(D.INTERACT);
+    this.bellImg = this.snap(this.add.image(bell.wx, bell.wy, 'astro-bell').setDepth(D.INTERACT));
     this.groundedSinceBell = true;
     this.addInteract(bell.wx, bell.wy, 'the bell', () => {
       if (!this.groundedSinceBell) return;
@@ -334,8 +345,8 @@ export default class AstronautScene extends BaseLevel {
 
     // -- the Study: flashcards + the notebook
     const pr = this.built.objects.find((v) => v.type === 'npc' && v.who === 'priya');
-    this.priyaStudy = this.add.image(pr.wx, pr.wy, 'npc-priya').setDepth(D.FOE);
-    this.add.image(pr.wx + 30, pr.wy + 12, 'astro-desk').setDepth(D.INTERACT - 1);
+    this.priyaStudy = this.snap(this.add.image(pr.wx, pr.wy, 'npc-priya').setDepth(D.FOE));
+    this.snap(this.add.image(pr.wx + 30, pr.wy + 12, 'astro-desk').setDepth(D.INTERACT - 1));
     const fc = this.obj('flashcards');
     this.addInteract(fc.wx + 20, fc.wy, 'flashcards, with Priya', async () => {
       const right = await systemsCards(this);
@@ -360,7 +371,7 @@ export default class AstronautScene extends BaseLevel {
 
     // -- the physical
     const hv = this.built.objects.find((v) => v.type === 'npc' && v.who === 'halvorsen');
-    this.halvorsen = this.add.image(hv.wx, hv.wy, 'npc-halvorsen').setDepth(D.FOE);
+    this.halvorsen = this.snap(this.add.image(hv.wx, hv.wy, 'npc-halvorsen').setDepth(D.FOE));
     const ph = this.obj('physical');
     this.addInteract(ph.wx, ph.wy, 'the physical', async () => {
       await this.runPhysical();
@@ -565,12 +576,12 @@ export default class AstronautScene extends BaseLevel {
   buildGround() {
     // centrifuge
     const cf = this.obj('centrifuge');
-    this.add.image(cf.wx, cf.wy - 30, 'astro-dome').setDepth(D.INTERACT - 1);
+    this.snap(this.add.image(cf.wx, cf.wy - 30, 'astro-dome').setDepth(D.INTERACT - 1));
     this.addInteract(cf.wx, cf.wy, 'the centrifuge', () => this.runCentrifuge(), { once: false, when: () => this.F.selected && !this.F.centrifuge });
 
     // neutral-buoyancy tank
     const rack = this.obj('panel_rack');
-    this.add.image(rack.wx, rack.wy, 'astro-panel').setDepth(D.INTERACT);
+    this.snap(this.add.image(rack.wx, rack.wy, 'astro-panel').setDepth(D.INTERACT));
     this.addInteract(rack.wx, rack.wy, 'take the panel', () => {
       this.carry = 'panel';
       this.updateSatchel();
@@ -627,7 +638,7 @@ export default class AstronautScene extends BaseLevel {
     this.rainZone = { x0: dz.wx - T / 2, x1: dz.wx - T / 2 + dz.w * T };
     this.campItems = 0;
     this.objAll('camp_item').forEach((o, i) => {
-      const img = this.add.image(o.wx, o.wy, ['astro-bag', 'astro-cone', 'astro-buoy'][i]).setDepth(D.INTERACT);
+      const img = this.snap(this.add.image(o.wx, o.wy, ['astro-bag', 'astro-cone', 'astro-buoy'][i]).setDepth(D.INTERACT));
       this.addInteract(o.wx, o.wy, ['a tarp', 'a pole', 'a dry box'][i], () => {
         img.destroy();
         this.campItems += 1;
@@ -650,7 +661,7 @@ export default class AstronautScene extends BaseLevel {
       this.floatText(ph.wx, ph.wy - 40, 'she says nothing. you pick her up.\n(slow. no big jumps. the beacon.)', '#88b8d8');
     }, { once: false, when: () => this.F.shelter && !this.carryingPriya && !this.F.survival });
     const bc = this.obj('beacon');
-    this.beaconImg = this.add.image(bc.wx, bc.wy, 'astro-beacon').setDepth(D.INTERACT);
+    this.beaconImg = this.snap(this.add.image(bc.wx, bc.wy, 'astro-beacon').setDepth(D.INTERACT));
     this.addInteract(bc.wx, bc.wy, 'the beacon', async () => {
       if (!this.carryingPriya) return this.floatText(bc.wx, bc.wy - 40, 'the beacon can wait. Priya cannot.', '#c8c0b0');
       this.carryingPriya = false;
@@ -923,7 +934,7 @@ export default class AstronautScene extends BaseLevel {
     // §5 descent — a vertical thrust puzzle with dust in the last stretch
     const hard = await this.landing();
     const l = this.obj('lander');
-    this.add.image(l.wx, l.wy, 'astro-lander').setDepth(D.INTERACT - 1);
+    this.snap(this.add.image(l.wx, l.wy, 'astro-lander').setDepth(D.INTERACT - 1));
     p.setPosition(l.wx + 40, l.wy);
     p.setVelocity(0, 0);
     this.checkpoint = { x: l.wx + 40, y: l.wy };
@@ -998,7 +1009,7 @@ export default class AstronautScene extends BaseLevel {
     for (let i = 0; i < 4; i++) this.add.triangle(sr.wx + i * 22 - 30, sr.wy + 12, -8, 8, 8, 8, 0, -8, 0x4a4a50).setDepth(D.HAZARD);
     this.sharpRocks = { x0: sr.wx - 40, x1: sr.wx + 70, y: sr.wy };
     const pk = this.obj('patch_kit');
-    this.add.image(pk.wx, pk.wy, 'astro-patch').setDepth(D.INTERACT);
+    this.snap(this.add.image(pk.wx, pk.wy, 'astro-patch').setDepth(D.INTERACT));
     this.addInteract(pk.wx, pk.wy, 'patch the suit', () => {
       if (!this.puncturedAt) return;
       this.puncturedAt = 0;
@@ -1014,8 +1025,8 @@ export default class AstronautScene extends BaseLevel {
 
     // the probe and its core
     const probe = this.obj('probe');
-    this.add.image(probe.wx, probe.wy - 8, 'astro-probe').setDepth(D.INTERACT - 1).setAngle(-12);
-    this.add.image(probe.wx + 8, probe.wy + 2, 'astro-core').setDepth(D.INTERACT);
+    this.snap(this.add.image(probe.wx, probe.wy - 8, 'astro-probe').setDepth(D.INTERACT - 1)).setAngle(-12);
+    this.snap(this.add.image(probe.wx + 8, probe.wy + 2, 'astro-core').setDepth(D.INTERACT));
     this.addInteract(probe.wx, probe.wy, 'the data core', () => {
       this.carry = 'core';
       this.satchel = this.F.wrench ? ['WRENCH', 'CORE'] : ['CORE'];
@@ -1027,7 +1038,7 @@ export default class AstronautScene extends BaseLevel {
 
     // the winch and the crater
     const winch = this.obj('winch');
-    this.add.image(winch.wx, winch.wy, 'astro-winch').setDepth(D.INTERACT);
+    this.snap(this.add.image(winch.wx, winch.wy, 'astro-winch').setDepth(D.INTERACT));
     const fl = this.obj('flare');
     this.addInteract(fl.wx, fl.wy, 'plant the flare', () => {
       this.add.image(fl.wx, fl.wy + 6, 'astro-flare').setDepth(D.INTERACT);
@@ -1149,7 +1160,7 @@ export default class AstronautScene extends BaseLevel {
 
   buildField() {
     const c = this.obj('capsule');
-    this.add.image(c.wx, c.wy + 6, 'astro-capsule').setDepth(D.INTERACT - 1);
+    this.snap(this.add.image(c.wx, c.wy + 6, 'astro-capsule').setDepth(D.INTERACT - 1));
     // grass: little blades that lean as he passes
     for (let x = c.wx + 80; x < px(514); x += 26) {
       const g = this.add.rectangle(x, px(35) + 12, 2, 8 + (x % 7), 0x6a9a4a, 0.9).setDepth(D.INTERACT - 1);
@@ -1159,7 +1170,7 @@ export default class AstronautScene extends BaseLevel {
     this.add.rectangle(tr.wx, tr.wy + 4, 70, 30, 0x3e4650).setDepth(D.INTERACT - 1);
     this.add.rectangle(tr.wx - 20, tr.wy - 12, 28, 16, 0x3e4650).setDepth(D.INTERACT - 1);
     const ad2 = this.built.objects.filter((v) => v.type === 'npc' && v.who === 'adaeze')[1];
-    this.adaezeField = this.add.image(ad2.wx, ad2.wy, 'npc-adaeze').setDepth(D.FOE).setVisible(false);
+    this.adaezeField = this.snap(this.add.image(ad2.wx, ad2.wy, 'npc-adaeze').setDepth(D.FOE)).setVisible(false);
     const orbO = this.obj('orb');
     this.orbs = this.physics.add.staticGroup();
     const o = this.orbs.create(orbO.wx, orbO.wy, 'orb').setDepth(95);

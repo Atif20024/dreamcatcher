@@ -139,7 +139,7 @@ export default [
     bg: { far: 'campus', mid: 'pool_tiles', near: 'lane_ropes', landmark: 'nb_sign' },
     objects: [
       { type: 'mark', id: 'nb_brief', x: L(172, 171), y: 29 },
-      { type: 'mark', id: 'panel_rack', x: L(176, 171), y: 34 },
+      { type: 'mark', id: 'panel_rack', x: L(170, 171), y: 30 }, // on the dive deck, not over the water
       { type: 'mark', id: 'panel_slot', x: L(191, 171), y: 40 },
       { type: 'mark', id: 'tank_hatch', x: L(186, 171), y: 34 },
       // inside the mock-up maze (tier 2)
