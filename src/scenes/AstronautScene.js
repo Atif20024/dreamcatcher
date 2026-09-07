@@ -269,12 +269,27 @@ export default class AstronautScene extends BaseLevel {
     this.updateStatHud();
     sfx('chime');
     this.floatText(this.player.x, this.player.y - 60, label || `${k.toUpperCase()} ${this.stats[k]}/5`, '#7ec87e');
+    // in the second year the objective tracks exactly what is still short
+    if (this.F.rejected && !this.F.selected) {
+      this.setObjective(this.statsReady() ? 'the numbers are there. the Board.' : `a year to train.\n${this.shortStatLine()}`);
+    }
     return true;
   }
 
   statsReady() {
-    const s = this.stats;
-    return s.lungs >= this.minStat && s.grip >= this.minStat && s.legs >= this.minStat && s.nerve >= this.minStat;
+    return this.shortStats().length === 0;
+  }
+
+  // which numbers are still under the Board's minimum, and where each is earned
+  shortStats() {
+    const where = { lungs: 'the pool', grip: 'the wall', legs: 'the track, up the stairs', nerve: 'the ring' };
+    return ['lungs', 'grip', 'legs', 'nerve']
+      .filter((k) => this.stats[k] < this.minStat)
+      .map((k) => ({ k, have: this.stats[k], where: where[k] }));
+  }
+
+  shortStatLine() {
+    return this.shortStats().map((s) => `${s.k.toUpperCase()} ${s.have}/${this.minStat} — ${s.where}`).join('\n');
   }
 
   // ------- phase builders -------------------------------------------------
@@ -532,6 +547,18 @@ export default class AstronautScene extends BaseLevel {
 
   async faceTheBoard() {
     const attempt = this.F.rejected ? 2 : 1;
+    // After the first rejection the player KNOWS the numbers matter, so the
+    // desk stops them at the door instead of taking seven right answers and
+    // then saying no for a reason it never names.
+    if (attempt > 1 && !this.statsReady()) {
+      this.doorLight.setFillStyle(0xe8a030);
+      await this.dialog.show([
+        { name: 'Dr. Halvorsen', text: `Numbers first, candidate. The board sees them before it sees you.\n\n${this.shortStatLine()}` },
+      ]);
+      this.setObjective(`train it up:\n${this.shortStatLine()}`);
+      this.doorLight.setFillStyle(0xf2d580);
+      return;
+    }
     const res = await selectionBoard(this, { attempt });
     if (!res || !res.passed) {
       this.doorLight.setFillStyle(0xe83a2a);
@@ -540,8 +567,12 @@ export default class AstronautScene extends BaseLevel {
       return;
     }
     if (!this.statsReady()) {
-      // §5 — rigged: even at 7/7, the numbers are the numbers
-      await this.dialog.show(A_DIALOGUES.d_rejected);
+      // §5 — rigged: even at 7/7, the numbers are the numbers. Say WHICH
+      // numbers, or a perfect score reads as a broken door.
+      await this.dialog.show([
+        ...A_DIALOGUES.d_rejected,
+        { name: 'Dr. Halvorsen', text: `Seven out of seven. That was never the problem.\n\n${this.shortStatLine()}` },
+      ]);
       await this.rejection();
       return;
     }
@@ -567,7 +598,7 @@ export default class AstronautScene extends BaseLevel {
     await this.dialog.show(A_DIALOGUES.d2);
     this.priyaStudy.setAlpha(0.4);
     this.floatText(px(115), px(31), 'TWELVE MONTHS LATER', '#c8c0b0');
-    this.setObjective('a year to train. every stat to 3. read the notebook.');
+    this.setObjective(`a year to train. read the notebook.\n${this.shortStatLine()}`);
     music.bass();
   }
 
