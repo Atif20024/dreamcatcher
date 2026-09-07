@@ -834,14 +834,16 @@ export default class AstronautScene extends BaseLevel {
 
     // O2 ports
     this.objAll('o2_port').forEach((o) => {
-      this.add.rectangle(o.wx, o.wy, 20, 26, 0x2a3a52).setDepth(D.INTERACT - 1).setStrokeStyle(1, 0x88b8d8);
-      this.add.text(o.wx, o.wy, 'O₂', { fontFamily: 'monospace', fontSize: '9px', color: '#88b8d8' }).setOrigin(0.5).setDepth(D.INTERACT);
-      this.addInteract(o.wx, o.wy, 'O₂ port', () => {
+      const panel = this.add.rectangle(o.wx, o.wy, 20, 26, 0x2a3a52).setDepth(D.INTERACT - 1).setStrokeStyle(1, 0x88b8d8);
+      const label = this.add.text(o.wx, o.wy, 'O₂', { fontFamily: 'monospace', fontSize: '9px', color: '#88b8d8' }).setOrigin(0.5).setDepth(D.INTERACT);
+      // one charge, spent for good: a lifeline, not a fountain
+      this.addInteract(o.wx, o.wy, 'emergency O₂ — one charge', () => {
         this.o2 = this.o2Max;
-        this.power = Math.min(100, this.power + 30);
         sfx('chime');
-        this.floatText(o.wx, o.wy - 40, 'suit topped up.', '#7ec87e');
-      }, { radius: 60, once: false });
+        panel.setFillStyle(0x2a2a34);
+        label.setColor('#4a4c54').setText('--');
+        this.floatText(o.wx, o.wy - 40, 'charged. that was the only one.', '#7ec87e');
+      }, { radius: 52, once: true });
     });
 
     const comms = this.obj('comms');
@@ -1444,7 +1446,7 @@ export default class AstronautScene extends BaseLevel {
         b.setVelocity((a.x / n) * 210, (a.y / n) * 210);
         sfx('jump');
       }
-      if (Phaser.Input.Keyboard.JustDown(p.keys.E) && !this.nearestInteract) this.railHold = null;
+      if (!this.nearestInteract && Phaser.Input.Keyboard.JustDown(p.keys.E)) this.railHold = null;
     } else if (touching) {
       // against a surface: hand-over-hand crawl along it, or rest and damp.
       // The crawl moves the sprite directly — velocity-based crawling in 0g
@@ -1470,13 +1472,13 @@ export default class AstronautScene extends BaseLevel {
         sfx('jump');
         p.dust(2);
       }
-      if (onRail && Phaser.Input.Keyboard.JustDown(p.keys.E) && !this.nearestInteract) {
+      if (onRail && !this.nearestInteract && Phaser.Input.Keyboard.JustDown(p.keys.E)) {
         this.railHold = onRail;
         sfx('pickup');
       }
     } else {
       // drifting: no control, slow cosmetic tumble
-      if (onRail && Phaser.Input.Keyboard.JustDown(p.keys.E) && !this.nearestInteract) {
+      if (onRail && !this.nearestInteract && Phaser.Input.Keyboard.JustDown(p.keys.E)) {
         this.railHold = onRail;
         b.setVelocity(0, 0);
         sfx('pickup');
