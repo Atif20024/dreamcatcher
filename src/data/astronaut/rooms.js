@@ -31,7 +31,7 @@ export default [
     music: { section: 'gym', bpm: 100, state: 'explore' },
     bg: { far: 'gym_wall', mid: 'gym_kit', near: 'ropes', landmark: 'lv3_poster' },
     objects: [
-      { type: 'checkpoint', x: L(26, 24), y: 35, id: 'CP1a' },
+      { type: 'checkpoint', x: L(40, 24), y: 35, id: 'CP1a' },
       { type: 'mark', id: 'sheet', x: L(27, 24), y: 34 },
       // the Track: laps on the mezzanine; hurdles are the scene's business
       { type: 'mark', id: 'track_start', x: L(36, 24), y: 30 },
@@ -111,7 +111,7 @@ export default [
     music: { section: 'gate', bpm: 60, state: 'quiet' },
     bg: { far: 'gate_grey', mid: 'chairs', near: 'fence', landmark: 'board_door' },
     objects: [
-      { type: 'checkpoint', x: L(133, 130), y: 35, id: 'CP2' },
+      { type: 'checkpoint', x: L(142, 130), y: 35, id: 'CP2' }, // by the Board's door, not on top of CP1d
       { type: 'coin', x: L(143, 130), y: 34, breadcrumb: true },
       { type: 'mark', id: 'board_door', x: L(145, 130), y: 34 },
       { type: 'gate', x: L(152, 130), y: 31, h: 5, id: 'g2', requires: ['selected'] },
@@ -194,9 +194,8 @@ export default [
     music: { section: 'pad', bpm: 60, state: 'quiet' },
     bg: { far: 'dawn', mid: 'gantry', near: 'fence', landmark: 'the_stack' },
     objects: [
-      { type: 'checkpoint', x: L(243, 241), y: 35, id: 'CP4a' },
-      { type: 'coins', x: L(250, 241), y: 30, n: 2, dx: 0, dy: -4 },
-      { type: 'mark', id: 'hatch', x: L(250, 241), y: 16 },
+      { type: 'coins', x: L(245, 241), y: 30, n: 2, dx: 0, dy: -4 },
+      { type: 'mark', id: 'hatch', x: L(245, 241), y: 16 }, // at the ladder's head: you board from the rungs, not by stepping off
     ],
   },
   {

@@ -95,9 +95,12 @@ export function buildAstroMap() {
 
   // ---- P4 THE SKY (241-331)
   // the tower: a ladder up the gantry to the hatch
-  fill(rows, 18, 35, 246, 247, '#');
-  fill(rows, 16, 35, 250, 250, 'H');
-  fill(rows, 17, 17, 246, 249, '#'); // the white room floor; the ladder passes it
+  fill(rows, 18, 35, 246, 247, '#'); // the gantry leg
+  // The ladder hangs on the PAD side of that leg. Behind it the leg is a
+  // full-height wall standing on the ground, so a ladder to its right was
+  // unreachable: the pad dead-ended and the dream could not be finished.
+  fill(rows, 16, 35, 245, 245, 'H');
+  fill(rows, 17, 17, 246, 251, '#'); // the white room floor, stepped onto from the ladder top
   // a full wall so nobody walks from the pad into "orbit"
   fill(rows, 8, GROUND + 3, 255, 256, '#');
   // THE STATION (zero-g): modules are boxes, floors are just walls

@@ -135,12 +135,68 @@ export default class AstronautScene extends BaseLevel {
       .setScrollFactor(0)
       .setDepth(150);
 
-    this.setObjective('reach 3 pips in every stat');
+    if (!this.devWarp()) this.setObjective('reach 3 pips in every stat');
     music.bass();
-    this.time.delayedCall(900, async () => {
-      await this.dialog.show(A_DIALOGUES.d0);
-      this.setFlag('d0');
-    });
+    if (!this.warped)
+      this.time.delayedCall(900, async () => {
+        await this.dialog.show(A_DIALOGUES.d0);
+        this.setFlag('d0');
+      });
+  }
+
+  // ---- dev: ?at=<phase> boots straight into a phase --------------------
+  // Playtesting the launch should not cost a run through the gym. This is
+  // opt-in via the URL only; with no ?at= the game opens at the station as
+  // always. Phases: gym gate ground pad station eva moon crater field
+  devWarp() {
+    let at = null;
+    try {
+      at = new URLSearchParams(window.location.search).get('at');
+    } catch {
+      return false;
+    }
+    if (!at) return false;
+    const PHASES = {
+      gym:     { flags: ['d0'], col: 26, row: 34, obj: 'reach 3 pips in every stat' },
+      gate:    { flags: ['d0', 'physical'], col: 133, row: 34, stats: 1, obj: 'the Board. Thursday.' },
+      ground:  { flags: ['d0', 'physical', 'selected'], col: 155, row: 34, stats: 1, obj: 'the centrifuge' },
+      pad:     { flags: ['d0', 'physical', 'selected', 'centrifuge', 'pool', 'sim', 'shelter', 'survival'], col: 242, row: 34, stats: 1, suit: 1, obj: 'the pad, before dawn' },
+      station: { flags: ['d0', 'physical', 'selected', 'centrifuge', 'pool', 'sim', 'shelter', 'survival', 'docked'], col: 261, row: 27, stats: 1, suit: 1, obj: 'the coolant leak — follow the droplets' },
+      eva:     { flags: ['d0', 'physical', 'selected', 'centrifuge', 'pool', 'sim', 'shelter', 'survival', 'docked', 'coolant', 'debris_done', 'reported', 'wrench', 'eva_out'], col: 303, row: 28, stats: 1, suit: 1, sat: ['WRENCH'], obj: 'the array — the tether is life' },
+      moon:    { flags: ['d0', 'physical', 'selected', 'centrifuge', 'pool', 'sim', 'shelter', 'survival', 'docked', 'coolant', 'debris_done', 'reported', 'wrench', 'eva_out', 'array_fixed', 'eva_done', 'landed'], col: 340, row: 34, stats: 1, suit: 1, sat: ['WRENCH'], obj: 'the dead probe — cross the crevasse field' },
+      crater:  { flags: ['d0', 'physical', 'selected', 'centrifuge', 'pool', 'sim', 'shelter', 'survival', 'docked', 'coolant', 'debris_done', 'reported', 'wrench', 'eva_out', 'array_fixed', 'eva_done', 'landed', 'rescue_on'], col: 438, row: 38, stats: 1, suit: 1, obj: 'the crater. her signal is one pip.' },
+      field:   { flags: ['d0', 'physical', 'selected', 'centrifuge', 'pool', 'sim', 'shelter', 'survival', 'docked', 'array_fixed', 'eva_done', 'landed', 'priya_safe', 'reentry', 'field'], col: 478, row: 34, stats: 1, obj: 'walk.' },
+    };
+    const ph = PHASES[at] || PHASES[at === 'sky' ? 'pad' : ''];
+    if (!ph) return false;
+    this.warped = true;
+    ph.flags.forEach((f) => this.setFlag(f));
+    if (ph.stats) {
+      this.stats = { lungs: 3, grip: 3, legs: 3, nerve: 5 };
+      this.updateStatHud();
+    }
+    if (ph.suit) {
+      this.player.art.setTint(this.theme.suitTint);
+      this.player.tool.setVisible(true).setScale(1);
+      this.o2 = this.o2Max;
+    }
+    if (ph.sat) {
+      this.satchel = [...ph.sat];
+      this.updateSatchelHud();
+    }
+    const p = this.player;
+    p.setPosition(px(ph.col), px(ph.row));
+    p.body.reset(p.x, p.y);
+    this.checkpoint = { x: p.x, y: p.y };
+    this.cameras.main.centerOn(p.x, p.y);
+    if (at === 'crater') {
+      this.priyaDown.setVisible(true);
+      this.priyaLight.setVisible(true);
+    }
+    if (at === 'field') this.statHud.setVisible(false);
+    this.setObjective(ph.obj);
+    this.floatText(p.x, p.y - 70, `[dev] warped to ${at}`, '#7ec8d8');
+    return true;
   }
 
   // ------- shared plumbing (verbatim musician pattern) -------------------
