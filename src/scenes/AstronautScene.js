@@ -32,6 +32,53 @@ export default class AstronautScene extends BaseLevel {
     super('Astronaut');
   }
 
+  // Phaser re-runs create() on the SAME instance for a restart, so anything
+  // assigned outside create() survives a death and poisons the new run: the
+  // coolant array kept destroyed sprites (so the leak never respawned), and a
+  // stale _room made updateMusicRoom skip setRoom, leaving the backdrop unset.
+  // init() runs before create() on every start and restart — reset it all here.
+  init() {
+    this._room = null;
+    this._roomState = null;
+    this._model = null;
+    this.coolantDrops = null;
+    this.debris = null;
+    this.commsSign = null;
+    this.alarmOn = false;
+    this.alarmEv = null;
+    this.alarmMark = null;
+    this.warped = false;
+    this.launching = false;
+    this.orbCaught = false;
+    this.fieldBeats = false;
+    this.drifting = false;
+    this.reeling = false;
+    this.stillSince = 0;
+    this.cupolaHold = null;
+    this.m1Added = false;
+    this.bout = null;
+    this.priyaFollow = null;
+    this.carryPix = null;
+    this.tetherLine = null;
+    this.priyaOnHatch = false;
+    this.tankHatchOpen = false;
+    this.campItems = 0;
+    this.notebookPage = 0;
+    this.wasInCrater = false;
+    this.ballHitAt = 0;
+    this.groundedSinceBell = true;
+    this.vaultUntil = 0;
+    this.nearestInteract = null;
+    this.greyYear = null;
+    this.shardItems = [];
+    this.thrownOut = false;
+    this.track = null;
+    this.balls = [];
+    this.hoops = [];
+    this.devils = [];
+    this.shadows = [];
+  }
+
   create() {
     this.theme = THEMES.astronaut;
     this.theme.createTextures(this);
