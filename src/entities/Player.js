@@ -43,6 +43,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.setVisible(false);
     this.shown = true; // scenes toggle this, not `visible`
     this.crouching = false;
+    this.bodyTint = 0xffffff; // what Jo wears; scenes set it (e.g. the flight suit)
     this.squashScale = { x: 1, y: 1 };
     this.hatKnock = { y: 0, angle: 0 };
     // above the terrain (depth 4) and the backdrop, below the HUD
@@ -320,7 +321,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     } else {
       this.art.setTexture('jo-stand');
     }
-    this.art.setTint(rev ? 0xd8f0a0 : 0xffffff);
+    // `bodyTint` is what Jo is wearing (the astronaut's flight suit, say);
+    // the pepper-cloud green is a temporary override on top of it. Resetting
+    // to white here unconditionally used to wipe the suit every frame.
+    this.art.setTint(rev ? 0xd8f0a0 : this.bodyTint);
 
     // Crouch hitbox. Both bodies keep their bottom at y+22, so ducking never
     // moves Jo's feet — only the drawing shrinks (see syncAttachments).

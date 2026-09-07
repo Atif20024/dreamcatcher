@@ -176,7 +176,7 @@ export default class AstronautScene extends BaseLevel {
       this.updateStatHud();
     }
     if (ph.suit) {
-      this.player.art.setTint(this.theme.suitTint);
+      this.player.bodyTint = this.theme.suitTint;
       this.player.tool.setVisible(true).setScale(1);
       this.o2 = this.o2Max;
     }
@@ -803,7 +803,7 @@ export default class AstronautScene extends BaseLevel {
     if (ok) {
       this.setFlag('centrifuge');
       // the flight suit: Jo's sprite changes for the rest of the dream
-      this.player.art.setTint(this.theme.suitTint);
+      this.player.bodyTint = this.theme.suitTint;
       this.player.tool.setVisible(true).setScale(1);
       this.cameras.main.flash(400, 255, 255, 255);
       this.floatText(p.x, p.y - 60, 'the flight suit. it fits like a decision.\n(+ the multitool)', '#f2d580');
