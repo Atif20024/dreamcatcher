@@ -11,6 +11,7 @@ import { A_DIALOGUES, A_MOMENTS, NOTEBOOK } from '../data/astronautData.js';
 import { systemsCards, selectionBoard, docking, hinge, BOLT_ORDER } from '../systems/astroPuzzles.js';
 import { completeDream } from '../utils/save.js';
 import { sfx, music, sting } from '../systems/audio.js';
+import { showTutorial } from '../systems/tutorial.js';
 
 const T = 32;
 const px = (t) => t * T + T / 2;
@@ -1410,7 +1411,7 @@ export default class AstronautScene extends BaseLevel {
       if (left || right) {
         const dir = left ? -1 : 1;
         const ahead = solid(Math.floor((p.x + dir * 16) / T), Math.floor(p.y / T));
-        if (!ahead) p.x += dir * 85 * (delta / 1000);
+        if (!ahead) p.x += dir * 120 * (delta / 1000);
       }
       if (Phaser.Input.Keyboard.JustDown(p.keys.SPACE)) {
         const evaRoom = this.roomPhys().room.id === 'p4_eva';
@@ -1437,6 +1438,30 @@ export default class AstronautScene extends BaseLevel {
         this.railHold = onRail;
         b.setVelocity(0, 0);
         sfx('pickup');
+      }
+      // Momentum is the rule, but a dead stop in open air is a softlock: it
+      // happens beside the one-tile hatch walls, where a bounce zeroes the
+      // velocity and no probe finds a surface to shove against. So a
+      // stationary Jo may always puff his own suit — weaker than a real
+      // push-off, and only when he has nothing to push against.
+      const still = Math.abs(b.velocity.x) < 20 && Math.abs(b.velocity.y) < 20;
+      const aim = this.aim.x || this.aim.y ? this.aim : { x: p.flipX ? -1 : 1, y: 0 };
+      const n = Math.hypot(aim.x, aim.y) || 1;
+      if (still && Phaser.Input.Keyboard.JustDown(p.keys.SPACE)) {
+        b.setVelocity((aim.x / n) * 150, (aim.y / n) * 150);
+        sfx('jump');
+        p.dust(2);
+        this.stillSince = 0;
+      } else if (!still) this.stillSince = 0;
+      else {
+        // and if he presses nothing at all, the suit does it for him
+        this.stillSince = this.stillSince || time;
+        if (time - this.stillSince > 2500) {
+          this.stillSince = 0;
+          b.setVelocity((aim.x / n) * 70, (aim.y / n) * 70);
+          sfx('click');
+          this.floatText(p.x, p.y - 46, 'suit puff — aim, then [Space]', '#88b8d8');
+        }
       }
     }
     p.art.setTexture('jo-run');
@@ -1550,6 +1575,25 @@ export default class AstronautScene extends BaseLevel {
     const dt = delta / 1000;
     const { room, phys } = this.roomPhys();
     const swimming = this.inWater();
+
+    // The controls change completely per gravity, so the hint bar and the
+    // just-in-time card have to change with them: a player who reaches the
+    // station without being told about push-off reads 0g as a frozen game.
+    const model = swimming ? 'swim' : phys === 'zero' ? 'zero' : phys === 'moon' ? 'moon' : 'ground';
+    if (model !== this._model) {
+      this._model = model;
+      this.hintText.setText(
+        model === 'zero'
+          ? '[←→↑↓] aim · [Space] push off · [E] grab a rail · [F] tether · [Tab] visor'
+          : model === 'moon'
+            ? '[←→] bound · [Space] jump (long and slow) · [E] interact · [Tab] visor'
+            : model === 'swim'
+              ? '[←→↑↓] swim · [Space] at the surface to climb out'
+              : '[E] interact · [Tab] visor · [F] tether / Priya'
+      );
+      if (model === 'zero') showTutorial(this, 'zero_g');
+      if (model === 'moon') showTutorial(this, 'moon_bound');
+    }
 
     // motion
     if (swimming) {
