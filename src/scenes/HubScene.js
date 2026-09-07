@@ -15,6 +15,8 @@ import Silhouettes from '../entities/Silhouette.js';
 import Phrases from '../systems/rhythm.js';
 import { hubState, HEADLINES } from '../systems/hubState.js';
 import { getSave, updateSave } from '../utils/save.js';
+import { getWallet, spend } from '../systems/wallet.js';
+import { HATS, hatById } from '../data/hats.js';
 import { sfx, music, musicDirector, sting, accordion } from '../systems/audio.js';
 
 const T = 32;
@@ -89,6 +91,7 @@ export default class HubScene extends BaseLevel {
       spawn = { x: px(26), y: FLOOR - 24 };
     }
     this.player = new Player(this, spawn.x, spawn.y);
+    this.dreamCoinId = 'musician'; // the station pays in busker change
     this.setupCommon({ worldW: built.worldW, worldH: built.worldH, levelName: 'CROSSROADS STATION', spawn });
     this.hearts.forEach((h) => h.setVisible(false)); // nothing here can hurt you
 
@@ -126,6 +129,8 @@ export default class HubScene extends BaseLevel {
     this.clockTick = this.time.addEvent({ delay: 1000, loop: true, callback: () => this.tickClock() });
     this.events.once('shutdown', () => this.persistClock());
 
+    const worn = hatById(getSave().shop.hat);
+    if (worn) this.wearHat(worn);
     if (this.returnedFrom) this.runReturn();
     else if (this.firstVisit) this.setObjective('');
     else this.setObjective(this.N >= 2 ? 'board any train — or the last stop' : 'board any train');
@@ -606,6 +611,18 @@ export default class HubScene extends BaseLevel {
       .setOrigin(0.5)
       .setDepth(D.INTERACT - 1);
 
+    // under the dream counter: the wallet, in tally strokes (§6 — The
+    // Counter counts everything, and none of it can be spent here)
+    const w = getWallet().total;
+    const strokes = Math.min(40, Math.ceil(w / 25));
+    const tg = this.add.graphics().setDepth(D.INTERACT - 1);
+    tg.lineStyle(1, 0xd8cbb0, 0.8);
+    for (let i = 0; i < strokes; i++) {
+      const tx0 = t.wx - 20 + (i % 10) * 4 + Math.floor(i / 10) * 0;
+      const ty0 = FLOOR - 40 + Math.floor(i / 10) * 7;
+      if (i % 5 === 4) tg.lineBetween(tx0 - 13, ty0 + 5, tx0 - 2, ty0);
+      else tg.lineBetween(tx0, ty0, tx0, ty0 + 5);
+    }
     this.addInteract(gx - 40, FLOOR - 20, 'gate', () => this.pushGate(), { radius: 76 }); // the turnstile step raises Jo
   }
 
@@ -665,6 +682,11 @@ export default class HubScene extends BaseLevel {
     this.add.image(tk.wx - 30, UNDER - 10, 'hub-teapot').setDepth(D.INTERACT - 2);
     this.add.image(tk.wx + 20, UNDER - 10, 'hub-teapot').setDepth(D.INTERACT - 2);
     this.add.text(tk.wx, UNDER - 52, "BILAL'S", { fontFamily: 'monospace', fontSize: '9px', color: '#f2d580' }).setOrigin(0.5).setDepth(D.INTERACT - 2);
+    this.add
+      .text(tk.wx, UNDER - 66, 'THE EXPRESS', { fontFamily: 'monospace', fontSize: '8px', color: '#c8a25c' })
+      .setOrigin(0.5)
+      .setDepth(D.INTERACT - 2);
+    this.addInteract(tk.wx, UNDER - 20, 'shop', () => this.shop());
     const cg = this.obj('cages');
     [-44, 0, 44].forEach((dx) => this.add.image(cg.wx + dx, UNDER - 12, 'hub-cage').setDepth(D.INTERACT - 2));
 
@@ -874,7 +896,7 @@ export default class HubScene extends BaseLevel {
       this.visitLines.luggage = true;
       return this.say('pemberton', "Left luggage is downstairs, sir -- the grate past the fountain. You'll want to see whose name is on the tag.");
     }
-    return this.say('pemberton', this.N === 0 ? 'Any platform, sir. They all leave now.' : `${this.N} caught. The board keeps the count.`);
+    return this.say('pemberton', this.N === 0 ? `Any platform, sir. They all leave now. The ledger has you at $${getWallet().total}.` : `${this.N} caught, $${getWallet().total} carried. The board keeps one count, I keep the other.`);
   }
 
   async talkRo() {
@@ -1006,6 +1028,103 @@ export default class HubScene extends BaseLevel {
     );
   }
 
+  // ---- Bilal's stall (collectibles §2) -----------------------------------
+
+  async shop() {
+    if (this.N >= 5) {
+      await this.say('bilal', 'Keep the change.');
+      return;
+    }
+    for (;;) {
+      const sv = getSave();
+      const w = getWallet().total;
+      const shardCost = [150, 300, 600][Math.min(2, sv.shop.shardsBought)];
+      const choices = [
+        { label: `tea ·20`, value: 'tea' },
+        { label: `shard ·${shardCost}`, value: 'shard' },
+        { label: `postcard ·100`, value: 'postcard' },
+        { label: `ticket ·250`, value: 'ticket' },
+        { label: 'hats…', value: 'hats' },
+        { label: 'done', value: 'done' },
+      ];
+      const pick = await this.dialog.show([
+        { name: 'Bilal', portrait: 'hub-bilal', text: `The Express. You're carrying $${w}. Tea steadies the first stretch of a dream; a shard is a piece of a heart; a postcard marks a dream's small moments; a ticket forgives one bad night.`, choices },
+      ]);
+      if (!pick || pick === 'done') return;
+      if (pick === 'tea') {
+        if (sv.shop.tea) await this.say('bilal', 'One is enough. Drink that one first.');
+        else if (spend(20)) {
+          updateSave((x) => (x.shop.tea = true));
+          sfx('buy');
+          await this.say('bilal', 'On the counter when you board. Warm through the first section.');
+        } else await this.say('bilal', 'Twenty. Come back with change in your coat.');
+      } else if (pick === 'shard') {
+        if (sv.shop.shardsBought >= 3) await this.say('bilal', 'Three is all I ever find.');
+        else if (spend(shardCost)) {
+          updateSave((x) => {
+            x.shop.shardsBought += 1;
+            x.shards = (x.shards || 0) + 1;
+          });
+          sfx('shard');
+          this.updateShardHud();
+          await this.say('bilal', 'Found it under a seat on the 4:15. Careful with it.');
+        } else await this.say('bilal', `That one costs ${shardCost}.`);
+      } else if (pick === 'postcard') {
+        const target = await this.dialog.show([
+          { name: 'Bilal', portrait: 'hub-bilal', text: 'A postcard from which dream? It marks the three small moments on your way.', choices: [
+            { label: 'chef', value: 'chef' },
+            { label: 'musician', value: 'musician' },
+            { label: 'never mind', value: null },
+          ] },
+        ]);
+        if (!target) continue;
+        if (sv.shop.postcards[target]) await this.say('bilal', 'You have that one. Read the back again.');
+        else if (spend(100)) {
+          updateSave((x) => (x.shop.postcards[target] = true));
+          sfx('buy');
+          await this.say('bilal', 'Somebody mailed it and never came back for it. The X marks are theirs.');
+        } else await this.say('bilal', 'A hundred. The stamps alone, you understand.');
+      } else if (pick === 'ticket') {
+        if (sv.shop.ticket) await this.say('bilal', 'You still have one. Try not to need it.');
+        else if (spend(250)) {
+          updateSave((x) => (x.shop.ticket = true));
+          sfx('buy');
+          await this.say('bilal', 'A return ticket. One bad night, forgiven. Once.');
+        } else await this.say('bilal', 'Two hundred fifty. Hope is not cheap, friend.');
+      } else if (pick === 'hats') {
+        const owned = sv.shop.hats;
+        const hatChoices = HATS.map((h) => ({ label: owned.includes(h.id) ? `${h.name} ✓` : `${h.name} ·${h.cost}`, value: h.id })).slice(0, 3);
+        const hatChoices2 = HATS.map((h) => ({ label: owned.includes(h.id) ? `${h.name} ✓` : `${h.name} ·${h.cost}`, value: h.id })).slice(3);
+        const page = await this.dialog.show([
+          { name: 'Bilal', portrait: 'hub-bilal', text: 'Hats. Lost property, technically. Six of them.', choices: [...hatChoices, { label: 'more…', value: 'more' }] },
+        ]);
+        const hatPick = page === 'more'
+          ? await this.dialog.show([{ name: 'Bilal', portrait: 'hub-bilal', text: 'The good shelf.', choices: [...hatChoices2, { label: 'back', value: null }] }])
+          : page;
+        if (!hatPick) continue;
+        const hat = hatById(hatPick);
+        if (!hat) continue;
+        if (sv.shop.hats.includes(hat.id)) {
+          updateSave((x) => (x.shop.hat = hat.id));
+          this.wearHat(hat);
+          await this.say('bilal', 'Wearing it well.');
+        } else if (spend(hat.cost)) {
+          updateSave((x) => {
+            x.shop.hats.push(hat.id);
+            x.shop.hat = hat.id;
+          });
+          sfx('buy');
+          this.wearHat(hat);
+          await this.say('bilal', 'It found the right head.');
+        } else await this.say('bilal', `${hat.cost} for that one.`);
+      }
+    }
+  }
+
+  wearHat(hat) {
+    if (this.player && this.player.hat) this.player.hat.setTint(hat.tint);
+  }
+
   // ---- small moments -----------------------------------------------------
 
   markMoment(id, text) {
@@ -1031,7 +1150,11 @@ export default class HubScene extends BaseLevel {
         this.phrase = null;
         this.duetting = false;
         this.player.controlLockUntil = 0;
-        if (passes >= 1) this.markMoment('moment1', "He'd been playing to the board for years.");
+        if (passes >= 1) {
+          this.markMoment('moment1', "He'd been playing to the board for years.");
+          // the hub's only coin: the hat gives one back (worth 1)
+          if (this.coinMgr) this.coinMgr.spawn(this.npcs.busker.x + 20, this.npcs.busker.y + 10);
+        }
         else this.floatText(this.player.x, this.player.y - 60, 'he smiles anyway.', '#c8c0b0');
       },
     });
@@ -1240,6 +1363,7 @@ export default class HubScene extends BaseLevel {
       this.cameras.main.zoomTo(1, 600);
     }
 
+    this.updatePickups(time, delta);
     this.travelers.update(dt);
     this.queue.update(dt);
     if (this.rain) this.rain.setVisible(p.x < px(40));

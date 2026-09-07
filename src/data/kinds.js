@@ -13,6 +13,11 @@ export const FOES = {
     dock_hand: { texture: 'foe-dock-hand', human: false, speed: 70 },
     sous_chef: { texture: 'foe-sous-chef', human: true, speed: 80, sight: 170 },
   },
+  astronaut: {
+    gym_rat: { texture: 'foe-gym-rat', human: true, speed: 55, sight: 110 },
+    cleaner: { texture: 'foe-cleaner', human: true, speed: 60, sight: 130 },
+    security: { texture: 'foe-security', human: true, speed: 70, sight: 160 },
+  },
   musician: {
     heckler: { texture: 'foe-heckler', human: true, speed: 0, ranged: true, sight: 360 },
     bouncer: { texture: 'foe-bouncer', human: true, speed: 60, big: true, sight: 150 },

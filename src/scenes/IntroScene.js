@@ -57,7 +57,40 @@ const INTROS = {
       return { groundY: 470 };
     },
   },
+  astronaut: {
+    caption: 'THE QUIET ABOVE',
+    sub: "A municipal gym at dawn. Selection is in nine weeks.",
+    doorX: 700,
+    draw(scene) {
+      const g = scene.add.graphics();
+      g.fillGradientStyle(0x3a3560, 0x3a3560, 0xe0a074, 0x8a5a52, 1);
+      g.fillRect(0, 0, 960, 540);
+      // the low sun
+      scene.add.circle(180, 400, 46, 0xf2c078, 0.9);
+      scene.add.circle(180, 400, 90, 0xf2c078, 0.2);
+      // the sports centre: brick box, high windows, one lit
+      scene.add.rectangle(620, 340, 560, 280, 0x4a4a3c);
+      scene.add.rectangle(620, 208, 576, 16, 0x34342a);
+      for (let i = 0; i < 5; i++) {
+        scene.add.rectangle(430 + i * 95, 260, 60, 40, i === 3 ? 0xf2d580 : 0x2a2a24, i === 3 ? 0.9 : 1);
+      }
+      // the hand-painted sign
+      scene.add.rectangle(600, 320, 330, 54, 0x3a3428);
+      scene.add.text(600, 308, "ADAEZE'S", { fontFamily: 'monospace', fontSize: '26px', color: '#f2d580' }).setOrigin(0.5);
+      scene.add.text(600, 334, 'BOXING · POOL · "COME AS YOU ARE."', { fontFamily: 'monospace', fontSize: '11px', color: '#c8c0b0' }).setOrigin(0.5);
+      // the recruitment poster on the fence
+      scene.add.rectangle(330, 420, 120, 88, 0x2e3a52).setAngle(-2);
+      scene.add.text(330, 420, 'MERIDIAN\nORBITAL\nPROGRAM', { fontFamily: 'monospace', fontSize: '11px', color: '#88b8d8', align: 'center' }).setOrigin(0.5).setAngle(-2);
+      // door
+      scene.add.rectangle(700, 400, 70, 150, 0x241a16);
+      scene.add.rectangle(700, 400, 58, 138, 0x3a3428);
+      scene.add.rectangle(480, 505, 960, 70, 0x3c3c30);
+      return { groundY: 470 };
+    },
+  },
 };
+
+const LEVEL_SCENES = { chef: 'Chef', musician: 'Musician', astronaut: 'Astronaut' };
 
 export default class IntroScene extends Phaser.Scene {
   constructor() {
@@ -121,7 +154,7 @@ export default class IntroScene extends Phaser.Scene {
     this.tweens.add({ targets: this.jo, alpha: 0, duration: 350 });
     this.cameras.main.fadeOut(500);
     this.time.delayedCall(550, () =>
-      this.scene.start(this.levelKey === 'chef' ? 'Chef' : 'Musician', { levelKey: this.levelKey })
+      this.scene.start(LEVEL_SCENES[this.levelKey] || 'Musician', { levelKey: this.levelKey })
     );
   }
 

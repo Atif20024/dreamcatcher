@@ -11,6 +11,7 @@ import musicianTiles from '../data/musician/tiles.js';
 import Phrases from '../systems/rhythm.js';
 import { tuning, playTheRoom, theMix } from '../systems/puzzles.js';
 import { completeDream } from '../utils/save.js';
+import { addCoins } from '../systems/wallet.js';
 import { sfx, music, sting, trumpet, bassNote } from '../systems/audio.js';
 
 const T = 32;
@@ -46,6 +47,7 @@ export default class MusicianScene extends BaseLevel {
     const spawn = { x: px(3), y: px(GROUND - 2) };
     this.player = new Player(this, spawn.x, spawn.y);
     this.player.keys = this.input.keyboard.addKeys('W,A,S,D,SPACE,X,E,Q,F');
+    this.dreamCoinId = 'musician';
     this.setupCommon({ worldW, worldH, levelName: 'DREAM — THE BIG STAGE', spawn });
 
     this.F = {};
@@ -77,6 +79,7 @@ export default class MusicianScene extends BaseLevel {
     this.initFoes('musician');
     this.spawnRoomFoes(built.objects, (o) => o.human);
     this.addHideSpots(built.objects);
+    this.spawnPickups(built.objects);
 
     this.buildGates();
     this.buildDay0();
@@ -880,6 +883,7 @@ export default class MusicianScene extends BaseLevel {
     }
 
     this.updateMusicRoom(); // D7 room-driven mix
+    this.updatePickups(time, delta);
     this.updateFoes(time); // D6 people: patrol / alert / grab / stagger
     this.updateBusking(time);
     this.updateHazards(time, pb, dt);
@@ -952,6 +956,12 @@ export default class MusicianScene extends BaseLevel {
             if (passes > 0) {
               const got = 1 + Math.floor(Math.random() * 2);
               this.coins += got;
+              if (got > 0) {
+                addCoins('musician', got); // busking pays the wallet too
+                this.levelCoins += got;
+                this.coinsSinceCP += got;
+                this.updateCoinHud();
+              }
               sfx('pickup');
               this.floatText(this.caseDown ? this.caseDown.x : this.player.x, this.player.y - 40, `+${got}¢`);
             }

@@ -17,6 +17,11 @@ const CARDS = {
   rest_note: { name: 'THE REST', hint: 'hollow means silence', key: '' },
   wall_jump: { name: 'WALL JUMP', hint: 'only on ribbed walls', key: '↑' },
   slope: { name: 'SLOPES', hint: 'walk, do not jump', key: '' },
+  // the quiet above: three gravities, each taught the moment it starts
+  zero_g: { name: 'NO FLOOR HERE', hint: 'aim with the arrows, then shove off a surface', key: 'SPACE' },
+  zero_g_rail: { name: 'HANDRAILS', hint: 'the yellow lines are the ground now', key: 'E' },
+  eva_tether: { name: 'THE TETHER IS LIFE', hint: 'clip on before you push. hold to reel in', key: 'F' },
+  moon_bound: { name: 'ONE-SIXTH', hint: 'you rise slowly and you keep going', key: '' },
 };
 
 export function showTutorial(scene, id) {

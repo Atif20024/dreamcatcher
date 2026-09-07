@@ -4,6 +4,8 @@ import { sfx } from '../systems/audio.js';
 import { resolveSlope } from './slopes.js';
 import { JO_DUST } from './jo.js';
 import { dreamDust } from '../systems/effects.js';
+import { getSave } from '../utils/save.js';
+import { hatById } from '../data/hats.js';
 
 // D1: px figures from the other docs are doubled for the 32px scale
 // (run 140 -> 280, jump 300 -> 600, look-ahead 48 -> 96).
@@ -41,6 +43,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.setVisible(false);
     this.shown = true; // scenes toggle this, not `visible`
     this.crouching = false;
+    this.bodyTint = 0xffffff; // what Jo wears; scenes set it (e.g. the flight suit)
     this.squashScale = { x: 1, y: 1 };
     this.hatKnock = { y: 0, angle: 0 };
     // above the terrain (depth 4) and the backdrop, below the HUD
@@ -48,8 +51,15 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.art = scene.add.image(x, y, 'jo-stand').setDepth(12);
 
     // D5 — hat and tool are separate sprites that trail the body by one
-    // frame, so Jo bobbles instead of moving like a decal.
+    // frame, so Jo bobbles instead of moving like a decal. The hat wears
+    // whatever Bilal sold last (data/hats.js).
     this.hat = scene.add.image(x, y, 'jo-hat').setDepth(13);
+    try {
+      const worn = hatById(getSave().shop.hat);
+      if (worn) this.hat.setTint(worn.tint);
+    } catch {
+      /* no save */
+    }
     this.tool = scene.add
       .image(x, y, scene.scene.key === 'Musician' ? 'tool-trumpet' : 'tool-ladle')
       .setDepth(13)
@@ -311,7 +321,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     } else {
       this.art.setTexture('jo-stand');
     }
-    this.art.setTint(rev ? 0xd8f0a0 : 0xffffff);
+    // `bodyTint` is what Jo is wearing (the astronaut's flight suit, say);
+    // the pepper-cloud green is a temporary override on top of it. Resetting
+    // to white here unconditionally used to wipe the suit every frame.
+    this.art.setTint(rev ? 0xd8f0a0 : this.bodyTint);
 
     // Crouch hitbox. Both bodies keep their bottom at y+22, so ducking never
     // moves Jo's feet — only the drawing shrinks (see syncAttachments).

@@ -122,6 +122,10 @@ export const PEOPLE = {
   'foe-scalper': { art: person('fedora', 'tickets'), pal: P(0x3a4436, 0x8a6a4a, 0x55634d, 0x3d4838, 0x2e2e36, 0x1e1e28, 0xf2d580) },
   'foe-manager': { art: person('headset', 'clipboard'), pal: P(0x6a6a52, 0xc0a088, 0x9a9a76, 0x70705a, 0x3a3a44, 0x1e1e28, 0xe8e4d8) },
   'foe-roadie': { art: person('beanie', 'coil'), pal: P(0x1f1f26, 0x9a6a48, 0x33333d, 0x24242c, 0x2a2a32, 0x1a1a20, 0xd8a840) },
+  // astronaut dream
+  'foe-gym-rat': { art: person('bandana', 'bottle'), pal: P(0xc03a2a, 0x9a6a48, 0xd8d4c8, 0xa8a49a, 0x3a3a44, 0xe8e4d8, 0x88b8d8) },
+  'foe-cleaner': { art: person('cap', 'coil'), pal: P(0x3a5a80, 0x8a5a3b, 0x4a6a8a, 0x3a5468, 0x2e3440, 0x1e1e28, 0xd8b858) },
+  'foe-security': { art: person('cap', 'clipboard'), pal: P(0x1e2a4a, 0xc09070, 0x2e3a5a, 0x222c44, 0x22222c, 0x14141a, 0xf2d580) },
 };
 
 // --- creatures: things, not people -----------------------------------------

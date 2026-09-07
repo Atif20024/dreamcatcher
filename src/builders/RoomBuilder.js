@@ -149,6 +149,7 @@ export default class RoomBuilder {
         const role = roleOf(ch);
         if (role !== 'solid' && role !== 'oneway') return false;
         if (theme.noSupports) return false;
+        if (theme.supportFilter && !theme.supportFilter(tx, ty)) return false;
         if (solidAt(tx, ty + 1)) return false;
         // a lone floor row at the world's base doesn't need legs
         return ty < height - 2;
