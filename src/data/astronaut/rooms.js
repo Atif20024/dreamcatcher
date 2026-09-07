@@ -208,6 +208,12 @@ export default [
     bg: { far: 'space', mid: 'earth_glow', near: 'module_ribs', landmark: 'earth_window' },
     objects: [
       { type: 'mark', id: 'station_spawn', x: L(261, 257), y: 27 },
+      // O2 ports: the suit has 70s and the section is longer than that, so
+      // every module carries a top-up. Without these the only refill in the
+      // level sat behind two gates.
+      { type: 'mark', id: 'o2_port', x: L(264, 257), y: 28 },
+      { type: 'mark', id: 'o2_port', x: L(281, 257), y: 28 },
+      { type: 'mark', id: 'o2_port', x: L(294, 257), y: 28 },
       { type: 'checkpoint', x: L(262, 257), y: 27, id: 'CP4b' },
       { type: 'rail', x: L(259, 257), y: 18, len: 12 },
       { type: 'rail', x: L(266, 257), y: 28, len: 5 },

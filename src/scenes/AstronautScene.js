@@ -190,6 +190,7 @@ export default class AstronautScene extends BaseLevel {
     p.body.reset(p.x, p.y);
     this.checkpoint = { x: p.x, y: p.y };
     this.cameras.main.centerOn(p.x, p.y);
+    if (at === 'station') this.spawnLeak();
     if (at === 'crater') {
       this.priyaDown.setVisible(true);
       this.priyaLight.setVisible(true);
@@ -831,14 +832,34 @@ export default class AstronautScene extends BaseLevel {
       this.setObjective('the node — report to the ground');
     }, { once: false, when: () => this.F.docked && !this.F.coolant && this.priyaOnHatch });
 
+    // O2 ports
+    this.objAll('o2_port').forEach((o) => {
+      this.add.rectangle(o.wx, o.wy, 20, 26, 0x2a3a52).setDepth(D.INTERACT - 1).setStrokeStyle(1, 0x88b8d8);
+      this.add.text(o.wx, o.wy, 'O₂', { fontFamily: 'monospace', fontSize: '9px', color: '#88b8d8' }).setOrigin(0.5).setDepth(D.INTERACT);
+      this.addInteract(o.wx, o.wy, 'O₂ port', () => {
+        this.o2 = this.o2Max;
+        this.power = Math.min(100, this.power + 30);
+        sfx('chime');
+        this.floatText(o.wx, o.wy - 40, 'suit topped up.', '#7ec87e');
+      }, { radius: 60, once: false });
+    });
+
     const comms = this.obj('comms');
     this.add.image(comms.wx, comms.wy, 'astro-comms').setDepth(D.INTERACT);
+    // it sits near the ceiling; without a sign nobody finds it from the deck
+    const commsSign = this.add
+      .text(comms.wx, comms.wy + 22, 'COMMS  [E]', { fontFamily: 'monospace', fontSize: '10px', color: '#7ec87e' })
+      .setOrigin(0.5)
+      .setDepth(D.INTERACT);
+    this.tweens.add({ targets: commsSign, alpha: 0.35, duration: 700, yoyo: true, repeat: -1 });
+    this.commsSign = commsSign;
     this.addInteract(comms.wx, comms.wy, 'report', async () => {
       if (!this.F.debris_done) return this.floatText(comms.wx, comms.wy - 40, 'the panels are still tumbling — dodge through first.', '#c8c0b0');
       await this.dialog.show(A_DIALOGUES.d_osei_dock);
       this.setFlag('reported');
+      if (this.commsSign) this.commsSign.setVisible(false);
       this.setObjective('the airlock — the array is stuck');
-    }, { once: false, when: () => this.F.coolant && !this.F.reported });
+    }, { radius: 72, once: false, when: () => this.F.coolant && !this.F.reported });
 
     const locker = this.obj('wrench_locker');
     this.add.image(locker.wx, locker.wy, 'astro-wrench').setDepth(D.INTERACT);
@@ -852,6 +873,12 @@ export default class AstronautScene extends BaseLevel {
 
     const air = this.obj('airlock');
     this.addInteract(air.wx, air.wy, 'the airlock', async () => {
+      if (!this.F.wrench) {
+        this.o2 = this.o2Max;
+        sfx('chime');
+        this.floatText(air.wx, air.wy - 40, 'O₂ topped up.\nno one goes outside without the wrench.', '#88b8d8');
+        return;
+      }
       if (!this.F.array_fixed) {
         this.o2 = this.o2Max;
         sfx('chime');
@@ -860,7 +887,7 @@ export default class AstronautScene extends BaseLevel {
       } else {
         await this.descend();
       }
-    }, { once: false, when: () => this.F.wrench });
+    }, { once: false, when: () => this.F.reported });
 
     const plate = this.obj('code_plate');
     this.add.rectangle(plate.wx, plate.wy, 70, 20, 0x4a4c54).setDepth(D.INTERACT - 1);
@@ -878,10 +905,19 @@ export default class AstronautScene extends BaseLevel {
       this.setObjective('back to the airlock — the moon is next');
     }, { once: false, when: () => this.F.eva_out && !this.F.array_fixed });
 
+    // "cupola" is the real word for it and means nothing to a player: this is
+    // the window, and the prompt should say what looking out of it costs.
     const cup = this.obj('cupola');
-    this.addInteract(cup.wx, cup.wy, 'the cupola — hold [↑]', () => {
+    this.add
+      .rectangle(cup.wx, cup.wy - 30, 46, 34, 0x0a1424)
+      .setDepth(D.INTERACT - 1)
+      .setStrokeStyle(2, 0x88b8d8);
+    this.add.circle(cup.wx, cup.wy - 30, 13, 0x2a5a9a).setDepth(D.INTERACT);
+    this.add.circle(cup.wx - 4, cup.wy - 34, 6, 0x3a7ac0, 0.9).setDepth(D.INTERACT);
+    this.addInteract(cup.wx, cup.wy, 'the window', () => {
       this.cupolaHold = this.time.now;
-    }, { once: false, when: () => this.F.docked && !this.F.m3 });
+      this.floatText(cup.wx, cup.wy - 60, 'hold [↑] and keep looking.', '#88b8d8');
+    }, { radius: 60, once: false, when: () => this.F.docked && !this.F.m3 });
   }
 
   async launch() {
@@ -973,8 +1009,14 @@ export default class AstronautScene extends BaseLevel {
     p.controlLockUntil = 0;
     this.o2 = this.o2Max;
     this.setObjective('the coolant leak — follow the droplets');
-    // the leak: droplets drifting toward the valve
+    this.spawnLeak();
+  }
+
+  // the coolant spray: droplets drifting toward the valve, the trail you follow
+  spawnLeak() {
+    if (this.coolantDrops || this.F.coolant) return;
     const valve = this.obj('valve');
+    const sp = this.obj('station_spawn');
     this.coolantDrops = [];
     for (let i = 0; i < 8; i++) {
       const d = this.add.circle(sp.wx + 60 + i * 32, px(20 + (i % 3)), 3, 0x9ac4dc, 0.9).setDepth(D.INTERACT);
@@ -1009,7 +1051,7 @@ export default class AstronautScene extends BaseLevel {
     this.time.delayedCall(14000, () => {
       this.setFlag('debris_done');
       this.debris.forEach((d) => this.tweens.add({ targets: d, alpha: 0, duration: 600, onComplete: () => d.destroy() }));
-      this.floatText(this.player.x, this.player.y - 60, 'the tumbling stops. the ground needs to know.', '#88b8d8');
+      this.floatText(this.player.x, this.player.y - 60, 'the tumbling stops.\nthe ground needs to know — COMMS, up by the ceiling.', '#88b8d8');
     });
   }
 
