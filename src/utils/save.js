@@ -14,6 +14,15 @@ const DEFAULTS = {
   wallet: { total: 0, byDream: {} },
   shards: 0,
   shop: { shardsBought: 0, postcards: {}, tea: false, ticket: false, hats: [], hat: null },
+  // small moments found, per dream ({ chef: ['m1', ...] }) — the evening's
+  // last cards count them; and the cast Jo actually met, per dream, so the
+  // town only roasts him about things that happened
+  moments: {},
+  met: {},
+  cast: {},
+  // THE LONG EVENING saves almost nothing: that it was visited, the child's
+  // map of it, and (on the ridge) that it was finished
+  evening: { visited: false, map: {}, finished: false },
 };
 
 function load() {
@@ -25,6 +34,10 @@ function load() {
       flags: { ...DEFAULTS.flags, ...(s.flags || {}), hub: { ...DEFAULTS.flags.hub, ...((s.flags || {}).hub || {}) } },
       wallet: { ...DEFAULTS.wallet, ...(s.wallet || {}), byDream: { ...((s.wallet || {}).byDream || {}) } },
       shop: { ...DEFAULTS.shop, ...(s.shop || {}), postcards: { ...((s.shop || {}).postcards || {}) }, hats: [...(((s.shop || {}).hats) || [])] },
+      moments: { ...(s.moments || {}) },
+      met: { ...(s.met || {}) },
+      cast: { ...(s.cast || {}) },
+      evening: { ...DEFAULTS.evening, ...(s.evening || {}), map: { ...((s.evening || {}).map || {}) } },
     };
   } catch {
     return JSON.parse(JSON.stringify(DEFAULTS));
@@ -57,6 +70,26 @@ export function completeDream(key) {
   }
   localStorage.setItem(KEY, JSON.stringify(s));
   return s;
+}
+
+// a small moment, found: kept per dream so the evening can count them
+export function recordMoment(dream, id) {
+  updateSave((s) => {
+    const list = (s.moments[dream] ||= []);
+    if (!list.includes(id)) list.push(id);
+  });
+}
+
+// the dream's people have met Jo (called when a dream starts)
+export function markMet(dream) {
+  updateSave((s) => (s.met[dream] = true));
+}
+
+// every small moment the built game holds: hub 3 + three per playable dream
+export const MOMENT_TOTAL = 12;
+export function momentsFound(s = load()) {
+  const hub = ['moment1', 'moment2', 'moment3'].filter((k) => s.flags.hub[k]).length;
+  return hub + Object.values(s.moments).reduce((n, l) => n + l.length, 0);
 }
 
 // read-modify-write for anything else (hub flags, the station clock)

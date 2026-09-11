@@ -9,7 +9,7 @@ import { D } from '../builders/depths.js';
 import chefRooms from '../data/chef/rooms.js';
 import chefTiles from '../data/chef/tiles.js';
 import { freezerValve, ticketRail, piping } from '../systems/puzzles.js';
-import { completeDream } from '../utils/save.js';
+import { completeDream, recordMoment, markMet } from '../utils/save.js';
 import { sfx, music, sting } from '../systems/audio.js';
 
 const T = 32;
@@ -55,6 +55,7 @@ export default class ChefScene extends BaseLevel {
     const spawn = { x: px(3), y: px(32) };
     this.player = new Player(this, spawn.x, spawn.y);
     this.dreamCoinId = 'chef';
+    markMet('chef');
     this.setupCommon({ worldW, worldH, levelName: 'DREAM 03 — FIVE-STAR DREAM', spawn });
 
     this.F = {};
@@ -207,6 +208,7 @@ export default class ChefScene extends BaseLevel {
     this.addInteract(x, y, 'pause', async () => {
       const m = MOMENTS[id];
       this.moments += 1;
+      recordMoment('chef', id);
       this.setFlag(id);
       sfx(id === 'm2' ? 'purr' : 'chime');
       this.player.controlLockUntil = this.time.now + 5000;

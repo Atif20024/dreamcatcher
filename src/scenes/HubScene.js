@@ -1021,9 +1021,20 @@ export default class HubScene extends BaseLevel {
     });
   }
 
+  // The Counter's own level is still being laid; past his gate, a door
+  // stands open onto THE LONG EVENING, and that part is here.
   boardLastStop() {
     this.showCard(
-      ['THE LAST STOP', '', 'The Counter is waiting on the other side.', 'That part of the line is still being laid.', '', '[X] Back to the hall'],
+      ['THE LAST STOP', '', 'The Counter is still being laid.', 'Past his gate, a door stands open.', 'It is warm on the other side.', '', '[X] Go through      [Q] Not yet'],
+      () => {
+        this.persistClock();
+        this.player.controlLockUntil = this.time.now + 99999;
+        this.cameras.main.fadeOut(1200, 20, 14, 8);
+        this.time.delayedCall(1250, () => {
+          music.stop();
+          this.scene.start('Evening', { fromDoor: true });
+        });
+      },
       () => {}
     );
   }

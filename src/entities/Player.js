@@ -44,6 +44,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.shown = true; // scenes toggle this, not `visible`
     this.crouching = false;
     this.bodyTint = 0xffffff; // what Jo wears; scenes set it (e.g. the flight suit)
+    this.speed = SPEED; // the evening walks slower
+    this.upJumps = true; // the evening gives [↑] to looking up; W/Space still jump
+    this.poseDy = 0; // a sitting pose drops the head: hat and tool follow it
+    this.artDy = 0; // the whole drawing up or down (sitting on a bench seat)
     this.squashScale = { x: 1, y: 1 };
     this.hatKnock = { y: 0, angle: 0 };
     // above the terrain (depth 4) and the backdrop, below the HUD
@@ -102,7 +106,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     // The grids are 48 tall with a centred origin, so any vertical squish has
     // to be paid back in y or Jo's feet leave the ground he is standing on.
     this.art
-      .setPosition(this.x, this.y + 24 * (1 - sy))
+      .setPosition(this.x, this.y + 24 * (1 - sy) + this.artDy)
       .setScale(sx, sy)
       .setFlipX(this.flipX)
       .setVisible(this.shown)
@@ -111,15 +115,15 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     // one-frame lag
     const lx = this.lastPos.x;
     const ly = this.lastPos.y;
-    const feet = ly + 24;
+    const feet = ly + 24 + this.artDy;
     this.hat
-      .setPosition(lx, feet - 42 * sy + this.hatKnock.y)
+      .setPosition(lx, feet - 42 * sy + this.hatKnock.y + this.poseDy)
       .setScale(sx, sy)
       .setAngle(this.hatKnock.angle)
       .setFlipX(this.flipX);
     this.hat.setVisible(this.shown).setAlpha(this.alpha);
     const dir = this.flipX ? -1 : 1;
-    this.tool.setPosition(lx + dir * 14 * sx, feet - 18 * sy).setFlipX(this.flipX);
+    this.tool.setPosition(lx + dir * 14 * sx, feet - 18 * sy + this.poseDy * 0.5).setFlipX(this.flipX);
     this.tool.setVisible(this.shown).setAlpha(this.alpha * 0.95);
     this.lastPos = { x: this.x, y: this.y };
   }
@@ -176,9 +180,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     let left = this.cursors.left.isDown || this.keys.A.isDown;
     let right = this.cursors.right.isDown || this.keys.D.isDown;
     if (rev) [left, right] = [right, left];
-    const jumpDown = this.cursors.up.isDown || this.keys.W.isDown || this.keys.SPACE.isDown;
+    const upJ = this.upJumps;
+    const jumpDown = (upJ && this.cursors.up.isDown) || this.keys.W.isDown || this.keys.SPACE.isDown;
     const jumpJust =
-      Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
+      (upJ && Phaser.Input.Keyboard.JustDown(this.cursors.up)) ||
       Phaser.Input.Keyboard.JustDown(this.keys.W) ||
       Phaser.Input.Keyboard.JustDown(this.keys.SPACE);
     const crouch = this.cursors.down.isDown || this.keys.S.isDown;
@@ -254,7 +259,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
     // horizontal
     if (!locked) {
-      const target = left ? -SPEED : right ? SPEED : 0;
+      const target = left ? -this.speed : right ? this.speed : 0;
       if (this.slippery && grounded) {
         body.setVelocityX(Phaser.Math.Linear(body.velocity.x, target, this.slipFactor));
       } else {

@@ -88,3 +88,39 @@ export function createJoTextures(scene) {
 
 // D5 — dust colours for Jo's own death burst
 export const JO_DUST = [0x3d5a80, 0x8a5a3b, 0xe8e4d8, 0x23233a];
+
+// --- the long evening: the poses a place with nothing to do asks for --------
+// Sitting drops the head four grid rows (8 px), so the scene sets
+// player.poseDy = 8 and the hat/trumpet follow it down.
+const BLANK = '................';
+const FACE = ['.....SSSSSS.....', '....SSSSSSSS....', '..GGLLSSSLLGG...', '....SSSSSSSS....', '....sSSSSSSs....', '.....SSSSSS.....'];
+const FACE_UP = ['.....SSSSSS.....', '..GGLLSSSLLGG...', '....SSSSSSSS....', '....SSSSSSSS....', '....sSSSSSSs....', '.....SSSSSS.....'];
+const FACE_LAUGH = ['.....SSSSSS.....', '....SSSSSSSS....', '..GGGGSSSGGGG...', '....SSSSSSSS....', '....sSSGGSSs....', '.....SSSSSS.....'];
+const FACE_SLEEP = ['.....SSSSSS.....', '....SSSSSSSS....', '....SSSSSSSS....', '..GGGGSSSGGGG...', '....sSSSSSSs....', '.....SSSSSS.....'];
+const TORSO = ['....JJJJJJJJ....', '..JJJJJJJJJJJJ..', '.JJjWWWWWWWWjJJ.', '.JJjWWWWWWWWjJJ.', '.JJjWWWWWWWWjJJ.', '.SSJJJJJJJJJJSS.'];
+const TORSO_SHRUG = ['S...JJJJJJJJ...S', 'SJJJJJJJJJJJJJJS', '...jWWWWWWWWj...', '...jWWWWWWWWj...', '...jWWWWWWWWj...', '....JJJJJJJJ....'];
+const LAP = ['....PPPPPPPPPPP.', '....pppppppPPPP.', '...........PPP..', '...........BBBB.'];
+const CROUCH_LEGS = ['....PPPPPPPP....', '...PPPPPPPPPP...', '..PPP......PPP..', '..ppp......ppp..', '..BBBB....BBBB..', '..BBBB....BBBB..'];
+const STANDING_LEGS = STAND.slice(16);
+const up4 = [BLANK, BLANK, BLANK, BLANK];
+
+const POSES = {
+  'jo-sit': [...up4, ...up4, ...FACE, ...TORSO, ...LAP],
+  'jo-sitdown': [...up4, BLANK, BLANK, ...FACE, ...TORSO, ...CROUCH_LEGS], // head 2 rows down: poseDy 4
+  'jo-sit-up': [...up4, ...up4, ...FACE_UP, ...TORSO, ...LAP],
+  'jo-sleep': [...up4, ...up4, BLANK, ...FACE_SLEEP.slice(0, 5), ...TORSO, ...LAP],
+  'jo-lookup': [...up4, ...FACE_UP, ...TORSO, ...STANDING_LEGS],
+  'jo-laugh': [...up4, ...FACE_LAUGH, ...TORSO, ...STANDING_LEGS],
+  'jo-shrug': [...up4, ...FACE, ...TORSO_SHRUG, ...STANDING_LEGS],
+};
+
+// shoes off (A4.6): the same grids with the soles painted skin
+const BARE = { ...PALETTE, B: 0x8a5a3b };
+
+export function createJoEveningTextures(scene) {
+  createJoTextures(scene);
+  for (const [key, rows] of Object.entries(POSES)) createPixelTexture(scene, key, rows, PALETTE, 2, RIM);
+  createPixelTexture(scene, 'jo-stand-bare', STAND, BARE, 2, RIM);
+  createPixelTexture(scene, 'jo-run-bare', RUN, BARE, 2, RIM);
+  createPixelTexture(scene, 'jo-sit-bare', POSES['jo-sit'], BARE, 2, RIM);
+}

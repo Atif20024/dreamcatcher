@@ -10,7 +10,7 @@ import musicianRooms from '../data/musician/rooms.js';
 import musicianTiles from '../data/musician/tiles.js';
 import Phrases from '../systems/rhythm.js';
 import { tuning, playTheRoom, theMix } from '../systems/puzzles.js';
-import { completeDream } from '../utils/save.js';
+import { completeDream, recordMoment, markMet, updateSave } from '../utils/save.js';
 import { addCoins } from '../systems/wallet.js';
 import { sfx, music, sting, trumpet, bassNote } from '../systems/audio.js';
 
@@ -48,6 +48,7 @@ export default class MusicianScene extends BaseLevel {
     this.player = new Player(this, spawn.x, spawn.y);
     this.player.keys = this.input.keyboard.addKeys('W,A,S,D,SPACE,X,E,Q,F');
     this.dreamCoinId = 'musician';
+    markMet('musician');
     this.setupCommon({ worldW, worldH, levelName: 'DREAM — THE BIG STAGE', spawn });
 
     this.F = {};
@@ -192,6 +193,7 @@ export default class MusicianScene extends BaseLevel {
     this.addInteract(x, y, 'pause', () => {
       const m = M_MOMENTS[id];
       this.moments += 1;
+      recordMoment('musician', id);
       this.setFlag(id);
       sfx('chime');
       this.player.controlLockUntil = this.time.now + 5000;
@@ -458,6 +460,8 @@ export default class MusicianScene extends BaseLevel {
     this.addInteract(px(275), px(35), 'shelter under the bridge', async () => {
       const choice = await this.dialog.show(M_DIALOGUES.d8);
       this.F.marcus_left = choice || 'silent';
+      // the evening needs to know whether Marcus went home to his daughter
+      updateSave((sv) => (sv.cast.marcus_left = this.F.marcus_left));
       await this.dialog.show(M_DIALOGUES[`d8_${this.F.marcus_left}`]);
       this.setFlag('d8_done');
       if (this.F.marcus_left !== 'stay') {

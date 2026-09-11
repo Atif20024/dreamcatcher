@@ -3,13 +3,14 @@ import chefRooms from '../src/data/chef/rooms.js';
 import musicianRooms from '../src/data/musician/rooms.js';
 import hubRooms from '../src/data/hub/rooms.js';
 import astronautRooms from '../src/data/astronaut/rooms.js';
+import eveningRooms from '../src/data/evening/rooms.js';
 import { roleOf, isSolidChar, isSlopeChar } from '../src/builders/legend.js';
 import { maskAt, wearAt } from '../src/builders/autotile.js';
 
 // collectibles budgets (references/dream-items.md); the hub keeps no coins
 const BUDGETS = { chef: [60, 80], musician: [120, 150], astronaut: [45, 55] };
 
-const DREAMS = { chef: chefRooms, musician: musicianRooms, astronaut: astronautRooms, hub: hubRooms };
+const DREAMS = { chef: chefRooms, musician: musicianRooms, astronaut: astronautRooms, hub: hubRooms, evening: eveningRooms };
 let failures = 0;
 let warnings = 0;
 
@@ -59,6 +60,9 @@ for (const [dream, rooms] of Object.entries(DREAMS)) {
     // (4) foes per section
     const foes = (room.objects || []).filter((o) => o.type === 'foe');
     if (foes.length) sectionsWithFoes.add(room.section);
+    // THE LONG EVENING breaks the encounter/trap/pickup rules on purpose
+    // (spec §10): `room.finale` exempts it. The terrain rules still hold.
+    if (room.finale && foes.length) fail(dream, room.id, 'the finale has no foes');
 
     // (5) gates need requires or a plate
     for (const g of (room.objects || []).filter((o) => o.type === 'gate')) {
@@ -117,7 +121,7 @@ for (const [dream, rooms] of Object.entries(DREAMS)) {
     if (roomHasSlope[ri]) return;
     const prev = ri > 0 && roomHasSlope[ri - 1];
     const next = ri < rooms.length - 1 && roomHasSlope[ri + 1];
-    if (!prev && !next && !room.phys) fail(dream, room.id, 'no slope/stair and no neighbour with one');
+    if (!prev && !next && !room.phys && !room.finale) fail(dream, room.id, 'no slope/stair and no neighbour with one');
   });
 
   // (C) collectibles — the placement law (skill §3, §7 step 6)
@@ -132,7 +136,7 @@ for (const [dream, rooms] of Object.entries(DREAMS)) {
     for (let s0 = 0; s0 < width; s0 += 30) {
       const any = objs.some((o) => PICKUPS.has(o.type) && o.x >= s0 && o.x < s0 + 30);
       // (the hub keeps no coins by design — its screens are exempt)
-      if (!any && width > 20 && dream !== 'hub') warn(dream, room.id, `screen at cols ${s0}-${Math.min(width, s0 + 30)} has nothing to want`);
+      if (!any && width > 20 && dream !== 'hub' && !room.finale) warn(dream, room.id, `screen at cols ${s0}-${Math.min(width, s0 + 30)} has nothing to want`);
     }
     // anti-pattern: coins on the floor right after a checkpoint (free money)
     for (const cp of objs.filter((o) => o.type === 'checkpoint')) {

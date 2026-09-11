@@ -9,7 +9,7 @@ import astroRooms from '../data/astronaut/rooms.js';
 import astroTiles from '../data/astronaut/tiles.js';
 import { A_DIALOGUES, A_MOMENTS, NOTEBOOK } from '../data/astronautData.js';
 import { systemsCards, selectionBoard, docking, hinge, BOLT_ORDER } from '../systems/astroPuzzles.js';
-import { completeDream } from '../utils/save.js';
+import { completeDream, recordMoment, markMet } from '../utils/save.js';
 import { sfx, music, sting } from '../systems/audio.js';
 import { showTutorial } from '../systems/tutorial.js';
 
@@ -101,6 +101,7 @@ export default class AstronautScene extends BaseLevel {
     const spawn = { x: spawnO.wx, y: spawnO.wy };
     this.player = new Player(this, spawn.x, spawn.y);
     this.dreamCoinId = 'astronaut';
+    markMet('astronaut');
     this.setupCommon({ worldW: built.worldW, worldH: built.worldH, levelName: 'DREAM — THE QUIET ABOVE', spawn });
 
     // Phase 1-3 the tool is just his hands; the multitool arrives with the suit
@@ -304,6 +305,7 @@ export default class AstronautScene extends BaseLevel {
   moment(id) {
     const m = A_MOMENTS[id];
     this.moments += 1;
+    recordMoment('astronaut', id);
     this.setFlag(id);
     sfx('chime');
     this.player.controlLockUntil = this.time.now + 5000;

@@ -60,7 +60,8 @@ export const DREAMS = [
   },
 ];
 
-export const LAST_STOP = { id: 'last', platform: '??', title: 'THE LAST STOP', scene: null };
+// the last stop: The Counter (not built yet), then THE LONG EVENING behind him
+export const LAST_STOP = { id: 'last', platform: '??', title: 'THE LAST STOP', scene: 'Evening' };
 
 export function dreamById(id) {
   return DREAMS.find((d) => d.id === id);
