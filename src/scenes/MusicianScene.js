@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import Player from '../entities/Player.js';
 import BaseLevel from './BaseLevel.js';
 import { THEMES } from '../themes/index.js';
+import { lightThemeProps } from '../art/levelArt.js';
 import { M_DIALOGUES, M_MOMENTS, SONGS, noRests, ZONES, GROUND } from '../data/musicianData.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
 import Parallax from '../builders/parallax.js';
@@ -26,6 +27,7 @@ export default class MusicianScene extends BaseLevel {
   create() {
     this.theme = THEMES.musician;
     this.theme.createTextures(this);
+    lightThemeProps(this, ['mus-']);
 
     // D2/D3 — generic RoomBuilder terrain: autotiled, supported, with slopes,
     // stairs, one-ways and the climbable fire-escape wall.

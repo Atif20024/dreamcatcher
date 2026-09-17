@@ -163,6 +163,8 @@ export function createDeadTrainTexture(scene, id) {
   return createPixelTexture(scene, key, TRAIN_ROWS, { R: 0x2e2e36, t: 0x3a3a44, W: 0x1e1e26, e: 0x2e2e36, E: 0x3a3a44, k: 0x1a1a20 }, 4);
 }
 
+export const HUB_PROP_KEYS = Object.keys(PROPS);
+
 export function createHubTextures(scene) {
   for (const [who, def] of Object.entries(HUB_PEOPLE)) {
     createFrames(scene, `hub-${who}`, def.art, def.pal, 2, RIM);

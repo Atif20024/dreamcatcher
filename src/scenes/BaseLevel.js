@@ -5,6 +5,7 @@ import DialogueBox from '../systems/DialogueBox.js';
 import { sfx, music, musicDirector, sting, isMusicOff, toggleMusic } from '../systems/audio.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
 import Parallax from '../builders/parallax.js';
+import { setupLook } from '../art/look.js';
 import Foe from '../entities/Foe.js';
 import { createFoeTextures } from '../entities/foeArt.js';
 import { FOES } from '../data/kinds.js';
@@ -61,6 +62,8 @@ export default class BaseLevel extends Phaser.Scene {
     cam.startFollow(this.player, true, 0.1, 0.1);
     cam.setDeadzone(80, 60);
     cam.fadeIn(400);
+    // the look: a painted vignette and a moving grain, as in the Evening
+    this.look = setupLook(this, { vignette: 0.85, grain: 0.04 });
 
     // darkness per dream caught (approximation of the palette shader):
     // overlay below HUD; orbs render above it and stay bright
@@ -476,6 +479,7 @@ export default class BaseLevel extends Phaser.Scene {
       else if (this.cameras.main.zoom !== 1) this.cameras.main.zoomTo(1, 600);
     }
     if (this.parallax) this.parallax.update();
+    if (this.look) this.look.update(this.time.now, 16, null);
     const hunted = (this.foes || []).some((f) => f.human && (f.state === 'alert' || f.state === 'windup'));
     musicDirector.setState(this.thrownOut ? 'caught' : hunted ? 'danger' : this._roomState || 'explore');
   }

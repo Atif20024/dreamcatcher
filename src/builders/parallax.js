@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { isSolidChar } from './legend.js';
 import { D } from './depths.js';
+import { paintOverLayer, paintSky } from '../art/levelArt.js';
 
 // D7 — parallax backdrops.
 //
@@ -271,6 +272,8 @@ function ensureLayerTexture(scene, name, as) {
   GENERATORS[kind](g, rand, { main, accent }, H);
   g.generateTexture(key, W, H);
   g.destroy();
+  // then the paint: wash, light from the top-left, weight at the foot, grain
+  paintOverLayer(scene, key, kind, main, accent);
   return key;
 }
 
@@ -278,18 +281,7 @@ function ensureSkyTexture(scene, name) {
   const key = `sky_${name}`;
   if (scene.textures.exists(key)) return key;
   const d = layerDef(name);
-  const top = Phaser.Display.Color.ValueToColor(d[3] ?? 0x1a1f3d);
-  const bot = Phaser.Display.Color.ValueToColor(d[4] ?? d[3] ?? 0x1a1f3d);
-  const g = scene.make.graphics({ x: 0, y: 0 }, false);
-  const bands = 48;
-  for (let i = 0; i < bands; i++) {
-    const c = Phaser.Display.Color.Interpolate.ColorWithColor(top, bot, bands - 1, i);
-    g.fillStyle(Phaser.Display.Color.GetColor(c.r, c.g, c.b), 1);
-    g.fillRect(0, (i * 256) / bands, 8, 256 / bands + 1);
-  }
-  g.generateTexture(key, 8, 256);
-  g.destroy();
-  return key;
+  return paintSky(scene, key, d[3] ?? 0x1a1f3d, d[4] ?? d[3] ?? 0x1a1f3d);
 }
 
 // ---------------------------------------------------------------------------

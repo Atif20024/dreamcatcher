@@ -22,6 +22,18 @@ export function setupLook(scene, opts = {}) {
     scene.textures.get('ev-vignette').setFilter(Phaser.Textures.FilterMode.LINEAR);
   }
   look.vignette = scene.add.image(cam.width / 2, cam.height / 2, 'ev-vignette').setScrollFactor(0).setDepth(189).setBlendMode(Phaser.BlendModes.MULTIPLY).setAlpha(opts.vignette ?? 0.8);
+  if (!scene.textures.exists('ev-grain')) {
+    const ct = scene.textures.createCanvas('ev-grain', 256, 256);
+    const ctx = ct.getContext();
+    const img = ctx.createImageData(256, 256);
+    for (let i = 0; i < 256 * 256; i++) {
+      const v = 128 + (Math.random() - 0.5) * 255;
+      img.data[i * 4] = img.data[i * 4 + 1] = img.data[i * 4 + 2] = v;
+      img.data[i * 4 + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    ct.refresh();
+  }
   if (scene.textures.exists('ev-grain')) {
     look.grain = scene.add.tileSprite(cam.width / 2, cam.height / 2, cam.width / 0.5, cam.height / 0.5, 'ev-grain').setScrollFactor(0).setDepth(190).setAlpha(opts.grain ?? 0.04).setBlendMode(Phaser.BlendModes.OVERLAY);
   }

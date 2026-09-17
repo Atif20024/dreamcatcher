@@ -5,6 +5,7 @@ import { EV } from './map.js';
 // the night's ambient colour can take it anywhere by multiplying.
 export default {
   key: 'eve',
+  selfPainted: true, // src/art/eveningArt.js paints these
   tiles: {
     fill: 'F',
     dark: 'D',

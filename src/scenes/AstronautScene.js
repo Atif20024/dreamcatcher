@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import Player from '../entities/Player.js';
 import BaseLevel from './BaseLevel.js';
 import { THEMES } from '../themes/index.js';
+import { lightThemeProps } from '../art/levelArt.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
 import Parallax from '../builders/parallax.js';
 import { D } from '../builders/depths.js';
@@ -82,6 +83,7 @@ export default class AstronautScene extends BaseLevel {
   create() {
     this.theme = THEMES.astronaut;
     this.theme.createTextures(this);
+    lightThemeProps(this, ['astro-']);
 
     const built = RoomBuilder.build(this, astroRooms, astroTiles);
     this.built = built;

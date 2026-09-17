@@ -3,6 +3,7 @@ import { roleOf, isSolidChar, isSlopeChar, SLOPES } from './legend.js';
 import { buildTileset, maskAt, wearAt } from './autotile.js';
 import { buildSupportTextures, addSupports } from './supports.js';
 import { D } from './depths.js';
+import { paintTileset } from '../art/levelArt.js';
 
 const T = 32;
 
@@ -12,6 +13,9 @@ export default class RoomBuilder {
   // rooms: array of room objects (see data/<dream>/rooms.js)
   // theme: { key, tiles, palette, support, hazardTint }
   static build(scene, rooms, theme) {
+    // painted ground first (the Evening paints its own); the gridded set
+    // then only fills keys nobody painted
+    if (!theme.selfPainted) paintTileset(scene, theme);
     buildTileset(scene, theme.key, theme.tiles, theme.palette);
     const sc = theme.supportColors || [0x3a3a44, 0x6a6e7a];
     buildSupportTextures(scene, theme.key, theme.support || 'bracket', sc[0], sc[1]);

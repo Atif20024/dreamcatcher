@@ -8,7 +8,8 @@ import hubRooms, { BAYS } from '../data/hub/rooms.js';
 import hubTiles from '../data/hub/tiles.js';
 import { HUB_ROWS } from '../data/hub/map.js';
 import { DREAMS, LAST_STOP, dreamById } from '../data/dreams.js';
-import { createHubTextures, createTrainTexture, createDeadTrainTexture } from '../entities/hubArt.js';
+import { createHubTextures, createTrainTexture, createDeadTrainTexture, HUB_PROP_KEYS } from '../entities/hubArt.js';
+import { lightTextures } from '../art/levelArt.js';
 import SplitFlapBoard from '../systems/SplitFlapBoard.js';
 import Train from '../entities/Train.js';
 import Silhouettes from '../entities/Silhouette.js';
@@ -65,6 +66,7 @@ export default class HubScene extends BaseLevel {
 
   create() {
     createHubTextures(this);
+    lightTextures(this, HUB_PROP_KEYS.filter((k) => k !== 'hub-train' && k !== 'hub-rain'));
     this.save = getSave();
     this.N = Math.min(5, this.save.dreamsCaught);
     this.state = hubState(this.N);
@@ -1387,6 +1389,7 @@ export default class HubScene extends BaseLevel {
       }
       this.parallax.update();
     }
+    if (this.look) this.look.update(time, delta, null);
     musicDirector.setMix(this.state.music);
   }
 }

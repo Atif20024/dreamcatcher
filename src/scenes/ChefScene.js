@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import Player from '../entities/Player.js';
 import BaseLevel from './BaseLevel.js';
 import { THEMES } from '../themes/index.js';
+import { lightThemeProps } from '../art/levelArt.js';
 import { DIALOGUES, MOMENTS } from '../data/chefMap.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
 import Parallax from '../builders/parallax.js';
@@ -24,6 +25,7 @@ export default class ChefScene extends BaseLevel {
   create() {
     this.theme = THEMES.chef;
     this.theme.createTextures(this);
+    lightThemeProps(this, ['chef-']);
 
     // D2/D3 — terrain comes from the generic RoomBuilder (autotiled, with
     // supports, slopes, one-ways and climbable walls).

@@ -107,3 +107,18 @@ Bastien washes a step on the steep street; only one overheard
 conversation runs in the whole town at a time.
 Rule from now on: one person per screen-third unless a group scene is
 happening there; never two speech bubbles on one screen.
+
+### Round 4 — 2026-09-17 (the rollout)
+Feedback: "improve all the levels now with the same design pattern; the
+theme would be dark but elements should look good in each one."
+Done (src/art/levelArt.js): every level's ground is painted from its own
+palette — cream stone with courses in the station, kitchen tiles with
+grout, brick-and-board stone in the club, riveted steel plate in the
+programme — with the lit lip, the shaded foot and grain; every parallax
+layer (skylines, facades, walls, hanging things, railings, trusses) gets
+a wash, light from the top-left on its silhouettes, weight at the ground
+and grain after it is drawn; skies are painted gradients with a haze on
+the lower third instead of eight-pixel bands; every gridded prop in each
+theme takes the light pass; the vignette and grain sit on every camera.
+The dark palettes stay dark: the pattern changes how a colour is laid
+down, never which. The darkness-per-dream overlay is untouched.
