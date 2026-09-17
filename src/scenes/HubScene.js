@@ -9,7 +9,7 @@ import hubTiles from '../data/hub/tiles.js';
 import { HUB_ROWS } from '../data/hub/map.js';
 import { DREAMS, LAST_STOP, dreamById } from '../data/dreams.js';
 import { createHubTextures, createTrainTexture, createDeadTrainTexture, HUB_PROP_KEYS } from '../entities/hubArt.js';
-import { lightTextures } from '../art/levelArt.js';
+import { hubTex } from '../art/hubArt.js';
 import SplitFlapBoard from '../systems/SplitFlapBoard.js';
 import Train from '../entities/Train.js';
 import Silhouettes from '../entities/Silhouette.js';
@@ -66,7 +66,7 @@ export default class HubScene extends BaseLevel {
 
   create() {
     createHubTextures(this);
-    lightTextures(this, HUB_PROP_KEYS.filter((k) => k !== 'hub-train' && k !== 'hub-rain'));
+    void HUB_PROP_KEYS;
     this.save = getSave();
     this.N = Math.min(5, this.save.dreamsCaught);
     this.state = hubState(this.N);
@@ -76,6 +76,9 @@ export default class HubScene extends BaseLevel {
     const built = RoomBuilder.build(this, hubRooms, hubTiles);
     this.built = built;
     this.parallax = new Parallax(this, built.rooms);
+    // the station has an undercroft under its floor: the backdrops hang from
+    // the concourse (rooms.js says where), not from the lowest solid row
+    for (const r of built.rooms) if (r.horizon) r._horizon = r.horizon;
     this.solids = built.solids;
     this.oneWays = built.oneWays;
     this.slopeGrid = built.slopeGrid;
@@ -155,6 +158,20 @@ export default class HubScene extends BaseLevel {
     return it;
   }
 
+  // the light on the people: each rim and shadow follows its person every
+  // frame (they are tweened, ridden in dumbwaiters, flipped), and Jo casts
+  // the same long shadow east as everyone else
+  dressPeople(p) {
+    for (const s of Object.values(this.npcs)) {
+      if (!s.rim || !s.active) continue;
+      if (s.rim.texture.key !== s.texture.key) s.rim.setTexture(s.texture.key);
+      s.rim.setPosition(s.x - 1.5, s.y).setFlipX(s.flipX).setAlpha(s.alpha * 0.5).setVisible(s.visible).setDepth(s.depth - 0.5).setScale(s.scaleX, s.scaleY);
+      s.shadow.setPosition(s.x - 4, s.y + 23).setAlpha(s.alpha * 0.3).setVisible(s.visible);
+    }
+    if (!this.joShadow) this.joShadow = this.add.image(p.x, p.y, hubTex(this, 'shadow', 64, 8)).setOrigin(0.05, 0.5).setTint(0x2a3050).setAlpha(0.3).setDepth(D.PLAYER - 1);
+    this.joShadow.setPosition(p.x - 4, p.body.bottom - 1).setVisible(p.shown && p.body.blocked.down);
+  }
+
   // an NPC: a sprite planted on its floor line, an idle bob, a name
   npc(who, o, opts = {}) {
     const floor = line(o.ty);
@@ -166,7 +183,10 @@ export default class HubScene extends BaseLevel {
       this.tweens.add({ targets: s, y: s.y - 1.5, duration: 1400 + Math.random() * 600, yoyo: true, repeat: -1, ease: 'sine.inout' });
     }
     // their own lamp: the one thing in the hall that never dims
-    s.lamp = this.add.circle(o.wx, floor - 30, 44, 0xf2c078, 0.13).setDepth(D.INTERACT);
+    s.lamp = this.add.image(o.wx, floor - 30, hubTex(this, 'glow', 64, 64)).setDisplaySize(120, 120).setTint(0xf2c078).setAlpha(0.3).setDepth(D.INTERACT);
+    // the sun is low in the west: a warm rim on that side, a shadow east
+    s.shadow = this.add.image(o.wx - 4, floor - 1, hubTex(this, 'shadow', 64, 8)).setOrigin(0.05, 0.5).setTint(0x2a3050).setAlpha(0.3).setDepth(D.INTERACT - 3);
+    s.rim = this.add.image(o.wx - 1.5, floor - 24, `hub-${who}`).setTintFill(0xffd890).setAlpha(0.5).setDepth(D.INTERACT + 0.5);
     this.npcs[who] = s;
     return s;
   }
@@ -222,13 +242,7 @@ export default class HubScene extends BaseLevel {
 
     // the station's plinth: the name carved into the stone, brass rails
     const plinthX = px(21);
-    this.add.rectangle(plinthX, FLOOR + 40, 14 * T, 3, 0xc4a25c, 0.7).setDepth(D.HAZARD);
-    this.add.rectangle(plinthX, FLOOR + 90, 14 * T, 3, 0xc4a25c, 0.4).setDepth(D.HAZARD);
-    this.add
-      .text(plinthX, FLOOR + 64, 'C R O S S R O A D S', { fontFamily: 'monospace', fontSize: '15px', color: '#a08f70' })
-      .setOrigin(0.5)
-      .setDepth(D.HAZARD);
-    [px(15), px(27)].forEach((x) => this.add.rectangle(x, FLOOR + 66, 10, 60, 0xb8a98c).setDepth(D.HAZARD).setStrokeStyle(2, 0xa08f70));
+    this.add.image(plinthX, FLOOR + 66, hubTex(this, 'plinth', 14 * T, 64)).setDepth(D.HAZARD);
 
     // the clock tower: real time, but only while Jo is in the station
     const c = this.obj('clock');
@@ -302,7 +316,7 @@ export default class HubScene extends BaseLevel {
     const phones = this.obj('phones');
     [-14, 14].forEach((dx) => this.add.image(phones.wx + dx, FLOOR - 16, 'hub-phone').setDepth(D.INTERACT - 3));
     const lf = this.obj('lostfound');
-    this.add.rectangle(lf.wx, lf.wy, 90, 40, 0x2a2230).setStrokeStyle(2, 0xc4a25c).setDepth(D.INTERACT - 3);
+    this.add.image(lf.wx, lf.wy, hubTex(this, 'lostfound', 90, 40)).setDepth(D.INTERACT - 3);
     this.add.text(lf.wx, lf.wy, 'LOST & FOUND', { fontFamily: 'monospace', fontSize: '9px', color: '#c4a25c' }).setOrigin(0.5).setDepth(D.INTERACT - 2);
 
     // the bench and the man who sleeps on it under a coat
@@ -311,7 +325,7 @@ export default class HubScene extends BaseLevel {
     const sl = this.npc('sleeper', this.obj('npc', (o) => o.who === 'sleeper'), { still: true });
     sl.y = FLOOR - 22;
     sl.lamp.setAlpha(0.06);
-    this.sleeperCoat = this.add.rectangle(sl.x, FLOOR - 18, 30, 22, 0x6a6a62).setDepth(D.INTERACT + 2);
+    this.sleeperCoat = this.add.image(sl.x, FLOOR - 18, hubTex(this, 'coat', 30, 22)).setDepth(D.INTERACT + 2);
     this.tweens.add({ targets: this.sleeperCoat, scaleY: 1.04, duration: 2600, yoyo: true, repeat: -1, ease: 'sine.inout' });
 
     // fountain, pigeons, flowers, luggage carts
@@ -349,20 +363,18 @@ export default class HubScene extends BaseLevel {
     // the mezzanine is a balcony: brass columns under it, a rail along it
     const mezzY = line(HUB_ROWS.MEZZ - 1);
     for (const c of [38, 48, 58]) {
-      this.add.rectangle(px(c), (mezzY + FLOOR) / 2, 12, FLOOR - mezzY, 0xc4a25c).setDepth(D.INTERACT - 4).setStrokeStyle(2, 0xa08f70);
-      this.add.rectangle(px(c), mezzY + 6, 26, 8, 0xc4a25c).setDepth(D.INTERACT - 4);
+      this.add.image(px(c), (mezzY + FLOOR) / 2, hubTex(this, 'column', 14, FLOOR - mezzY)).setDepth(D.INTERACT - 4);
+      this.add.image(px(c), mezzY + 6, hubTex(this, 'capital', 26, 8)).setDepth(D.INTERACT - 4);
     }
-    this.add.rectangle(px(47.5), mezzY - 22, 22 * T, 3, 0xa08f70).setDepth(D.INTERACT - 4);
-    for (let c = 37; c <= 58; c += 2) this.add.rectangle(px(c), mezzY - 11, 2, 22, 0xa08f70).setDepth(D.INTERACT - 4);
+    this.add.image(px(47.5), mezzY - 11, hubTex(this, 'balustrade', 22 * T, 24)).setDepth(D.INTERACT - 4);
     // the balcony's own slab: the one-way lip alone reads as a wire
-    this.add.rectangle(px(47), mezzY + 4, 23 * T, 10, 0xc9b894).setDepth(D.TERRAIN + 1).setStrokeStyle(2, 0xa08f70);
+    this.add.image(px(47), mezzY + 4, hubTex(this, 'slab', 23 * T, 10)).setDepth(D.TERRAIN + 1);
 
     // the way down: an open grate in the floor, a sign, and a prompt
     const hatchX = px(77);
-    this.add.rectangle(hatchX, FLOOR + 3, 34, 8, 0x0a0a12).setDepth(D.TERRAIN + 1);
-    this.add.rectangle(hatchX, FLOOR + 3, 38, 12, 0xc4a25c, 0).setStrokeStyle(2, 0xc4a25c).setDepth(D.TERRAIN + 1);
-    this.add.rectangle(hatchX + 36, FLOOR - 30, 4, 60, 0x4a4650).setDepth(D.INTERACT - 3);
-    this.add.rectangle(hatchX + 36, FLOOR - 58, 96, 22, 0x2e3a52).setStrokeStyle(2, 0xc4a25c).setDepth(D.INTERACT - 3);
+    this.add.image(hatchX, FLOOR + 3, hubTex(this, 'grate', 38, 12)).setDepth(D.TERRAIN + 1);
+    this.add.image(hatchX + 36, FLOOR - 30, hubTex(this, 'signpost', 4, 60)).setDepth(D.INTERACT - 3);
+    this.add.image(hatchX + 36, FLOOR - 58, hubTex(this, 'signboard', 96, 24)).setDepth(D.INTERACT - 3);
     this.add
       .text(hatchX + 36, FLOOR - 58, '\u2193 LEFT LUGGAGE', { fontFamily: 'monospace', fontSize: '9px', color: '#f2e6cc' })
       .setOrigin(0.5)
@@ -392,7 +404,8 @@ export default class HubScene extends BaseLevel {
     this.lightBars = [];
     for (let i = 0; i < 4; i++) {
       const bar = this.add
-        .rectangle(px(38) + i * 330, FLOOR - 270, 48, 560, 0xf2e6cc, 0.05)
+        .image(px(38) + i * 330, FLOOR - 270, hubTex(this, 'shaft', 64, 560))
+        .setAlpha(0.09)
         .setDepth(D.HAZARD)
         .setAngle(-12);
       this.lightBars.push(bar);
@@ -446,12 +459,11 @@ export default class HubScene extends BaseLevel {
       // the overhead sign: readable from the far end of the shed
       this.platformSign(d, bayMid, caught, running);
       // a low brass post marks the bay's edge (decor, never a wall)
-      this.add.rectangle(bayX0 + 6, FLOOR - 14, 6, 28, 0xc4a25c).setDepth(D.INTERACT - 3);
-      this.add.circle(bayX0 + 6, FLOOR - 30, 5, 0xc4a25c).setDepth(D.INTERACT - 3);
+      this.add.image(bayX0 + 6, FLOOR - 17, hubTex(this, 'bollard', 12, 34)).setDepth(D.INTERACT - 3);
 
       this.add.image(bench.wx, FLOOR - 10, 'hub-bench').setDepth(D.INTERACT - 2);
       const lampImg = this.add.image(lamp.wx, FLOOR - 50, caught || !running ? 'hub-lamp-off' : 'hub-lamp').setDepth(D.INTERACT - 2);
-      if (!caught && running) this.add.circle(lamp.wx, FLOOR - 62, 30, 0xf2d580, 0.1).setDepth(D.INTERACT - 3);
+      if (!caught && running) this.add.image(lamp.wx, FLOOR - 60, hubTex(this, 'glow', 64, 64)).setDisplaySize(110, 110).setTint(0xf2d580).setAlpha(0.28).setDepth(D.INTERACT - 3);
 
       this.platformProps(d, bayX0);
       const texture = running ? createTrainTexture(this, d.id, d.livery) : createDeadTrainTexture(this, d.id);
@@ -481,8 +493,8 @@ export default class HubScene extends BaseLevel {
     const body = caught ? 0x2a2a30 : running ? d.livery.body : 0x2e2e36;
     const trim = caught ? 0x4a4a52 : running ? d.livery.trim : 0x5a5a62;
     const text = caught ? '#8a8478' : running ? '#f2e6cc' : '#8a8a90';
-    this.add.rectangle(x, y - 34, 3, 40, 0x4a4650).setDepth(D.INTERACT - 3);
-    this.add.rectangle(x, y, w, 40, body).setStrokeStyle(3, trim).setDepth(D.INTERACT - 2);
+    this.add.image(x, y - 34, hubTex(this, 'signpost', 3, 40)).setDepth(D.INTERACT - 3);
+    this.add.image(x, y + 1, hubTex(this, 'signboard', w, 42, { body, trim })).setDepth(D.INTERACT - 2);
     this.add
       .text(x, y - 9, `PLATFORM ${d.platform}`, { fontFamily: 'monospace', fontSize: '10px', color: text })
       .setOrigin(0.5)
@@ -495,7 +507,7 @@ export default class HubScene extends BaseLevel {
       this.add.text(x, y + 30, 'CAUGHT — NO RETURN SERVICE', { fontFamily: 'monospace', fontSize: '9px', color: '#6a6478' }).setOrigin(0.5).setDepth(D.INTERACT - 1);
     } else if (!running) {
       // the bar across the sign is what you read from far away
-      this.add.rectangle(x, y + 30, w, 16, 0xc03a2a).setDepth(D.INTERACT - 1);
+      this.add.image(x, y + 30, hubTex(this, 'redbar', w, 16)).setDepth(D.INTERACT - 1);
       this.add.text(x, y + 30, 'NOT IN SERVICE', { fontFamily: 'monospace', fontSize: '10px', color: '#f2e6cc', fontStyle: 'bold' }).setOrigin(0.5).setDepth(D.INTERACT);
     } else {
       const tag = this.add.text(x, y + 30, '● BOARDING', { fontFamily: 'monospace', fontSize: '10px', color: '#7ec87e' }).setOrigin(0.5).setDepth(D.INTERACT - 1);
@@ -507,66 +519,13 @@ export default class HubScene extends BaseLevel {
   platformProps(d, x0) {
     const y = FLOOR;
     const dep = D.INTERACT - 3;
-    const g = this.add.graphics().setDepth(dep);
     const at = (dx) => x0 + dx;
-    switch (d.propsKind) {
-      case 'produce':
-        g.fillStyle(0x6a4a32, 1);
-        g.fillRect(at(12), y - 26, 26, 26);
-        g.fillRect(at(40), y - 18, 22, 18);
-        g.fillStyle(0xe86a6a, 1);
-        [14, 22, 30].forEach((dx) => g.fillCircle(at(dx), y - 30, 4));
-        g.fillStyle(0x2a2230, 1);
-        g.fillRect(at(150), y - 60, 40, 30);
-        this.add.text(at(170), y - 45, 'MENU', { fontFamily: 'monospace', fontSize: '8px', color: '#f2e6cc' }).setOrigin(0.5).setDepth(dep + 1);
-        this.time.addEvent({ delay: 700, loop: true, callback: () => this.smell(at(26), y - 34) });
-        break;
-      case 'posters':
-        [0, 1, 2].forEach((i) => {
-          g.fillStyle(i === 1 ? 0xe8dcc8 : 0x3a1420, 1);
-          g.fillRect(at(130 + i * 26), y - 92, 22, 30);
-        });
-        g.fillStyle(0x1a1a20, 0.5);
-        g.fillRect(at(60), y - 6, 36, 6); // case-shaped shadow
-        break;
-      case 'blocks':
-        g.fillStyle(0xd8d8e0, 1);
-        g.fillRect(at(20), y - 14, 30, 6);
-        g.fillRect(at(24), y - 22, 8, 8);
-        g.fillRect(at(40), y - 18, 8, 4);
-        break;
-      case 'easels':
-        g.lineStyle(3, 0x6a5a3a, 1);
-        g.lineBetween(at(30), y, at(40), y - 60);
-        g.lineBetween(at(50), y, at(40), y - 60);
-        g.fillStyle(0xf2e6cc, 1);
-        g.fillRect(at(28), y - 56, 26, 22);
-        g.fillStyle(0x88b8d8, 1);
-        g.fillRect(at(32), y - 50, 10, 8);
-        break;
-      case 'boxes':
-        g.fillStyle(0xb8a98c, 1);
-        [0, 1, 2].forEach((i) => g.fillRect(at(20 + i * 6), y - 18 - i * 16, 34, 16));
-        break;
-      case 'crates':
-        g.fillStyle(0x4a5a42, 1);
-        g.fillRect(at(20), y - 30, 40, 30);
-        g.lineStyle(2, 0x2a3a26, 1);
-        g.strokeRect(at(20), y - 30, 40, 30);
-        break;
-      case 'lights':
-        [0, 1, 2, 3].forEach((i) => this.add.circle(at(24 + i * 16), y - 96, 4, 0xf2d580, 0.9).setDepth(dep));
-        g.fillStyle(0x3a1420, 1);
-        g.fillRect(at(16), y - 90, 60, 6);
-        break;
-      case 'lockers':
-        g.fillStyle(0x8a9aa8, 1);
-        [0, 1, 2].forEach((i) => g.fillRect(at(20 + i * 16), y - 60, 14, 60));
-        g.fillStyle(0xf2e6cc, 1);
-        g.fillRect(at(150), y - 40, 26, 30);
-        break;
-      default:
-        break;
+    const key = hubTex(this, `pp_${d.propsKind}`, 200, 100);
+    if (!key) return;
+    this.add.image(at(0), y, key).setOrigin(0, 1).setDepth(dep);
+    if (d.propsKind === 'produce') {
+      this.add.text(at(170), y - 45, 'MENU', { fontFamily: 'monospace', fontSize: '8px', color: '#f2e6cc' }).setOrigin(0.5).setDepth(dep + 1);
+      this.time.addEvent({ delay: 700, loop: true, callback: () => this.smell(at(26), y - 34) });
     }
   }
 
@@ -586,16 +545,16 @@ export default class HubScene extends BaseLevel {
     this.gateX = gx;
     // the gate tiles themselves are solid (RoomBuilder). Over them: paint,
     // tally, sign, light.
-    this.add.rectangle(gx, (top + bottom) / 2, 64, bottom - top, 0x2e4a34, 0.55).setDepth(D.HAZARD);
+    this.add.image(gx, (top + bottom) / 2, hubTex(this, 'gate', 64, bottom - top)).setDepth(D.HAZARD);
     this.tallyG = this.add.graphics().setDepth(D.HAZARD + 1);
     this.drawTally(this.state.tally);
     const sign = this.obj('sign');
-    this.add.rectangle(sign.wx + 16, sign.wy, 120, 26, 0xf2e6cc).setDepth(D.INTERACT - 2).setAngle(-2);
+    this.add.image(sign.wx + 16, sign.wy, hubTex(this, 'creamsign', 120, 28)).setDepth(D.INTERACT - 2).setAngle(-2);
     this.add.text(sign.wx + 16, sign.wy, sign.text, { fontFamily: 'monospace', fontSize: '11px', color: '#2a2230' }).setOrigin(0.5).setDepth(D.INTERACT - 1).setAngle(-2);
 
     // a bar of cold blue light between the leaves once it is ajar
-    this.gateLight = this.add.rectangle(gx, (top + bottom) / 2, 8, bottom - top, 0x88b8d8, 0).setDepth(D.INTERACT + 2);
-    this.gateGlow = this.add.rectangle(gx - 40, (top + bottom) / 2, 80, bottom - top, 0x88b8d8, 0).setDepth(D.INTERACT + 1);
+    this.gateLight = this.add.image(gx, (top + bottom) / 2, hubTex(this, 'lightbar', 10, 8)).setDisplaySize(10, bottom - top).setAlpha(0).setDepth(D.INTERACT + 2);
+    this.gateGlow = this.add.image(gx - 40, (top + bottom) / 2, hubTex(this, 'sideglow', 80, 8)).setDisplaySize(80, bottom - top).setAlpha(0).setDepth(D.INTERACT + 1);
 
     // chain + padlock with the ribbon "2"
     this.gateChain = this.add.image(gx, FLOOR - 200, 'hub-chain').setDepth(D.INTERACT + 3).setScale(1.6, 1.4);
@@ -681,7 +640,7 @@ export default class HubScene extends BaseLevel {
 
   buildUndercroft() {
     const tk = this.obj('tea_kitchen');
-    this.add.rectangle(tk.wx, UNDER - 30, 120, 60, 0x3a2a22).setDepth(D.INTERACT - 3);
+    this.add.image(tk.wx, UNDER - 30, hubTex(this, 'teakitchen', 120, 60)).setDepth(D.INTERACT - 3);
     this.add.image(tk.wx - 30, UNDER - 10, 'hub-teapot').setDepth(D.INTERACT - 2);
     this.add.image(tk.wx + 20, UNDER - 10, 'hub-teapot').setDepth(D.INTERACT - 2);
     this.add.text(tk.wx, UNDER - 52, "BILAL'S", { fontFamily: 'monospace', fontSize: '9px', color: '#f2d580' }).setOrigin(0.5).setDepth(D.INTERACT - 2);
@@ -694,7 +653,7 @@ export default class HubScene extends BaseLevel {
     [-44, 0, 44].forEach((dx) => this.add.image(cg.wx + dx, UNDER - 12, 'hub-cage').setDepth(D.INTERACT - 2));
 
     const sb = this.obj('signal_box');
-    this.add.rectangle(sb.wx, UNDER - 40, 110, 80, 0x2a2a34).setStrokeStyle(2, 0x4a4a52).setDepth(D.INTERACT - 3);
+    this.add.image(sb.wx, UNDER - 40, hubTex(this, 'signalbox', 110, 80)).setDepth(D.INTERACT - 3);
     const levers = [-30, 0, 30].map((dx) => this.add.image(sb.wx + dx, UNDER - 10, 'hub-lever').setDepth(D.INTERACT - 2));
     this.addInteract(sb.wx, UNDER - 20, 'levers', () => {
       sfx('clang');
@@ -718,16 +677,7 @@ export default class HubScene extends BaseLevel {
     const slot = this.obj('gate_slot');
     const sx = slot.wx;
     const sy = UNDER - 40;
-    this.add.rectangle(sx, sy, 56, 40, 0x0a0a10).setDepth(D.INTERACT - 3).setStrokeStyle(2, 0x4a4a52);
-    const g = this.add.graphics().setDepth(D.INTERACT - 2);
-    g.lineStyle(1, 0x8a8478, 0.7);
-    for (let i = 0; i < 14; i++) {
-      const d = i / 14;
-      g.lineBetween(sx - 24 + d * 20, sy - 14 + d * 6, sx - 24 + d * 20, sy - 6 + d * 3);
-      g.lineBetween(sx + 24 - d * 20, sy - 14 + d * 6, sx + 24 - d * 20, sy - 6 + d * 3);
-    }
-    this.add.circle(sx, sy - 12, 3, 0xf2e6cc, 0.9).setDepth(D.INTERACT - 1);
-    this.add.circle(sx, sy - 6, 16, 0xf2e6cc, 0.08).setDepth(D.INTERACT - 1);
+    this.add.image(sx, sy, hubTex(this, 'slot', 56, 40)).setDepth(D.INTERACT - 3);
     this.addInteract(sx, sy + 10, 'slot', () => this.floatText(sx, sy - 40, 'a corridor. tally marks. one bulb.\nnothing moves.', '#8a8478'));
   }
 
@@ -795,8 +745,8 @@ export default class HubScene extends BaseLevel {
       cover.setOrigin(1, 0.5).x = this.flowerCart.x + 18;
     }
     // gate light
-    this.gateLight.setFillStyle(0x88b8d8, st.gateLight * 0.9);
-    this.gateGlow.setFillStyle(0x88b8d8, st.gateLight * 0.12);
+    this.gateLight.setAlpha(st.gateLight * 0.9);
+    this.gateGlow.setAlpha(st.gateLight * 0.25);
     // NPCs stay warm: their lamps brighten as the hall dims
     for (const s of Object.values(this.npcs)) {
       if (s.lamp && s.who !== 'sleeper' && s.who !== 'sweeper') s.lamp.setAlpha(0.13 + st.sat * 0.5);
@@ -936,8 +886,8 @@ export default class HubScene extends BaseLevel {
       sfx('scrape');
       this.tweens.add({ targets: this.gateChain, y: FLOOR - 10, angle: 40, alpha: 0.4, duration: 900, ease: 'bounce.out' });
       this.tweens.add({ targets: this.gateLock, y: FLOOR - 6, alpha: 0, duration: 900 });
-      this.tweens.add({ targets: this.gateLight, fillAlpha: 0.35, duration: 1400 });
-      this.tweens.add({ targets: this.gateGlow, fillAlpha: 0.06, duration: 1400 });
+      this.tweens.add({ targets: this.gateLight, alpha: 0.35, duration: 1400 });
+      this.tweens.add({ targets: this.gateGlow, alpha: 0.12, duration: 1400 });
       sfx('adding');
     });
     this.time.delayedCall(3400, () => {
@@ -1214,6 +1164,7 @@ export default class HubScene extends BaseLevel {
     const dt = delta / 1000;
     const p = this.player;
     p.update(time, delta);
+    this.dressPeople(p);
     this.stationSeconds += dt;
     if (Math.floor(this.stationSeconds) % 5 === 0 && !this._clockDrawn) this.drawClock();
     this._clockDrawn = Math.floor(this.stationSeconds) % 5 === 0;
@@ -1303,7 +1254,7 @@ export default class HubScene extends BaseLevel {
       if (sw.x > px(138)) sw.dir = -1;
       if (sw.x < px(28)) sw.dir = 1;
       sw.setFlipX(sw.dir < 0);
-      sw.setTexture(Math.floor(sw.x / 14) % 2 ? 'hub-sweeper#1' : 'hub-sweeper');
+      sw.setTexture(`hub-sweeper#${(Math.floor(sw.x / 6) % 8) + 1}`);
       sw.lamp.setPosition(sw.x, sw.y - 6);
       if (Math.floor(time / 2400) !== sw.lastHum && Math.abs(p.x - sw.x) < 300) {
         sw.lastHum = Math.floor(time / 2400);

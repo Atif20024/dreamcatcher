@@ -1,5 +1,6 @@
 import { sfx } from '../systems/audio.js';
 import { D } from '../builders/depths.js';
+import { hubTex } from '../art/hubArt.js';
 
 // A train idling at its platform. States: idle / departing_with_jo /
 // returning / dead. `dead` leaves an oil stain and a RESERVED sign: that
@@ -13,8 +14,13 @@ export default class Train {
     this.state = 'idle';
     this.outOfService = !!opts.outOfService;
     this.sprite = scene.add.image(x, groundY - 18, opts.texture || 'hub-train').setDepth(D.INTERACT - 2);
+    // the roof lamps: a soft painted glow each, not a dot
     this.lamps = [-52, -20, 20, 52].map((dx) =>
-      scene.add.circle(x + dx, groundY - 42, 3, 0xf2d580, this.outOfService ? 0.08 : 0.9).setDepth(D.INTERACT - 1)
+      scene.add
+        .image(x + dx, groundY - 40, hubTex(scene, 'glow', 32, 32))
+        .setTint(0xf2d580)
+        .setAlpha(this.outOfService ? 0.08 : 0.9)
+        .setDepth(D.INTERACT - 1)
     );
     if (!this.outOfService) this.steamTimer = scene.time.addEvent({ delay: 900, loop: true, callback: () => this.puff() });
     this.doorX = x;
@@ -24,7 +30,10 @@ export default class Train {
   puff() {
     if (this.state === 'dead' || !this.sprite.active) return;
     const s = this.scene.add
-      .circle(this.x - 60, this.groundY - 44, 5, 0xf2e6cc, 0.35)
+      .image(this.x - 60, this.groundY - 44, hubTex(this.scene, 'puff', 24, 24))
+      .setTint(0xf2e6cc)
+      .setAlpha(0.45)
+      .setScale(0.5)
       .setDepth(D.INTERACT - 1);
     this.scene.tweens.add({
       targets: s,
@@ -82,7 +91,7 @@ export default class Train {
     this.sprite.destroy();
     this.lamps.forEach((l) => l.destroy());
     const s = this.scene;
-    this.stain = s.add.ellipse(this.x, this.groundY - 2, 90, 10, 0x1a1a20, 0.5).setDepth(D.INTERACT - 2);
+    this.stain = s.add.image(this.x + 6, this.groundY - 2, hubTex(s, 'stain', 96, 12)).setDepth(D.INTERACT - 2).setAlpha(0.8);
     this.sign = s.add
       .text(this.x + 60, this.groundY - 26, 'RESERVED', { fontFamily: 'monospace', fontSize: '10px', color: '#8a8478', backgroundColor: '#2a2a30' })
       .setOrigin(0.5)

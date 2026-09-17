@@ -1,37 +1,40 @@
-import { createPixelTexture, createFrames } from '../utils/pixelart.js';
+import Phaser from 'phaser';
+import { WALK_LEGS } from './jo.js';
+import { mix, hsl } from '../art/paint.js';
+import { HUB_PROPS, paintTrainTexture } from '../art/hubArt.js';
 
-// The people and furniture of Crossroads Station. The workers keep full
-// saturation while the hall drains (HubState never tints them), so their
-// palettes are chosen warm on purpose.
-const RIM = { outline: 0x14141c };
+// The people and furniture of Crossroads Station.
+//
+// People are pixel rigs, like Jo and the Evening's cast: 16x24 at 2px, the
+// same eight walk frames (WALK_LEGS), a sit pose, a breathing idle done by
+// the scene. What is new since the station's first pass is how a cell is
+// coloured: every garment is three tones -- lit on the west, a mid, and a
+// hue-shifted shade on the east -- and the outline is selective: cut on the
+// shadow side, half-strength on the lit side, so the figure reads as a
+// drawing with light on it rather than a sticker.
+//
+// Furniture is painted (src/art/hubArt.js) under the same keys and sizes the
+// scene has always used.
 
-// --- people: same 16x24 frame set as the foes, warmer palettes -------------
-const HEAD_TORSO = [
-  '.....SSSSSS.....',
-  '....SSSSSSSS....',
-  '....SbSSSSbS....',
-  '....SSSSSSSS....',
-  '.....SSSSSS.....',
-  '....TTTTTTTT....',
-  '..TTTTTTTTTTTT..',
-  '.TTtTTTTTTTTtTT.',
-  '.TTtTTTTTTTTtTT.',
-  '.TTtTTTTTTTTtTT.',
-  '.SSTTTTTTTTTTSS.',
-  '....TTTTTTTT....',
-];
-const LEGS_STAND = ['....PPPPPPPP....', '....PPPPPPPP....', '....PPP..PPP....', '....PPP..PPP....', '....ppp..ppp....', '....ppp..ppp....', '..BBBB....BBBB..', '..BBBB....BBBB..'];
-const LEGS_STRIDE = ['....PPPPPPPP....', '...PPPPPPPPPP...', '...PPP....PPP...', '..PPP......PPP..', '..ppp......ppp..', '.ppp........ppp.', '.BBBB......BBBB.', 'BBBB........BBBB'];
-const LEGS_SIT = ['....PPPPPPPP....', '..PPPPPPPPPPPP..', '..PPPPPPPPPPPP..', '..ppp......ppp..', '..ppp......ppp..', '..BBB......BBB..', '................', '................'];
+const SUN = 0xfff0c8;
+const SHADE = 0x2a2048;
+const INK = 0x14141c;
+
+// --- people ----------------------------------------------------------------
 const HATS = {
   none: ['................', '................', '................', '................'],
   peaked: ['................', '....HHHHHHHH....', '...HHHHHHHHHH...', '..hhhhhhhhhhhh..'],
-  scarf: ['................', '................', '....HHHHHHHH....', '...HHHHHHHHHH...'],
+  scarf: ['................', '................', '....HHHHHHHH....', '...HHHhhhhHHH...'],
   cap: ['................', '................', '....HHHHHHHH....', '..HHHHHHHHHHhh..'],
-  wrap: ['................', '....HHHHHHHH....', '...HHHHHHHHHH...', '...HHHHHHHHHH...'],
+  wrap: ['................', '....HHHHHHHH....', '...HHHhhHHHHH...', '...HHHHHHHHHH...'],
   tuft: ['................', '................', '......HHHH......', '....HHHHHHHH....'],
-  broom: ['................', '................', '....HHHHHHHH....', '...HHHHHHHHHH...'],
+  broom: ['................', '................', '....HHHHHHHH....', '...HHhhhhhhHH...'],
 };
+// a face: brows over the eyes, a mouth, the chin in shade
+const HEAD = ['.....SSSSSS.....', '....SwSSSSwS....', '....SbSSSSbS....', '....SSSmmSSS....', '.....ssSSSS.....'];
+const TORSO = ['....TTTTTTTT....', '..TTTTTTTTTTTT..', '.TTtTTTTTTTTtTT.', '.TTtTTTTTTTTtTT.', '.TTtTTTTTTTTtTT.', '.SSTTTTTTTTTTSS.', '....TTTTTTTT....'];
+const LEGS_STAND = ['....PPPPPPPP....', '....PPPPPPPP....', '....PPP..PPP....', '....PPP..PPP....', '....ppp..ppp....', '....ppp..ppp....', '..BBBB....BBBB..', '..BBBB....BBBB..'];
+const LEGS_SIT = ['................', '................', '....PPPPPPPP....', '..PPPPPPPPPPPP..', '..PPPPPPPPPPPP..', '..ppp......ppp..', '..ppp......ppp..', '..BBB......BBB..'];
 const HELD = {
   ledger: [[15, 0, 'AA'], [16, 0, 'AA'], [17, 0, 'AA']],
   brush: [[16, 13, 'AA.'], [17, 13, '.A.']],
@@ -41,100 +44,149 @@ const HELD = {
   broom: [[13, 14, '.A'], [14, 14, '.A'], [15, 14, '.A'], [16, 14, '.A'], [17, 14, '.A'], [18, 13, 'aAa'], [19, 13, 'aaa']],
   flower: [[15, 13, '.A.'], [16, 13, 'AAA'], [17, 13, '.a.']],
 };
-function paint(rows, held) {
-  if (!held) return rows;
-  const grid = rows.map((r) => [...r]);
-  for (const [y, x, chars] of HELD[held]) {
-    [...chars].forEach((ch, i) => {
-      if (ch !== '.' && grid[y] && grid[y][x + i] !== undefined) grid[y][x + i] = ch;
-    });
+function person(hat, legs, held) {
+  const rows = [...(HATS[hat] || HATS.none), ...HEAD, ...TORSO, ...legs].map((r) => [...r]);
+  if (held && HELD[held]) {
+    for (const [y, x, chars] of HELD[held]) {
+      [...chars].forEach((ch, i) => {
+        if (ch !== '.' && rows[y] && rows[y][x + i] !== undefined) rows[y][x + i] = ch;
+      });
+    }
   }
-  return grid.map((r) => r.join(''));
+  return rows.map((r) => r.join(''));
 }
-const person = (hat, held, legs = [LEGS_STAND, LEGS_STRIDE, LEGS_STAND]) =>
-  legs.map((l) => paint([...HATS[hat], ...HEAD_TORSO, ...l], held));
-const P = (H, S, T, t, Pp, B, A, h) => ({ H, h: h ?? H, S, b: 0x1a1a20, T, t, P: Pp, p: t, B, A: A ?? 0xe8e4d8, a: 0x8a8a90 });
+// H hat, h hat band, S skin, T coat, t coat trim, P trousers, B shoes, A the
+// thing they hold (a its shadow)
+const P = (H, S, T, t, Pp, B, A, h) => ({
+  H,
+  h: h ?? mix(H, 0x000000, 0.35),
+  S,
+  s: mix(S, 0x4a2a20, 0.35),
+  w: mix(S, 0x2a1a10, 0.55),
+  m: mix(S, 0x4a2a20, 0.45),
+  b: 0x1a1a20,
+  T,
+  t,
+  P: Pp,
+  p: mix(Pp, 0x000000, 0.25),
+  B,
+  A: A ?? 0xe8e4d8,
+  a: 0x6a5a4a,
+});
 
 export const HUB_PEOPLE = {
-  pemberton: { art: person('peaked', 'ledger'), pal: P(0x2e3a52, 0xc8a080, 0x2e3a52, 0x1f2a3c, 0x2e3a52, 0x1a1a20, 0xf2e6cc, 0xc4a25c) },
-  ro: { art: person('wrap', 'brush', [LEGS_SIT, LEGS_SIT, LEGS_SIT]), pal: P(0xc0503a, 0x7a4a30, 0xd88a4a, 0xa8683a, 0x5a3a44, 0x2a1a20, 0x8a6844) },
-  bilal: { art: person('cap', 'tray'), pal: P(0xf2e6cc, 0x9a6a48, 0x6a8a5a, 0x4e6a44, 0x3a3a44, 0x2a2a30, 0xf2d580) },
-  busker: { art: person('scarf', 'accordion'), pal: P(0x8a3a3a, 0xb08868, 0x5a4a3a, 0x40342a, 0x3a3a44, 0x1e1e28, 0xc03a2a) },
-  sleeper: { art: person('none', null, [LEGS_SIT, LEGS_SIT, LEGS_SIT]), pal: P(0x8a8478, 0xb09070, 0x6a6a62, 0x50504a, 0x4a4a44, 0x2a2a28, 0x8a8478) },
-  kite: { art: person('tuft', 'kite_string'), pal: P(0x2a2230, 0x8a5a3b, 0xf2c078, 0xc89a5a, 0x3a5a80, 0x2a2a32, 0xe8e4d8) },
-  sweeper: { art: person('broom', 'broom'), pal: P(0x3a3a44, 0x6a4630, 0x4a5a6a, 0x36444f, 0x3a3a44, 0x1e1e28, 0xb8a06a) },
-  flower: { art: person('scarf', 'flower', [LEGS_SIT, LEGS_SIT, LEGS_SIT]), pal: P(0x6a8a5a, 0xc8a080, 0x9a5a6a, 0x74434f, 0x4a4a52, 0x2a2a30, 0xe86a8a) },
+  pemberton: { hat: 'peaked', held: 'ledger', pal: P(0x2e3a52, 0xc8a080, 0x2e3a52, 0x1f2a3c, 0x2e3a52, 0x1a1a20, 0xf2e6cc, 0xc4a25c) },
+  ro: { hat: 'wrap', held: 'brush', sit: true, pal: P(0xc0503a, 0x7a4a30, 0xd88a4a, 0xa8683a, 0x5a3a44, 0x2a1a20, 0x8a6844, 0xf2d580) },
+  bilal: { hat: 'cap', held: 'tray', pal: P(0xf2e6cc, 0x9a6a48, 0x6a8a5a, 0x4e6a44, 0x3a3a44, 0x2a2a30, 0xf2d580) },
+  busker: { hat: 'scarf', held: 'accordion', pal: P(0x8a3a3a, 0xb08868, 0x5a4a3a, 0x40342a, 0x3a3a44, 0x1e1e28, 0xc03a2a, 0xf2d580) },
+  sleeper: { hat: 'none', held: null, sit: true, pal: P(0x8a8478, 0xb09070, 0x6a6a62, 0x50504a, 0x4a4a44, 0x2a2a28, 0x8a8478) },
+  kite: { hat: 'tuft', held: 'kite_string', kid: true, pal: P(0x2a2230, 0x8a5a3b, 0xf2c078, 0xc89a5a, 0x3a5a80, 0x2a2a32, 0xe8e4d8) },
+  sweeper: { hat: 'broom', held: 'broom', pal: P(0x3a3a44, 0x6a4630, 0x4a5a6a, 0x36444f, 0x3a3a44, 0x1e1e28, 0xb8a06a, 0x8a3a3a) },
+  flower: { hat: 'scarf', held: 'flower', sit: true, pal: P(0x6a8a5a, 0xc8a080, 0x9a5a6a, 0x74434f, 0x4a4a52, 0x2a2a30, 0xe86a8a, 0xf2d580) },
 };
 
-// --- silhouette travelers (one pooled texture, tinted) --------------------
-const TRAVELER = [
-  ['....HHHHHH......', '....HHHHHH......', '.....SSSS.......', '....TTTTTT......', '...TTTTTTTT.....', '...TTTTTTTT..AAA', '...TTTTTTTT..AAA', '....PPPPPP...AAA', '....PP..PP......', '....PP..PP......', '...BB....BB.....'],
-  ['....HHHHHH......', '....HHHHHH......', '.....SSSS.......', '....TTTTTT......', '...TTTTTTTT.....', '...TTTTTTTT..AAA', '...TTTTTTTT..AAA', '....PPPPPP...AAA', '...PP....PP.....', '..PP......PP....', '.BB........BB...'],
-];
-const TRAVELER_PAL = { H: 0x2a2a34, S: 0x3a3a44, T: 0x2a2a34, P: 0x24242c, B: 0x1a1a20, A: 0x3a3226 };
+// The shading pass. Draws a grid at `size` px per cell onto a canvas: each
+// filled cell takes its palette colour, lit where the west neighbour is
+// open, shaded and hue-shifted where the east one is, a touch darker on an
+// underside. The outline is drawn only where it does work.
+export function paintRig(scene, key, rows, pal, size = 2, o = {}) {
+  const { soft = false, alpha = 1 } = o;
+  const h = rows.length;
+  const w = Math.max(...rows.map((r) => r.length));
+  if (scene.textures.exists(key)) {
+    const src = scene.textures.get(key).getSourceImage();
+    if (src && src.tagName === 'IMG') return key;
+    scene.textures.remove(key);
+  }
+  const ct = scene.textures.createCanvas(key, w * size, h * size);
+  const ctx = ct.getContext();
+  const at = (x, y) => (y >= 0 && y < h && x >= 0 && x < w ? rows[y][x] : '.');
+  const filled = (x, y) => pal[at(x, y)] !== undefined;
+  const cell = (x, y, c, a = 1) => {
+    ctx.fillStyle = `rgba(${(c >> 16) & 255},${(c >> 8) & 255},${c & 255},${a * alpha})`;
+    ctx.fillRect(x * size, y * size, size, size);
+  };
+  // the outline: full on the east and under, half on the west and above
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      if (filled(x, y)) continue;
+      if (filled(x - 1, y) || filled(x, y - 1)) cell(x, y, INK, soft ? 0.5 : 1);
+      else if (filled(x + 1, y) || filled(x, y + 1)) cell(x, y, INK, soft ? 0.25 : 0.55);
+    }
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const ch = at(x, y);
+      const base = pal[ch];
+      if (base === undefined) continue;
+      let c = base;
+      if (ch !== 'b' && ch !== 'w' && ch !== 'm') {
+        const westOpen = !filled(x - 1, y);
+        const eastOpen = !filled(x + 1, y);
+        const westDiff = at(x - 1, y) !== ch;
+        const eastDiff = at(x + 1, y) !== ch;
+        if (westOpen) c = mix(base, SUN, 0.34);
+        else if (westDiff) c = mix(base, SUN, 0.14);
+        else if (eastOpen) c = mix(hsl(base, 0.04, 0.08, 0), SHADE, 0.38);
+        else if (eastDiff) c = mix(base, SHADE, 0.16);
+        if (!filled(x, y + 1) && ch !== 'B') c = mix(c, SHADE, 0.2);
+        if (!filled(x, y - 1)) c = mix(c, SUN, 0.1);
+      }
+      cell(x, y, c);
+    }
+  ct.refresh();
+  return key;
+}
 
-// --- furniture ---------------------------------------------------------------
-const PROPS = {
-  'hub-train': {
-    rows: [
-      '..RRRRRRRRRRRRRRRRRRRRRRRRRRRR..',
-      '.RRRRRRRRRRRRRRRRRRRRRRRRRRRRRR.',
-      'RRWWWWRRWWWWRRDDDDRRWWWWRRWWWWRR',
-      'RRWWWWRRWWWWRRDDDDRRWWWWRRWWWWRR',
-      'RRRRRRRRRRRRRRDDDDRRRRRRRRRRRRRR',
-      'RrrrrrrrrrrrrrDDDDrrrrrrrrrrrrrR',
-      'RrrrrrrrrrrrrrDDDDrrrrrrrrrrrrrR',
-      'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR',
-      '..kk..kk..............kk..kk....',
-    ],
-    pal: { R: 0x7a3a3a, r: 0x9a4a44, W: 0xf2e6cc, D: 0x2a1e1e, k: 0x2a2a30 },
-    size: 4,
-  },
-  'hub-bench': { rows: ['BBBBBBBBBBBB', 'B..........B', 'BBBBBBBBBBBB', '.B........B.', '.B........B.'], pal: { B: 0x5a4632 }, size: 4 },
-  'hub-lamp': { rows: ['..LLLL..', '.LYYYYL.', '.LYYYYL.', '..LLLL..', '...ii...', '...ii...', '...ii...', '...ii...', '...ii...', '...ii...', '..iiii..'], pal: { L: 0x3a3a44, Y: 0xf2d580, i: 0x2e2e38 }, size: 3 },
-  'hub-lamp-off': { rows: ['..LLLL..', '.LddddL.', '.LddddL.', '..LLLL..', '...ii...', '...ii...', '...ii...', '...ii...', '...ii...', '...ii...', '..iiii..'], pal: { L: 0x3a3a44, d: 0x4a4a52, i: 0x2e2e38 }, size: 3 },
-  'hub-post': { rows: ['BBBBBBBB', 'BwwwwwwB', 'BwwwwwwB', 'BBBBBBBB', '...ii...', '...ii...', '...ii...', '...ii...', '...ii...'], pal: { B: 0x2e3440, w: 0x1a1e26, i: 0x3a3a44 }, size: 3 },
-  'hub-desk': { rows: ['..............', 'KKKKKKKKKKKKKK', 'KwwwwwwwwwwwwK', 'KKKKKKKKKKKKKK', 'K............K', 'K............K', 'KKKKKKKKKKKKKK'], pal: { K: 0xc4a25c, w: 0x2a2230 }, size: 4 },
-  'hub-booth': { rows: ['..GGGG..', '.GggggG.', 'BBBBBBBB', 'BwwwwwwB', 'BwwwwwwB', 'BBBBBBBB', 'B......B', 'B......B', 'BBBBBBBB'], pal: { G: 0x2e6a4a, g: 0x50c878, B: 0x4a3a2a, w: 0xf2e6cc }, size: 4 },
-  'hub-phone': { rows: ['BBBBBB', 'BbbbbB', 'BbGGbB', 'BbbbbB', 'BBBBBB', 'B....B', 'B....B', 'B....B'], pal: { B: 0x8a2c2c, b: 0xa83a3a, G: 0x88b8d8 }, size: 4 },
-  'hub-fountain': { rows: ['....ww....', '...wwww...', '..wwWWww..', 'FFFFFFFFFF', 'FwwwwwwwwF', 'FFFFFFFFFF', '.FFFFFFFF.', '..FFFFFF..'], pal: { w: 0x88b8d8, W: 0xf0fff8, F: 0xd8cbb0 }, size: 4 },
-  'hub-fountain-dry': { rows: ['..........', '..........', '..........', 'FFFFFFFFFF', 'FddddddddF', 'FFFFFFFFFF', '.FFFFFFFF.', '..FFFFFF..'], pal: { d: 0x8a8478, F: 0xb8a98c }, size: 4 },
-  'hub-cart': { rows: ['BBBBBBBBBB', 'B........B', 'BBBBBBBBBB', '.kk....kk.'], pal: { B: 0x6a5a3a, k: 0x2a2a30 }, size: 4 },
-  'hub-flowers': { rows: ['.rrr.yyy.pp.', 'rrrryyyypppp', '.gg..gg..gg.', 'BBBBBBBBBBBB', 'B..........B', 'BBBBBBBBBBBB', '.kk......kk.'], pal: { r: 0xe86a6a, y: 0xf2d580, p: 0xc88ad8, g: 0x6a9a5a, B: 0x6a5a3a, k: 0x2a2a30 }, size: 3 },
-  'hub-kiosk': { rows: ['GGGGGGGGGGGG', 'GggggggggggG', 'BBBBBBBBBBBB', 'BwwBwwBwwBwB', 'BwwBwwBwwBwB', 'BBBBBBBBBBBB', 'B..........B', 'B..........B'], pal: { G: 0x2e6a4a, g: 0x50c878, B: 0x4a3a2a, w: 0xf2e6cc }, size: 4 },
-  'hub-shoeshine': { rows: ['..BBBBBB..', '..B....B..', 'BBBBBBBBBB', 'B........B', 'BBBBBBBBBB', '.b......b.', '.b......b.'], pal: { B: 0x8a3a3a, b: 0x3a2a22 }, size: 4 },
-  'hub-door': { rows: ['KKKKKKKKKKKK', 'KggggKKggggK', 'KggggKKggggK', 'KggggKKggggK', 'KggggKKggggK', 'KggggKKggggK', 'KggggKKggggK', 'KggggKKggggK', 'KggggKKggggK', 'KKKKKKKKKKKK'], pal: { K: 0xc4a25c, g: 0x88b8d8 }, size: 4 },
-  'hub-chain': { rows: ['c..c..c..c..c', '.cc.cc.cc.cc.'], pal: { c: 0x8a8a90 }, size: 3 },
-  'hub-cafe': { rows: ['RRRRRRRRRRRRRRRR', 'rRrRrRrRrRrRrRrR', '....BBBBBBBB....', '....B......B....', '....BBBBBBBB....', '.....b....b.....'], pal: { R: 0xc03a2a, r: 0xf2e6cc, B: 0x5a4632, b: 0x3a2a22 }, size: 4 },
-  'hub-dumbwaiter': { rows: ['BBBBBB', 'BwwwwB', 'BwwwwB', 'BwwwwB', 'BBBBBB', '..ii..'], pal: { B: 0x4a3a2a, w: 0x2a2230, i: 0x8a8a90 }, size: 4 },
-  'hub-cage': { rows: ['BBBBBBBBBB', 'B.B.B.B.BB', 'B.B.B.B.BB', 'B.B.B.B.BB', 'B.B.B.B.BB', 'BBBBBBBBBB'], pal: { B: 0x4a4a52 }, size: 4 },
-  'hub-suitcase': { rows: ['..hh..', 'BBBBBB', 'BbbbbB', 'BbbbbB', 'BBBBBB'], pal: { h: 0x2a2a30, B: 0x6a5a3a, b: 0x8a7a52 }, size: 3 },
-  'hub-suitcase-tag': { rows: ['..hh..', 'BBBBBB', 'BbbbbB', 'BbbbTB', 'BBBBBB'], pal: { h: 0x2a2a30, B: 0x6a5a3a, b: 0x8a7a52, T: 0xf2e6cc }, size: 3 },
-  'hub-lever': { rows: ['...r..', '...r..', '...r..', 'BBBBBB', 'BBBBBB'], pal: { r: 0xc03a2a, B: 0x3a3a44 }, size: 4 },
-  'hub-turnstile': { rows: ['..ii..', 'iiiiii', '..ii..', 'iiiiii', '..ii..', '..ii..', '..ii..'], pal: { i: 0x6a6a72 }, size: 4 },
-  'hub-counter': { rows: ['BBBBBBBBBB', 'BwwBwwBwwB', 'BwwBwwBwwB', 'BBBBBBBBBB'], pal: { B: 0x2a2a30, w: 0xf2e6cc }, size: 3 },
-  'hub-loft': { rows: ['..BBBBBB..', '.BBBBBBBB.', 'BB.BB.BB.B', 'BBBBBBBBBB', 'BB.BB.BB.B', 'BBBBBBBBBB'], pal: { B: 0x5a4632 }, size: 4 },
-  'hub-watertower': { rows: ['..TTTTTT..', '.TTTTTTTT.', 'TTTTTTTTTT', 'TTTTTTTTTT', 'TTTTTTTTTT', '.TTTTTTTT.', '.l..ll..l.', '.l..ll..l.', '.l..ll..l.'], pal: { T: 0x6a5a4a, l: 0x3a3a44 }, size: 4 },
-  'hub-kite': { rows: ['....r....', '...rrr...', '..rrrrr..', '.rrrrrrr.', '..rrrrr..', '...rrr...', '....r....', '....t....', '...t.t...'], pal: { r: 0xe86a6a, t: 0xf2d580 }, size: 3 },
-  'hub-pigeon': { rows: ['..gg.', '.gggg', 'ggggg', '.gg..', '.k.k.'], pal: { g: 0x8a8a98, k: 0xd8a840 }, size: 2 },
-  'hub-clock': { rows: ['..BBBBBB..', '.BwwwwwwB.', 'BwwwwwwwwB', 'BwwwhwwwwB', 'BwwwhhhwwB', 'BwwwwwwwwB', '.BwwwwwwB.', '..BBBBBB..'], pal: { B: 0x4a3a2a, w: 0xf2e6cc, h: 0x2a2230 }, size: 4 },
-  'hub-hatch': { rows: ['BBBBBBBB', 'B......B', 'B......B', 'BBBBBBBB'], pal: { B: 0x3a3a44 }, size: 4 },
-  'hub-rain': { rows: ['r', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r'], pal: { r: 0xb8c8d8 }, size: 1 },
-  'hub-teapot': { rows: ['..BB..', '.BBBB.', 'BBBBBB', 'BBBBBB', '.BBBB.'], pal: { B: 0xc4a25c }, size: 3 },
-};
+function createPerson(scene, key, def) {
+  const legs = def.sit ? LEGS_SIT : LEGS_STAND;
+  paintRig(scene, key, person(def.hat, legs, def.held), def.pal);
+  if (def.sit) {
+    // sitters keep a '#1' so old callers (the sleeper waking) still resolve
+    paintRig(scene, `${key}#1`, person(def.hat, LEGS_SIT, def.held), def.pal);
+    paintRig(scene, `${key}-stand`, person(def.hat, LEGS_STAND, def.held), def.pal);
+  }
+  WALK_LEGS.forEach((l, i) => paintRig(scene, `${key}${def.sit ? '-walk' : ''}#${i + 1}`, person(def.hat, l, def.held), def.pal));
+}
 
-// A train body in a dream's livery. The emblem sits on the middle car so the
-// train can be told apart from its neighbours at a glance.
-const TRAIN_ROWS = [
-  '..RRRRRRRRRRRRRRRRRRRRRRRRRRRR..',
-  '.RttttttttttttttttttttttttttttR.',
-  'RRWWWWRRWWWWRReeeeRRWWWWRRWWWWRR',
-  'RRWWWWRRWWWWRReeeeRRWWWWRRWWWWRR',
-  'RRRRRRRRRRRRRReeeeRRRRRRRRRRRRRR',
-  'RttttttttttttteeeetttttttttttttR',
-  'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR',
-  '..kk..kk..............kk..kk....',
-];
+// --- travellers: soft silhouettes ------------------------------------------
+// The same rig, but a silhouette: one dark value, no face, a suitcase, and
+// the whole thing painted soft (a second, blurred pass under a lighter one)
+// so a crowd reads as people in the distance, not tinted stickers.
+const CASE = [[15, 12, 'AAAA'], [16, 12, 'AAAA'], [17, 12, 'AAAA'], [18, 12, 'AAAA'], [14, 13, '.AA.']];
+function traveller(legs, withCase) {
+  const rows = [...HATS.cap, ...HEAD, ...TORSO, ...legs].map((r) => [...r]);
+  if (withCase) for (const [y, x, chars] of CASE) [...chars].forEach((ch, i) => ch !== '.' && rows[y] && (rows[y][x + i] = ch));
+  return rows.map((r) => r.join(''));
+}
+const SIL = { H: 0x262a34, h: 0x262a34, S: 0x2e2a34, s: 0x2e2a34, w: 0x2e2a34, m: 0x2e2a34, b: 0x2e2a34, T: 0x2a2a34, t: 0x2a2a34, P: 0x24242c, p: 0x24242c, B: 0x1a1a20, A: 0x3a3226, a: 0x3a3226 };
+function paintSilhouette(scene, key, rows) {
+  const w = 16 * 2;
+  const h = 24 * 2;
+  if (scene.textures.exists(key)) scene.textures.remove(key);
+  const tmp = `${key}-tmp`;
+  paintRig(scene, tmp, rows, SIL, 2, { soft: true });
+  const src = scene.textures.get(tmp).getSourceImage();
+  const ct = scene.textures.createCanvas(key, w, h);
+  const ctx = ct.getContext();
+  // the soft pass: the figure smeared a pixel each way, faint
+  ctx.globalAlpha = 0.22;
+  for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1], [2, 1]]) ctx.drawImage(src, dx, dy);
+  ctx.globalAlpha = 0.9;
+  ctx.drawImage(src, 0, 0);
+  // fading toward the feet, as a figure seen through the hall's haze does
+  ctx.globalCompositeOperation = 'destination-out';
+  const g = ctx.createLinearGradient(0, h * 0.6, 0, h);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(1, 'rgba(0,0,0,0.35)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+  ctx.globalCompositeOperation = 'source-over';
+  ct.refresh();
+  scene.textures.remove(tmp);
+  return key;
+}
+
+// --- trains ----------------------------------------------------------------
 const EMBLEMS = {
   cloche: ['.ee.', 'eEEe', 'EEEE', 'eeee'],
   trumpet: ['..EE', '.EEE', 'EEE.', 'eE..'],
@@ -148,29 +200,34 @@ const EMBLEMS = {
 export function createTrainTexture(scene, id, livery) {
   const key = `hub-train-${id}`;
   if (scene.textures.exists(key)) return key;
-  const emblem = EMBLEMS[livery.emblem] || EMBLEMS.stripe;
-  const rows = TRAIN_ROWS.map((r, y) => {
-    if (y < 2 || y > 5) return r;
-    const er = emblem[y - 2];
-    return r.slice(0, 14) + er + r.slice(18);
-  });
-  return createPixelTexture(scene, key, rows, { R: livery.body, t: livery.trim, W: livery.window, e: livery.trim, E: livery.window, k: 0x2a2a30 }, 4);
+  return paintTrainTexture(scene, key, { body: livery.body, trim: livery.trim, window: livery.window }, EMBLEMS[livery.emblem] || EMBLEMS.stripe);
 }
 // a dark, unlit version for lines that are not running
 export function createDeadTrainTexture(scene, id) {
   const key = `hub-train-${id}-dark`;
   if (scene.textures.exists(key)) return key;
-  return createPixelTexture(scene, key, TRAIN_ROWS, { R: 0x2e2e36, t: 0x3a3a44, W: 0x1e1e26, e: 0x2e2e36, E: 0x3a3a44, k: 0x1a1a20 }, 4);
+  return paintTrainTexture(scene, key, { body: 0x2e2e36, trim: 0x3a3a44, window: 0x1e1e26, dead: true }, null);
 }
 
-export const HUB_PROP_KEYS = Object.keys(PROPS);
+export const HUB_PROP_KEYS = Object.keys(HUB_PROPS);
 
 export function createHubTextures(scene) {
-  for (const [who, def] of Object.entries(HUB_PEOPLE)) {
-    createFrames(scene, `hub-${who}`, def.art, def.pal, 2, RIM);
+  for (const [who, def] of Object.entries(HUB_PEOPLE)) createPerson(scene, `hub-${who}`, def);
+  paintSilhouette(scene, 'hub-traveler', traveller(LEGS_STAND, true));
+  WALK_LEGS.forEach((l, i) => paintSilhouette(scene, `hub-traveler#${i + 1}`, traveller(l, true)));
+  for (const [key, [w, h, painter]] of Object.entries(HUB_PROPS)) {
+    if (scene.textures.exists(key) && scene.textures.get(key).getSourceImage().tagName === 'IMG') continue;
+    if (scene.textures.exists(key)) scene.textures.remove(key);
+    const ct = scene.textures.createCanvas(key, w, h);
+    const ctx = ct.getContext();
+    painter(ctx, w, h, new Phaser.Math.RandomDataGenerator([key]));
+    ct.refresh();
   }
-  createFrames(scene, 'hub-traveler', TRAVELER, TRAVELER_PAL, 2);
-  for (const [key, p] of Object.entries(PROPS)) {
-    createPixelTexture(scene, key, p.rows, p.pal, p.size, key === 'hub-train' || key === 'hub-rain' ? {} : RIM);
+  // the rain: a streak, not a thing
+  if (!scene.textures.exists('hub-rain')) {
+    const g = scene.make.graphics({ x: 0, y: 0 }, false);
+    g.fillStyle(0xb8c8d8, 1).fillRect(0, 0, 1, 10);
+    g.generateTexture('hub-rain', 1, 10);
+    g.destroy();
   }
 }

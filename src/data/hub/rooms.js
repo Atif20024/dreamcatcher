@@ -26,9 +26,10 @@ export default [
     id: 'steps',
     section: 'steps',
     allowNoFoes: true,
+    horizon: 992, // the street: the facade and the pavement stand on it
     grid: slice(0, 29),
     music: { section: 'hub', bpm: 104, state: 'hub' },
-    bg: { far: 'rain_city', mid: 'station_facade', near: 'railings', landmark: 'station_sign' },
+    bg: { far: 'station_facade', mid: 'station_street', near: 'railings', landmark: 'station_sign' },
     objects: [
       { type: 'spawn', x: 3, y: 29 },
       { type: 'rain', x: 0, y: 0, w: 30 },
@@ -47,6 +48,7 @@ export default [
     id: 'hall',
     section: 'hall',
     allowNoFoes: true,
+    horizon: 832, // the concourse floor: backdrops hang from it, not the undercroft
     grid: slice(30, 79),
     music: { section: 'hub', bpm: 104, state: 'hub' },
     bg: { far: 'hall_vault', mid: 'ticket_hall', near: 'ticket_booths', landmark: 'great_clock' },
@@ -83,6 +85,7 @@ export default [
     id: 'platforms_a',
     section: 'platforms',
     allowNoFoes: true,
+    horizon: 832, // the concourse floor: backdrops hang from it, not the undercroft
     grid: slice(80, 109),
     music: { section: 'hub', bpm: 104, state: 'hub' },
     bg: { far: 'hall_vault', mid: 'shed_ribs', near: 'shed_lamps', landmark: 'train_shed' },
@@ -99,6 +102,7 @@ export default [
     id: 'platforms_b',
     section: 'platforms',
     allowNoFoes: true,
+    horizon: 832, // the concourse floor: backdrops hang from it, not the undercroft
     grid: slice(110, 139),
     music: { section: 'hub', bpm: 104, state: 'hub' },
     bg: { far: 'hall_vault', mid: 'shed_ribs', near: 'shed_lamps', landmark: 'shed_clock' },
@@ -116,6 +120,7 @@ export default [
     id: 'gate',
     section: 'gate',
     allowNoFoes: true,
+    horizon: 832, // the concourse floor: backdrops hang from it, not the undercroft
     grid: slice(140, 149),
     music: { section: 'hub', bpm: 104, state: 'hub' },
     bg: { far: 'gate_dark', mid: 'shed_ribs', near: 'railings', landmark: 'no_passengers' },

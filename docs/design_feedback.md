@@ -122,3 +122,63 @@ the lower third instead of eight-pixel bands; every gridded prop in each
 theme takes the light pass; the vignette and grain sit on every camera.
 The dark palettes stay dark: the pattern changes how a colour is laid
 down, never which. The darkness-per-dream overlay is untouched.
+
+### Round 5 — 2026-09-17 (the station)
+Feedback: "Crossroads Station still seems like old. The design and painted
+style like you created in the final level — I want the aesthetic to match
+it. The people and everything should look better."
+Diagnosis: the hub only got Round 4's generic pass (a wash and a light pass
+over the old primitive drawings); the Evening was painted from scratch.
+Done (src/art/hubArt.js, new; entities/hubArt.js rebuilt):
+- Backdrops painted as pictures, hung from the concourse floor (the rooms
+  now say where their horizon is; it used to be found at the undercroft, so
+  every band sat under the floor): the vaulted hall as a 576-tall tile that
+  repeats exactly at the roof — dado, arcade of round-headed windows with
+  light coming through, piers throwing shadows east, string courses, a
+  clerestory of niches that the undercroft sees as vents; the front facade
+  with cornice and dentils, pilasters, arched windows lit from inside, rain
+  darkening its foot; the ticket office in dark-green panelling with
+  brass-grilled windows and gold TICKETS / ENQUIRIES; a near strip of
+  trunks, a luggage trolley, a palm in a brass pot, a paper rack; the shed's
+  iron columns with flared heads, lattice girders, rivets and rust; a low
+  canopy girder with pendant lamps and enamel WAY OUT / TEA ROOM signs; the
+  gate end in damp engineering brick with a barred vent's cold light.
+- Landmarks painted: the great clock (brass bezel, cream face, a glass
+  highlight) over a colonnade; the shed roof with its hanging PLATFORMS
+  boards; the enamel CROSSROADS STATION sign with its row of bulbs (one or
+  two dim); the NO PASSENGERS doorway with a chalk tally.
+- Every prop repainted under its old key and size: benches, lanterns (lit
+  and dark), postbox, the information desk, booths, phone box, fountain
+  (wet and dry), carts, the flower cart, the kiosk, Ro's chair, the brass
+  revolving doors, the café awning, dumbwaiters, cages, suitcases, levers,
+  turnstile, counter, pigeon lofts, water tower, kite, pigeons, clock,
+  grate, teapot; the trains as painted bodies (curved roof, lit windows,
+  the emblem on the door, wheels and bogies, a contact shadow). The flat
+  rectangles in the scene are gone too: brass columns and balustrade,
+  the carved plinth, signposts and signboards, the platform signs, the
+  gate's iron leaves, the tea kitchen, the signal frame, the slot corridor,
+  the lost-and-found hatch, the per-platform props; glows are painted
+  radial sprites and shadows are painted long shadows east.
+- People: the same 16x24 rig as the Evening with the eight WALK_LEGS
+  frames, a sit pose, a face with brows and a mouth; each cell is three
+  tones (lit west, mid, hue-shifted shade east, darker under) and the
+  outline is selective (cut on the shadow side, half on the lit side). Each
+  NPC has a warm rim light from the west and a long shadow that follows
+  them; so does Jo. The sweeper walks the eight frames by distance.
+  Travellers are painted soft silhouettes with suitcases (smeared, fading
+  toward the feet) that also walk the eight frames.
+Follow-up (the street): "these regions seem vacant and the building feels
+like flying" — the area left of the stairs was a void and the facade hung
+from the platform. Now the steps room's horizon is the street; the facade
+is the far layer, two screens tall with the sky left clear above its
+roofline, its rusticated base standing on the pavement in the terrace's
+shadow; a painted street band at ground level (pavement flags and kerb,
+puddles catching the lamps, iron lamp posts, bollards, bins, a parked cab
+with its light on, a poster board) fills the stretch under and left of the
+stairs; the station sign hangs over the doors; CROSSROADS is incised into
+the plinth (shadow above-left, lit lip below-right).
+Learned: a wall band is tiled from its TOP edge by Phaser, so the horizon
+lands at tile-y (4 x 540) mod height — the vault (576) and facade (1080)
+paintings are laid down shifted onto that, not guessed.
+Rule kept: the palette is the station's (cream stone, brass, dark green,
+lamplight); only how the colour is laid down changed.

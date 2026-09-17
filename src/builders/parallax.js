@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { isSolidChar } from './legend.js';
 import { D } from './depths.js';
 import { paintOverLayer, paintSky } from '../art/levelArt.js';
+import { paintHubLayer, paintHubLandmark } from '../art/hubArt.js';
 
 // D7 — parallax backdrops.
 //
@@ -192,7 +193,8 @@ const LAYERS = {
   // --- the station ---
   hall_vault: ['wall', 0xe8dcc0, 0xc4a25c, 0xd9cbb0, 0xd9cbb0],
   gate_dark: ['wall', 0x2e3a30, 0x1e2a22, 0x1a241c, 0x1a241c],
-  station_facade: ['facade', 0xd8cbb0, 0xc4a25c],
+  station_facade: ['wall', 0xd8cbb0, 0xc4a25c, 0x1c2238, 0x4a4e6a],
+  station_street: ['facade', 0x6a6a72, 0xf2d580],
   ticket_hall: ['facade', 0xcfc0a2, 0x2e6a4a],
   ticket_booths: ['strip', 0x4a3a2a, 0x50c878],
   shed_ribs: ['poles', 0x4a4650, 0x8a8490],
@@ -266,6 +268,8 @@ function ensureLayerTexture(scene, name, as) {
   const kind = as || natural;
   const key = `bg_${name}_${kind}`;
   if (scene.textures.exists(key)) return key;
+  // a place may carry its own painting for a layer (the station does)
+  if (paintHubLayer(scene, name, kind, key, W)) return key;
   const H = KIND_H[kind];
   const g = scene.make.graphics({ x: 0, y: 0 }, false);
   const rand = new Phaser.Math.RandomDataGenerator([name]);
@@ -451,8 +455,10 @@ const SCENERY = {
   pans: ['pot_rack', 'extractor', 'prep_table'],
   sugar: ['mixer', 'cake_stand', 'shelf_ladder', 'prep_table'],
   dining_room: ['column', 'table_setting', 'cake_stand'],
-  hall_vault: ['column', 'streetlamp', 'bench', 'phone_booth'],
-  gate_dark: ['crate_stack', 'pylon'],
+  // the station paints its own backdrops (src/art/hubArt.js): no primitives behind them
+  hall_vault: [],
+  gate_dark: [],
+  station_facade: [],
   gym_wall: ['poster_board', 'crate_stack', 'bench', 'shelf_ladder'],
   gate_grey: ['bench', 'poster_board'],
   campus: ['water_tower', 'pylon', 'crane', 'radio_mast', 'billboard'],
@@ -550,35 +556,17 @@ function drawLandmark(scene, name) {
         add(scene.add.triangle(i * 34, -30, -14, 40, 14, 40, 0, 0, 0xf2d580, 0.06));
       }
       break;
+    // the station's landmarks are paintings (src/art/hubArt.js), hung from
+    // the same ground line as the old shapes
     case 'great_clock':
-      add(scene.add.circle(0, -150, 46, 0xf2e6cc));
-      add(scene.add.circle(0, -150, 42, 0x2a2230).setStrokeStyle(2, 0xc4a25c));
-      add(scene.add.rectangle(0, -162, 3, 24, 0xf2e6cc));
-      add(scene.add.rectangle(10, -150, 20, 2, 0xf2e6cc));
-      for (let i = -3; i <= 3; i++) add(scene.add.rectangle(i * 70, -60, 8, 160, 0xc4a25c, 0.35));
-      break;
     case 'train_shed':
-      add(scene.add.rectangle(0, -170, 420, 10, 0x4a4650));
-      for (let i = -4; i <= 4; i++) add(scene.add.rectangle(i * 50, -120, 6, 100, 0x4a4650, 0.8));
-      add(scene.add.rectangle(0, -60, 420, 4, 0x4a4650, 0.5));
-      label('PLATFORMS  1 — 4', '#f2e6cc', 13);
-      break;
     case 'shed_clock':
-      add(scene.add.rectangle(0, -170, 420, 10, 0x4a4650));
-      for (let i = -4; i <= 4; i++) add(scene.add.rectangle(i * 50, -120, 6, 100, 0x4a4650, 0.8));
-      add(scene.add.circle(0, -120, 22, 0xf2e6cc));
-      add(scene.add.rectangle(0, -128, 2, 14, 0x2a2230));
-      label('PLATFORMS  5 — 8', '#f2e6cc', 13);
-      break;
     case 'no_passengers':
-      add(scene.add.rectangle(0, -100, 140, 220, 0x1e2a22, 0.9));
-      for (let i = 0; i < 40; i++) add(scene.add.rectangle(-50 + (i % 10) * 11, -190 + Math.floor(i / 10) * 30, 1, 10, 0xd8cbb0, 0.5));
+      add(scene.add.image(0, 20, paintHubLandmark(scene, name)).setOrigin(0.5, 1));
       break;
     case 'station_sign':
-      add(scene.add.rectangle(0, -70, 380, 52, 0x2e3a52));
-      add(scene.add.rectangle(0, -70, 372, 44, 0x1e2a3c).setStrokeStyle(2, 0xc4a25c));
-      label('CROSSROADS  STATION', '#f2e6cc', 18);
-      for (let i = -8; i <= 8; i++) add(scene.add.circle(i * 22, -96, 3, 0xf2d580, 0.9));
+      // the steps room's horizon is the street; the sign hangs over the doors
+      add(scene.add.image(0, -140, paintHubLandmark(scene, name)).setOrigin(0.5, 1));
       break;
     case 'folding_chair':
       add(scene.add.rectangle(0, 0, 40, 6, 0x8a8494));
