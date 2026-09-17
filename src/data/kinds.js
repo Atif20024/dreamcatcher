@@ -18,6 +18,14 @@ export const FOES = {
     cleaner: { texture: 'foe-cleaner', human: true, speed: 60, sight: 130 },
     security: { texture: 'foe-security', human: true, speed: 70, sight: 160 },
   },
+  writer: {
+    landlady: { texture: 'foe-landlady', human: true, speed: 85, sight: 150 },
+    pigeon: { texture: 'foe-pigeon', human: false, speed: 40, dustColors: [0x7a7a88, 0xc8c8d0] },
+    talker: { texture: 'foe-talker', human: true, speed: 0, sight: 0, pushes: true },
+    guard: { texture: 'foe-guard', human: true, speed: 65, sight: 170, hears: true },
+    slip: { texture: 'foe-slip', human: false, speed: 110, floats: true, chases: true, dustColors: [0xe8e4d8, 0xc03a2a] },
+    proofreader: { texture: 'foe-proofreader', human: true, speed: 95, sight: 200, homing: true },
+  },
   musician: {
     heckler: { texture: 'foe-heckler', human: true, speed: 0, ranged: true, sight: 360 },
     bouncer: { texture: 'foe-bouncer', human: true, speed: 60, big: true, sight: 150 },

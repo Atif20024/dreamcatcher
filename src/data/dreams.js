@@ -28,10 +28,11 @@ export const DREAMS = [
     conductor: 'The Finish Line. Nobody remembers second.', roLine: 'Cinder on the soles. You ran somewhere.',
   },
   {
-    id: 'painter', platform: 4, title: 'THE GALLERY WALL', propsKind: 'easels', ambientLoop: 'turps',
-    coin: { name: 'tube cap', worth: 2, budget: [100, 120], pal: { c: 0x3a5a80, C: 0x88b8d8, h: 0xd8ecf8 } },
-    livery: { body: 0x3a5a80, trim: 0xe86a6a, window: 0xf2d580, emblem: 'palette' },
-    conductor: 'The Gallery Wall. They hang what sells.', roLine: 'Blue under the nails. Somebody painted.',
+    id: 'writer', platform: 4, title: 'THE SECOND DRAFT', scene: 'Writer', propsKind: 'pages', ambientLoop: 'typewriter',
+    coin: { name: 'penny', worth: 2, budget: [100, 120], pal: { c: 0x8a5a34, C: 0xb87333, h: 0xe8c090 } },
+    livery: { body: 0x3a3a44, trim: 0xe8e4d8, window: 0xf2d580, emblem: 'palette' },
+    conductor: 'The Second Draft. Nothing in it is done the first time.\nAre you ready to write it, lose it, and write it again worse?',
+    roLine: 'Ink on your fingers. And you look like you slept at a desk.',
   },
   {
     id: 'founder', platform: 5, title: 'THE CORNER OFFICE', propsKind: 'boxes', ambientLoop: 'phones',

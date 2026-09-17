@@ -263,7 +263,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     } else {
       this.wasAirborne = true;
     }
-    if (jumpJust) this.lastJumpPressed = time;
+    if (jumpJust && !locked) this.lastJumpPressed = time;
 
     // horizontal
     if (!locked) {

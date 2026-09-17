@@ -126,6 +126,11 @@ export const PEOPLE = {
   'foe-gym-rat': { art: person('bandana', 'bottle'), pal: P(0xc03a2a, 0x9a6a48, 0xd8d4c8, 0xa8a49a, 0x3a3a44, 0xe8e4d8, 0x88b8d8) },
   'foe-cleaner': { art: person('cap', 'coil'), pal: P(0x3a5a80, 0x8a5a3b, 0x4a6a8a, 0x3a5468, 0x2e3440, 0x1e1e28, 0xd8b858) },
   'foe-security': { art: person('cap', 'clipboard'), pal: P(0x1e2a4a, 0xc09070, 0x2e3a5a, 0x222c44, 0x22222c, 0x14141a, 0xf2d580) },
+  // the writer's dream
+  'foe-landlady': { art: person('beanie', 'clipboard'), pal: P(0xc86a90, 0x8a5a3b, 0x6a4a5a, 0x4a3240, 0x3a2e3a, 0x1e1e28, 0xe8e4d8) },
+  'foe-talker': { art: person('fedora', 'bottle'), pal: P(0x4a3a2a, 0xb08868, 0x8a7a5a, 0x5a4e3a, 0x3a3a44, 0x1e1e28, 0xe8e4d8) },
+  'foe-guard': { art: person('cap', 'clipboard'), pal: P(0x2e4a3a, 0xc09070, 0x2e4a3a, 0x1e3428, 0x22222c, 0x14141a, 0xd8c8a0) },
+  'foe-proofreader': { art: person('headset', 'clipboard'), pal: P(0x6a6a72, 0xd8b8a0, 0xe8e4d8, 0xb8b4a8, 0x3a3a44, 0x1e1e28, 0xc03a2a) },
 };
 
 // --- creatures: things, not people -----------------------------------------
@@ -227,6 +232,24 @@ export const CREATURES = {
     pal: { w: 0xb4bce8, W: 0x2a2a40 },
     size: 4,
   },
+};
+
+// the writer's creatures: a rejection slip on the wing, a pigeon on a ledge
+CREATURES['foe-slip'] = {
+  art: [
+    ['..eeeeee..', '.eEeeeeEe.', 'eeeEeeEeee', 'eeeeEEeeee', '.eeeeeeee.', '..e....e..'],
+    ['e........e', 'eeeeeeeeee', 'eEeeeeeeEe', 'eeeEeeEeee', '.eeeEEeee.', '..eeeeee..'],
+  ],
+  pal: { e: 0xe8e4d8, E: 0xc03a2a },
+  size: 3,
+};
+CREATURES['foe-pigeon'] = {
+  art: [
+    ['....gg..', '...gggw.', '.ggggg..', 'gggggg..', '.gggg...', '..f.f...'],
+    ['....gg..', '...gggw.', '.ggggg..', 'gggggg..', '.gggg...', '.f...f..'],
+  ],
+  pal: { g: 0x7a7a88, w: 0xf2c078, f: 0xc06a3a },
+  size: 3,
 };
 
 export function createFoeTextures(scene) {

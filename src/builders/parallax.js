@@ -254,6 +254,39 @@ const LAYERS = {
   crater_wall: ['wall', 0x1a1a1e, 0x2c2c32, 0x0c0c0f, 0x0c0c0f],
   grass_far: ['facade', 0x2e4a30, 0x8ab060],
   grass_near: ['railing', 0x26401f, 0x6a9a4a],
+  // --- the second draft ---
+  thin_houses: ['skyline', 0x201a2c, 0xf2c078, 0x0e1020, 0x3a3050],
+  dawn_terrace: ['facade', 0x2a2434, 0x5a4a5a],
+  attic_wall: ['wall', 0x4a3e34, 0x6a5a48, 0x2e2620, 0x2e2620],
+  index_cards: ['strip', 0x5a4c3e, 0xe8e4d8],
+  rafters: ['poles', 0x2e241c, 0x4a3a2c],
+  copy_wall: ['wall', 0x8a8e96, 0xb8bcc4, 0x5a5e68, 0x5a5e68],
+  copiers: ['strip', 0x6a6e7a, 0x3a5a80],
+  paper_stacks: ['strip', 0x8a8480, 0xe8e4d8],
+  cafe_wall: ['wall', 0x3a2a1e, 0x5a4230, 0x241a12, 0x241a12],
+  brass: ['hanging', 0x3e2c1e, 0xd8a840],
+  cafe_tables: ['strip', 0x2e2018, 0x6a4a32],
+  oak_stacks: ['wall', 0x2e3a2a, 0x4a4a32, 0x1c2418, 0x1c2418],
+  green_lamps: ['hanging', 0x2a3a2a, 0x7ec87e],
+  book_carts: ['strip', 0x2a2418, 0x8a6a4a],
+  brass_boxes: ['wall', 0x8a7a5a, 0xd8a840, 0x5a4e3a, 0x5a4e3a],
+  post_counters: ['strip', 0x6a5a48, 0xc03a2a],
+  rain_night: ['skyline', 0x1a2030, 0xe8a030, 0x0a0e18, 0x243048],
+  bus_windows: ['facade', 0x2a3040, 0xe8a030],
+  sodium_street: ['facade', 0x262632, 0xe8a030],
+  paper_wall: ['wall', 0xd8d0c0, 0xe8e4d8, 0xb8b0a0, 0xb8b0a0],
+  laundrette: ['strip', 0x8a9aa8, 0xd8dce0],
+  red_pencils: ['railing', 0x6a2a22, 0xc03a2a],
+  glass_city: ['skyline', 0x2a3a50, 0xd8ecf8, 0x101828, 0x3a4a68],
+  office_glass: ['facade', 0x3a4a5a, 0x88b8d8],
+  office_desks: ['strip', 0x2a2a34, 0x6a6e7a],
+  rooftops: ['facade', 0x2a2a32, 0x6a6a76],
+  iron_hall: ['wall', 0x2a2a30, 0x4a4a52, 0x18181c, 0x18181c],
+  press_rollers: ['poles', 0x3a3a44, 0xe8762a],
+  paper_webs: ['railing', 0x8a8480, 0xe8e4d8],
+  bookshop_wall: ['wall', 0x4a3424, 0x6a4a32, 0x2e2018, 0x2e2018],
+  book_shelves: ['strip', 0x3a2a1e, 0xc03a2a],
+  bookshop_tables: ['strip', 0x2e2018, 0x7a5a3a],
 };
 
 function layerDef(name) {
@@ -468,6 +501,18 @@ const SCENERY = {
   moon_black: [],
   crater_wall: [],
   grass_far: ['tree', 'hedge', 'bench'],
+  // the second draft
+  thin_houses: ['water_tower', 'ac_units', 'radio_mast', 'streetlamp', 'phone_booth'],
+  attic_wall: ['poster_board', 'crate_stack', 'shelf_ladder'],
+  copy_wall: ['prep_table', 'shelf_ladder', 'poster_board'],
+  cafe_wall: ['table_setting', 'column', 'poster_board', 'cake_stand'],
+  oak_stacks: ['shelf_ladder', 'column', 'crate_stack', 'shelf_ladder'],
+  brass_boxes: ['column', 'bench', 'poster_board'],
+  rain_night: ['streetlamp', 'phone_booth', 'van', 'streetlamp', 'bridge'],
+  paper_wall: ['poster_board', 'shelf_ladder', 'bench'],
+  glass_city: ['crane', 'billboard', 'radio_mast', 'water_tower', 'ac_units'],
+  iron_hall: ['fan', 'crate_stack', 'pylon'],
+  bookshop_wall: ['shelf_ladder', 'bench', 'column', 'table_setting'],
 };
 
 function drawPrimitives(g, prims) {
@@ -496,6 +541,75 @@ function drawLandmark(scene, name) {
   const label = (t, col = '#f2d580', size = 14) =>
     add(scene.add.text(0, -70, t, { fontFamily: 'monospace', fontSize: `${size}px`, color: col }).setOrigin(0.5));
   switch (name) {
+    // --- the second draft ---
+    case 'attic_window':
+      add(scene.add.rectangle(0, -150, 30, 36, 0xf2c078, 0.9));
+      add(scene.add.rectangle(0, -150, 38, 44, 0x2a2430).setStrokeStyle(2, 0x3a3440));
+      add(scene.add.rectangle(0, -150, 30, 36, 0xf2c078, 0.9));
+      add(scene.add.rectangle(0, -150, 2, 36, 0x3a3440));
+      add(scene.add.rectangle(0, -150, 30, 2, 0x3a3440));
+      break;
+    case 'skylight':
+      add(scene.add.rectangle(0, -120, 120, 70, 0x2a3450, 0.9).setStrokeStyle(3, 0x4a3a2c));
+      add(scene.add.rectangle(0, -120, 2, 70, 0x4a3a2c));
+      add(scene.add.rectangle(-40, -140, 40, 14, 0xd8dce8, 0.25));
+      break;
+    case 'copy_sign':
+      add(scene.add.rectangle(0, -70, 220, 40, 0xe8e4d8));
+      label('COPIES · 5¢', '#3a5a80', 15);
+      break;
+    case 'espresso_sign':
+      add(scene.add.rectangle(0, -76, 180, 44, 0x3a2a1e).setStrokeStyle(2, 0xd8a840));
+      label('CAFÉ  ORVAL', '#d8a840', 15);
+      add(scene.add.circle(0, -30, 22, 0xd8a840, 0.12));
+      break;
+    case 'reading_lamp':
+      add(scene.add.rectangle(0, -20, 4, 60, 0x2a2a30));
+      add(scene.add.rectangle(0, -52, 60, 16, 0x2e5a3a));
+      add(scene.add.triangle(0, -30, 0, 0, -50, 40, 50, 40, 0x7ec87e, 0.1));
+      break;
+    case 'post_clock':
+      add(scene.add.circle(0, -120, 28, 0xe8e4d8).setStrokeStyle(4, 0x3a2a1e));
+      add(scene.add.rectangle(0, -128, 2, 18, 0x14101c).setOrigin(0.5, 1));
+      add(scene.add.rectangle(6, -118, 12, 2, 0x14101c).setOrigin(0, 0.5));
+      label('LATER', '#c03a2a', 12);
+      break;
+    case 'bus_stop':
+      add(scene.add.rectangle(0, -60, 4, 120, 0x3a3a44));
+      add(scene.add.rectangle(0, -120, 50, 22, 0xe8a030));
+      add(scene.add.text(0, -120, 'N', { fontFamily: 'monospace', fontSize: '14px', color: '#14101c' }).setOrigin(0.5));
+      break;
+    case 'lit_window':
+      add(scene.add.rectangle(0, -150, 30, 36, 0xf2c078, 0.9));
+      add(scene.add.rectangle(0, -150, 2, 36, 0x3a3440));
+      add(scene.add.rectangle(0, -132, 34, 3, 0x3a3440));
+      break;
+    case 'red_pencil':
+      add(scene.add.rectangle(0, -90, 200, 16, 0xc03a2a).setAngle(-8));
+      add(scene.add.triangle(104, -104, 0, 0, 0, 16, 18, 8, 0xe8e4d8).setAngle(-8));
+      break;
+    case 'office_clock':
+      add(scene.add.circle(0, -130, 34, 0xe8e4d8).setStrokeStyle(3, 0x2a2a34));
+      add(scene.add.rectangle(0, -134, 2, 24, 0x14101c).setOrigin(0.5, 1));
+      add(scene.add.rectangle(4, -130, 20, 2, 0xc03a2a).setOrigin(0, 0.5));
+      label('FRIDAY', '#c03a2a', 13);
+      break;
+    case 'water_tower_sign':
+      add(scene.add.rectangle(0, -140, 60, 50, 0x3a3a44));
+      add(scene.add.rectangle(-22, -90, 4, 60, 0x2a2a32));
+      add(scene.add.rectangle(22, -90, 4, 60, 0x2a2a32));
+      add(scene.add.triangle(0, -170, 0, 0, -34, 14, 34, 14, 0x4a4a52));
+      break;
+    case 'press_wheel':
+      add(scene.add.circle(0, -110, 60, 0x2a2a30).setStrokeStyle(8, 0x4a4a52));
+      add(scene.add.circle(0, -110, 12, 0xe8762a));
+      for (let i = 0; i < 4; i++) add(scene.add.rectangle(0, -110, 4, 110, 0x4a4a52).setAngle(i * 45));
+      break;
+    case 'one_lamp':
+      add(scene.add.rectangle(0, -60, 3, 120, 0x2a2a30));
+      add(scene.add.triangle(0, -134, 0, 0, -30, 26, 30, 26, 0xd8a840));
+      add(scene.add.circle(0, -60, 70, 0xf2c078, 0.08));
+      break;
     case 'meridian_sign':
       add(scene.add.rectangle(0, -60, 260, 46, 0x3a2c28));
       label('HOTEL MERIDIAN', '#a05a4a', 15);

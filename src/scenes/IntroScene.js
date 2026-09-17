@@ -5,6 +5,35 @@ import { toggleMusic } from '../systems/audio.js';
 
 // Close-up entry shots: a zoomed street scene, Jo walks to the door, fade in.
 const INTROS = {
+  writer: {
+    caption: 'THE SECOND DRAFT',
+    sub: 'Five a.m. One attic window lit. The rain has just stopped.',
+    doorX: 700,
+    draw(scene) {
+      const g = scene.add.graphics();
+      g.fillGradientStyle(0x0e1020, 0x0e1020, 0x2a2438, 0x2a2438, 1);
+      g.fillRect(0, 0, 960, 540);
+      // a row of tall thin houses, one window lit
+      const rand = new Phaser.Math.RandomDataGenerator(['attic']);
+      for (let x = 40; x < 960; x += 96) {
+        const h = rand.between(220, 320);
+        scene.add.rectangle(x + 40, 470 - h / 2, 80, h, x === 616 ? 0x2c2430 : 0x201a26);
+        scene.add.rectangle(x + 40, 470 - h - 10, 84, 20, 0x181420);
+        for (let wy = 470 - h + 30; wy < 440; wy += 46) {
+          scene.add.rectangle(x + 40, wy, 22, 26, 0x14121c);
+        }
+      }
+      const lit = scene.add.rectangle(656, 190, 22, 26, 0xf2c078);
+      scene.tweens.add({ targets: lit, alpha: 0.75, duration: 1600, yoyo: true, repeat: -1 });
+      scene.add.rectangle(480, 505, 960, 70, 0x1c1a24);
+      scene.add.rectangle(480, 472, 960, 6, 0x2a2834);
+      // the fire escape
+      for (let y = 210; y < 470; y += 26) scene.add.rectangle(700, y, 40, 3, 0x3a3a44);
+      scene.add.rectangle(682, 340, 3, 260, 0x3a3a44);
+      scene.add.rectangle(718, 340, 3, 260, 0x3a3a44);
+      return { groundY: 470 };
+    },
+  },
   chef: {
     caption: 'FIVE-STAR DREAM',
     sub: 'The kitchen of Le Rêve. Tonight, the critics are in.',
@@ -90,7 +119,7 @@ const INTROS = {
   },
 };
 
-const LEVEL_SCENES = { chef: 'Chef', musician: 'Musician', astronaut: 'Astronaut' };
+const LEVEL_SCENES = { chef: 'Chef', musician: 'Musician', astronaut: 'Astronaut', writer: 'Writer' };
 
 export default class IntroScene extends Phaser.Scene {
   constructor() {

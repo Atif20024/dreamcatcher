@@ -6,7 +6,7 @@ const DEFAULTS = {
   seen: [],
   // hub: small moments, whether the chain has dropped, how long Jo has stood
   // in the only place where time is real, and which dream he just came from
-  flags: { hub: { moment1: false, moment2: false, moment3: false, gateOpened: false, gateSpoke: false, visits: 0 } },
+  flags: { hub: { moment1: false, moment2: false, moment3: false, gateOpened: false, gateSpoke: false, visits: 0 }, wr: {} },
   stationSeconds: 0,
   lastDream: null,
   // collectibles: the wallet persists across dreams; shards are permanent
@@ -85,8 +85,8 @@ export function markMet(dream) {
   updateSave((s) => (s.met[dream] = true));
 }
 
-// every small moment the built game holds: hub 3 + three per playable dream
-export const MOMENT_TOTAL = 12;
+// every small moment the built game holds: hub 3 + three per playable dream (four dreams)
+export const MOMENT_TOTAL = 15;
 export function momentsFound(s = load()) {
   const hub = ['moment1', 'moment2', 'moment3'].filter((k) => s.flags.hub[k]).length;
   return hub + Object.values(s.moments).reduce((n, l) => n + l.length, 0);

@@ -22,6 +22,13 @@ const CARDS = {
   zero_g_rail: { name: 'HANDRAILS', hint: 'the yellow lines are the ground now', key: 'E' },
   eva_tether: { name: 'THE TETHER IS LIFE', hint: 'clip on before you push. hold to reel in', key: 'F' },
   moon_bound: { name: 'ONE-SIXTH', hint: 'you rise slowly and you keep going', key: '' },
+  // the second draft
+  pen: { name: 'THE PEN', hint: 'stand under a label and strike its adjective', key: 'E' },
+  typing: { name: 'THE TYPING RHYTHM', hint: 'press each letter as it reaches the line', key: 'A–Z' },
+  editor: { name: 'THE INNER EDITOR', hint: 'keep moving. it erases what you have crossed', key: '' },
+  glass: { name: 'FRAGILE', hint: 'crouch-walk across, or it goes', key: '↓' },
+  talker: { name: 'A WALL OF SOUND', hint: 'duck under, come up behind, jump for the word', key: '↓' },
+  press: { name: 'THE PRESS', hint: 'ride the paper down. ink, press, fold', key: 'E' },
 };
 
 export function showTutorial(scene, id) {

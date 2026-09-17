@@ -4,13 +4,14 @@ import musicianRooms from '../src/data/musician/rooms.js';
 import hubRooms from '../src/data/hub/rooms.js';
 import astronautRooms from '../src/data/astronaut/rooms.js';
 import eveningRooms from '../src/data/evening/rooms.js';
+import writerRooms from '../src/data/writer/rooms.js';
 import { roleOf, isSolidChar, isSlopeChar } from '../src/builders/legend.js';
 import { maskAt, wearAt } from '../src/builders/autotile.js';
 
 // collectibles budgets (references/dream-items.md); the hub keeps no coins
-const BUDGETS = { chef: [60, 80], musician: [120, 150], astronaut: [45, 55] };
+const BUDGETS = { chef: [60, 80], musician: [120, 150], astronaut: [45, 55], writer: [100, 120] };
 
-const DREAMS = { chef: chefRooms, musician: musicianRooms, astronaut: astronautRooms, hub: hubRooms, evening: eveningRooms };
+const DREAMS = { chef: chefRooms, musician: musicianRooms, astronaut: astronautRooms, hub: hubRooms, evening: eveningRooms, writer: writerRooms };
 let failures = 0;
 let warnings = 0;
 
@@ -125,7 +126,7 @@ for (const [dream, rooms] of Object.entries(DREAMS)) {
   });
 
   // (C) collectibles — the placement law (skill §3, §7 step 6)
-  const PICKUPS = new Set(['coin', 'coins', 'shard', 'moment', 'carryable', 'panel', 'plate', 'orb', 'pickup', 'resonant', 'gig', 'choice', 'npc']);
+  const PICKUPS = new Set(['coin', 'coins', 'shard', 'moment', 'carryable', 'panel', 'plate', 'orb', 'pickup', 'resonant', 'gig', 'choice', 'npc', 'word', 'source', 'desk', 'inkwell', 'lever']);
   let coinTotal = 0;
   for (const room of rooms) {
     const width = Math.max(...room.grid.map((g) => g.length));

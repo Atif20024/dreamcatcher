@@ -27,7 +27,7 @@ export function paintTileset(scene, theme) {
   const deco = pal[t.deco];
   // what the ground is made of, per level: cream stone in the station,
   // kitchen tiles, the club's brick and boards, the programme's steel plate
-  const MATERIALS = { hub: 'stone', chef: 'tile', mus: 'stone', astro: 'plate' };
+  const MATERIALS = { hub: 'stone', chef: 'tile', mus: 'stone', astro: 'plate', wr: 'board' };
   const material = theme.material || MATERIALS[key] || 'stone';
   const T = 32;
 
@@ -36,7 +36,7 @@ export function paintTileset(scene, theme) {
     ctx.fillRect(0, 0, T, T);
     const img = ctx.getImageData(0, 0, T, T);
     const d = img.data;
-    const sc = material === 'tile' ? 5 : material === 'plate' ? 14 : 9;
+    const sc = material === 'tile' ? 5 : material === 'plate' ? 14 : material === 'board' ? 4 : 9;
     for (let y = 0; y < T; y++) {
       for (let x = 0; x < T; x++) {
         const n = fbm(x / sc + wear * 5, y / sc + seed, 21 + wear, 3);
@@ -62,6 +62,22 @@ export function paintTileset(scene, theme) {
         ctx.fillRect(off + 1, y0, 1, y1 - y0);
         ctx.fillStyle = rgba((seed + wear) % 2 ? lipLit : dark, 0.07);
         ctx.fillRect(0, y0, off, y1 - y0);
+      }
+    } else if (material === 'board') {
+      // floorboards: three planks a tile, the grain running along them, a
+      // nail head or two, and a board that is a shade different
+      for (const y0 of [0, 11, 22]) {
+        ctx.fillStyle = rgba(dark, 0.55);
+        ctx.fillRect(0, y0, T, 1);
+        ctx.fillStyle = rgba(lipLit, 0.22);
+        ctx.fillRect(0, y0 + 1, T, 1);
+        const shade = ((y0 / 11 + wear + seed) % 3) - 1;
+        ctx.fillStyle = rgba(shade > 0 ? lipLit : dark, 0.06);
+        ctx.fillRect(0, y0 + 2, T, 9);
+        const joint = (seed * 7 + wear * 5 + y0) % 30 + 1;
+        ctx.fillStyle = rgba(dark, 0.5);
+        ctx.fillRect(joint, y0 + 1, 1, 10);
+        stamp(ctx, (joint + 6) % T, y0 + 6, 1, dark, 0.5, 0.5);
       }
     } else if (material === 'plate') {
       // a seam and four rivets
