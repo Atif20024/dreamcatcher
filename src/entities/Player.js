@@ -326,9 +326,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     const vx = Math.abs(body.velocity.x);
     this.lastHipDy = this.hipDy;
     if (grounded && vx > 12) {
-      // eight frames per stride pair; a frame every 6 px of ground, so at
-      // full speed the cadence is a run and at the evening's stroll a walk
-      const STEP_PX = 6;
+      // eight frames per stride pair; a frame every 20 px of ground: about
+      // three steps a second at full speed, a stroll in the evening. (A
+      // frame per 6 px was tried: twelve steps a second reads as a jitter.)
+      const STEP_PX = 20;
       const before = this.walkFrame;
       this.walkPhase = (this.walkPhase + (vx * (delta / 1000)) / STEP_PX) % 8;
       this.walkFrame = Math.floor(this.walkPhase);
@@ -338,7 +339,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         if (vx > 200) this.dust(1);
       }
       this.art.setTexture(`jo-walk-${this.walkFrame}`);
-      this.hipDy = -WALK_HIPS[this.walkFrame] * 2;
+      this.hipDy = -WALK_HIPS[this.walkFrame];
     } else if (!grounded) {
       this.art.setTexture(body.velocity.y < -40 ? 'jo-jump' : 'jo-fall');
       this.walkPhase = 0;

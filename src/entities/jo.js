@@ -83,16 +83,29 @@ export const WALK_LEGS = [
   // 7 high
   ['....PPPPPPPP....', '....ppppppPP....', '....ppp..PPP....', '....ppp...PPP...', '....ppp....PPP..', '....ppp.....PPP.', '...BBBB.....BBB.', '...BBBB.........'],
 ];
-// hips, in rows: 0 contact, -1 recoil (down), 0 passing, +1 high (up)
+// hips, in screen px: a single pixel down on the recoil, up on the high.
+// Any more than that and a walk reads as a bounce.
 export const WALK_HIPS = [0, -1, 0, 1, 0, -1, 0, 1];
 
-const HEAD = HEAD_AND_TORSO.slice(0, 10);
-// arms: both swung out (front forward, back back), both crossing the body
-// (front back, back forward), hanging (passing), and raised (a jump)
-const TORSO_OUT = ['....JJJJJJJJ....', '..JJJJJJJJJJJJ..', '.JJjWWWWWWWWjJJ.', 'JJJjWWWWWWWWjJJJ', 'JJ.jWWWWWWWWj.JJ', 'SS.JJJJJJJJJJ.SS'];
-const TORSO_CROSS = ['....JJJJJJJJ....', '..JJJJJJJJJJJJ..', '.JJjWWWWWWWWjJJ.', '..JjWJWWWWJWjJ..', '...jWJWWWWJWj...', '...JJSJJJJSJJ...'];
-const TORSO_HANG = HEAD_AND_TORSO.slice(10);
-const TORSO_UP = ['.J..JJJJJJJJ..J.', '.JJJJJJJJJJJJJJ.', '.JJjWWWWWWWWjJJ.', '..JjWWWWWWWWjJ..', '...jWWWWWWWWj...', '...JJJJJJJJJJ...'];
+// Moving, Jo is drawn in profile (facing right; flipX for left): the head
+// turned, one lens of the glasses, the nose, a narrower jacket, and the
+// arms swinging past the body instead of out to the sides. Standing still
+// he faces the player, as he always has.
+const HEAD = [
+  BLANK_ROW, BLANK_ROW, BLANK_ROW, BLANK_ROW,
+  '.....SSSSSS.....',
+  '....SSSSSSSS....',
+  '....SSSSGLLG....',
+  '....SSSSSSSSS...',
+  '....sSSSSSSs....',
+  '.....SSSSSS.....',
+];
+// arms: front forward and back back (OUT), front back across the body with
+// the far hand showing in front (CROSS), hanging (passing), raised (a jump)
+const TORSO_OUT = ['.....JJJJJJJ....', '....JJJJJJJJJ...', '....JJjWWWjJJ...', '...JJ.jWWWj.JJ..', '..JJ..jWWWj..JJ.', '..SS..JJJJJ..SS.'];
+const TORSO_CROSS = ['.....JJJJJJJ....', '....JJJJJJJJJ...', '....JJjWWWjJJ...', '....JJJJWWjJS...', '....JJJJJWjJ....', '....SSJJJJJ.....'];
+const TORSO_HANG = ['.....JJJJJJJ....', '....JJJJJJJJJ...', '....JJjWWWjJJ...', '....JJjWWWjJJ...', '....JJjWWWjJJ...', '....SS.JJJ.SS...'];
+const TORSO_UP = ['....J.JJJJJ.J...', '....JJJJJJJJJ...', '....JJjWWWjJJ...', '.....JjWWWjJ....', '......jWWWj.....', '......JJJJJ.....'];
 const WALK_ARMS = [TORSO_CROSS, TORSO_CROSS, TORSO_HANG, TORSO_OUT, TORSO_OUT, TORSO_OUT, TORSO_HANG, TORSO_CROSS];
 export const JO_WALK = WALK_LEGS.map((_, i) => `jo-walk-${i}`);
 const walkFrame = (i) => [...HEAD, ...WALK_ARMS[i], ...WALK_LEGS[i]];
