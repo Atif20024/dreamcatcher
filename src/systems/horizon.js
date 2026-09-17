@@ -503,6 +503,15 @@ export default class Horizon {
     gradientV(ctx, 0, H - 26, W, 26, [[0, 0x2a2030, 0], [1, 0x2a2030, 0.38]]);
     ct.refresh();
     this.bands.near = this.band('ev-band-near', W, H, f, 0.55, this.depth + 3, this.horizonY + 92);
+    // the ground the facades stand on, continued a long way down: when the
+    // camera rises (a jump, the rooftops, the hill) the bands slide up and
+    // this is what shows between them and the terrain, instead of the sea
+    const gt = canvasTex(this.scene, 'ev-band-under', 8, 420);
+    const gctx = gt.getContext();
+    gradientV(gctx, 0, 0, 8, 420, [[0, 0x8a9a68, 1], [0.08, 0x7a8858, 1], [0.2, 0xb8a078, 1], [0.6, 0x9a8460, 1], [1, 0x6a5a44, 1]]);
+    grain(gctx, 0, 0, 8, 420, 0.05, 33);
+    gt.refresh();
+    this.bands.under = this.band('ev-band-under', 8, 420, f, 0.55, this.depth + 2.4, this.horizonY + 60, true);
   }
 
   // ---- the road's own bands --------------------------------------------------------
@@ -619,12 +628,13 @@ export default class Horizon {
       }
       b.ts.y = (b.anchorTop ? b.base : b.base - b.H) + (this.refScroll - sy) * b.fy * 0.6;
       // aerial perspective: far bands wash toward the horizon colour
-      const haze = name === 'sea' ? 0.35 : name === 'mtn' || name === 'mtnSnow' ? 0.5 : name === 'town' ? 0.25 : name === 'road' ? 0.2 : 0.08;
+      const haze = name === 'sea' ? 0.35 : name === 'mtn' || name === 'mtnSnow' ? 0.5 : name === 'town' ? 0.25 : name === 'road' ? 0.2 : name === 'under' ? 0.15 : 0.08;
       b.ts.setTint(lerpC(ambient, horizonColour, haze));
     }
     this.bands.sea.ts.setAlpha(town * (1 - rain * 0.3));
     this.bands.town.ts.setAlpha(town);
     this.bands.near.ts.setAlpha(town);
+    this.bands.under.ts.setAlpha(town);
     this.bands.road.ts.setAlpha(this.roadMix);
     // the mountains take the snow half a minute before the town does
     this.snowCap += ((snow > 0 ? 1 : 0) - this.snowCap) * Math.min(1, dt / (snow > 0 ? 25 : 40));
