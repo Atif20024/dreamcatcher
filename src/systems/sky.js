@@ -171,15 +171,25 @@ export default class Sky {
   buildAurora() {
     const s = this.scene;
     if (!s.textures.exists('ev-aurora')) {
-      const g = s.make.graphics({ x: 0, y: 0 }, false);
+      // a ribbon column: bright along its lower edge, fading up; and a
+      // triangular profile across its width so neighbouring columns (which
+      // overlap by half) add up to a seamless curtain
+      const ct = s.textures.createCanvas('ev-aurora', 32, 128);
+      const ctx = ct.getContext();
+      const img = ctx.createImageData(32, 128);
       for (let y = 0; y < 128; y++) {
-        const t = y / 127; // 0 top .. 1 bottom
-        const a = t < 0.75 ? Math.pow(t / 0.75, 1.6) : 1 - (t - 0.75) / 0.25 * 0.9;
-        g.fillStyle(0xffffff, Math.max(0, a) * 0.9);
-        g.fillRect(0, y, 8, 1);
+        const t = y / 127;
+        const a = t < 0.75 ? Math.pow(t / 0.75, 1.6) : 1 - ((t - 0.75) / 0.25) * 0.9;
+        for (let x = 0; x < 32; x++) {
+          const w = 1 - Math.abs(x - 15.5) / 16;
+          const k = (y * 32 + x) * 4;
+          img.data[k] = img.data[k + 1] = img.data[k + 2] = 255;
+          img.data[k + 3] = Math.max(0, a) * 0.9 * w * 255;
+        }
       }
-      g.generateTexture('ev-aurora', 8, 128);
-      g.destroy();
+      ctx.putImageData(img, 0, 0);
+      ct.refresh();
+      s.textures.get('ev-aurora').setFilter(Phaser.Textures.FilterMode.LINEAR);
     }
     this.ribbons = [];
     const tints = [0xc07ae8, 0x60f0a0, 0x7af8b0, 0x50e890, 0x60f0a0, 0xf08ab0];
@@ -195,7 +205,7 @@ export default class Sky {
           .setDepth(this.depth + 0.8)
           .setTint(tints[r])
           .setBlendMode(Phaser.BlendModes.ADD)
-          .setDisplaySize(this.spanW / N + 2, 140)
+          .setDisplaySize((this.spanW / N) * 2, 140)
           .setAlpha(0);
         cols.push(img);
       }

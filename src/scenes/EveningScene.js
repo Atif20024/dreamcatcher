@@ -7,8 +7,8 @@ import eveningTiles from '../data/evening/tiles.js';
 import { EV, placeAt } from '../data/evening/map.js';
 import { CAST, HER, HER_NAME } from '../data/evening/cast.js';
 import { HER_LINES, SIT_EVENT_LINES, CARDS } from '../data/evening/talk.js';
-import { createEveningTextures, CAT_COATS } from '../data/evening/sprites.js';
-import { paintEveningArt } from '../art/eveningArt.js';
+import { createEveningTextures, CAT_COATS, PROP_KEYS } from '../data/evening/sprites.js';
+import { paintEveningArt, lightProps } from '../art/eveningArt.js';
 import { setupLook } from '../art/look.js';
 import { loadArtOverrides } from '../art/overrides.js';
 import { createJoEveningTextures } from '../entities/jo.js';
@@ -137,6 +137,7 @@ export default class EveningScene extends BaseLevel {
     // painted first: the gridded fallbacks below skip any key that exists
     paintEveningArt(this);
     createEveningTextures(this);
+    lightProps(this, PROP_KEYS.filter((k) => !['ev-tree', 'ev-pine', 'ev-arch', 'ev-hedge', 'ev-leaf-1', 'ev-leaf-2'].includes(k)));
     createJoEveningTextures(this);
     createPixelTexture(this, 'heart', HEART.rows, HEART.pal, 3);
 

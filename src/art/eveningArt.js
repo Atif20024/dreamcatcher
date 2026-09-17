@@ -481,6 +481,16 @@ export function paintProps(scene) {
     ctx.fillRect(0, 0, 32, 32);
   });
   smoothTex(scene, 'ev-glow');
+  // a snowflake: soft, round, never a square
+  paintTexture(scene, 'ev-flake', 8, 8, (ctx) => {
+    const g = ctx.createRadialGradient(4, 4, 0, 4, 4, 4);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.5, 'rgba(255,255,255,0.9)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 8, 8);
+  });
+  smoothTex(scene, 'ev-flake');
 }
 
 // earth: the same masks as the stone set, painted as packed soil with the
@@ -559,6 +569,54 @@ export function paintEarthTiles(scene) {
         ctx.stroke();
       });
     }
+  }
+}
+
+// The gridded props (benches, lamps, carts, the fountain) keep their
+// drawings but get the light: a lit left edge, a shaded right edge, a
+// lit top, a darker foot, and grain — so a flat block reads as a thing
+// standing in the evening sun. Runs on whatever createEveningTextures made;
+// painted keys (canvas with smoothing) and overrides are left alone.
+export function lightProps(scene, keys) {
+  for (const key of keys) {
+    if (!scene.textures.exists(key)) continue;
+    const tex = scene.textures.get(key);
+    const src = tex.getSourceImage();
+    if (!src || src.tagName === 'IMG') continue;
+    const w = src.width;
+    const h = src.height;
+    const tmp = document.createElement('canvas');
+    tmp.width = w;
+    tmp.height = h;
+    const tctx = tmp.getContext('2d');
+    tctx.drawImage(src, 0, 0);
+    const img = tctx.getImageData(0, 0, w, h);
+    const d = img.data;
+    const a = (x, y) => (x < 0 || y < 0 || x >= w || y >= h ? 0 : d[(y * w + x) * 4 + 3]);
+    const out = new Uint8ClampedArray(d);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const k = (y * w + x) * 4;
+        if (d[k + 3] === 0) continue;
+        let m = 1.04 - (y / h) * 0.14; // top lit, foot in shade
+        // silhouette edges, three pixels deep
+        for (let r = 1; r <= 3; r++) {
+          const f = (4 - r) / 3;
+          if (!a(x - r, y)) m += 0.1 * f;
+          if (!a(x + r, y)) m -= 0.09 * f;
+          if (!a(x, y - r)) m += 0.06 * f;
+          if (!a(x, y + r)) m -= 0.05 * f;
+        }
+        m *= 1 + (fbm(x / 2.5, y / 2.5, 91, 2) - 0.5) * 0.12;
+        out[k] = Math.max(0, Math.min(255, d[k] * m));
+        out[k + 1] = Math.max(0, Math.min(255, d[k + 1] * m));
+        out[k + 2] = Math.max(0, Math.min(255, d[k + 2] * (m - 0.02)));
+      }
+    }
+    scene.textures.remove(key);
+    const ct = scene.textures.createCanvas(key, w, h);
+    ct.getContext().putImageData(new ImageData(out, w, h), 0, 0);
+    ct.refresh();
   }
 }
 

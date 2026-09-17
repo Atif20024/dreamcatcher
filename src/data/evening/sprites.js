@@ -244,6 +244,8 @@ const PROPS = {
   'ev-bread': { size: 2, pal: { y: 0xd8a050 }, rows: ['yyy'] },
 };
 
+export const PROP_KEYS = Object.keys(PROPS);
+
 export function createEveningTextures(scene) {
   for (const [key, p] of Object.entries(PROPS)) mk(scene, key, p.rows, p.pal, p.size, p.rim !== false);
   for (const [id, def] of Object.entries(CAST)) createPersonTextures(scene, `ev-p-${id}`, def.look);
