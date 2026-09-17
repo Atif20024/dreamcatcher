@@ -136,6 +136,7 @@ export default class EveningScene extends BaseLevel {
     this.solids = built.solids;
     this.oneWays = built.oneWays;
     this.slopeGrid = built.slopeGrid;
+    this.solidGrid = built.solidGrid;
     this.climbGrid = built.climbGrid;
     this.ladderGrid = built.ladderGrid;
     this.surfaceGrid = built.surfaceGrid;
@@ -148,7 +149,7 @@ export default class EveningScene extends BaseLevel {
     const p = new Player(this, spawnO.wx, this.groundY(spawnO.wx, spawnO.wy - 40) - 24);
     this.player = p;
     p.speed = 215;
-    p.upJumps = false;
+    p.upJumps = true; // ↑ jumps, as it does everywhere else in the game
     p.tool.setTexture('tool-trumpet');
     this.hatBase = p.hat.tintTopLeft; // whatever Bilal sold him, under the evening's light
     this.joShadow = this.add.image(p.x, p.y, 'ev-shadow').setOrigin(0.05, 0.5).setDepth(9).setAlpha(0.3);
@@ -525,25 +526,23 @@ export default class EveningScene extends BaseLevel {
       this.updateSeat(time, dt, { left, right, jump });
     } else if (this.joSitting) {
       if (left || right || jump) this.joStand();
+      // looking up (B4): sit, then hold ↑ — ↑ on his feet is a jump, like
+      // everywhere else in the game
+      else if (up && !this.lookingUp) {
+        this.upHeld += delta;
+        if (this.upHeld > 240) this.startLookUp();
+      }
+      if (this.lookingUp && !up) this.stopLookUp();
+      if (!up) this.upHeld = 0;
     } else {
       const nearLadder = this.ladderNear();
       if (down && p.body.onFloor() && !nearLadder && !left && !right) {
         this.downHeld += delta;
         if (this.downHeld > 320) this.joSit({});
       } else this.downHeld = 0;
-      if (up && p.body.onFloor() && !nearLadder && !left && !right && !this.lookingUp) {
-        this.upHeld += delta;
-        if (this.upHeld > 240) this.startLookUp();
-      }
-      if (this.lookingUp && (!up || left || right || jump)) this.stopLookUp();
-      if (!up) this.upHeld = 0;
-      if (!this.joSitting) {
-        if (this.lookingUp) p.body.setVelocityX(0);
-        else {
-          p.slippery = this.onIce();
-          p.update(time, delta);
-        }
-      }
+      if (this.lookingUp) this.stopLookUp();
+      p.slippery = this.onIce();
+      p.update(time, delta);
     }
 
     // --- the verbs ----------------------------------------------------------
@@ -676,7 +675,7 @@ export default class EveningScene extends BaseLevel {
     // pose overrides (a laugh, a shrug, sitting, sleeping, looking up)
     let key = null;
     if (this.napping) key = 'jo-sleep';
-    else if (this.joSitting) key = now < this.poseUntil && this.poseKey === 'jo-sit-up' ? 'jo-sit-up' : this.barefoot ? 'jo-sit-bare' : this.sitAnim || 'jo-sit';
+    else if (this.joSitting) key = this.lookingUp || (now < this.poseUntil && this.poseKey === 'jo-sit-up') ? 'jo-sit-up' : this.barefoot ? 'jo-sit-bare' : this.sitAnim || 'jo-sit';
     else if (this.lookingUp) key = 'jo-lookup';
     else if (now < this.poseUntil && this.poseKey) key = this.poseKey;
     else if (this.barefoot) key = p.art.texture.key === 'jo-run' ? 'jo-run-bare' : p.art.texture.key === 'jo-stand' ? 'jo-stand-bare' : null;

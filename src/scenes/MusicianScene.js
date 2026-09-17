@@ -42,6 +42,7 @@ export default class MusicianScene extends BaseLevel {
     this.solids = built.solids;
     this.oneWays = built.oneWays;
     this.slopeGrid = built.slopeGrid;
+    this.solidGrid = built.solidGrid;
     this.climbGrid = built.climbGrid;
 
     const spawn = { x: px(3), y: px(GROUND - 2) };

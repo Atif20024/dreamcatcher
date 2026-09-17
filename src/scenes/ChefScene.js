@@ -38,6 +38,7 @@ export default class ChefScene extends BaseLevel {
     this.oneWays = built.oneWays;
     this.spikes = built.hazards;
     this.slopeGrid = built.slopeGrid;
+    this.solidGrid = built.solidGrid;
     this.climbGrid = built.climbGrid;
     this.surfaceGrid = built.surfaceGrid;
     this.orbs = this.physics.add.staticGroup();

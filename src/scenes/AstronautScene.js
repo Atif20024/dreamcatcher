@@ -93,6 +93,7 @@ export default class AstronautScene extends BaseLevel {
     this.solids = built.solids;
     this.oneWays = built.oneWays;
     this.slopeGrid = built.slopeGrid;
+    this.solidGrid = built.solidGrid;
     this.climbGrid = built.climbGrid;
     this.ladderGrid = built.ladderGrid;
     this.surfaceGrid = built.surfaceGrid;

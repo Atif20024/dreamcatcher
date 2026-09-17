@@ -50,6 +50,7 @@ export default class RoomBuilder {
       ladderGrid: {},
       climbGrid: {},
       slopeGrid: {},
+      solidGrid: {},
       surfaceGrid: {},
       looseGrid: {},
       objects: [],
@@ -124,6 +125,7 @@ export default class RoomBuilder {
         img.tileRole = role;
         img.tx = tx;
         img.ty = ty;
+        (out.solidGrid[ty] ||= {})[tx] = true;
 
         if (role === 'climbable') (out.climbGrid[ty] ||= {})[tx] = true;
         if (role === 'ice' || role === 'grease') (out.surfaceGrid[ty] ||= {})[tx] = role;

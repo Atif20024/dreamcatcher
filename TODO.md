@@ -15,7 +15,7 @@
       coins, objective, meters, name/pause), each with a soft sound. No
       darkness overlay whatever dreamsCaught is (setupCommon is not called).
 - [x] Verbs: walk (215 speed), sit (hold ↓ anywhere on the ground; benches
-      snap), look up (hold ↑ — ↑ no longer jumps here, W/Space do), play
+      snap), look up (sit, then hold ↑ — ↑ on his feet jumps, as everywhere), play
       (Q, always in C pentatonic), carry/put down anything (E), photograph
       (C, once the Hill-bench camera is found), throw the stick (X).
 - [x] Sitting: camera drifts out 5%, music ducks; after 8 s a per-place
