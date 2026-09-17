@@ -5,6 +5,7 @@ import RoomBuilder from '../builders/RoomBuilder.js';
 import eveningRooms from '../data/evening/rooms.js';
 import eveningTiles from '../data/evening/tiles.js';
 import { EV, placeAt } from '../data/evening/map.js';
+import { FINDS } from '../data/evening/rooms.js';
 import { CAST, HER, HER_NAME } from '../data/evening/cast.js';
 import { HER_LINES, SIT_EVENT_LINES, CARDS } from '../data/evening/talk.js';
 import { createEveningTextures, CAT_COATS, PROP_KEYS } from '../data/evening/sprites.js';
@@ -691,7 +692,7 @@ export default class EveningScene extends BaseLevel {
     else if (this.joSitting) key = this.lookingUp || (now < this.poseUntil && this.poseKey === 'jo-sit-up') ? 'jo-sit-up' : this.barefoot ? 'jo-sit-bare' : this.sitAnim || 'jo-sit';
     else if (this.lookingUp) key = 'jo-lookup';
     else if (now < this.poseUntil && this.poseKey) key = this.poseKey;
-    else if (this.barefoot) key = p.art.texture.key === 'jo-run' ? 'jo-run-bare' : p.art.texture.key === 'jo-stand' ? 'jo-stand-bare' : null;
+    else if (this.barefoot) key = /^jo-(run|run-p|run-b|run-pb|stand)$/.test(p.art.texture.key) ? `${p.art.texture.key}-bare` : null;
     if (key && p.art.texture.key !== key) p.art.setTexture(key);
     const wet = now < this.wetUntil || this.weather.rain > 0.2;
     const tint = mulC(wet ? 0xb4bccc : 0xffffff, L.ambient);
@@ -1091,6 +1092,8 @@ export default class EveningScene extends BaseLevel {
       if (this.shoesImg) add(this.shoesImg.x, this.shoesImg.y, 'shoes on', () => this.toggleShoes(), 40);
       // things to carry
       if (!this.carrying) for (const c of this.world.carry) if (c.img.active) add(c.img.x, c.img.y, 'pick up', () => this.pickUp(c), 40);
+      // the lost things
+      for (const f of this.world.finds || []) if (f.img.active) add(f.img.x, f.img.y, `pocket ${f.name}`, () => this.pocketFind(f), 40);
     }
     cands.sort((a, b) => a.d - b.d);
     const best = cands[0];
@@ -1183,6 +1186,18 @@ export default class EveningScene extends BaseLevel {
   }
 
   // --- carry: anything can be carried anywhere and put down anywhere -------
+  // a lost thing goes in his pocket; the child's map keeps the count
+  pocketFind(f) {
+    sfx('pickup');
+    const total = FINDS.length;
+    updateSave((s) => (s.evening.finds[f.id] = true));
+    const n = Object.keys(getSave().evening.finds).length;
+    this.floatText(f.img.x, f.img.y - 24, `${f.name}.  (${n}/${total})`, '#f2e0a0');
+    this.tweens.add({ targets: [f.img, f.img.glint], y: '-=18', alpha: 0, duration: 500, onComplete: () => [f.img, f.img.glint].forEach((o) => o.destroy()) });
+    this.director.noticed += 1;
+    if (n === total) this.time.delayedCall(1200, () => this.floatText(this.player.x, this.player.y - 60, 'a pocketful. every one of them.', '#f2e0a0'));
+  }
+
   pickUp(c) {
     this.world.carry = this.world.carry.filter((x) => x !== c);
     this.director.forgetDrop(c.img);
@@ -2509,15 +2524,41 @@ export default class EveningScene extends BaseLevel {
     const add = (o) => (objs.push(o.setScrollFactor(0).setDepth(260)), this.pinUI(o), o);
     add(this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x0e0b14, 0.6));
     this.drawMap(add);
+    this.drawThingsToDo(add);
     add(this.add.text(cam.width / 2, cam.height - 40, '[X] stay     [A] the photos     [Q] back to the station', { fontFamily: 'monospace', fontSize: '12px', color: '#c8c0b0' }).setOrigin(0.5));
     this.paused = { objs, album: null, openedAt: this.game.loop.time };
+  }
+
+  // a note pinned beside the map: what there is to do here, ticked as he
+  // does it, and the pocket of lost things. Nothing is required; it is a
+  // list for a player who might only come once.
+  drawThingsToDo(add) {
+    const cam = this.cameras.main;
+    const x = cam.width / 2 + 345;
+    const y0 = cam.height / 2 - 172;
+    const lines = ['things you could do'];
+    const order = ['laundry', 'bo', 'skip', 'bike', 'fishing', 'chess', 'bread', 'kite', 'tea', 'ball', 'shootout', 'sweep', 'stones', 'sheets', 'snowman', 'swing', 'boat', 'shoes'];
+    for (const id of order) {
+      const a = this.activities[id];
+      if (!a) continue;
+      const who = a.npc && this.folk[a.npc] ? this.folk[a.npc].def.name : null;
+      const doneIt = a.npc ? this.helped.has(a.npc) && !(id === 'ball' && !this.helped.has('waiting_kid')) : this.helped.has(id);
+      const note = id === 'sheets' ? ' (in the rain)' : id === 'snowman' ? ' (in the snow)' : '';
+      lines.push(`${doneIt ? '✓' : '·'} ${a.verb}${who ? ' — ' + who : ''}${note}`);
+    }
+    const finds = getSave().evening.finds || {};
+    const n = Object.keys(finds).length;
+    lines.push('', `pocket: ${n}/${FINDS.length} lost things`);
+    for (const f of FINDS) if (finds[f.id]) lines.push(`  ${f.name}`);
+    add(this.add.rectangle(x, cam.height / 2 - 20, 214, 340, 0xf6efe0, 0.92).setAngle(1.5));
+    add(this.add.text(x - 96, y0, lines.join('\n'), { fontFamily: 'monospace', fontSize: '9px', color: '#3a2a22', lineSpacing: 1, wordWrap: { width: 196 } }).setAngle(1.5));
   }
 
   // A4.4 — wobbly lines, wrong proportions, labels in a child's hand; it gets
   // more detailed the more places Jo has been, because the kid keeps drawing
   drawMap(add) {
     const cam = this.cameras.main;
-    const cx = cam.width / 2;
+    const cx = cam.width / 2 - 95; // the note is pinned to its right
     const cy = cam.height / 2 - 20;
     const W = 620;
     const H = 330;

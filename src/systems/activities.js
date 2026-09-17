@@ -55,7 +55,7 @@ class Activity {
   onLeave() {}
   done(line, who = this.npcObj) {
     if (line && who) who.say(line);
-    this.scene.noteHelped(this.npc);
+    this.scene.noteHelped(this.npc || this.id);
     this.leave(false);
   }
 }
@@ -599,6 +599,159 @@ class Ball extends Activity {
   }
 }
 
+// --- 10b. Penalties against Noor: five each. She keeps score. She is not
+// gracious about it either way.
+class Shootout extends Activity {
+  available() {
+    return super.available() && !this.scene.noorGone;
+  }
+  onJoin() {
+    const s = this.scene;
+    this.leash = 14;
+    this.k = this.npcObj;
+    this.goalX = this.k.x + 150;
+    this.g = s.add.graphics().setDepth(8.8);
+    this.meter = s.add.graphics().setDepth(70);
+    this.score = { jo: 0, noor: 0 };
+    this.shot = 0; // 0..9, Jo on evens
+    this.phase = 'aim';
+    this.m = 0;
+    this.dir = 1;
+    this.aim = 1; // 0 low, 1 middle, 2 high
+    this.ball = s.spawnBall(s.player.x + 20);
+    this.ball.body.setAllowGravity(false).setVelocity(0, 0);
+    this.k.say('Five each. I keep score. Nobody argues with the score.');
+    this.k.walkTo(this.goalX - 14, null, 120);
+    this.board = s.add.text(this.goalX - 40, this.k.y - 96, '', { fontFamily: 'monospace', fontSize: '11px', color: '#f2e9d8', stroke: '#1b1725', strokeThickness: 3 }).setOrigin(0.5).setDepth(70);
+    this.drawGoal();
+  }
+  drawGoal() {
+    const g = this.g;
+    const y = this.k.y + 24;
+    g.clear();
+    g.lineStyle(3, 0xf2ece0, 0.95);
+    g.lineBetween(this.goalX, y, this.goalX, y - 62);
+    g.lineBetween(this.goalX, y - 62, this.goalX + 22, y - 62);
+    g.lineStyle(1, 0xf2ece0, 0.35);
+    for (let i = 0; i < 6; i++) g.lineBetween(this.goalX, y - 8 - i * 10, this.goalX + 22, y - 12 - i * 10);
+    this.board.setText(`JO ${this.score.jo}   NOOR ${this.score.noor}`);
+  }
+  zoneY(z) {
+    return this.k.y + 24 - [10, 30, 52][z];
+  }
+  update(time, delta) {
+    super.update(time, delta);
+    if (!this.running) return;
+    const s = this.scene;
+    const p = s.player;
+    const g = this.meter;
+    g.clear();
+    if (this.phase === 'aim') {
+      if (s.player.cursors.up.isDown) this.aim = 2;
+      else if (s.player.cursors.down.isDown) this.aim = 0;
+      this.m += this.dir * delta / 600;
+      if (this.m > 1 || this.m < 0) {
+        this.dir *= -1;
+        this.m = Phaser.Math.Clamp(this.m, 0, 1);
+      }
+      const x = p.x - 30;
+      const y = p.y - 52;
+      g.fillStyle(0x1b1725, 0.8).fillRect(x - 2, y - 2, 64, 8);
+      g.fillStyle(0xe9b84a, 0.8).fillRect(x + 24, y, 12, 4);
+      g.fillStyle(0xf2e9d8, 1).fillRect(x + this.m * 58, y - 1, 2, 6);
+      g.fillStyle(0xf2e9d8, 0.9).fillRect(this.goalX - 6, this.zoneY(this.aim) - 2, 4, 4);
+      this.ball.setPosition(p.x + (p.flipX ? -14 : 14), p.y + 18);
+      if (s.pressed('E')) this.shoot();
+    } else if (this.phase === 'keep') {
+      // her shot is coming: pick a corner before it lands
+      if (s.player.cursors.up.isDown) this.dive = 2;
+      else if (s.player.cursors.down.isDown) this.dive = 0;
+      g.fillStyle(0xf2e9d8, 0.9).fillRect(p.x - 2, this.zoneY(this.dive) - (this.k.y - p.y) - 2, 4, 4);
+    }
+  }
+  shoot() {
+    const s = this.scene;
+    this.phase = 'flying';
+    const acc = 1 - Math.min(1, Math.abs(this.m - 0.5) / 0.5);
+    const keeper = Phaser.Math.Between(0, 2);
+    const over = acc < 0.25 && this.aim === 2;
+    const wide = acc < 0.2;
+    const saved = keeper === this.aim && acc < 0.85;
+    const goal = !over && !wide && !saved;
+    sfx('squish');
+    const ty = over ? this.zoneY(2) - 30 : this.zoneY(this.aim);
+    this.k.hop = 0;
+    s.tweens.add({ targets: this.k, hop: [0, 4, 12, 4, 0][keeper + 1] || 6, duration: 300, yoyo: true });
+    s.tweens.add({
+      targets: this.ball,
+      x: this.goalX + (over || wide ? 60 : 10),
+      y: ty,
+      duration: 520,
+      ease: 'quad.out',
+      onComplete: () => {
+        if (goal) this.score.jo += 1;
+        this.k.say(goal ? ['Lucky.', "That's in. Fine. FINE.", "I let you have that one."][Phaser.Math.Between(0, 2)] : over ? 'Over. Row Z. Fetch it.' : wide ? 'Wide. Not even close.' : 'SAVED. Did you see that? Did anyone see that?');
+        this.drawGoal();
+        s.time.delayedCall(900, () => this.next());
+      },
+    });
+  }
+  next() {
+    const s = this.scene;
+    this.shot += 1;
+    if (this.shot >= 10) return this.finish();
+    if (this.shot % 2 === 1) {
+      // her turn: she shoots at Jo
+      this.phase = 'keep';
+      this.dive = 1;
+      this.ball.setPosition(this.k.x - 16, this.k.y + 18);
+      this.k.say(['My go.', 'Watch this.', "Don't blink."][Phaser.Math.Between(0, 2)]);
+      s.time.delayedCall(1400, () => {
+        if (!this.running) return;
+        const zone = Phaser.Math.Between(0, 2);
+        const p = s.player;
+        sfx('squish');
+        s.tweens.add({
+          targets: this.ball,
+          x: p.x,
+          y: p.y + 24 - [4, 22, 44][zone],
+          duration: 560,
+          ease: 'quad.out',
+          onComplete: () => {
+            const saved = this.dive === zone || (zone === 1 && this.dive === 1);
+            if (!saved) this.score.noor += 1;
+            this.k.say(saved ? ["No. NO. That's not fair." , 'You moved early.'][Phaser.Math.Between(0, 1)] : ['GOAL. Top bins.', 'Too easy.', 'Keeper was asleep.'][Phaser.Math.Between(0, 2)]);
+            this.drawGoal();
+            s.time.delayedCall(900, () => this.next());
+          },
+        });
+      });
+    } else {
+      this.phase = 'aim';
+      this.m = 0;
+      this.aim = 1;
+    }
+  }
+  finish() {
+    const s = this.scene;
+    const { jo, noor } = this.score;
+    this.phase = 'over';
+    this.k.say(jo > noor ? "Best of ten doesn't count. Best of twenty." : jo === noor ? 'Draw. Rematch. Now.' : 'I win. I always win. Ask anyone.');
+    if (jo > noor) this.k.laugh();
+    s.noteHelped('waiting_kid');
+    s.time.delayedCall(2200, () => this.done(null, null));
+  }
+  onLeave() {
+    this.g.destroy();
+    this.meter.destroy();
+    this.board.destroy();
+    this.ball.body.setAllowGravity(true);
+    this.scene.dropBall(this.ball);
+    this.k.hop = 0;
+    this.k.walkTo(this.k.home.x);
+  }
+}
+
 // --- 11. The sweeper: sweep with him. The leaves never stop; he doesn't mind
 class Sweep extends Activity {
   onJoin() {
@@ -755,6 +908,7 @@ export function makeActivities(scene) {
     kite: A(Kite, { id: 'kite', npc: 'kite', verb: 'hold the string' }),
     tea: A(Tea, { id: 'tea', npc: 'bilal', verb: 'have a tea' }),
     ball: A(Ball, { id: 'ball', npc: 'waiting_kid', verb: 'kick it back' }),
+    shootout: A(Shootout, { id: 'shootout', npc: 'waiting_kid', verb: 'penalties. five each' }),
     sweep: A(Sweep, { id: 'sweep', npc: 'sweeper', verb: 'sweep' }),
     snowman: A(Snowman, { id: 'snowman', npc: 'waiting_kid', verb: 'carry the head' }),
     stones: A(Stones, { id: 'stones', npc: 'stones_kid', verb: 'skim a stone' }),

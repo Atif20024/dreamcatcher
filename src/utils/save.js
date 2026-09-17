@@ -22,7 +22,7 @@ const DEFAULTS = {
   cast: {},
   // THE LONG EVENING saves almost nothing: that it was visited, the child's
   // map of it, and (on the ridge) that it was finished
-  evening: { visited: false, map: {}, finished: false },
+  evening: { visited: false, map: {}, finished: false, finds: {} },
 };
 
 function load() {
@@ -37,7 +37,7 @@ function load() {
       moments: { ...(s.moments || {}) },
       met: { ...(s.met || {}) },
       cast: { ...(s.cast || {}) },
-      evening: { ...DEFAULTS.evening, ...(s.evening || {}), map: { ...((s.evening || {}).map || {}) } },
+      evening: { ...DEFAULTS.evening, ...(s.evening || {}), map: { ...((s.evening || {}).map || {}) }, finds: { ...((s.evening || {}).finds || {}) } },
     };
   } catch {
     return JSON.parse(JSON.stringify(DEFAULTS));

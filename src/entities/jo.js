@@ -45,6 +45,8 @@ const HEAD_AND_TORSO = [
   '.SSJJJJJJJJJJSS.',
 ];
 
+const BLANK_ROW = '................';
+
 const STAND = [
   ...HEAD_AND_TORSO,
   '....PPPPPPPP....',
@@ -57,17 +59,57 @@ const STAND = [
   '..BBBB....BBBB..',
 ];
 
+// the walk: contact (legs apart, the near leg lit, the far leg in shade),
+// pass (legs together, the far foot lifted, the body a row higher), the
+// other contact, the other pass. Player steps through them by distance
+// walked, never by the clock, so the feet never slide.
 const RUN = [
   ...HEAD_AND_TORSO,
   '....PPPPPPPP....',
   '...PPPPPPPPPP...',
-  '...PPP....PPP...',
-  '..PPP......PPP..',
+  '...ppp....PPP...',
+  '..ppp......PPP..',
   '..ppp......ppp..',
   '.ppp........ppp.',
   '.BBBB......BBBB.',
   'BBBB........BBBB',
 ];
+const RUN_B = [
+  ...HEAD_AND_TORSO,
+  '....PPPPPPPP....',
+  '...PPPPPPPPPP...',
+  '...PPP....ppp...',
+  '..PPP......ppp..',
+  '..ppp......ppp..',
+  '.ppp........ppp.',
+  '.BBBB......BBBB.',
+  'BBBB........BBBB',
+];
+const PASS = [
+  BLANK_ROW,
+  ...HEAD_AND_TORSO.slice(1),
+  '....PPPPPPPP....',
+  '....PPPPPPPP....',
+  '....PPPPpp......',
+  '....PPP.ppp.....',
+  '....ppp..ppp....',
+  '....ppp..BBBB...',
+  '..BBBB..........',
+  '..BBBB..........',
+];
+const PASS_B = [
+  BLANK_ROW,
+  ...HEAD_AND_TORSO.slice(1),
+  '....PPPPPPPP....',
+  '....PPPPPPPP....',
+  '......ppPPPP....',
+  '.....ppp.PPP....',
+  '....ppp..ppp....',
+  '...BBBB..ppp....',
+  '..........BBBB..',
+  '..........BBBB..',
+];
+export const JO_WALK = ['jo-run', 'jo-run-p', 'jo-run-b', 'jo-run-pb'];
 
 // the level tool: a ladle in the kitchen, a trumpet on the stage
 const LADLE = ['.mmmmmm.', '........', '..bbbb..', '.bBBBBb.', '.bBBBBb.', '..bbbb..'];
@@ -81,6 +123,9 @@ const RIM = { outline: 0x14141c };
 export function createJoTextures(scene) {
   createPixelTexture(scene, 'jo-stand', STAND, PALETTE, 2, RIM);
   createPixelTexture(scene, 'jo-run', RUN, PALETTE, 2, RIM);
+  createPixelTexture(scene, 'jo-run-p', PASS, PALETTE, 2, RIM);
+  createPixelTexture(scene, 'jo-run-b', RUN_B, PALETTE, 2, RIM);
+  createPixelTexture(scene, 'jo-run-pb', PASS_B, PALETTE, 2, RIM);
   createPixelTexture(scene, 'jo-hat', HAT, PALETTE, 2, RIM);
   createPixelTexture(scene, 'tool-ladle', LADLE, TOOL_PAL, 3, RIM);
   createPixelTexture(scene, 'tool-trumpet', TRUMPET, TOOL_PAL, 3, RIM);
@@ -122,5 +167,8 @@ export function createJoEveningTextures(scene) {
   for (const [key, rows] of Object.entries(POSES)) createPixelTexture(scene, key, rows, PALETTE, 2, RIM);
   createPixelTexture(scene, 'jo-stand-bare', STAND, BARE, 2, RIM);
   createPixelTexture(scene, 'jo-run-bare', RUN, BARE, 2, RIM);
+  createPixelTexture(scene, 'jo-run-p-bare', PASS, BARE, 2, RIM);
+  createPixelTexture(scene, 'jo-run-b-bare', RUN_B, BARE, 2, RIM);
+  createPixelTexture(scene, 'jo-run-pb-bare', PASS_B, BARE, 2, RIM);
   createPixelTexture(scene, 'jo-sit-bare', POSES['jo-sit'], BARE, 2, RIM);
 }

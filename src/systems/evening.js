@@ -24,7 +24,7 @@ export default class Director {
     this.balloonAt = Phaser.Math.Between(180000, 600000);
     this.weddingDone = false;
     this.dinner = 'out'; // out | going | in | returning
-    this.dinnerAt = 20 * 60000;
+    this.dinnerAt = 13 * 60000;
     this.dinnerQueue = [];
     this.dinnerNext = 0;
     this.kindness = []; // { item, img, npc, at }
@@ -51,7 +51,7 @@ export default class Director {
     // --- sitting: after 8 s, something happens near him
     if (s.joSitting) {
       this.sitT += delta;
-      if (!this.sitFired && this.sitT > 8000) {
+      if (!this.sitFired && this.sitT > 6000) {
         this.sitFired = true;
         this.sitEvent();
       }

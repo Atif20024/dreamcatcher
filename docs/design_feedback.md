@@ -69,3 +69,21 @@ road band repainted (wheat rows, hedgerows, pine fans, snow); the lake as a
 smooth mirror with ripples; vignette + grain.
 Open: near-band balconies/awnings still flat; NPC props (benches, carts,
 stalls) still gridded; the sea's shallows; snow accumulation sprites.
+
+### Round 2 — 2026-09-17 (the Evening, in play)
+Feedback: the sea showed under the facades when the camera rose; an NPC
+floated at the hedge gap; a rainbow at night beside the aurora; "there
+should be more things to do — compete in football, collect something"; the
+weather and events should all happen inside one visit; the character should
+walk like walking.
+Done: a ground band under the facades that follows the camera; NPCs no
+longer stand on the opened hedge; the rainbow lives only in daylight;
+penalties against Noor (five each, she keeps score, ↑/↓ aim and dive, E to
+shoot); twelve lost things across the town and road that go in his pocket,
+counted on the child's map (saved across visits); a "things you could do"
+note pinned beside the map, ticked as he does them; the first-visit weather
+plan shortened (rain at ~2 min, snow at ~6), sit events at 6 s, dinner at
+13 min; four-frame walk cycles for Jo and everyone in town, stepped by
+distance so feet never slide, a quiet footstep on each contact.
+Open: a proper rig-based walk (the character-motion skill) is still the
+right end state; NPC props still gridded; the sea's shallows.

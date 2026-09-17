@@ -6,6 +6,23 @@ import { buildEveningMap, EV, PLACES, ROAD } from './map.js';
 // converted to room-local on the way out, because this level is placed by
 // eye across a very long street.
 const FULL = buildEveningMap();
+
+// the lost things: small, glinting, one per place or so. Nothing needs them;
+// a pocketful is its own reward, and the child's map keeps the count.
+export const FINDS = [
+  { id: 'marble', name: 'a marble', at: 92, y: 27, tint: 0x60b0e8 },
+  { id: 'hairpin', name: 'a hairpin', at: 124, y: 30, tint: 0xe8c860 },
+  { id: 'pawn', name: 'a chess pawn', at: 166, y: 31, tint: 0xf2ece0 },
+  { id: 'cap', name: 'a bottle cap', at: 200, y: 31, tint: 0xc03a2a },
+  { id: 'bell', name: 'a bicycle bell', at: 222, y: 28, tint: 0xd8d8e0 },
+  { id: 'feather', name: 'a pigeon feather', at: 252, y: 22, tint: 0xa0a0b0 },
+  { id: 'chalk', name: 'a chalk stub', at: 290, y: 31, tint: 0xf8f0f0 },
+  { id: 'seeds', name: 'a seed packet', at: 325, y: 31, tint: 0x7aa84a },
+  { id: 'kitetail', name: 'a bit of kite tail', at: 357, y: 16, tint: 0xe86a6a },
+  { id: 'ticket', name: 'a ticket stub', at: 388, y: 26, tint: 0xf2d580 },
+  { id: 'pinecone', name: 'a pinecone', at: 640, y: 25, tint: 0x8a6a4a },
+  { id: 'stone', name: 'a very flat stone', at: 552, y: 29, tint: 0x8a8a94 },
+];
 const slice = (c0, c1) => FULL.map((row) => row.slice(c0, c1 + 1));
 
 // y = the tile row the thing stands in (one above the surface it stands on);
@@ -122,6 +139,7 @@ const O = {
     { type: 'carry', item: 'ball', at: 302, y: 31 },
     { type: 'npc', who: 'waiting_kid', at: 304, y: 31 },
     { type: 'activity', id: 'ball', at: 304, y: 31 },
+    { type: 'activity', id: 'shootout', at: 308, y: 31 },
     { type: 'yardgate', at: 310, y: 31, id: 'school_gate' },
     { type: 'cat', at: 307, y: 31, routine: 'wanderer' },
     { type: 'puddle', at: 297, y: 31, w: 3 },
@@ -238,7 +256,7 @@ function room(id, c0, c1, extra = {}) {
     bg: { landmark: id },
     ...extra,
     // (`to` stays a WORLD column: RoomBuilder only offsets x)
-    objects: (O[id] || []).map(({ at, ...o }) => ({ ...o, x: at - c0 })),
+    objects: [...(O[id] || []), ...FINDS.filter((f) => f.at >= c0 && f.at <= c1).map((f) => ({ type: 'find', ...f }))].map(({ at, ...o }) => ({ ...o, x: at - c0 })),
   };
 }
 

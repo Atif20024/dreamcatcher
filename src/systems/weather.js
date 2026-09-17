@@ -8,22 +8,23 @@ import Phaser from 'phaser';
 // This file owns what falls and what settles; the scene owns how the town
 // reacts (people, cats, sheets, the rainbow) through the on* callbacks.
 
+// a player may only come once: the whole sky happens inside a short visit
 const FIRST_VISIT = [
-  ['clear', 230],
-  ['wind', 25],
-  ['rain', 80],
-  ['clear', 250],
-  ['wind', 22],
+  ['clear', 110],
+  ['wind', 20],
+  ['rain', 75],
+  ['clear', 140],
+  ['wind', 20],
   ['snow', 110],
 ];
 const CYCLE = [
-  ['clear', 330],
-  ['wind', 25],
-  ['rain', 75],
-  ['clear', 360],
-  ['wind', 25],
+  ['clear', 220],
+  ['wind', 22],
+  ['rain', 70],
+  ['clear', 240],
+  ['wind', 22],
   ['snow', 100],
-  ['clear', 300],
+  ['clear', 200],
 ];
 
 export default class Weather {

@@ -363,6 +363,14 @@ export function buildWorld(scene, objects) {
         stand('ev-swingset', o, -10.6);
         break;
       }
+      case 'find': {
+        const img = stand('ev-find', o, 9.5).setTint(o.tint || 0xffffff);
+        img.y -= 3;
+        img.glint = scene.add.image(img.x, img.y - 2, 'ev-glint').setDepth(9.6).setAlpha(0.8);
+        scene.tweens.add({ targets: img.glint, alpha: { from: 0.2, to: 0.9 }, scale: { from: 0.6, to: 1.1 }, duration: 900 + ((o.at * 37) % 600), yoyo: true, repeat: -1 });
+        (out.finds ||= []).push({ id: o.id, name: o.name, img });
+        break;
+      }
       case 'carry': {
         const key = { ball: 'ev-ball', can: 'ev-can', stick: 'ev-stick' }[o.item];
         const img = stand(key, o, 9);

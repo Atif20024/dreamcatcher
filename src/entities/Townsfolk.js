@@ -50,7 +50,7 @@ export default class Townsfolk {
     const laughing = this.scene.time.now < this.laughUntil;
     if (this.state === 'sit') return laughing ? `${this.key}-sitlaugh` : `${this.key}-sit`;
     if (laughing) return `${this.key}-laugh`;
-    if (this.stride && this.state === 'walk') return free ? `${this.key}-free#1` : `${this.key}#1`;
+    if (this.stride && this.state === 'walk') return free ? `${this.key}-free#${this.stride}` : `${this.key}#${this.stride}`;
     return free ? `${this.key}-free` : this.key;
   }
 
@@ -157,9 +157,9 @@ export default class Townsfolk {
       this.x += step;
       this.walked += Math.abs(step);
       // legs change by distance, never by clock: no sliding
-      if (this.walked > 11 * this.scale) {
+      if (this.walked > 7 * this.scale) {
         this.walked = 0;
-        this.stride = 1 - this.stride;
+        this.stride = (this.stride % 4) + 1; // 1 contact, 2 pass, 3 contact, 4 pass
       }
       this.art.setFlipX(dx < 0);
       this.y = this.scene.groundY(this.x, this.y - 40);

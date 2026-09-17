@@ -79,6 +79,7 @@ export default class Sky {
     this.buildMoon();
     this.buildAurora();
     this.rainbow = scene.add.graphics().setScrollFactor(0).setDepth(depth + 2.2).setAlpha(0);
+    this.rainbowLevel = 0;
     this.balloon = null;
     this.nextShooting = 50000;
     this.nextSatellite = 30000;
@@ -388,6 +389,9 @@ export default class Sky {
     const wob = Math.sin(t / 7);
     this.auroraGround = lerpC(Phaser.Display.Color.GetColor(groundR / n, groundG / n, groundB / n), wob > 0 ? 0x9a70d8 : 0x60e8a0, Math.abs(wob) * 0.5);
 
+    // a rainbow needs the sun: it fades with the light and never shows at night
+    this.rainbow.setAlpha((this.rainbowLevel || 0) * (1 - Phaser.Math.Clamp((p - 1.5) / 1.5, 0, 1)) * (1 - this.weather.rain));
+
     // the balloon, if today is a balloon day
     if (this.balloon) {
       this.balloon.x += dt * 6;
@@ -427,9 +431,9 @@ export default class Sky {
         g.arc(cx, cy, 320 - i * 4, Math.PI, 0);
         g.strokePath();
       });
-      this.scene.tweens.add({ targets: g, alpha: 1, duration: 4000 });
+      this.scene.tweens.add({ targets: this, rainbowLevel: 1, duration: 4000 });
     } else {
-      this.scene.tweens.add({ targets: g, alpha: 0, duration: 6000 });
+      this.scene.tweens.add({ targets: this, rainbowLevel: 0, duration: 6000 });
     }
   }
 

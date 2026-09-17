@@ -316,15 +316,20 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     // animation frames
     const moving = left || right;
     if (moving && grounded) {
-      this.runFrameTimer += delta;
-      if (this.runFrameTimer > 120) {
-        this.runFrameTimer = 0;
-        this.art.setTexture(this.art.texture.key === 'jo-run' ? 'jo-stand' : 'jo-run');
+      // the walk cycle advances with the ground covered, never the clock
+      this.walkDist = (this.walkDist || 0) + Math.abs(body.velocity.x) * (delta / 1000);
+      if (this.walkDist > 9) {
+        this.walkDist = 0;
+        this.walkFrame = ((this.walkFrame || 0) + 1) % 4;
+        if (this.walkFrame % 2 === 0) sfx('step');
       }
+      this.art.setTexture(['jo-run', 'jo-run-p', 'jo-run-b', 'jo-run-pb'][this.walkFrame || 0]);
     } else if (!grounded) {
       this.art.setTexture('jo-run');
+      this.walkDist = 0;
     } else {
       this.art.setTexture('jo-stand');
+      this.walkDist = 0;
     }
     // `bodyTint` is what Jo is wearing (the astronaut's flight suit, say);
     // the pepper-cloud green is a temporary override on top of it. Resetting

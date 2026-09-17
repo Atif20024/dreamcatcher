@@ -481,6 +481,35 @@ export function paintProps(scene) {
     ctx.fillRect(0, 0, 32, 32);
   });
   smoothTex(scene, 'ev-glow');
+  // a lost thing: a small bright shape, tinted per item; and its glint
+  paintTexture(scene, 'ev-find', 10, 10, (ctx) => {
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.ellipse(5, 6, 4, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath();
+    ctx.ellipse(5, 7.5, 3.5, 1.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillRect(3, 4, 2, 1);
+  });
+  paintTexture(scene, 'ev-glint', 16, 16, (ctx) => {
+    ctx.strokeStyle = 'rgba(255,250,220,0.95)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(8, 1);
+    ctx.lineTo(8, 15);
+    ctx.moveTo(1, 8);
+    ctx.lineTo(15, 8);
+    ctx.stroke();
+    const g = ctx.createRadialGradient(8, 8, 0, 8, 8, 6);
+    g.addColorStop(0, 'rgba(255,250,220,0.8)');
+    g.addColorStop(1, 'rgba(255,250,220,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 16, 16);
+  });
+  smoothTex(scene, 'ev-glint');
   // a snowflake: soft, round, never a square
   paintTexture(scene, 'ev-flake', 8, 8, (ctx) => {
     const g = ctx.createRadialGradient(4, 4, 0, 4, 4, 4);
