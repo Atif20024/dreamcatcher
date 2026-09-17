@@ -161,6 +161,7 @@ export default class EveningScene extends BaseLevel {
     this.player = p;
     p.speed = 215;
     p.upJumps = true; // ↑ jumps, as it does everywhere else in the game
+    p.quietSteps = true; // the scene plays steps, crunches and splashes itself
     p.tool.setTexture('tool-trumpet');
     this.hatBase = p.hat.tintTopLeft; // whatever Bilal sold him, under the evening's light
     this.joShadow = this.add.image(p.x, p.y, 'ev-shadow').setOrigin(0.05, 0.5).setDepth(9).setAlpha(0.3);
@@ -692,7 +693,7 @@ export default class EveningScene extends BaseLevel {
     else if (this.joSitting) key = this.lookingUp || (now < this.poseUntil && this.poseKey === 'jo-sit-up') ? 'jo-sit-up' : this.barefoot ? 'jo-sit-bare' : this.sitAnim || 'jo-sit';
     else if (this.lookingUp) key = 'jo-lookup';
     else if (now < this.poseUntil && this.poseKey) key = this.poseKey;
-    else if (this.barefoot) key = /^jo-(run|run-p|run-b|run-pb|stand)$/.test(p.art.texture.key) ? `${p.art.texture.key}-bare` : null;
+    else if (this.barefoot) key = /^jo-(run|stand|idle-b|jump|fall|walk-\d)$/.test(p.art.texture.key) ? `${p.art.texture.key}-bare` : null;
     if (key && p.art.texture.key !== key) p.art.setTexture(key);
     const wet = now < this.wetUntil || this.weather.rain > 0.2;
     const tint = mulC(wet ? 0xb4bccc : 0xffffff, L.ambient);
@@ -882,6 +883,8 @@ export default class EveningScene extends BaseLevel {
   leaveSeat(x, boat = false) {
     const p = this.player;
     const s = this.joSeated;
+    // the E that got him off must not also seat him again this frame
+    if (this._pressed) this._pressed.E = false;
     s.img.destroy();
     s.hat.destroy();
     this.joSeated = null;
@@ -1518,8 +1521,9 @@ export default class EveningScene extends BaseLevel {
     if (!p.shown) return;
     // footsteps (and prints in the snow)
     const key = p.art.texture.key;
-    if (key !== this.lastArtKey) {
-      if ((key === 'jo-run' || key === 'jo-run-bare') && p.body.onFloor()) {
+    if (p.stepEvent !== this.lastStepEvent) {
+      this.lastStepEvent = p.stepEvent;
+      if (p.body.onFloor()) {
         const snowy = this.weather.cover > 0.25 || p.x > 638 * T;
         sfx(snowy ? 'crunch' : 'step');
         if (snowy) this.footprint(p.x + (p.flipX ? 4 : -4), p.y + 24);

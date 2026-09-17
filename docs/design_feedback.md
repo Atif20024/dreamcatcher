@@ -87,3 +87,23 @@ plan shortened (rain at ~2 min, snow at ~6), sit events at 6 s, dinner at
 distance so feet never slide, a quiet footstep on each contact.
 Open: a proper rig-based walk (the character-motion skill) is still the
 right end state; NPC props still gridded; the sea's shallows.
+
+### Round 3 — 2026-09-17 (walking, the swing, clutter)
+Feedback: "core player walking seems very un-natural"; stuck on the swing;
+"too many people and texts at one place — each person should have their
+environment, groups only where a group is doing something."
+Done: Jo's walk rebuilt from the four key poses of the motion tables —
+contact, recoil, passing, high, then mirrored (8 frames): near leg lit, far
+leg in shade, hips −1/0/+1 rows, arms opposite the legs, hat and tool one
+frame behind the hips; the frame rate is locked to the body's actual
+ground speed (a frame per 6 px) so feet never slide; footsteps and dust on
+the contacts; a breathing idle; tuck and reach poses in the air. The
+townsfolk share the same eight leg frames and hip bob. The swing: leaving
+with E re-read the same press and sat him straight back down. The square:
+Bo alone under his lamp, then the postbox, the fountain, the chess table
+with its audience (the only crowd, by design), then the bakery; Adaeze
+skips in the orchard grass, Bilal's tea is at the top of the canal steps,
+Bastien washes a step on the steep street; only one overheard
+conversation runs in the whole town at a time.
+Rule from now on: one person per screen-third unless a group scene is
+happening there; never two speech bubbles on one screen.

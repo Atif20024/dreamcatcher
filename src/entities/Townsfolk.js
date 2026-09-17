@@ -157,9 +157,9 @@ export default class Townsfolk {
       this.x += step;
       this.walked += Math.abs(step);
       // legs change by distance, never by clock: no sliding
-      if (this.walked > 7 * this.scale) {
+      if (this.walked > 6 * this.scale) {
         this.walked = 0;
-        this.stride = (this.stride % 4) + 1; // 1 contact, 2 pass, 3 contact, 4 pass
+        this.stride = (this.stride % 8) + 1; // the eight walk frames, by distance
       }
       this.art.setFlipX(dx < 0);
       this.y = this.scene.groundY(this.x, this.y - 40);
@@ -177,8 +177,10 @@ export default class Townsfolk {
     this.frameKey();
     // breathing: a one-pixel rise and fall, sitting or standing
     const breath = this.still ? 0 : Math.sin(time / 900 + this.bob) * 0.6;
-    this.art.setPosition(this.x, this.y + breath - this.hop);
-    this.rim.setPosition(this.x - 1.5, this.y + breath - this.hop).setFlipX(this.art.flipX).setAngle(this.art.angle);
+    // the hips drop on recoil and rise on high, like Jo's
+    const hips = this.state === 'walk' && this.stride ? -[0, 0, -1, 0, 1, 0, -1, 0, 1][this.stride] * 2 * this.scale : 0;
+    this.art.setPosition(this.x, this.y + breath - this.hop + hips);
+    this.rim.setPosition(this.x - 1.5, this.y + breath - this.hop + hips).setFlipX(this.art.flipX).setAngle(this.art.angle);
     this.shadow.setPosition(this.x - 4, this.y - 1);
     if (light) {
       this.art.setTint(light.ambient);

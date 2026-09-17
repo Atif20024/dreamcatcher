@@ -1,4 +1,5 @@
 import { createPixelTexture } from '../../utils/pixelart.js';
+import { WALK_LEGS } from '../../entities/jo.js';
 import { CAST, EXTRAS } from './cast.js';
 
 // THE LONG EVENING — people, animals and things, as string art like the rest
@@ -32,10 +33,7 @@ const HEAD_LAUGH = ['.....SSSSSS.....', '....SSSSSSSS....', '....SbbSSbbS....', 
 const TORSO = ['....TTTTTTTT....', '..TTTTTTTTTTTT..', '.TTtTTTTTTTTtTT.', '.TTtTTTTTTTTtTT.', '.TTtTTTTTTTTtTT.', '.SSTTTTTTTTTTSS.', '....TTTTTTTT....'];
 const LEGS = {
   stand: ['....PPPPPPPP....', '....PPPPPPPP....', '....PPP..PPP....', '....PPP..PPP....', '....ppp..ppp....', '....ppp..ppp....', '..BBBB....BBBB..', '..BBBB....BBBB..'],
-  stride: ['....PPPPPPPP....', '...PPPPPPPPPP...', '...ppp....PPP...', '..ppp......PPP..', '..ppp......ppp..', '.ppp........ppp.', '.BBBB......BBBB.', 'BBBB........BBBB'],
-  stride2: ['....PPPPPPPP....', '...PPPPPPPPPP...', '...PPP....ppp...', '..PPP......ppp..', '..ppp......ppp..', '.ppp........ppp.', '.BBBB......BBBB.', 'BBBB........BBBB'],
-  pass: ['....PPPPPPPP....', '....PPPPPPPP....', '....PPPPpp......', '....PPP.ppp.....', '....ppp..ppp....', '....ppp..BBBB...', '..BBBB..........', '..BBBB..........'],
-  pass2: ['....PPPPPPPP....', '....PPPPPPPP....', '......ppPPPP....', '.....ppp.PPP....', '....ppp..ppp....', '...BBBB..ppp....', '..........BBBB..', '..........BBBB..'],
+  stride: WALK_LEGS[0],
   sit: ['................', '................', '....PPPPPPPP....', '..PPPPPPPPPPPP..', '..PPPPPPPPPPPP..', '..ppp......ppp..', '..ppp......ppp..', '..BBB......BBB..'],
 };
 const HELD = {
@@ -69,19 +67,13 @@ export function createPersonTextures(scene, key, look) {
   const pal = personPal(look.pal);
   const hat = look.hat || 'none';
   createPixelTexture(scene, key, person(hat, HEAD, LEGS.stand, look.held), pal, 2, RIM);
-  createPixelTexture(scene, `${key}#1`, person(hat, HEAD, LEGS.stride, look.held), pal, 2, RIM);
-  createPixelTexture(scene, `${key}#2`, person(hat, HEAD, LEGS.pass, look.held), pal, 2, RIM);
-  createPixelTexture(scene, `${key}#3`, person(hat, HEAD, LEGS.stride2, look.held), pal, 2, RIM);
-  createPixelTexture(scene, `${key}#4`, person(hat, HEAD, LEGS.pass2, look.held), pal, 2, RIM);
+  WALK_LEGS.forEach((legs, i) => createPixelTexture(scene, `${key}#${i + 1}`, person(hat, HEAD, legs, look.held), pal, 2, RIM));
   createPixelTexture(scene, `${key}-sit`, person(hat, HEAD, LEGS.sit, look.held), pal, 2, RIM);
   createPixelTexture(scene, `${key}-laugh`, person(hat, HEAD_LAUGH, LEGS.stand, look.held), pal, 2, RIM);
   createPixelTexture(scene, `${key}-sitlaugh`, person(hat, HEAD_LAUGH, LEGS.sit, look.held), pal, 2, RIM);
   // the same person with empty hands, for when they put their thing down
   createPixelTexture(scene, `${key}-free`, person(hat, HEAD, LEGS.stand, null), pal, 2, RIM);
-  createPixelTexture(scene, `${key}-free#1`, person(hat, HEAD, LEGS.stride, null), pal, 2, RIM);
-  createPixelTexture(scene, `${key}-free#2`, person(hat, HEAD, LEGS.pass, null), pal, 2, RIM);
-  createPixelTexture(scene, `${key}-free#3`, person(hat, HEAD, LEGS.stride2, null), pal, 2, RIM);
-  createPixelTexture(scene, `${key}-free#4`, person(hat, HEAD, LEGS.pass2, null), pal, 2, RIM);
+  WALK_LEGS.forEach((legs, i) => createPixelTexture(scene, `${key}-free#${i + 1}`, person(hat, HEAD, legs, null), pal, 2, RIM));
 }
 
 // --- animals -----------------------------------------------------------------

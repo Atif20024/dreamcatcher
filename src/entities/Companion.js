@@ -114,7 +114,7 @@ export default class Companion {
         f.target = null;
         f.art.setFlipX(p.flipX);
         // the walk cycles sync
-        f.stride = p.art.texture.key.startsWith('jo-run') && moving ? 1 : 0;
+        f.stride = moving ? p.walkFrame + 1 : 0;
         this.handG.setVisible(true).setPosition((p.x + f.x) / 2, p.y + 4);
         this.footsteps();
         return;

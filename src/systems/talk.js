@@ -57,6 +57,9 @@ export default class Talk {
           }
           const t0 = this.pairClock.get(key) || time;
           this.pairClock.set(key, t0);
+          // one conversation at a time in the whole town: two bubbles on one
+          // screen is clutter, and the second is never heard anyway
+          if (this.active.length) break;
           if (time - t0 > 8000 && time > (this.cool.get(a.id) || 0) && time > (this.cool.get(b.id) || 0)) {
             this.pairClock.set(key, time + 30000);
             this.converse(a, b, ctx);
