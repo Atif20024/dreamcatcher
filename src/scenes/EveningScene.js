@@ -150,7 +150,7 @@ export default class EveningScene extends BaseLevel {
     this.climbGrid = built.climbGrid;
     this.ladderGrid = built.ladderGrid;
     this.surfaceGrid = built.surfaceGrid;
-    this.ground = makeGround(built);
+    this.ground = makeGround(built, (tx, ty) => this.roadOpen && EV.HEDGE.includes(tx) && ty >= 21 && ty <= 26);
     this.groundY = (x, fromY) => this.ground.groundY(x, fromY);
     this.terrainCols = bucketTerrain(this);
 

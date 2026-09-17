@@ -37,7 +37,9 @@ export const mulC = (a, b) => {
 };
 
 // --- ground queries ---------------------------------------------------------------
-export function makeGround(built) {
+// gone(tx, ty): a tile the map still lists but the scene has removed (the
+// hedge, once the road opens) — nobody stands on it
+export function makeGround(built, gone = () => false) {
   const charAt = built.charAt;
   const H = built.height;
   const walkable = (ch) => isSolidChar(ch) || roleOf(ch) === 'oneway';
@@ -46,6 +48,7 @@ export function makeGround(built) {
     const tx = Math.floor(x / T);
     let ty = Math.max(0, Math.floor(fromY / T));
     for (; ty < H; ty++) {
+      if (gone(tx, ty)) continue;
       const ch = charAt(tx, ty);
       const role = roleOf(ch);
       if (role.startsWith('slope')) return ty * T + slopeSurface(role, x / T - tx) * T;
