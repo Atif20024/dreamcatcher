@@ -68,9 +68,11 @@ export default class Sky {
     this.canvas = scene.textures.exists('ev-sky') ? scene.textures.get('ev-sky') : scene.textures.createCanvas('ev-sky', 4, 256);
     this.gradImg = scene.add.image(this.x0, this.y0, 'ev-sky').setOrigin(0).setDisplaySize(this.spanW, this.spanH).setScrollFactor(0).setDepth(depth);
 
-    // the low sun, rim-lighting everything from the west
-    this.sunGlow = scene.add.image(0, 0, 'ev-glow').setScrollFactor(0).setDepth(depth + 0.2).setScale(9).setTint(0xf8d890).setAlpha(0.55);
-    this.sun = scene.add.circle(0, 0, 26, 0xfff2c8).setScrollFactor(0).setDepth(depth + 0.3);
+    // the low sun, rim-lighting everything from the west: a wide painted
+    // glow, a soft-edged disc, and a haze lying along the horizon
+    this.sunGlow = scene.add.image(0, 0, 'ev-sunglow').setScrollFactor(0).setDepth(depth + 0.2).setScale(1.6).setTint(0xf8d890).setAlpha(0.75).setBlendMode(Phaser.BlendModes.ADD);
+    this.sun = scene.add.image(0, 0, 'ev-sundisc').setScrollFactor(0).setDepth(depth + 0.3).setScale(0.62).setTint(0xfff2c8);
+    this.haze = scene.add.image(this.x0, this.horizonY, 'ev-haze').setOrigin(0, 0.5).setScrollFactor(0).setDepth(depth + 0.15).setDisplaySize(this.spanW, 200).setAlpha(0.5);
 
     this.buildClouds();
     this.buildStars();
@@ -89,23 +91,17 @@ export default class Sky {
     const s = this.scene;
     this.clouds = [];
     const rand = new Phaser.Math.RandomDataGenerator(['clouds']);
-    for (let i = 0; i < 7; i++) {
-      const c = s.add.container(rand.between(this.x0, this.x0 + this.spanW), rand.between(40, this.horizonY - 120)).setScrollFactor(0).setDepth(this.depth + 1);
-      const parts = [];
-      const n = rand.between(3, 6);
-      for (let k = 0; k < n; k++) {
-        const e = s.add.ellipse(k * 26 - n * 13, rand.between(-8, 8), rand.between(50, 90), rand.between(16, 26), 0xffffff, 1);
-        parts.push(e);
-        c.add(e);
-      }
-      // the underside catches the light
-      const belly = s.add.ellipse(0, 10, n * 30, 10, 0xffffff, 1);
-      parts.push(belly);
-      c.add(belly);
-      c.parts = parts;
-      c.belly = belly;
-      c.speed = rand.realInRange(2, 6);
-      this.clouds.push(c);
+    // painted: a body the sky tints and a belly the horizon tints. The far
+    // ones are small and low and slow; the near ones big and quick.
+    for (let i = 0; i < 9; i++) {
+      const far = i < 4;
+      const k = rand.between(0, 5);
+      const sc = far ? rand.realInRange(0.35, 0.6) : rand.realInRange(0.8, 1.3);
+      const y = far ? rand.between(this.horizonY - 130, this.horizonY - 60) : rand.between(30, this.horizonY - 150);
+      const x = rand.between(this.x0, this.x0 + this.spanW);
+      const body = s.add.image(x, y, `ev-cloud-${k}`).setScrollFactor(0).setDepth(this.depth + (far ? 0.9 : 1)).setScale(sc);
+      const belly = s.add.image(x, y, `ev-cloud-${k}-belly`).setScrollFactor(0).setDepth(this.depth + (far ? 0.91 : 1.01)).setScale(sc);
+      this.clouds.push({ body, belly, speed: far ? rand.realInRange(1, 2.5) : rand.realInRange(3, 7), far, w: body.width * sc });
     }
   }
 
@@ -279,22 +275,25 @@ export default class Sky {
     // sun: low in the west, sinking as the road goes east
     const sunX = this.camW * 0.16 - cam.scrollX * 0.004;
     const sink = Phaser.Math.Clamp(p / 4, 0, 1);
-    const sunY = this.horizonY - 34 + sink * 80;
+    const sunY = this.horizonY - 118 + sink * 170;
     this.sun.setPosition(sunX, sunY).setAlpha(1 - Phaser.Math.Clamp((p - 3.2) / 0.8, 0, 1));
-    this.sun.setFillStyle(lerpC(0xfff2c8, 0xf87848, sink));
-    this.sunGlow.setPosition(sunX, sunY).setTint(lerpC(0xf8d890, 0xe86a58, sink)).setAlpha(0.55 * (1 - Phaser.Math.Clamp((p - 4) / 1.5, 0, 1)) * (1 - this.weather.rain * 0.7));
+    this.sun.setTint(lerpC(0xfff2c8, 0xf87848, sink));
+    this.sunGlow.setPosition(sunX, sunY).setTint(lerpC(0xf8d890, 0xe86a58, sink)).setAlpha(0.75 * (1 - Phaser.Math.Clamp((p - 4) / 1.5, 0, 1)) * (1 - this.weather.rain * 0.7));
     this.sunPos = { x: sunX, y: sunY, up: this.sun.alpha };
+    // the haze takes the horizon colour and thins as the night comes
+    this.haze.setTint(this.skyCols[2]).setAlpha((0.5 - Phaser.Math.Clamp((p - 4) / 4, 0, 1) * 0.35) * (1 + this.weather.rain * 0.4)).setBlendMode(Phaser.BlendModes.SCREEN);
 
     // clouds catch the light from underneath: white, gold, pink, grey, gone
     const [, mid, hor] = this.skyCols;
-    const cloudA = (1 - Phaser.Math.Clamp((p - 5) / 1.5, 0, 1)) * (0.5 + this.weather.rain * 0.4);
+    const cloudA = (1 - Phaser.Math.Clamp((p - 5) / 1.5, 0, 1)) * (0.92 + this.weather.rain * 0.08);
+    const bodyCol = this.weather.rain > 0.2 ? lerpC(0xd8d0d8, 0x7a7a88, this.weather.rain) : lerpC(0xfff8f0, mid, Math.min(1, p / 4) * 0.85);
+    const bellyCol = this.weather.rain > 0.2 ? lerpC(0xb0a8b0, 0x5a5a68, this.weather.rain) : lerpC(lerpC(hor, 0xf0b070, 0.5), 0xf8a878, Math.min(1, p / 3));
     for (const c of this.clouds) {
-      c.x += c.speed * dt * (1 + this.weather.rain * 2);
-      if (c.x > this.x0 + this.spanW + 100) c.x = this.x0 - 160;
-      const body = this.weather.rain > 0.2 ? lerpC(0xd8d0d8, 0x7a7a88, this.weather.rain) : lerpC(0xfff4e8, mid, Math.min(1, p / 4));
-      c.parts.forEach((e) => e.setFillStyle(body, 1));
-      c.belly.setFillStyle(lerpC(hor, 0xf8a878, Math.min(1, p / 3)), 1);
-      c.setAlpha(cloudA);
+      c.body.x += c.speed * dt * (1 + this.weather.rain * 2);
+      if (c.body.x > this.x0 + this.spanW + c.w) c.body.x = this.x0 - c.w;
+      c.belly.x = c.body.x;
+      c.body.setTint(bodyCol).setAlpha(cloudA * (c.far ? 0.8 : 1));
+      c.belly.setTint(bellyCol).setAlpha(cloudA * 0.85 * (c.far ? 0.8 : 1));
     }
 
     // stars: one, then three, then a dozen, then everyone

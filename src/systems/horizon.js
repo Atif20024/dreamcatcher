@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { PLACES, EV } from '../data/evening/map.js';
 import { lerpC } from './sky.js';
+import { fbmTiled, fbm, gradientV, grain, wash, foliage, trunk, clump, dab, stamp, mix, shade, hex as phex, rgba } from '../art/paint.js';
 
 // A1 — the horizon: four bands behind everything, and the reason this place
 // feels bigger than every other level.
@@ -81,20 +82,27 @@ export default class Horizon {
     const H = 140;
     const ct = canvasTex(this.scene, 'ev-band-sea', W, H);
     const ctx = ct.getContext();
+    // painted water: a gradient from the pale horizon to the deep, with
+    // long swells of noise and a scatter of glints where the light catches
+    const img = ctx.createImageData(W, H);
+    const d = img.data;
     for (let y = 0; y < H; y++) {
-      ctx.fillStyle = hex(lerpC(0x9ab0c0, 0x3a5470, Math.min(1, y / 70)));
-      ctx.fillRect(0, y, W, 1);
+      const t = Math.min(1, y / 90);
+      const base = lerpC(0xb8c8d4, 0x3a5878, t);
+      for (let x = 0; x < W; x++) {
+        const n = fbmTiled(x / 60, y / 6, W / 60, 5, 3);
+        const swell = (n - 0.5) * 0.35 * (0.3 + t);
+        const glint = n > 0.68 && y > 3 ? (n - 0.68) * 2.5 * (1 - t * 0.6) : 0;
+        const c = mix(mix(base, 0x1e3a58, Math.max(0, -swell)), 0xfff4d8, Math.max(0, swell) * 0.5 + glint);
+        const k = (y * W + x) * 4;
+        d[k] = (c >> 16) & 255;
+        d[k + 1] = (c >> 8) & 255;
+        d[k + 2] = c & 255;
+        d[k + 3] = 255;
+      }
     }
-    // long low swells
-    for (let i = 0; i < 90; i++) {
-      const y = Math.floor(4 + Math.pow(this.rand.frac(), 1.5) * (H - 10));
-      const x = this.rand.between(0, W);
-      const w = this.rand.between(6, 30);
-      ctx.fillStyle = 'rgba(255,255,255,0.12)';
-      ctx.fillRect(x, y, w, 1);
-      if (x + w > W) ctx.fillRect(x - W, y, w, 1);
-    }
-    ctx.fillStyle = '#f8e8c0';
+    ctx.putImageData(img, 0, 0);
+    ctx.fillStyle = 'rgba(255,240,210,0.7)';
     ctx.fillRect(0, 0, W, 1);
     ct.refresh();
     this.bands.sea = this.band('ev-band-sea', W, H, W / WRAP_PX, 0.08, this.depth, this.horizonY, true);
@@ -133,28 +141,56 @@ export default class Horizon {
       { col: 0x7a80a8, base: 172, amps: [[2, 20], [4, 22], [9, 8]], seed: 3 },
       { col: 0x5a6488, base: 190, amps: [[3, 34], [6, 16], [17, 5]], seed: 4, snow: true, pines: true },
     ];
-    for (const L of layers) {
+    // painted ridges: a noisy skyline, faces that catch the western sun,
+    // haze thickening toward the foot of each range, pines on the nearest
+    layers.forEach((L, li) => {
+      const tops = new Float32Array(W);
+      for (let x = 0; x < W; x++) tops[x] = L.base - 60 - ridge(x, W, L.seed, L.amps) - (fbmTiled(x / 14, li * 9, W / 14, 40 + li, 3) - 0.5) * 14;
+      const litCol = mix(L.col, 0xf8d8a8, 0.42);
+      const shadeCol = mix(L.col, 0x2a3050, 0.28);
+      const footCol = mix(L.col, 0xe8c8a8, 0.45 - li * 0.08);
+      const faces = new Float32Array(W);
+      for (let x = 0; x < W; x++) faces[x] = Math.max(-1, Math.min(1, (tops[(x - 4 + W) % W] - tops[(x + 4) % W]) / 8));
       for (let x = 0; x < W; x++) {
-        const top = Math.round(L.base - 60 - ridge(x, W, L.seed, L.amps));
-        ctx.fillStyle = hex(L.col);
+        const top = Math.round(tops[x]);
+        let face = 0;
+        for (let k = -6; k <= 6; k++) face += faces[(x + k + W) % W];
+        face /= 13; // >0: faces west, lit
+        const col = face > 0 ? mix(L.col, litCol, face) : mix(L.col, shadeCol, -face);
+        const gr = ctx.createLinearGradient(0, top, 0, H);
+        gr.addColorStop(0, phex(col));
+        gr.addColorStop(0.55, phex(mix(col, footCol, 0.35)));
+        gr.addColorStop(1, phex(footCol));
+        ctx.fillStyle = gr;
         ctx.fillRect(x, top, 1, H - top);
-        if (L.pines && x % 3 === 0 && this.rand.frac() < 0.5) {
-          ctx.fillStyle = 'rgba(30,50,60,0.35)';
-          const py = top + this.rand.between(26, 60);
-          ctx.fillRect(x, py, 1, 3);
-        }
         if (L.snow) {
           // the always-there caps, and a much bigger cap for when it snows
           const peak = 1 - (top - (L.base - 110)) / 110;
           if (peak > 0.55) {
-            ctx.fillStyle = '#f2f4fa';
-            ctx.fillRect(x, top, 1, Math.round((peak - 0.55) * 30));
+            ctx.fillStyle = face > 0 ? '#fbf8f0' : '#d8dce8';
+            ctx.fillRect(x, top, 1, Math.round((peak - 0.55) * 30 * (0.7 + fbmTiled(x / 5, 3, W / 5, 9, 2) * 0.6)));
           }
-          sctx.fillStyle = '#f8faff';
+          sctx.fillStyle = face > 0 ? '#fbfaff' : '#dfe4f0';
           sctx.fillRect(x, top, 1, Math.max(3, Math.round(peak * 46)));
         }
       }
-    }
+      if (L.pines) {
+        for (let x = 0; x < W; x += 2) {
+          if (this.rand.frac() > 0.55) continue;
+          const py = tops[x] + this.rand.between(22, 70);
+          dab(ctx, x, py, 1.6, 4, 0, 0x2a3e48, 0.45, 0.2);
+        }
+      }
+      // a soft strip of shadow where the next range stands in front
+      if (li > 0) {
+        for (let x = 0; x < W; x++) {
+          const top = Math.round(tops[x]);
+          ctx.fillStyle = 'rgba(40,50,80,0.16)';
+          ctx.fillRect(x, top, 1, 6);
+        }
+      }
+    });
+    grain(ctx, 0, 0, W, H, 0.035, 17);
     ct.refresh();
     snow.refresh();
     this.bands.mtn = this.band('ev-band-mtn', W, H, W / WRAP_PX, 0.12, this.depth + 1, this.horizonY + 8);
@@ -173,20 +209,42 @@ export default class Horizon {
     const walls = [0xe8d0a8, 0xd8b890, 0xc8a078, 0xe0c8b0, 0xd0b098];
     const roofs = [0xb85a3a, 0xa04a30, 0xc86a48, 0x8a4a3a];
     const hill = (x) => 150 - ridge(x, W, 7, [[1, 40], [3, 18], [7, 6]]);
-    // the hill itself, behind the houses
+    // the hill itself, behind the houses: a warm green, lit on the crown,
+    // a little olive in the folds
     for (let x = 0; x < W; x++) {
-      ctx.fillStyle = '#8a9a70';
       const top = Math.round(hill(x) - 30);
+      const n = fbmTiled(x / 40, 2, W / 40, 4, 3);
+      const gr = ctx.createLinearGradient(0, top, 0, H);
+      gr.addColorStop(0, phex(mix(0x9ab070, 0xc8c880, n * 0.6)));
+      gr.addColorStop(0.5, phex(mix(0x7e9460, 0x9aa070, n * 0.5)));
+      gr.addColorStop(1, '#6a8054');
+      ctx.fillStyle = gr;
       ctx.fillRect(x, top, 1, H - top);
+    }
+    // olive groves dotted over the slope
+    for (let i = 0; i < 160; i++) {
+      const x = this.rand.between(0, W);
+      const y = Math.round(hill(x)) - 24 + this.rand.between(-4, 26);
+      for (const dx of [0, -W, W]) clump(ctx, x + dx, y, this.rand.realInRange(2, 4), i % 2 ? 0x6a8a50 : 0x5a7a48, 0.85, this.rand, 4);
     }
     const drawHouse = (x0, w, h, wall, roof) => {
       for (const x of [x0, x0 - W]) {
         const base = Math.round(hill(Math.max(0, Math.min(W - 1, x0 + w / 2)))) + 60;
         const top = base - h;
-        ctx.fillStyle = hex(wall);
+        // the wall: lit from the west, shaded on the east, a warm bounce low down
+        const gw = ctx.createLinearGradient(x, 0, x + w, 0);
+        gw.addColorStop(0, phex(mix(wall, 0xfff0d0, 0.3)));
+        gw.addColorStop(0.5, phex(wall));
+        gw.addColorStop(1, phex(mix(wall, 0x6a5060, 0.3)));
+        ctx.fillStyle = gw;
         ctx.fillRect(x, top, w, H - top);
-        ctx.fillStyle = hex(roof);
-        for (let r = 0; r < 10; r++) ctx.fillRect(x - 2 + r, top - r, w + 4 - r * 2, 1);
+        ctx.fillStyle = 'rgba(50,40,60,0.18)';
+        ctx.fillRect(x, top, w, 3); // shadow under the eaves
+        // the roof: tiles, the sunny slope lighter
+        for (let r = 0; r < 10; r++) {
+          ctx.fillStyle = phex(mix(roof, r % 2 ? 0x000000 : 0xffd0a0, r % 2 ? 0.12 : 0.15));
+          ctx.fillRect(x - 2 + r, top - r, w + 4 - r * 2, 1);
+        }
         if (x === x0) {
           for (let wy = top + 8; wy < base - 8; wy += 14) {
             for (let wx = x + 5; wx < x + w - 7; wx += 11) {
@@ -258,6 +316,8 @@ export default class Horizon {
         ctx.fillRect(lx + 2 + k * 6, ly + 1, 4, 5);
       }
     }
+    wash(ctx, 0, 0, W, H, 0xc09070, 0xf0e0c8, 0.14, 8, 0.03);
+    grain(ctx, 0, 0, W, H, 0.04, 23);
     ct.refresh();
     this.bands.town = this.band('ev-band-town', W, H, W / WRAP_PX, 0.3, this.depth + 2, this.horizonY + 70);
     // ten windows with someone in them doing something
@@ -283,8 +343,25 @@ export default class Horizon {
     const facade = (x, w, h, wall, opts = {}) => {
       const top = H - h;
       rect(x, top, w, h, wall);
-      rect(x, top, w, 3, lerpC(wall, 0xfff4e0, 0.35)); // lit cornice
-      rect(x + w - 3, top, 3, h, lerpC(wall, 0x3a2a3a, 0.25)); // the shade side (sun is west)
+      // plaster: the west face warm, the east in shade, a bounce of light low down
+      for (const xx of [x, x + w > W ? x - W : null]) {
+        if (xx === null) continue;
+        const gw = ctx.createLinearGradient(xx, 0, xx + w, 0);
+        gw.addColorStop(0, rgba(0xfff0d0, 0.28));
+        gw.addColorStop(0.55, rgba(0xfff0d0, 0));
+        gw.addColorStop(1, rgba(0x4a3050, 0.22));
+        ctx.fillStyle = gw;
+        ctx.fillRect(Math.round(xx), top, Math.round(w), h);
+        const gv = ctx.createLinearGradient(0, top, 0, H);
+        gv.addColorStop(0, rgba(0x3a2a40, 0.16));
+        gv.addColorStop(0.12, rgba(0x3a2a40, 0));
+        gv.addColorStop(0.8, rgba(0xf0c090, 0));
+        gv.addColorStop(1, rgba(0xf0c090, 0.18));
+        ctx.fillStyle = gv;
+        ctx.fillRect(Math.round(xx), top, Math.round(w), h);
+      }
+      rect(x, top, w, 3, lerpC(wall, 0xfff4e0, 0.45)); // lit cornice
+      rect(x, top + 3, w, 2, 'rgba(40,30,50,0.25)'); // its shadow
       // cracked plaster
       if (this.rand.frac() < 0.5) rect(x + this.rand.between(4, w - 10), top + this.rand.between(10, 40), 1, 8, 'rgba(60,40,40,0.3)');
       const rows = Math.floor((h - 40) / 36);
@@ -292,6 +369,9 @@ export default class Horizon {
         const wy = top + 16 + r * 36;
         for (let wx = x + 8; wx < x + w - 16; wx += 22) {
           rect(wx, wy, 12, 18, 0x4a3a44);
+          rect(wx, wy, 12, 2, 'rgba(0,0,0,0.35)'); // the reveal
+          rect(wx, wy + 18, 12, 1, 'rgba(255,240,210,0.5)'); // the sill
+          if (this.rand.frac() < 0.35) rect(wx + 2, wy + 4, 3, 5, 'rgba(255,220,170,0.25)'); // a curtain catching light
           // shutters, some open
           if (this.rand.frac() < 0.6) {
             rect(wx - 5, wy, 4, 18, opts.shutter || 0x4a7a6a);
@@ -310,7 +390,7 @@ export default class Horizon {
         }
       }
       // ivy up the west side
-      if (opts.ivy) for (let i = 0; i < 40; i++) rect(x + this.rand.between(0, 8), top + this.rand.between(10, h - 4), 2, 2, i % 2 ? 0x5a8a4a : 0x4a7a3a);
+      if (opts.ivy) for (let i = 0; i < 40; i++) clump(ctx, x + this.rand.between(0, 10), top + this.rand.between(10, h - 4), this.rand.realInRange(2, 3.5), i % 2 ? 0x5a8a4a : 0x4a7a3a, 0.95, this.rand, 4);
       // a painted sign
       if (opts.sign) {
         rect(x + 10, H - 70, w - 20, 12, opts.sign);
@@ -321,8 +401,10 @@ export default class Horizon {
       return top;
     };
     const tree = (x, s = 1) => {
-      rect(x - 2, H - 40 * s, 4, 40 * s, 0x4a3a2a);
-      for (let i = 0; i < 30; i++) rect(x - 20 * s + this.rand.between(0, 40 * s), H - 40 * s - this.rand.between(0, 40 * s), 6 * s, 5 * s, i % 3 ? 0x5a8a4a : 0x4a7a3a);
+      for (const dx of [0, x + 30 * s > W ? -W : 0]) {
+        trunk(ctx, x + dx, H - 44 * s, H, 3 * s, 5 * s, 0x4a3a2a, this.rand);
+        foliage(ctx, x + dx, H - 52 * s, 24 * s, 17 * s, 0x5a8a48, this.rand, { density: 0.8 });
+      }
     };
     const tops = [];
     const style = {
@@ -414,6 +496,11 @@ export default class Horizon {
         rect(x, y, 1, 1, 'rgba(30,30,40,0.6)');
       }
     }
+    wash(ctx, 0, 0, W, H, 0xb08868, 0xf8ecd8, 0.2, 12, 0.02);
+    grain(ctx, 0, 0, W, H, 0.06, 29);
+    // where the facades meet the street: a band of shadow, so they stand
+    // on the ground instead of floating behind it
+    gradientV(ctx, 0, H - 26, W, 26, [[0, 0x2a2030, 0], [1, 0x2a2030, 0.38]]);
     ct.refresh();
     this.bands.near = this.band('ev-band-near', W, H, f, 0.55, this.depth + 3, this.horizonY + 92);
   }
@@ -424,46 +511,64 @@ export default class Horizon {
     const H = 230;
     const ct = canvasTex(this.scene, 'ev-band-road', W, H);
     const ctx = ct.getContext();
-    const hill = (x) => 120 - Math.sin(x / 230) * 20 - Math.sin(x / 90 + 1) * 8 - Math.max(0, (x - 1500) / 900) * 70;
+    const hill = (x) => 120 - Math.sin(x / 230) * 20 - Math.sin(x / 90 + 1) * 8 - Math.max(0, (x - 1500) / 900) * 70 + (fbm(x / 30, 1, 51, 3) - 0.5) * 10;
+    // the land: wheat, then meadow, then forest, then snow; each painted as
+    // a slope that catches the last of the light on its western faces
     for (let x = 0; x < W; x++) {
       const top = Math.round(hill(x));
-      let col = 0x8a9a60;
-      if (x < 700) col = x % 36 < 18 ? 0xc8b060 : 0xb8a050; // fields in stripes
-      else if (x < 1100) col = 0x6a8a5a;
-      else if (x < 1700) col = 0x3e5a48;
-      else col = 0x8a98a8;
-      ctx.fillStyle = hex(col);
+      const face = Math.max(-1, Math.min(1, (hill(x - 5) - hill(x + 5)) / 6));
+      // the land changes hands gradually: wheat into meadow into forest
+      // into the snow country, each blended over a hundred pixels or so
+      const wheat = mix(0xc0a858, 0xd8c070, fbm(x / 22, 0, 52, 2));
+      const meadow = mix(0x6a8a52, 0x8aa460, fbm(x / 30, 0, 53, 2));
+      const forest = mix(0x3e5a48, 0x4e6a50, fbm(x / 18, 0, 55, 2));
+      const rock = mix(0x8a94a8, 0xb8c0d0, fbm(x / 12, 0, 56, 3));
+      const snowy = mix(rock, 0xe8eef8, Math.max(0, fbm(x / 9, 1, 57, 3) - 0.35) * 1.4 * Math.min(1, (x - 1600) / 500));
+      const blend = (a, b, from, to) => mix(a, b, Math.max(0, Math.min(1, (x - from) / (to - from))));
+      let col = blend(blend(blend(wheat, meadow, 620, 780), forest, 1020, 1180), snowy, 1600, 1760);
+      col = face > 0 ? mix(col, 0xf8e0b0, face * 0.3) : mix(col, 0x2a3050, -face * 0.25);
+      const gr = ctx.createLinearGradient(0, top, 0, H);
+      gr.addColorStop(0, phex(col));
+      gr.addColorStop(1, phex(mix(col, 0x4a4050, 0.35)));
+      ctx.fillStyle = gr;
       ctx.fillRect(x, top, 1, H - top);
-      if (x > 1700) {
-        ctx.fillStyle = '#e8eef8';
-        ctx.fillRect(x, top, 1, 4 + Math.round((x - 1700) / 60));
+      if (x > 1650) {
+        ctx.fillStyle = face > 0 ? 'rgba(244,246,252,0.9)' : 'rgba(208,216,234,0.9)';
+        ctx.fillRect(x, top, 1, Math.round(Math.min(1, (x - 1650) / 200) * (4 + (x - 1650) / 60 + fbm(x / 9, 2, 54, 2) * 8)));
       }
     }
+    // the wheat in rows, a hedgerow between fields
+    for (let x = 0; x < 700; x += 3) {
+      const top = hill(x);
+      ctx.fillStyle = rgba(x % 36 < 18 ? 0xa88a40 : 0xe8d080, 0.35);
+      ctx.fillRect(x, top + 2, 2, 10 + (x % 7));
+    }
+    for (const hx of [230, 470]) for (let i = 0; i < 14; i++) clump(ctx, hx + i * 5, hill(hx) + 4 + (i % 3), 4, i % 2 ? 0x4a6a3a : 0x5a7a44, 0.9, this.rand, 4);
     // the lake, a silver sheet in the middle distance
-    ctx.fillStyle = '#b8c8d8';
-    ctx.fillRect(760, Math.round(hill(760)) + 20, 260, 10);
-    ctx.fillStyle = '#d8e4f0';
-    ctx.fillRect(780, Math.round(hill(760)) + 22, 200, 2);
-    // pines, thicker as the road climbs
-    for (let x = 900; x < W; x += this.rand.between(5, 14)) {
-      const top = Math.round(hill(x)) + this.rand.between(-4, 10);
-      const h = this.rand.between(14, 30);
-      ctx.fillStyle = x > 1800 ? '#2e4a48' : '#2e4a38';
-      for (let r = 0; r < h; r++) ctx.fillRect(x - Math.floor(r / 3), top - h + r, 1 + Math.floor(r / 3) * 2, 1);
-      if (x > 1800) {
-        ctx.fillStyle = '#e8eef8';
-        ctx.fillRect(x - 1, top - h + 2, 3, 2);
-      }
+    const ly = Math.round(hill(760)) + 20;
+    gradientV(ctx, 760, ly, 260, 12, [[0, 0xd8e4f0, 1], [1, 0x98b0c8, 1]]);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillRect(790, ly + 2, 180, 1);
+    // pines, thicker as the road climbs: dark fans of dabs, snow on the top ones
+    for (let x = 900; x < W; x += this.rand.between(4, 12)) {
+      const top = hill(x) + this.rand.between(-4, 12);
+      const h = this.rand.between(14, 32);
+      const c = x > 1800 ? 0x2a4448 : 0x2e4a38;
+      for (let t = 0; t < 5; t++) dab(ctx, x, top - h + (t / 4) * h, 2 + t * 1.4, 2.4, 0, mix(c, 0x6a8a70, t === 0 ? 0.4 : 0.1), 0.95, 0.25);
+      if (x > 1800) dab(ctx, x - 0.5, top - h + 3, 2, 1.4, 0, 0xeef2fa, 0.9, 0.2);
     }
     // orchards, a mill, a farmhouse with one lit window
     for (let x = 100; x < 700; x += 70) {
-      ctx.fillStyle = '#5a7a4a';
-      ctx.fillRect(x, Math.round(hill(x)) - 14, 16, 12);
+      trunk(ctx, x + 8, hill(x) - 8, hill(x) + 2, 1.5, 2.5, 0x4a3a2a, this.rand);
+      foliage(ctx, x + 8, hill(x) - 12, 9, 7, 0x5a7a4a, this.rand, { density: 0.6 });
     }
     ctx.fillStyle = '#c8b898';
     ctx.fillRect(1180, Math.round(hill(1180)) - 30, 20, 30);
+    ctx.fillStyle = '#8a4a3a';
+    ctx.fillRect(1178, Math.round(hill(1180)) - 34, 24, 5);
     ctx.fillStyle = '#f2d580';
     ctx.fillRect(1186, Math.round(hill(1180)) - 20, 4, 5);
+    grain(ctx, 0, 0, W, H, 0.05, 61);
     ct.refresh();
     this.bands.road = this.band('ev-band-road', W, H, 0.2, 0.3, this.depth + 2.5, this.horizonY + 80);
     this.bands.road.ts.setAlpha(0);

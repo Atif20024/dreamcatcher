@@ -13,9 +13,9 @@ const px = (t) => t * T + T / 2;
 const ZONES = [
   [0, 52, 0xfff0dc],
   [52, 82, 0xfff0dc],
-  [82, 114, 0xe8f0cc],
+  [82, 114, 0xe4f0c8],
   [114, 342, 0xfff0dc],
-  [342, 376, 0xe0ecc4],
+  [342, 376, 0xdcecc0],
   [376, 458, 0xf4eadc],
   [458, 488, 0xfff0dc],
   [488, 548, 0xf0e8c0],
@@ -118,14 +118,32 @@ export function makeGround(built) {
 
 // --- the tile images, bucketed by column so the night can be painted on
 // them a few dozen columns at a time --------------------------------------------
+// where the ground is turf, not street: [from, to, kind]
+const GRASS = [
+  [0, 52, 'g'], [82, 114, 'g'], [342, 376, 'g'], [458, 488, 'g'], [488, 548, 'y'], [548, 608, 'g'], [608, 638, 'p'], [736, 788, 'g'],
+];
+const grassAt = (tx) => {
+  for (const [a, b, k] of GRASS) if (tx >= a && tx < b) return k;
+  return null;
+};
+
 export function bucketTerrain(scene) {
   const cols = [];
-  for (const o of scene.children.list) {
-    if (!o.texture || !o.texture.key || !o.texture.key.startsWith('eve_')) continue;
+  const tiles = scene.children.list.filter((o) => o.texture && o.texture.key && o.texture.key.startsWith('eve_'));
+  for (const o of tiles) {
     const tx = Math.floor(o.x / T);
     o.baseTint = o.tintTopLeft;
     o.zone = zoneTint(tx);
     (cols[tx] ||= []).push(o);
+    // where the ground is turf the stone becomes earth (same mask, same wear)
+    const kind = o.tileRole && grassAt(tx);
+    if (kind && scene.textures.exists(o.texture.key.replace('eve_', 'evd_'))) o.setTexture(o.texture.key.replace('eve_', 'evd_'));
+    if (kind && o.texture.key.startsWith('eve_s_') && !(scene.solidGrid[o.ty - 1] && scene.solidGrid[o.ty - 1][tx])) {
+      const g = scene.add.image(o.x, o.y - T / 2 + 3, `ev-grass-${kind}-${(tx * 7 + o.ty) % 3}`).setOrigin(0.5, 1).setDepth(-9.9);
+      g.baseTint = 0xffffff;
+      g.zone = o.zone;
+      cols[tx].push(g);
+    }
   }
   return cols;
 }
@@ -170,9 +188,8 @@ export function buildWorld(scene, objects) {
         break;
       }
       case 'tree': {
-        const key = o.kind === 'pine' ? 'ev-pine' : 'ev-tree';
+        const key = o.kind === 'pine' ? 'ev-pine' : o.kind === 'hilltree' ? 'ev-hilltree' : o.kind === 'apple' ? 'ev-tree-apple' : 'ev-tree';
         const t = stand(key, o, -11.2);
-        if (o.kind === 'hilltree') t.setScale(1.5);
         if (o.kind === 'apple') {
           // apples in the canopy, a couple on the ground
           for (let i = 0; i < 7; i++) scene.add.image(o.wx + Phaser.Math.Between(-36, 36), t.y - Phaser.Math.Between(40, 72), 'ev-apple').setDepth(-11.1);
@@ -405,7 +422,7 @@ export function buildWorld(scene, objects) {
           const x = o.wx - T / 2 + i * 16 + ((i * 37) % 10);
           const y = scene.groundY(x, o.wy - 64);
           if (y > o.wy + 64) continue;
-          const t = scene.add.rectangle(x, y, 2, 7 + ((i * 13) % 8), i % 3 ? 0x7a9a4a : 0x9ab85a, 0.95).setOrigin(0.5, 1).setDepth(i % 4 === 0 ? 13.5 : 8.5);
+          const t = scene.add.image(x, y + 1, `ev-tuft-${i % 3}`).setOrigin(0.5, 1).setDepth(i % 4 === 0 ? 13.5 : 8.5).setScale(0.8 + ((i * 7) % 5) * 0.1);
           t.ph = (i * 1.7) % 6.28;
           tuftG.push(t);
         }
@@ -431,6 +448,11 @@ export function buildWorld(scene, objects) {
       case 'lakeglass': {
         const lg = scene.add.graphics().setDepth(-9.05);
         out.lakeglass = { x0: o.wx - T / 2, x1: o.wx - T / 2 + (o.w || 12) * T, y: px(32) - T / 2 + 6, g: lg };
+        // the water tiles' pale top bands would stripe the mirror: keep the
+        // surface one, drop the ones below
+        for (const r of scene.children.list) {
+          if (r.type === 'Rectangle' && r.depth === -9 && r.x > out.lakeglass.x0 && r.x < out.lakeglass.x1 && r.y > out.lakeglass.y + 12) r.setVisible(false);
+        }
         break;
       }
       case 'rowboat': {

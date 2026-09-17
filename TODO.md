@@ -51,6 +51,13 @@
       slow credits, `evening.finished = true`, last-card variants.
 - [x] Save: `recordMoment` in chef/musician/astronaut `moment()`, `markMet`
       on dream start, `cast.marcus_left`; `momentsFound()` for the cards.
+- [x] Art pass 1 (painterly): see docs/design_feedback.md — toolkit in
+      src/art/paint.js, the Evening's textures in src/art/eveningArt.js,
+      vignette/grain in src/art/look.js, PNG drop-ins via
+      public/art/evening/manifest.json (src/art/overrides.js).
+- [ ] Art pass 2: near-band balconies/awnings, gridded props (benches,
+      carts, stalls, fountain), the shallows, snow cover sprites; then roll
+      the toolkit out to the hub and the three dreams.
 - [ ] NOT PLAYTESTED. Written and built without running (the user asked
       for no game start). Expect tuning: timings, NPC walk paths, bubble
       overlap, band vertical placement, aurora brightness, ensemble volume.

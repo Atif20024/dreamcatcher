@@ -8,6 +8,9 @@ import { EV, placeAt } from '../data/evening/map.js';
 import { CAST, HER, HER_NAME } from '../data/evening/cast.js';
 import { HER_LINES, SIT_EVENT_LINES, CARDS } from '../data/evening/talk.js';
 import { createEveningTextures, CAT_COATS } from '../data/evening/sprites.js';
+import { paintEveningArt } from '../art/eveningArt.js';
+import { setupLook } from '../art/look.js';
+import { loadArtOverrides } from '../art/overrides.js';
 import { createJoEveningTextures } from '../entities/jo.js';
 import { createPixelTexture } from '../utils/pixelart.js';
 import Townsfolk from '../entities/Townsfolk.js';
@@ -120,6 +123,10 @@ export default class EveningScene extends BaseLevel {
     this._room = null;
   }
 
+  preload() {
+    loadArtOverrides(this, 'evening');
+  }
+
   create() {
     const params = new URLSearchParams(window.location.search);
     this.save = getSave();
@@ -127,6 +134,8 @@ export default class EveningScene extends BaseLevel {
     updateSave((s) => (s.evening.visited = true));
     music.stop();
 
+    // painted first: the gridded fallbacks below skip any key that exists
+    paintEveningArt(this);
     createEveningTextures(this);
     createJoEveningTextures(this);
     createPixelTexture(this, 'heart', HEART.rows, HEART.pal, 3);
@@ -228,6 +237,7 @@ export default class EveningScene extends BaseLevel {
     cam.followOffset.y = 90; // more sky than street: it's that kind of place
     cam.fadeIn(900, 20, 14, 8);
     this.baseOffsetY = 90;
+    this.look = setupLook(this);
     this.keyEsc = this.input.keyboard.addKey('ESC');
     this.keyQ = this.input.keyboard.addKey('Q');
     this.keyC = this.input.keyboard.addKey('C');
@@ -625,6 +635,7 @@ export default class EveningScene extends BaseLevel {
     this.joSmallLife(time, delta);
     this.updateSwingIdle(dt);
     this.updateUIPins();
+    if (this.look) this.look.update(time, delta, this.lightCache);
   }
 
   // ---- light ------------------------------------------------------------------
@@ -641,6 +652,7 @@ export default class EveningScene extends BaseLevel {
       shadowAlpha: (0.34 - this.weather.rain * 0.2) * (1 - night * 0.5),
       shadowLen: night > 0.6 ? 0.6 : 1.1 - this.weather.rain * 0.4,
       aurora: this.sky.aurora,
+      night,
     };
     return this.lightCache;
   }
@@ -1682,7 +1694,14 @@ export default class EveningScene extends BaseLevel {
     const g = lg.g;
     // still water that mirrors the whole sky: horizon at the top, zenith deep
     const h = 3 * T - 6;
-    for (let i = 0; i < 6; i++) g.fillStyle(lerpC(hor, lerpC(mid, top, i / 5), i / 5), 0.85).fillRect(lg.x0, lg.y + (i * h) / 6, lg.x1 - lg.x0, h / 6 + 1);
+    const N = 30;
+    for (let i = 0; i < N; i++) g.fillStyle(lerpC(hor, lerpC(mid, top, i / (N - 1)), i / (N - 1)), 0.88).fillRect(lg.x0, lg.y + (i * h) / N, lg.x1 - lg.x0, h / N + 1);
+    // ripples: thin lit lines drifting, denser near the shore
+    for (let i = 0; i < 18; i++) {
+      const ry = lg.y + 4 + ((i * 37) % (h - 8));
+      const rx = lg.x0 + ((i * 131 + time * 0.02 * (1 + (i % 3))) % (lg.x1 - lg.x0 - 40));
+      g.fillStyle(0xffffff, 0.08 + 0.06 * Math.sin(time / 700 + i)).fillRect(rx, ry, 18 + (i % 4) * 8, 1);
+    }
     // stars in it
     const sp = this.sky.starPhase;
     if (sp > 5) {
