@@ -5,6 +5,51 @@ import { toggleMusic } from '../systems/audio.js';
 
 // Close-up entry shots: a zoomed street scene, Jo walks to the door, fade in.
 const INTROS = {
+  painter: {
+    caption: 'THE YELLOW HOUSE',
+    sub: 'The south, at the first hour of light. A house with no curtains.',
+    doorX: 700,
+    draw(scene) {
+      const g = scene.add.graphics();
+      g.fillGradientStyle(0x4a5566, 0x4a5566, 0x6b4e2e, 0x6b4e2e, 1);
+      g.fillRect(0, 0, 960, 540);
+      // underpainting: a square of low houses blocked in umber, one of them yellow
+      for (let x = 20; x < 960; x += 150) {
+        const yellow = x === 620;
+        scene.add.rectangle(x + 65, 360, 130, 220, yellow ? 0xe8b830 : 0x5a4530);
+        scene.add.rectangle(x + 65, 240, 140, 24, yellow ? 0xc03a2a : 0x4a5566);
+        for (let wy = 300; wy < 440; wy += 60) scene.add.rectangle(x + 40, wy, 22, 30, yellow ? 0x2e6a4a : 0x3a4455);
+      }
+      scene.add.circle(140, 120, 50, 0xf2d060, 0.95);
+      scene.add.rectangle(480, 505, 960, 70, 0x6b4e2e);
+      scene.add.rectangle(480, 472, 960, 6, 0x5b3a7a);
+      scene.add.rectangle(700, 410, 60, 120, 0x1f3a5f);
+      return { groundY: 470 };
+    },
+  },
+  gambler: {
+    caption: 'THE LAST HAND',
+    sub: 'Rain on a parking structure. The sign is bigger than the sky.',
+    doorX: 700,
+    draw(scene) {
+      const g = scene.add.graphics();
+      g.fillGradientStyle(0x08060c, 0x08060c, 0x1a0e1e, 0x1a0e1e, 1);
+      g.fillRect(0, 0, 960, 540);
+      scene.add.rectangle(480, 150, 760, 150, 0x14101c);
+      const t = scene.add.text(480, 130, 'THE MERIDIAN', { fontFamily: 'monospace', fontSize: '52px', color: '#ff3aa0', fontStyle: 'bold' }).setOrigin(0.5);
+      scene.add.text(480, 185, 'OPEN', { fontFamily: 'monospace', fontSize: '28px', color: '#ff3aa0' }).setOrigin(0.5);
+      scene.add.text(620, 188, '24 HRS', { fontFamily: 'monospace', fontSize: '18px', color: '#3a2030' }).setOrigin(0.5);
+      scene.tweens.add({ targets: t, alpha: 0.7, duration: 90, yoyo: true, repeat: -1, repeatDelay: 2200 });
+      for (let i = 0; i < 4; i++) scene.add.rectangle(480, 290 + i * 45, 900, 8, 0x2a2430);
+      scene.add.rectangle(300, 430, 60, 80, 0x3a2a3a);
+      scene.add.text(300, 400, 'VALET', { fontFamily: 'monospace', fontSize: '10px', color: '#c8a0b0' }).setOrigin(0.5);
+      scene.add.rectangle(700, 400, 90, 150, 0x2a1a2a);
+      scene.add.rectangle(700, 400, 70, 138, 0xf2c078, 0.25);
+      scene.add.rectangle(480, 505, 960, 70, 0x1a1820);
+      scene.add.rectangle(480, 472, 960, 6, 0x2a2834);
+      return { groundY: 470 };
+    },
+  },
   writer: {
     caption: 'THE SECOND DRAFT',
     sub: 'Five a.m. One attic window lit. The rain has just stopped.',
@@ -119,7 +164,7 @@ const INTROS = {
   },
 };
 
-const LEVEL_SCENES = { chef: 'Chef', musician: 'Musician', astronaut: 'Astronaut', writer: 'Writer' };
+const LEVEL_SCENES = { chef: 'Chef', musician: 'Musician', astronaut: 'Astronaut', writer: 'Writer', painter: 'Painter', gambler: 'Gambler' };
 
 export default class IntroScene extends Phaser.Scene {
   constructor() {

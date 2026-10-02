@@ -26,6 +26,21 @@ export const FOES = {
     slip: { texture: 'foe-slip', human: false, speed: 110, floats: true, chases: true, dustColors: [0xe8e4d8, 0xc03a2a] },
     proofreader: { texture: 'foe-proofreader', human: true, speed: 95, sight: 200, homing: true },
   },
+  painter: {
+    crow: { texture: 'foe-crow', human: false, speed: 120, floats: true, steals: true, dustColors: [0x1f3a5f, 0x2a2a44] },
+    petitioner: { texture: 'foe-petitioner', human: true, speed: 45, sight: 120 },
+    gendarme: { texture: 'foe-gendarme', human: true, speed: 75, sight: 170 },
+    gardener: { texture: 'foe-gardener', human: true, speed: 50, sight: 110, gentle: true },
+    farmer: { texture: 'foe-farmer', human: true, speed: 100, sight: 180 },
+    shopkeeper: { texture: 'foe-shopkeeper', human: true, speed: 70, sight: 140 },
+  },
+  gambler: {
+    security: { texture: 'foe-floor-security', human: true, speed: 70, sight: 160 },
+    collector: { texture: 'foe-collector', human: true, speed: 80, sight: 170 },
+    runner: { texture: 'foe-runner', human: true, speed: 130, steals: true, sight: 120 },
+    bouncer: { texture: 'foe-lounge-bouncer', human: true, speed: 45, big: true, sight: 140 },
+    pit: { texture: 'foe-pit', human: true, speed: 50, sight: 400, passive: true },
+  },
   musician: {
     heckler: { texture: 'foe-heckler', human: true, speed: 0, ranged: true, sight: 360 },
     bouncer: { texture: 'foe-bouncer', human: true, speed: 60, big: true, sight: 150 },

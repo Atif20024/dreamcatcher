@@ -35,10 +35,11 @@ export const DREAMS = [
     roLine: 'Ink on your fingers. And you look like you slept at a desk.',
   },
   {
-    id: 'founder', platform: 5, title: 'THE CORNER OFFICE', propsKind: 'boxes', ambientLoop: 'phones',
-    coin: { name: 'share token', worth: 50, budget: [8, 12], pal: { c: 0x2e6a4a, C: 0x50c878, h: 0xc8f0d8 } },
-    livery: { body: 0x50525e, trim: 0xb8bcc8, window: 0xd8ecf8, emblem: 'chart' },
-    conductor: 'The Corner Office. Forty floors up, and the window does not open.', roLine: "New shoes. Too new. They hurt, don't they.",
+    id: 'painter', platform: 5, title: 'THE YELLOW HOUSE', scene: 'Painter', propsKind: 'easels', ambientLoop: 'cicadas',
+    coin: { name: 'tube cap', worth: 2, budget: [100, 120], pal: { c: 0xb8862c, C: 0xf2d060, h: 0xfff2a0 } },
+    livery: { body: 0xe8b830, trim: 0x1f3a5f, window: 0x5b3a7a, emblem: 'sun' },
+    conductor: 'The Yellow House. South, where the light is. Nobody there sees what you see.\nAre you ready to paint it anyway, and sell none of it?',
+    roLine: 'Paint under your nails. Yellow. You went somewhere bright.',
   },
   {
     id: 'astronaut', platform: 6, title: 'THE QUIET ABOVE', scene: 'Astronaut', propsKind: 'crates', ambientLoop: 'engines',
@@ -48,10 +49,11 @@ export const DREAMS = [
     roLine: 'You keep looking up, love. The tea is down here.',
   },
   {
-    id: 'actor', platform: 7, title: 'THE MARQUEE', propsKind: 'lights', ambientLoop: 'applause',
-    coin: { name: 'ticket stub', worth: 3, budget: [80, 100], pal: { c: 0xa8443a, C: 0xe86a6a, h: 0xf8c8c0 } },
-    livery: { body: 0x1a1a20, trim: 0xf2d580, window: 0xf2c078, emblem: 'star' },
-    conductor: 'The Marquee. Your name in lights, spelled almost right.', roLine: 'Stage dust. You stood in a light.',
+    id: 'gambler', platform: 7, title: 'THE LAST HAND', scene: 'Gambler', propsKind: 'chips', ambientLoop: 'slots',
+    coin: { name: 'chip', worth: 25, budget: [40, 50], pal: { c: 0xa8243a, C: 0xe84a5a, h: 0xf8d0c0 } },
+    livery: { body: 0x12101a, trim: 0xe03a8a, window: 0xf2c078, emblem: 'spade' },
+    conductor: 'The Last Hand. A casino that never closes, and one chip in your pocket.\nTonight is the night, sir. It always is. Still boarding?',
+    roLine: 'Cigar smoke and carpet. And your horn case is light. Sit.',
   },
   {
     id: 'doctor', platform: 8, title: 'THE WHITE COAT', propsKind: 'lockers', ambientLoop: 'monitors',
