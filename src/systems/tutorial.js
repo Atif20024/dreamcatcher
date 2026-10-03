@@ -17,6 +17,39 @@ const CARDS = {
   rest_note: { name: 'THE REST', hint: 'hollow means silence', key: '' },
   wall_jump: { name: 'WALL JUMP', hint: 'only on ribbed walls', key: '↑' },
   slope: { name: 'SLOPES', hint: 'walk, do not jump', key: '' },
+  // the quiet above: three gravities, each taught the moment it starts
+  zero_g: { name: 'NO FLOOR HERE', hint: 'aim with the arrows, then shove off a surface', key: 'SPACE' },
+  zero_g_rail: { name: 'HANDRAILS', hint: 'the yellow lines are the ground now', key: 'E' },
+  eva_tether: { name: 'THE TETHER IS LIFE', hint: 'clip on before you push. hold to reel in', key: 'F' },
+  moon_bound: { name: 'ONE-SIXTH', hint: 'you rise slowly and you keep going', key: '' },
+  // the second draft
+  pen: { name: 'THE PEN', hint: 'stand under a label and strike its adjective', key: 'E' },
+  typing: { name: 'THE TYPING RHYTHM', hint: 'press each letter as it reaches the line', key: 'A–Z' },
+  editor: { name: 'THE INNER EDITOR', hint: 'keep moving. it erases what you have crossed', key: '' },
+  glass: { name: 'FRAGILE', hint: 'crouch-walk across, or it goes', key: '↓' },
+  talker: { name: 'A WALL OF SOUND', hint: 'duck under, come up behind, jump for the word', key: '↓' },
+  press: { name: 'THE PRESS', hint: 'ride the paper down. ink, press, fold', key: 'E' },
+  // the last hand
+  bet: { name: 'BET', hint: 'chips or hearts. the odds are printed. the house wins ties', key: 'E' },
+  deal: { name: 'THE DEAL', hint: 'numbers hold. faces flip you. aces pay. the room shows the deck', key: '' },
+  reel: { name: 'THE REELS', hint: 'land on one to spin it. read the symbols before you jump', key: '' },
+  wheel: { name: 'THE WHEEL', hint: 'stop the ball on the marked colour. it slows the same way every time', key: 'E' },
+  dice: { name: 'DICE BRIDGE', hint: 'the roll is the bridge. the gap is twelve minus the roll', key: 'E' },
+  marker: { name: 'THE MARKER', hint: 'ten chips, no paperwork. it never goes away', key: '' },
+  no_trumpet: { name: 'NO HORN', hint: 'no shove, no noise. checkpoints by touch', key: '' },
+  cage: { name: 'THE CAGE', hint: 'pending chips become real only here. the marker comes off first', key: 'E' },
+  face: { name: 'POKER FACE', hint: 'hold down while they decide, or they read your eyebrow', key: '↓' },
+  // the yellow house
+  brush: { name: 'THE BRUSH', hint: 'stand at a surface and paint it the colour on the brush', key: 'E' },
+  stroke: { name: 'THE STROKE', hint: 'hold while moving: a ribbon of paint you can stand on. six tiles. it dries.', key: 'X' },
+  wells: { name: 'THE PALETTE', hint: 'three wells, twelve strokes each. hits spill one. [1] [2] [3] choose', key: '1 2 3' },
+  mixing: { name: 'MIXING', hint: 'the brush takes the next well too: yellow+blue=green', key: 'V' },
+  vibrato: { name: 'COMPLEMENTARIES', hint: 'a colour beside its complement shimmers. jump from it: triple height', key: '' },
+  clock: { name: 'THE LIGHT', hint: 'every stroke moves the clock a minute. some colours only at some hours', key: '' },
+  easel: { name: 'THE EASEL', hint: 'two of the right colours on the palette, in the right light', key: 'E' },
+  sleep: { name: 'NIGHT', hint: 'sleep at the easel. a new day; ten canvases in ten', key: 'E' },
+  paul: { name: 'PAUL', hint: 'he paints one stroke of what you lack. then you owe him', key: 'F' },
+  currents: { name: 'THE CURRENTS', hint: 'the sky carries you. jump to leave it', key: 'SPACE' },
 };
 
 export function showTutorial(scene, id) {

@@ -128,9 +128,14 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
   canSee(player) {
     if (!this.human) return false;
     if (this.scene.playerHidden) return false;
+    if (this.passive || this.asleep) return false;
     const dx = player.x - this.x;
     const dy = Math.abs(player.y - this.y);
     if (dy > 60) return false;
+    // THE SECOND DRAFT: proofreaders only see a page with typos on it;
+    // library guards see nothing until they HEAR something
+    if (this.def.homing && !(this.scene.typos > 0)) return false;
+    if (this.def.hears && !this.scene.loudNow && Math.abs(dx) > 48) return false;
     if (Math.abs(dx) > this.sightRange) return false;
     return Math.sign(dx) === (this.flipX ? -1 : 1) || Math.abs(dx) < 40;
   }
@@ -167,6 +172,7 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
   }
 
   destroy(fromScene) {
+    if (this.zz) this.zz.destroy();
     if (this.shadow) this.shadow.destroy();
     if (this.alertMark) this.alertMark.destroy();
     if (this.sightCone) this.sightCone.destroy();
@@ -225,6 +231,19 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
     }
 
     if (this.state === 'thrown') return;
+    // asleep (a library guard), or a person whose whole job is standing
+    // there (a café talker: the scene does the pushing)
+    if (this.asleep || this.def.pushes) {
+      this.setVelocityX(0);
+      if (this.asleep && !this.zz) {
+        this.zz = this.scene.add.text(this.x + 10, this.y - 30, 'z', { fontFamily: 'monospace', fontSize: '12px', color: '#c8c0b0' }).setDepth(D.FOE + 1);
+      } else if (!this.asleep && this.zz) {
+        this.zz.destroy();
+        this.zz = null;
+      }
+      if (this.zz) this.zz.setPosition(this.x + 10, this.y - 30 - Math.sin(time / 400) * 4).setAlpha(0.5 + Math.sin(time / 300) * 0.4);
+      return;
+    }
     if (this.state === 'staggered') {
       this.setVelocityX(this.body.velocity.x * 0.9);
       if (time > this.stateUntil) this.enter('patrol', 0);

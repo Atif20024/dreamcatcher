@@ -2,8 +2,10 @@ import Phaser from 'phaser';
 import { createJoTextures } from './jo.js';
 import { sfx } from '../systems/audio.js';
 import { resolveSlope } from './slopes.js';
-import { JO_DUST } from './jo.js';
+import { JO_DUST, WALK_HIPS } from './jo.js';
 import { dreamDust } from '../systems/effects.js';
+import { getSave } from '../utils/save.js';
+import { hatById } from '../data/hats.js';
 
 // D1: px figures from the other docs are doubled for the 32px scale
 // (run 140 -> 280, jump 300 -> 600, look-ahead 48 -> 96).
@@ -41,15 +43,35 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.setVisible(false);
     this.shown = true; // scenes toggle this, not `visible`
     this.crouching = false;
+    this.bodyTint = 0xffffff; // what Jo wears; scenes set it (e.g. the flight suit)
+    this.speed = SPEED; // the evening walks slower
+    this.upJumps = true; // the evening gives [↑] to looking up; W/Space still jump
+    this.poseDy = 0; // a sitting pose drops the head: hat and tool follow it
+    this.artDy = 0; // the whole drawing up or down (sitting on a bench seat)
     this.squashScale = { x: 1, y: 1 };
     this.hatKnock = { y: 0, angle: 0 };
+    // the walk: phase in frames, advanced by ground covered (§2 of the
+    // motion rules: fps = v·N / 2S, here a frame every STRIDE/4 px)
+    this.walkPhase = 0;
+    this.walkFrame = 0;
+    this.hipDy = 0; // px, this frame
+    this.lastHipDy = 0; // the head and hat follow one frame late
+    this.stepEvent = 0; // counts contacts; scenes listen for footsteps
+    this.quietSteps = false; // a scene that does its own footstep sounds
     // above the terrain (depth 4) and the backdrop, below the HUD
     this.setDepth(12);
     this.art = scene.add.image(x, y, 'jo-stand').setDepth(12);
 
     // D5 — hat and tool are separate sprites that trail the body by one
-    // frame, so Jo bobbles instead of moving like a decal.
+    // frame, so Jo bobbles instead of moving like a decal. The hat wears
+    // whatever Bilal sold last (data/hats.js).
     this.hat = scene.add.image(x, y, 'jo-hat').setDepth(13);
+    try {
+      const worn = hatById(getSave().shop.hat);
+      if (worn) this.hat.setTint(worn.tint);
+    } catch {
+      /* no save */
+    }
     this.tool = scene.add
       .image(x, y, scene.scene.key === 'Musician' ? 'tool-trumpet' : 'tool-ladle')
       .setDepth(13)
@@ -92,7 +114,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     // The grids are 48 tall with a centred origin, so any vertical squish has
     // to be paid back in y or Jo's feet leave the ground he is standing on.
     this.art
-      .setPosition(this.x, this.y + 24 * (1 - sy))
+      .setPosition(this.x, this.y + 24 * (1 - sy) + this.artDy + this.hipDy)
       .setScale(sx, sy)
       .setFlipX(this.flipX)
       .setVisible(this.shown)
@@ -101,15 +123,15 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     // one-frame lag
     const lx = this.lastPos.x;
     const ly = this.lastPos.y;
-    const feet = ly + 24;
+    const feet = ly + 24 + this.artDy;
     this.hat
-      .setPosition(lx, feet - 42 * sy + this.hatKnock.y)
+      .setPosition(lx, feet - 42 * sy + this.hatKnock.y + this.poseDy + this.lastHipDy)
       .setScale(sx, sy)
       .setAngle(this.hatKnock.angle)
       .setFlipX(this.flipX);
     this.hat.setVisible(this.shown).setAlpha(this.alpha);
     const dir = this.flipX ? -1 : 1;
-    this.tool.setPosition(lx + dir * 14 * sx, feet - 18 * sy).setFlipX(this.flipX);
+    this.tool.setPosition(lx + dir * 14 * sx, feet - 18 * sy + this.poseDy * 0.5 - this.lastHipDy * 0.5).setFlipX(this.flipX);
     this.tool.setVisible(this.shown).setAlpha(this.alpha * 0.95);
     this.lastPos = { x: this.x, y: this.y };
   }
@@ -166,9 +188,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     let left = this.cursors.left.isDown || this.keys.A.isDown;
     let right = this.cursors.right.isDown || this.keys.D.isDown;
     if (rev) [left, right] = [right, left];
-    const jumpDown = this.cursors.up.isDown || this.keys.W.isDown || this.keys.SPACE.isDown;
+    const upJ = this.upJumps;
+    const jumpDown = (upJ && this.cursors.up.isDown) || this.keys.W.isDown || this.keys.SPACE.isDown;
     const jumpJust =
-      Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
+      (upJ && Phaser.Input.Keyboard.JustDown(this.cursors.up)) ||
       Phaser.Input.Keyboard.JustDown(this.keys.W) ||
       Phaser.Input.Keyboard.JustDown(this.keys.SPACE);
     const crouch = this.cursors.down.isDown || this.keys.S.isDown;
@@ -240,11 +263,11 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     } else {
       this.wasAirborne = true;
     }
-    if (jumpJust) this.lastJumpPressed = time;
+    if (jumpJust && !locked) this.lastJumpPressed = time;
 
     // horizontal
     if (!locked) {
-      const target = left ? -SPEED : right ? SPEED : 0;
+      const target = left ? -this.speed : right ? this.speed : 0;
       if (this.slippery && grounded) {
         body.setVelocityX(Phaser.Math.Linear(body.velocity.x, target, this.slipFactor));
       } else {
@@ -300,18 +323,39 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
     // animation frames
     const moving = left || right;
-    if (moving && grounded) {
-      this.runFrameTimer += delta;
-      if (this.runFrameTimer > 120) {
-        this.runFrameTimer = 0;
-        this.art.setTexture(this.art.texture.key === 'jo-run' ? 'jo-stand' : 'jo-run');
+    const vx = Math.abs(body.velocity.x);
+    this.lastHipDy = this.hipDy;
+    if (grounded && vx > 12) {
+      // eight frames per stride pair; a frame every 20 px of ground: about
+      // three steps a second at full speed, a stroll in the evening. (A
+      // frame per 6 px was tried: twelve steps a second reads as a jitter.)
+      const STEP_PX = 20;
+      const before = this.walkFrame;
+      this.walkPhase = (this.walkPhase + (vx * (delta / 1000)) / STEP_PX) % 8;
+      this.walkFrame = Math.floor(this.walkPhase);
+      if (this.walkFrame !== before && this.walkFrame % 4 === 0) {
+        this.stepEvent += 1;
+        if (!this.quietSteps) sfx('step');
+        if (vx > 200) this.dust(1);
       }
+      this.art.setTexture(`jo-walk-${this.walkFrame}`);
+      this.hipDy = -WALK_HIPS[this.walkFrame];
     } else if (!grounded) {
-      this.art.setTexture('jo-run');
+      this.art.setTexture(body.velocity.y < -40 ? 'jo-jump' : 'jo-fall');
+      this.walkPhase = 0;
+      this.walkFrame = 0;
+      this.hipDy = 0;
     } else {
-      this.art.setTexture('jo-stand');
+      // idle: a breath every 2.4 s, the chest a row higher on the in-breath
+      this.art.setTexture(time % 2400 > 1500 ? 'jo-idle-b' : 'jo-stand');
+      this.walkPhase = 0;
+      this.walkFrame = 0;
+      this.hipDy = 0;
     }
-    this.art.setTint(rev ? 0xd8f0a0 : 0xffffff);
+    // `bodyTint` is what Jo is wearing (the astronaut's flight suit, say);
+    // the pepper-cloud green is a temporary override on top of it. Resetting
+    // to white here unconditionally used to wipe the suit every frame.
+    this.art.setTint(rev ? 0xd8f0a0 : this.bodyTint);
 
     // Crouch hitbox. Both bodies keep their bottom at y+22, so ducking never
     // moves Jo's feet — only the drawing shrinks (see syncAttachments).

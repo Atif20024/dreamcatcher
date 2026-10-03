@@ -1,0 +1,1 @@
+{"animations":{"walk":["walk_0","walk_1","walk_2","walk_3","walk_4","walk_5","walk_6","walk_7"],"idle":["idle_0","idle_1","idle_2","idle_3","idle_4","idle_5","idle_6","idle_7"]},"stride":{"walk":10,"idle":0},"contacts":{"walk":[5,3,0,-2,5,3,0,-2],"idle":[0,0,0,0,0,0,0,0]},"footstep":{"walk":[0,4]},"scale":{"tool_ladle":1.5,"tool_trumpet":1.5}}
