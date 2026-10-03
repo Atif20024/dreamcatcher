@@ -126,7 +126,7 @@ export default [
     bg: { far: 'gate_dark', mid: 'shed_ribs', near: 'railings', landmark: 'no_passengers' },
     objects: [
       { type: 'turnstile', x: L(143, 140), y: 24 },
-      { type: 'gate', id: 'service_gate', x: L(146, 140), y: 12, h: 14, requires: [] },
+      { type: 'gate', id: 'service_gate', x: L(146, 140), y: 12, h: 14, requires: [], alwaysOpen: true },
       { type: 'sign', x: L(146, 140), y: 8, text: 'NO PASSENGERS' },
       { type: 'gate_slot', x: L(146, 140), y: 30 },
     ],

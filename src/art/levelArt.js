@@ -27,7 +27,7 @@ export function paintTileset(scene, theme) {
   const deco = pal[t.deco];
   // what the ground is made of, per level: cream stone in the station,
   // kitchen tiles, the club's brick and boards, the programme's steel plate
-  const MATERIALS = { hub: 'stone', chef: 'tile', mus: 'stone', astro: 'plate', wr: 'board' };
+  const MATERIALS = { hub: 'stone', chef: 'tile', mus: 'stone', astro: 'plate', wr: 'board', pt: 'stroke', gm: 'carpet' };
   const material = theme.material || MATERIALS[key] || 'stone';
   const T = 32;
 
@@ -78,6 +78,55 @@ export function paintTileset(scene, theme) {
         ctx.fillStyle = rgba(dark, 0.5);
         ctx.fillRect(joint, y0 + 1, 1, 10);
         stamp(ctx, (joint + 6) % T, y0 + 6, 1, dark, 0.5, 0.5);
+      }
+    } else if (material === 'carpet') {
+      // THE LAST HAND: red carpet with a gold pattern — a soft pile (no
+      // joints), a diamond lattice in the deco colour, a fleur at each
+      // crossing, and the pile worn a shade paler where feet go
+      ctx.fillStyle = rgba(deco, 0.35);
+      for (let i = -T; i < T * 2; i += 16) {
+        for (let k = 0; k < T; k++) {
+          ctx.fillRect((i + k + T) % T, k, 1, 1);
+          ctx.fillRect((i - k + T * 2) % T, k, 1, 1);
+        }
+      }
+      ctx.fillStyle = rgba(lipLit, 0.55);
+      for (const [x, y] of [[8, 8], [24, 8], [8, 24], [24, 24], [16, 16], [0, 16], [16, 0]]) {
+        ctx.fillRect(x - 1, y, 3, 1);
+        ctx.fillRect(x, y - 1, 1, 3);
+      }
+      ctx.fillStyle = rgba(lipLit, 0.05 + (wear % 3) * 0.03);
+      ctx.fillRect(0, 0, T, 10);
+    } else if (material === 'stroke') {
+      // THE YELLOW HOUSE §5.1: a tile is six to eight visible brushstrokes
+      // with direction (up-right, like wheat), each with a ridge — a lighter
+      // line on its lit edge and a darker one under it. Impasto.
+      const n = 6 + ((wear + seed) % 3);
+      for (let i = 0; i < n; i++) {
+        const x0 = ((i * 11 + seed * 5 + wear * 3) % 30) - 2;
+        const y0 = ((i * 17 + seed * 7 + wear * 11) % 30) + 2;
+        const len = 10 + ((i + seed) % 3) * 4;
+        const dx = 0.82, dy = -0.57; // up-right
+        const col = i % 3 === 0 ? lipLit : i % 3 === 1 ? fill : deco;
+        ctx.strokeStyle = rgba(col, 0.75);
+        ctx.lineWidth = 3.2;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x0 + dx * len, y0 + dy * len);
+        ctx.stroke();
+        // the ridge: lit above, shadow below
+        ctx.strokeStyle = rgba(mix(col, 0xffffff, 0.45), 0.7);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x0 - 1, y0 - 2);
+        ctx.lineTo(x0 + dx * len - 1, y0 + dy * len - 2);
+        ctx.stroke();
+        ctx.strokeStyle = rgba(mix(dark, 0x5b3a7a, 0.5), 0.6);
+        ctx.beginPath();
+        ctx.moveTo(x0 + 1, y0 + 2);
+        ctx.lineTo(x0 + dx * len + 1, y0 + dy * len + 2);
+        ctx.stroke();
       }
     } else if (material === 'plate') {
       // a seam and four rivets

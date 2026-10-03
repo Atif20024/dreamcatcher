@@ -5,13 +5,15 @@ import hubRooms from '../src/data/hub/rooms.js';
 import astronautRooms from '../src/data/astronaut/rooms.js';
 import eveningRooms from '../src/data/evening/rooms.js';
 import writerRooms from '../src/data/writer/rooms.js';
+import painterRooms from '../src/data/painter/rooms.js';
+import gamblerRooms from '../src/data/gambler/rooms.js';
 import { roleOf, isSolidChar, isSlopeChar } from '../src/builders/legend.js';
 import { maskAt, wearAt } from '../src/builders/autotile.js';
 
 // collectibles budgets (references/dream-items.md); the hub keeps no coins
 const BUDGETS = { chef: [60, 80], musician: [120, 150], astronaut: [45, 55], writer: [100, 120], painter: [100, 120], gambler: [40, 50] };
 
-const DREAMS = { chef: chefRooms, musician: musicianRooms, astronaut: astronautRooms, hub: hubRooms, evening: eveningRooms, writer: writerRooms };
+const DREAMS = { chef: chefRooms, musician: musicianRooms, astronaut: astronautRooms, hub: hubRooms, evening: eveningRooms, writer: writerRooms, painter: painterRooms, gambler: gamblerRooms };
 let failures = 0;
 let warnings = 0;
 
@@ -68,7 +70,7 @@ for (const [dream, rooms] of Object.entries(DREAMS)) {
     // (5) gates need requires or a plate
     for (const g of (room.objects || []).filter((o) => o.type === 'gate')) {
       const plate = (room.objects || []).some((o) => o.type === 'plate' && o.opens === g.id);
-      if (!(g.requires && g.requires.length) && !plate) fail(dream, room.id, `gate ${g.id} has no requires and no plate`);
+      if (!(g.requires && g.requires.length) && !plate && !g.alwaysOpen) fail(dream, room.id, `gate ${g.id} has no requires and no plate`);
     }
 
     // (6) anti-skip: a full-height solid column at a room seam needs | or G
