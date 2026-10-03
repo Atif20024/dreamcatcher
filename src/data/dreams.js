@@ -63,8 +63,9 @@ export const DREAMS = [
   },
 ];
 
-// the last stop: The Counter (not built yet), then THE LONG EVENING behind him
-export const LAST_STOP = { id: 'last', platform: '??', title: 'THE LAST STOP', scene: 'Evening' };
+// the last stop: the gate past the turnstile, open from the first visit —
+// THE LONG EVENING is a train like any other, no count to clear
+export const LAST_STOP = { id: 'last', platform: 'G', title: 'THE LAST STOP', scene: 'Evening' };
 
 export function dreamById(id) {
   return DREAMS.find((d) => d.id === id);

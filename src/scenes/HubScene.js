@@ -139,7 +139,7 @@ export default class HubScene extends BaseLevel {
     if (worn) this.wearHat(worn);
     if (this.returnedFrom) this.runReturn();
     else if (this.firstVisit) this.setObjective('');
-    else this.setObjective(this.N >= 2 ? 'board any train — or the last stop' : 'board any train');
+    else this.setObjective('board any train — or the last stop');
   }
 
   // ---- helpers ------------------------------------------------------------
@@ -435,12 +435,8 @@ export default class HubScene extends BaseLevel {
         ? { platform: d.platform, title: d.title, departs: '—', status: 'CAUGHT — NO RETURN', dim: true }
         : { platform: d.platform, title: d.title, departs: 'NOW', status: d.scene ? 'BOARDING' : 'DELAYED', dim: false };
     });
-    const opened = this.save.flags.hub.gateOpened;
-    rows.push(
-      opened
-        ? { platform: LAST_STOP.platform, title: LAST_STOP.title, departs: '——', status: "WHEN YOU'RE READY", hot: true }
-        : { platform: '—', title: '———————————', departs: '—', status: '—', dim: true }
-    );
+    // the last stop is a train like any other: no chain, no count to clear
+    rows.push({ platform: LAST_STOP.platform, title: LAST_STOP.title, departs: 'NOW', status: 'BOARDING', hot: true });
     return rows;
   }
 
@@ -556,13 +552,9 @@ export default class HubScene extends BaseLevel {
     this.gateLight = this.add.image(gx, (top + bottom) / 2, hubTex(this, 'lightbar', 10, 8)).setDisplaySize(10, bottom - top).setAlpha(0).setDepth(D.INTERACT + 2);
     this.gateGlow = this.add.image(gx - 40, (top + bottom) / 2, hubTex(this, 'sideglow', 80, 8)).setDisplaySize(80, bottom - top).setAlpha(0).setDepth(D.INTERACT + 1);
 
-    // chain + padlock with the ribbon "2"
-    this.gateChain = this.add.image(gx, FLOOR - 200, 'hub-chain').setDepth(D.INTERACT + 3).setScale(1.6, 1.4);
-    this.gateLock = this.add.text(gx, FLOOR - 220, '🔒 2', { fontSize: '12px', fontFamily: 'monospace', color: '#f2e6cc' }).setOrigin(0.5).setDepth(D.INTERACT + 4);
-    if (this.save.flags.hub.gateOpened) {
-      this.gateChain.setVisible(false);
-      this.gateLock.setVisible(false);
-    }
+    // no chain, no padlock: the gate stands ajar from the first visit
+    this.gateLight.setAlpha(0.35);
+    this.gateGlow.setAlpha(0.12);
 
     // turnstile with a mechanical counter reading dreamsCaught
     const t = this.obj('turnstile');
@@ -616,24 +608,14 @@ export default class HubScene extends BaseLevel {
   }
 
   async pushGate() {
-    if (this.save.flags.hub.gateOpened) {
-      if (!this.save.flags.hub.gateSpoke) {
-        updateSave((s) => (s.flags.hub.gateSpoke = true));
-        this.save.flags.hub.gateSpoke = true;
-        await this.say('gate', "Two. Come in when you're done counting. Or don't. I'll count for both of us.", false);
-        sfx('click'); // the turnstile clicks once by itself
-        return;
-      }
-      this.boardLastStop();
+    if (!this.save.flags.hub.gateSpoke) {
+      updateSave((s) => (s.flags.hub.gateSpoke = true));
+      this.save.flags.hub.gateSpoke = true;
+      await this.say('gate', `${this.N || 'None'} so far. Come in whenever you're done counting. Or don't. I'll count for both of us.`, false);
+      sfx('click'); // the turnstile clicks once by itself
       return;
     }
-    sfx('knock');
-    this.cameras.main.shake(80, 0.002);
-    this.time.delayedCall(900, () => {
-      sfx('knock'); // something on the other side knocks back once
-      this.cameras.main.shake(60, 0.003);
-    });
-    this.floatText(this.gateX - 40, FLOOR - 80, `chained.  ${2 - this.save.dreamsCaught} more.`, '#c8c0b0');
+    this.boardLastStop();
   }
 
   // ---- undercroft & roof ---------------------------------------------------
@@ -744,9 +726,9 @@ export default class HubScene extends BaseLevel {
       const cover = this.add.rectangle(this.flowerCart.x + (st.flowers / 6) * 18 + 18, this.flowerCart.y - 12, (1 - st.flowers / 6) * 36, 12, 0x2a2230, 1).setDepth(D.INTERACT - 1);
       cover.setOrigin(1, 0.5).x = this.flowerCart.x + 18;
     }
-    // gate light
-    this.gateLight.setAlpha(st.gateLight * 0.9);
-    this.gateGlow.setAlpha(st.gateLight * 0.25);
+    // gate light: never below the open-door glow, brighter as the hall empties
+    this.gateLight.setAlpha(Math.max(0.35, st.gateLight * 0.9));
+    this.gateGlow.setAlpha(Math.max(0.12, st.gateLight * 0.25));
     // NPCs stay warm: their lamps brighten as the hall dims
     for (const s of Object.values(this.npcs)) {
       if (s.lamp && s.who !== 'sleeper' && s.who !== 'sweeper') s.lamp.setAlpha(0.13 + st.sat * 0.5);
@@ -844,7 +826,7 @@ export default class HubScene extends BaseLevel {
       this.visitLines.deskReturn = true;
       return this.say('pemberton', PEMBERTON_RETURN[this.N] || 'Back again.');
     }
-    if (this.save.flags.hub.gateOpened) return this.say('pemberton', 'Mind the gap.');
+    if (this.N >= 2) return this.say('pemberton', 'Mind the gap.');
     if (this.N > 0 && !this.visitLines.luggage) {
       this.visitLines.luggage = true;
       return this.say('pemberton', "Left luggage is downstairs, sir -- the grate past the fountain. You'll want to see whose name is on the tag.");
@@ -873,38 +855,6 @@ export default class HubScene extends BaseLevel {
     return this.say('bilal', "You know the sweeper's been here longer than the trains?");
   }
 
-  // the chain drops the first time Jo re-enters the hall with two dreams
-  async chainDrop() {
-    if (this.save.flags.hub.gateOpened || this.N < 2) return;
-    updateSave((s) => (s.flags.hub.gateOpened = true));
-    this.save.flags.hub.gateOpened = true;
-    const cam = this.cameras.main;
-    this.player.controlLockUntil = this.time.now + 5200;
-    cam.stopFollow();
-    this.tweens.add({ targets: cam, scrollX: this.gateX - 120 - 480, scrollY: FLOOR - 160 - 270, duration: 1800, ease: 'sine.inout' });
-    this.time.delayedCall(1800, () => {
-      sfx('scrape');
-      this.tweens.add({ targets: this.gateChain, y: FLOOR - 10, angle: 40, alpha: 0.4, duration: 900, ease: 'bounce.out' });
-      this.tweens.add({ targets: this.gateLock, y: FLOOR - 6, alpha: 0, duration: 900 });
-      this.tweens.add({ targets: this.gateLight, alpha: 0.35, duration: 1400 });
-      this.tweens.add({ targets: this.gateGlow, alpha: 0.12, duration: 1400 });
-      sfx('adding');
-    });
-    this.time.delayedCall(3400, () => {
-      const rows = this.boardRows();
-      this.board.setRow(rows.length - 1, rows[rows.length - 1]);
-      this.tweens.add({
-        targets: cam,
-        scrollX: this.player.x - 480,
-        scrollY: this.player.y - 270,
-        duration: 1400,
-        ease: 'sine.inout',
-        onComplete: () => cam.startFollow(this.player, true, 0.1, 0.1),
-      });
-      this.setObjective('board any train — or the last stop');
-    });
-  }
-
   // return from a dream: the only returning train the player ever sees
   runReturn() {
     const d = dreamById(this.returnedFrom);
@@ -926,7 +876,7 @@ export default class HubScene extends BaseLevel {
         this.drawTally(this.state.tally);
         // then, and only then, the tint darkens
         this.tweens.add({ targets: this.washRect, fillAlpha: this.state.sat * 0.55, duration: 2400 });
-        this.setObjective(this.N >= 2 ? 'board any train — or the last stop' : 'board any train');
+        this.setObjective('board any train — or the last stop');
       });
       this.washRect.setFillStyle(0x3a3a44, hubState(Math.max(0, this.N - 1)).sat * 0.55);
     }
@@ -978,7 +928,7 @@ export default class HubScene extends BaseLevel {
   // stands open onto THE LONG EVENING, and that part is here.
   boardLastStop() {
     this.showCard(
-      ['THE LAST STOP', '', 'The Counter is still being laid.', 'Past his gate, a door stands open.', 'It is warm on the other side.', '', '[X] Go through      [Q] Not yet'],
+      ['THE LAST STOP', '', 'No ticket. No count to clear.', 'Past the turnstile, a door stands open.', 'It is warm on the other side.', '', '[X] Go through      [Q] Not yet'],
       () => {
         this.persistClock();
         this.player.controlLockUntil = this.time.now + 99999;
@@ -1194,11 +1144,6 @@ export default class HubScene extends BaseLevel {
 
     // the opening: crossing the door on the first visit
     if (this.firstVisit && !this.openingDone && p.x > this.hallEntryX) this.opening();
-    // the chain drops on the first re-entry with two dreams
-    if (this.N >= 2 && !this.save.flags.hub.gateOpened && p.x > px(30) && !this.chainDropping) {
-      this.chainDropping = true;
-      this.chainDrop();
-    }
     // Pemberton meets Jo at the desk on the way in
     const pem = this.npcs.pemberton;
     if (pem && Math.abs(p.x - pem.x) < 70 && Math.abs(p.y - pem.y) < 60) {
@@ -1211,7 +1156,7 @@ export default class HubScene extends BaseLevel {
       }
     }
     // the last walk: single lines, no box, as Jo passes each lamp
-    if (this.save.flags.hub.gateOpened) {
+    if (this.N >= 2) {
       for (const [who, text] of Object.entries(LAST_WALK)) {
         const s = this.npcs[who];
         if (!s || this.visitLines[`walk_${who}`]) continue;
