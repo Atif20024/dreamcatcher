@@ -22,7 +22,7 @@ export default [
       // coins (tier 1): the kerb ramp is optional height — the pay is up there
       { type: 'coins', x: 19, y: 31, n: 3 },
       { type: 'coin', x: 24, y: 32, breadcrumb: true }, // marks the gate
-      { type: 'checkpoint', x: 23, y: 33, id: 'CP0' },
+      { type: 'checkpoint', x: 23, y: 33, id: 'CP0', label: 'THE KERB' },
       { type: 'gate', x: 25, y: 29, h: 5, id: 'g0', requires: ['d0'] },
     ],
   },
@@ -56,7 +56,7 @@ export default [
       { type: 'coin', x: L(72, 26), y: 31, breadcrumb: true }, // the plate
       { type: 'plate', x: L(72, 26), y: 33, id: 'dry_plate', needs: 2, opens: 'hatch' },
       { type: 'moment', x: L(77, 26), y: 33, id: 'm1' },
-      { type: 'checkpoint', x: L(79, 26), y: 29, id: 'CP1' },
+      { type: 'checkpoint', x: L(79, 26), y: 29, id: 'CP1', label: 'THE LOADING DOCK' },
       { type: 'gate', x: L(81, 26), y: 29, h: 5, id: 'g1', requires: ['crates'] },
     ],
   },
@@ -82,7 +82,7 @@ export default [
       { type: 'hazard', kind: 'pan_pendulum', x: L(126, 82), y: 20, len: 58, phase: 0 },
       { type: 'hazard', kind: 'pan_pendulum', x: L(128, 82), y: 24, len: 58, phase: 1.5 },
       { type: 'carryable', kind: 'saffron', x: L(127, 82), y: 18, id: 'saffron', story: true, sets: 'has_saffron', dialogue: 'd2' },
-      { type: 'checkpoint', x: L(129, 82), y: 33, id: 'CP2' },
+      { type: 'checkpoint', x: L(129, 82), y: 33, id: 'CP2', label: 'THE FREEZER' },
       // tier 2: the shelf hop line under the icicles — visible from the door
       { type: 'coin', x: L(86, 82), y: 30 },
       { type: 'coins', x: L(91, 82), y: 27, n: 3 },
@@ -105,7 +105,7 @@ export default [
     music: { section: 'the_line', bpm: 110, state: 'danger' },
     bg: { far: 'pans', mid: 'kitchen_wall', near: 'cooks', landmark: 'pass_window' },
     objects: [
-      { type: 'checkpoint', x: L(132, 132), y: 33, id: 'CP3' },
+      { type: 'checkpoint', x: L(132, 132), y: 33, id: 'CP3', label: 'THE LINE' },
       { type: 'hazard', kind: 'burner', x: L(136, 132), y: 30, period: 2000, offset: 0 },
       { type: 'hazard', kind: 'burner', x: L(139, 132), y: 30, period: 2000, offset: 500 },
       { type: 'hazard', kind: 'burner', x: L(143, 132), y: 30, period: 2000, offset: 1000 },
@@ -131,7 +131,7 @@ export default [
       { type: 'source', x: L(182, 132), y: 23, id: 'herbs' },
       { type: 'source', x: L(195, 132), y: 32, id: 'bread' },
       { type: 'oven_door', x: L(191, 132), y: 31, h: 3, period: 12000, open: 4000 },
-      { type: 'checkpoint', x: L(200, 132), y: 33, id: 'CP3b' },
+      { type: 'checkpoint', x: L(200, 132), y: 33, id: 'CP3b', label: 'END OF THE LINE' },
       { type: 'moment', x: L(201, 132), y: 33, id: 'm3' },
       // P2 — the arc over the grease slick traces the running jump
       { type: 'coin', x: L(160, 132), y: 32 },
@@ -165,7 +165,7 @@ export default [
       { type: 'foe', kind: 'meringue', x: L(255, 204), y: 12, human: false },
       { type: 'panel', x: L(252, 204), y: 13, id: 'piping', puzzle: 'piping', sets: 'piping' },
       { type: 'carryable', kind: 'gold_leaf', x: L(254, 204), y: 13, id: 'gold leaf', story: true, sets: 'has_gold_leaf', dialogue: 'd5', requires: ['piping'] },
-      { type: 'checkpoint', x: L(258, 204), y: 13, id: 'CP4' },
+      { type: 'checkpoint', x: L(258, 204), y: 13, id: 'CP4', label: 'THE LOFT' },
       // tier 3: across the sugar bridges — the coins sit over the gaps
       { type: 'coins', x: L(221, 204), y: 13, n: 3, dx: 3 },
       { type: 'coins', x: L(233, 204), y: 13, n: 3, dx: 3 },
@@ -184,7 +184,7 @@ export default [
     music: { section: 'the_pass', bpm: 120, state: 'setpiece' },
     bg: { far: 'dining_room', mid: 'chandeliers', near: 'heat_lamps', landmark: 'the_pass' },
     objects: [
-      { type: 'checkpoint', x: L(266, 263), y: 33, id: 'CP5' },
+      { type: 'checkpoint', x: L(266, 263), y: 33, id: 'CP5', label: 'THE PASS' },
       { type: 'station', x: L(271, 263), y: 30, id: 'hot', service: true },
       { type: 'station', x: L(279, 263), y: 30, id: 'cold', service: true },
       { type: 'station', x: L(287, 263), y: 30, id: 'dessert', service: true },

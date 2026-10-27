@@ -101,6 +101,7 @@ export default class ChefScene extends BaseLevel {
     this.setObjective('find the service entrance');
     music.bass();
     this.time.delayedCall(900, async () => {
+      if (this.resuming && this.F.d0) return; // a continued run: already heard
       await this.dialog.show(DIALOGUES.d0);
       this.setFlag('d0');
       this.setObjective('find saffron → deliver to pass');
@@ -147,9 +148,7 @@ export default class ChefScene extends BaseLevel {
   }
 
   buildCheckpoints() {
-    this.built.objects
-      .filter((o) => o.type === 'checkpoint')
-      .forEach((c) => this.flags.create(c.wx, c.wy, 'flag'));
+    this.placeCheckpoints(this.built.objects);
   }
 
   addInteract(x, y, label, cb, { radius = 40, once = true, when = () => true } = {}) {
@@ -826,7 +825,7 @@ export default class ChefScene extends BaseLevel {
     // chocolate rivers
     for (const z of this.chocoZones) {
       if (overlaps(pb, z)) {
-        this.hurt();
+        this.hurt({ toSafe: true, source: 'chocolate' }); // knockback can't get him out of a river
         break;
       }
     }
@@ -834,11 +833,7 @@ export default class ChefScene extends BaseLevel {
     if (!this.service && !this.F.service_survived && this.F.has_gold_leaf && p.x > px(266) && p.y > px(20)) {
       this.startService();
     }
-    if (p.y > this.worldH + 60) {
-      p.setPosition(this.checkpoint.x, this.checkpoint.y);
-      p.setVelocity(0, 0);
-      this.hurt();
-    }
+    if (p.y > this.worldH + 60) this.fallOut();
   }
 
   updateAlley(pb) {

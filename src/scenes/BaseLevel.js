@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { createPixelTexture } from '../utils/pixelart.js';
-import { getDifficulty, getSave, updateSave } from '../utils/save.js';
+import { getDifficulty, getSave, updateSave, getRun, setRun, clearRun, getSettings, updateSettings } from '../utils/save.js';
 import DialogueBox from '../systems/DialogueBox.js';
 import { sfx, music, musicDirector, sting, isMusicOff, toggleMusic } from '../systems/audio.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
@@ -13,8 +13,17 @@ import { showTutorial } from '../systems/tutorial.js';
 import { hitStop } from '../systems/effects.js';
 import CoinManager, { createCoinTextures, createShardTexture } from '../entities/Coin.js';
 import { getWallet, coinWorth, deductWorth } from '../systems/wallet.js';
-import { dreamById } from '../data/dreams.js';
+import { dreamById, DREAMS } from '../data/dreams.js';
 import { D } from '../builders/depths.js';
+import { events } from '../core/events.js';
+import { HealthModel } from '../play/Health.js';
+import CheckpointService from '../play/Checkpoints.js';
+import { RunState } from '../play/RunState.js';
+import PauseMenu from '../ui/PauseMenu.js';
+
+const T = 32;
+// scene key → dream id (Hub and the Evening have no in-dream run)
+const DREAM_OF_SCENE = Object.fromEntries(DREAMS.filter((d) => d.scene).map((d) => [d.scene, d.id]));
 
 const HEART = { rows: ['.hh.hh.', 'hhhhhhh', 'hhhhhhh', '.hhhhh.', '..hhh..', '...h...'], pal: { h: 0xe86a6a } };
 const ORB = {
@@ -31,11 +40,50 @@ const FLAG = {
 // respawn, cards, pause, objective HUD, dialogue host, darkness tint,
 // camera polish. Subclasses build the world and call setupCommon().
 export default class BaseLevel extends Phaser.Scene {
+  // ---- failure / checkpoint state lives in services (plan §2.8); these
+  // accessors keep every scene's old field names working.
+  get lives() {
+    return this.health ? this.health.hearts : this._lives;
+  }
+  set lives(v) {
+    if (this.health) this.health.set(v);
+    else this._lives = v;
+  }
+  get maxLives() {
+    return this.health ? this.health.max : this._maxLives;
+  }
+  set maxLives(v) {
+    if (this.health) this.health.setMax(v);
+    else this._maxLives = v;
+  }
+  get invulnUntil() {
+    return this.health ? this.health.invulnUntil : this._invulnUntil || 0;
+  }
+  set invulnUntil(v) {
+    if (this.health) this.health.invulnUntil = v;
+    else this._invulnUntil = v;
+  }
+  get checkpoint() {
+    return this.checkpoints ? this.checkpoints.respawn : this._checkpoint;
+  }
+  set checkpoint(v) {
+    if (this.checkpoints) this.checkpoints.setRespawn(v);
+    else this._checkpoint = v;
+  }
+
   setupCommon({ worldW, worldH, levelName, spawn }) {
     this.difficulty = getDifficulty();
     const save = getSave();
-    this.maxLives = Math.min(6, 3 + this.difficulty + Math.floor((save.shards || 0) / 3));
-    this.lives = this.maxLives;
+    const max = Math.min(6, 3 + this.difficulty + Math.floor((save.shards || 0) / 3));
+    // one HealthModel for every dream (the Painter's wells are a skin on it)
+    this.health = new HealthModel({ max, bus: events, flavour: this.healthFlavour || 'hearts', noFail: !!this.noFail });
+    this.checkpoints = new CheckpointService(this, { spawn, bus: events, onLit: (cp) => this.onCheckpointLit(cp) });
+    this.respawning = false;
+    this.paused = false;
+    this.safeGround = null;
+    this.levelStartedAt = this.time.now;
+    this.pauseMenu = new PauseMenu(this);
+    this.initRun();
     // Bilal's tea: a heart refill banked for the next dream's first section —
     // here it simply tops the section up over the max by one.
     if (save.shop && save.shop.tea && this.scene.key !== 'Hub') {
@@ -46,8 +94,6 @@ export default class BaseLevel extends Phaser.Scene {
     this.dialogActive = false;
     this.puzzleActive = false;
     this.worldH = worldH;
-    this.checkpoint = spawn;
-    this.invulnUntil = 0;
     this.dialog = new DialogueBox(this);
     this.flagsState = {};
 
@@ -74,9 +120,8 @@ export default class BaseLevel extends Phaser.Scene {
         .setDepth(90);
     }
 
-    this.hearts = Array.from({ length: this.maxLives }, (_, i) =>
-      this.add.image(28 + i * 30, 30, 'heart').setScrollFactor(0).setDepth(150)
-    );
+    this.hearts = [];
+    this.updateHearts();
     this.add
       .text(16, 52, levelName, { fontFamily: 'monospace', fontSize: '14px', color: '#e8dcc8', stroke: '#14101c', strokeThickness: 4 })
       .setScrollFactor(0)
@@ -144,6 +189,14 @@ export default class BaseLevel extends Phaser.Scene {
 
     this.keyEsc = this.input.keyboard.addKey('ESC');
     this.keyQ = this.input.keyboard.addKey('Q');
+    // last safe footing (a pit or a river returns Jo here, not to the flag)
+    this.events.on('update', this.trackSafeGround, this);
+    // a resumed run is applied once the subclass's create() has finished
+    this.events.once('create', () => this.applyResume());
+    this.events.once('shutdown', () => {
+      this.events.off('update', this.trackSafeGround, this);
+      if (this.pauseMenu) this.pauseMenu.destroy();
+    });
     // fullscreen lives on a key no dream uses for play ([F] is the tether /
     // the companion call): a stray toggle used to eject people to the pause card
     this.input.keyboard.on('keydown-B', () => {
@@ -243,10 +296,12 @@ export default class BaseLevel extends Phaser.Scene {
     });
   }
 
-  loseHeart() {
-    this.lives -= 1;
+  // a scripted heart loss (thrown out, a bet lost): no knockback, no i-frame check
+  loseHeart(source = null) {
+    if (this.respawning) return;
+    const r = this.health.lose(1, source);
     this.updateHearts();
-    if (this.lives <= 0 && !this.tryReturnTicket()) this.sectionRestart();
+    if (r.zero) this.onZeroHearts();
   }
 
   // Bilal's return ticket: one bad night, forgiven — instead of the restart
@@ -255,28 +310,16 @@ export default class BaseLevel extends Phaser.Scene {
     const sv = getSave();
     if (!sv.shop || !sv.shop.ticket) return false;
     updateSave((x) => (x.shop.ticket = false));
-    this.lives = this.maxLives;
+    this.health.refill();
     this.updateHearts();
     sfx('buy');
     this.floatText(this.player.x, this.player.y - 70, 'return ticket, punched.', '#f2d580');
     return true;
   }
 
-  // D6.3 — hearts are lives per section: at zero the section restarts.
+  // kept for old callers: zero hearts never restarts the dream now
   sectionRestart() {
-    music.stop();
-    sting.death();
-    this.showCard(
-      [
-        'You gave everything… and it slipped away.',
-        '',
-        'Do you really want to pursue this dream?',
-        '',
-        '[X] Try again      [Q] Choose another dream',
-      ],
-      () => this.scene.restart(),
-      () => this.scene.start('Hub')
-    );
+    this.onZeroHearts();
   }
 
   updateFoes(time) {
@@ -334,13 +377,21 @@ export default class BaseLevel extends Phaser.Scene {
   spawnPickups(objects) {
     if (!this.coinMgr) return;
     const T = 32;
+    // placed coins carry a position key so a continued run can leave the
+    // ones already taken out of the world
+    this.placedCoins = this.placedCoins || [];
+    const place = (x, y) => {
+      const c = this.coinMgr.spawn(x, y);
+      c.key = `${Math.round(x)},${Math.round(y)}`;
+      this.placedCoins.push(c);
+    };
     for (const o of objects) {
-      if (o.type === 'coin') this.coinMgr.spawn(o.wx, o.wy);
+      if (o.type === 'coin') place(o.wx, o.wy);
       else if (o.type === 'coins') {
         const n = o.n || 3;
         const dx = o.dx === undefined ? 1 : o.dx;
         const dy = o.dy || 0;
-        for (let i = 0; i < n; i++) this.coinMgr.spawn(o.wx + i * dx * T, o.wy + i * dy * T);
+        for (let i = 0; i < n; i++) place(o.wx + i * dx * T, o.wy + i * dy * T);
       } else if (o.type === 'moment' && getSave().shop.postcards[this.dream && this.dream.id]) {
         // the postcard marks the small moments (§2)
         const mk = this.add
@@ -351,6 +402,7 @@ export default class BaseLevel extends Phaser.Scene {
         this.tweens.add({ targets: mk, y: mk.y - 5, duration: 1100, yoyo: true, repeat: -1, ease: 'sine.inout' });
       } else if (o.type === 'shard') {
         const img = this.add.image(o.wx, o.wy, 'heart-shard').setDepth(21);
+        img.pickKey = `${Math.round(o.wx)},${Math.round(o.wy)}`;
         this.tweens.add({ targets: img, y: o.wy - 4, duration: 900, yoyo: true, repeat: -1, ease: 'sine.inout' });
         this.tweens.add({ targets: img, alpha: 0.6, duration: 1400, yoyo: true, repeat: -1 });
         (this.shardItems ||= []).push(img);
@@ -394,11 +446,21 @@ export default class BaseLevel extends Phaser.Scene {
   }
 
   setObjective(text) {
+    // a late async beat (a conversation that resolved after the scene was
+    // stopped) must not write into a destroyed HUD
+    if (!this.objectiveText || !this.objectiveText.scene) return;
     this.objectiveText.setText(text);
     this.tweens.add({ targets: this.objectiveText, alpha: 0.2, duration: 120, yoyo: true, repeat: 2 });
   }
 
   updateHearts() {
+    if (!this.hearts || !this.health) return;
+    const n = Math.max(this.maxLives, this.lives);
+    while (this.hearts.length < n) {
+      const i = this.hearts.length;
+      this.hearts.push(this.add.image(28 + i * 30, 30, this.heartTexture || 'heart').setScrollFactor(0).setDepth(150));
+    }
+    while (this.hearts.length > n) this.hearts.pop().destroy();
     this.hearts.forEach((h, i) => h.setAlpha(i < this.lives ? 1 : 0.25));
   }
 
@@ -412,55 +474,357 @@ export default class BaseLevel extends Phaser.Scene {
 
   onHurtExtra() {}
 
-  hurt() {
-    if (this.cardActive || this.dialogActive || this.puzzleActive) return;
-    if (this.time.now < this.invulnUntil) return;
+  // A hit (plan §2.8): one heart, knockback away from the source, brief
+  // invulnerability. Never a teleport. `toSafe` is for pits and rivers:
+  // knockback cannot get him out, so he returns to his last safe footing.
+  // Returns true when the hit landed.
+  hurt(opts = {}) {
+    if (this.cardActive || this.dialogActive || this.puzzleActive || this.paused || this.respawning) return false;
+    if (!this.health || !this.health.canHit(this.time.now)) return false;
+    const { sourceX = null, toSafe = false, source = null } = opts || {};
     sfx('hurt');
     this.scatterCoins();
     hitStop(this, 60); // D5
     this.cameras.main.shake(240, 0.008); // D1: shake doubled for 32px scale
     this.player.burst();
     this.player.knockHat();
-    this.onHurtExtra();
-    this.lives -= 1;
+    this.onHurtExtra(opts);
+    const r = this.health.hit(this.time.now, source);
     this.updateHearts();
-    if (this.lives <= 0 && this.tryReturnTicket()) {
-      // fall through to the normal respawn below
-    } else if (this.lives <= 0) {
-      music.stop();
-      this.showCard(
-        [
-          'You gave everything… and it slipped away.',
-          '',
-          'Do you really want to pursue this dream?',
-          '',
-          '[X] Try again      [Q] Choose another dream',
-        ],
-        () => this.scene.restart(),
-        () => this.scene.start('Hub')
-      );
-      return;
+    if (toSafe) this.returnToSafe();
+    else this.knockback(sourceX);
+    this.flashInvulnerable();
+    if (r.zero) this.onZeroHearts();
+    return true;
+  }
+
+  knockback(sourceX = null) {
+    const p = this.player;
+    if (!p || !p.body) return;
+    if (p.climbing) {
+      p.climbing = false;
+      p.body.setAllowGravity(true);
     }
-    this.player.setPosition(this.checkpoint.x, this.checkpoint.y);
-    this.player.setVelocity(0, 0);
-    this.invulnUntil = this.time.now + 2000;
+    const v = this.health.knockback(p.x, sourceX, p.flipX);
+    p.body.setVelocity(v.x, v.y);
+    p.controlLockUntil = Math.max(p.controlLockUntil || 0, this.time.now + 240);
+  }
+
+  flashInvulnerable() {
     this.tweens.add({
       targets: this.player,
       alpha: 0.3,
       duration: 150,
       yoyo: true,
-      repeat: 6,
+      repeat: Math.max(1, Math.round(this.health.cfg.iframes / 300) - 1),
       onComplete: () => this.player.setAlpha(1),
     });
   }
 
-  activateCheckpoint(flagSprite) {
-    if (flagSprite.texture.key === 'flag') {
-      flagSprite.setTexture('flag-lit');
-      this.checkpoint = { x: flagSprite.x, y: flagSprite.y - 8 };
-      this.coinsSinceCP = 0; // banked: death can no longer scatter these
-      sting.checkpoint();
+  // fell out of the world: a heart, and back to the last safe footing
+  fallOut() {
+    if (this.respawning) return;
+    if (!this.hurt({ toSafe: true, source: 'fall' })) this.returnToSafe();
+  }
+
+  // is this footing somewhere to come back to? (no liquid, no hazard)
+  isSafeFooting(p) {
+    const sg = this.built && this.built.surfaceGrid;
+    if (sg) {
+      const tx = Math.floor(p.x / T);
+      const ty = Math.floor((p.y + 26) / T);
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const v = sg[ty + dy] && sg[ty + dy][tx + dx];
+          if (v === 'liquid' || v === 'conveyor_l' || v === 'conveyor_r') return false;
+        }
+      }
     }
+    if (this.spikes && this.spikes.getLength && this.physics.overlap(p, this.spikes)) return false;
+    return this.isSafeHere ? this.isSafeHere(p) : true;
+  }
+
+  trackSafeGround(time) {
+    const p = this.player;
+    if (!p || !p.body || this.paused || this.respawning || this.cardActive) return;
+    const grounded = p.body.blocked.down || p.onSlope;
+    if (!grounded || p.climbing || time < this.invulnUntil) {
+      this._safeSince = 0;
+      return;
+    }
+    if (!this._safeSince) this._safeSince = time;
+    if (time - this._safeSince < 250) return;
+    // every few frames is plenty (the overlap test is not free)
+    if ((this._safeTick = (this._safeTick || 0) + 1) % 6) return;
+    if (this.isSafeFooting(p)) this.safeGround = { x: p.x, y: p.y };
+  }
+
+  returnToSafe() {
+    const now = this.time.now;
+    // twice in a row from the same footing: that footing is a trap, use the flag
+    const recent = now - (this._lastSafeReturn || -1e9) < 3000;
+    const pt = !recent && this.safeGround ? this.safeGround : this.checkpoint;
+    this._lastSafeReturn = now;
+    this.placePlayer(pt);
+    this.player.controlLockUntil = Math.max(this.player.controlLockUntil || 0, now + 200);
+  }
+
+  placePlayer(pt) {
+    const p = this.player;
+    if (p.climbing) {
+      p.climbing = false;
+      p.body.setAllowGravity(true);
+    }
+    p.setPosition(pt.x, pt.y);
+    p.body.reset(pt.x, pt.y);
+    p.body.setVelocity(0, 0);
+  }
+
+  // ---- zero hearts: the death card, then back to the flag ---------------------
+  onZeroHearts() {
+    if (this.respawning) return;
+    if (this.tryReturnTicket()) return;
+    this.respawning = true;
+    sting.death();
+    // let the hit land (hit-stop, shake) before the card
+    this.time.delayedCall(450, () => this.openDeathCard());
+  }
+
+  openDeathCard() {
+    const label = this.checkpoint.label;
+    this.freezeWorld(true);
+    this.pauseMenu.open({
+      title: 'You gave everything… and it slipped away.',
+      lines: [label ? `The last flag: ${label}` : 'Back to where this dream began.'],
+      items: [
+        { id: 'retry', label: label ? `Back to the flag — ${label}` : 'Try again from here', action: () => this.respawnAtCheckpoint() },
+        { id: 'pause', label: 'Pause menu', action: () => this.openPauseMenu({ fromDeath: true }) },
+      ],
+      canClose: false,
+      guardMs: 700,
+    });
+  }
+
+  // zero hearts → the last checkpoint, hearts refilled; the world is NOT
+  // restarted, so nothing already seen or done is replayed
+  respawnAtCheckpoint() {
+    this.pauseMenu.destroy();
+    this.freezeWorld(false);
+    this.respawning = false;
+    if (this.dropCarry) this.dropCarry();
+    this.onRespawn();
+    this.placePlayer(this.checkpoint);
+    this.player.setAlpha(1);
+    this.player.controlLockUntil = 0;
+    this.safeGround = null;
+    this.health.refill();
+    this.health.setInvulnerable(this.time.now, 1500);
+    this.updateHearts();
+    this.cameras.main.centerOn(this.player.x, this.player.y);
+    this.cameras.main.fadeIn(350);
+    this.flashInvulnerable();
+  }
+
+  // per-dream reset hook when Jo wakes at the flag (chases, timers)
+  onRespawn() {}
+
+  // ---- checkpoints -----------------------------------------------------------------
+  // the room objects of type 'checkpoint' → labelled flags in this.flags
+  placeCheckpoints(objects, filter) {
+    this.checkpoints.place(this.flags, objects, filter);
+  }
+
+  activateCheckpoint(flagSprite) {
+    return this.checkpoints.light(flagSprite);
+  }
+
+  onCheckpointLit(cp) {
+    this.coinsSinceCP = 0; // banked: death can no longer scatter these
+    if (cp.silent) return;
+    sting.checkpoint();
+    this.showCheckpointLabel(cp.label);
+    this.saveRun();
+  }
+
+  // the flag's name, top centre ("THE PASS"); the first time ever, "Saved here"
+  showCheckpointLabel(label, sub = null) {
+    if (!label) return;
+    const cam = this.cameras.main;
+    let first = false;
+    if (!sub && this.run) {
+      try {
+        first = !getSettings().savedHereShown;
+        if (first) updateSettings((st) => (st.savedHereShown = true));
+      } catch {
+        first = false;
+      }
+    }
+    const caption = sub || (first ? 'Saved here. Fall, and you wake at this flag.' : 'saved');
+    if (this.cpBanner) this.cpBanner.forEach((o) => o.destroy());
+    const t1 = this.add
+      .text(cam.width / 2, 116, `— ${label} —`, { fontFamily: 'monospace', fontSize: '20px', color: '#f2c078', stroke: '#14101c', strokeThickness: 5 })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(152)
+      .setAlpha(0);
+    const t2 = this.add
+      .text(cam.width / 2, 142, caption, { fontFamily: 'monospace', fontSize: '12px', color: '#c8c0b0', stroke: '#14101c', strokeThickness: 4 })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(152)
+      .setAlpha(0);
+    t1.name = 'checkpoint-label';
+    this.cpBanner = [t1, t2];
+    this.tweens.add({ targets: this.cpBanner, alpha: 1, duration: 250, hold: first ? 3200 : 1800, yoyo: true, onComplete: () => [t1, t2].forEach((o) => o.destroy()) });
+  }
+
+  // ---- the run: save / resume (plan §2.8 RunState) --------------------------------
+  initRun() {
+    this.dreamId = DREAM_OF_SCENE[this.scene.key] || null;
+    this.run = null;
+    this.resuming = false;
+    if (!this.dreamId || this.noFail) return;
+    const data = this.sys.settings.data || {};
+    const saved = data.resume ? getRun(this.dreamId) : null;
+    if (saved) {
+      this.run = RunState.from(saved);
+      this.resuming = true;
+    } else {
+      this.run = new RunState({ dreamId: this.dreamId, sceneKey: this.scene.key });
+      // boarding afresh: the old run (if any) is over
+      if (!data.keepRun) clearRun(this.dreamId);
+    }
+  }
+
+  // per-dream state beyond flags/satchel/coins (override in a scene)
+  runExtra() {
+    return {};
+  }
+
+  applyRunExtra() {}
+
+  saveRun() {
+    if (!this.run) return null;
+    const cp = this.checkpoint;
+    this.run.lightCheckpoint(cp.id, cp.label, cp);
+    this.run.lit = [...this.checkpoints.lit].filter((x) => typeof x === 'string');
+    this.run.capture({
+      flags: this.F || {},
+      inventory: this.satchel || [],
+      hearts: this.lives,
+      walletDelta: this.levelCoins || 0,
+      extra: {
+        ...this.runExtra(),
+        objective: this.objectiveText ? this.objectiveText.text : '',
+        coinsTaken: (this.placedCoins || []).filter((c) => !c.img.active).map((c) => c.key),
+        shardsTaken: (this.shardItems || []).filter((i) => !i.active).map((i) => i.pickKey),
+      },
+      elapsed: (this.run.elapsed || 0) + Math.max(0, this.time.now - (this._runClock || this.levelStartedAt)),
+    });
+    this._runClock = this.time.now;
+    this.run.savedAt = Date.now();
+    return setRun(this.dreamId, this.run);
+  }
+
+  applyResume() {
+    if (!this.resuming || !this.run) return;
+    const r = this.run;
+    if (this.F) {
+      Object.assign(this.F, r.flags);
+      if (this.refreshGates) this.refreshGates();
+    }
+    this.satchel = [...r.inventory];
+    if (this.satchelHud) this.updateSatchelHud();
+    if (this.coinHud) {
+      this.levelCoins = r.walletDelta || 0;
+      this.updateCoinHud();
+    }
+    this.checkpoints.restoreLit(r.lit);
+    const pos = r.pos || this.checkpoints.pointFor(r.checkpointId) || this.checkpoint;
+    this.checkpoints.setRespawn(pos, { id: r.checkpointId, label: r.checkpointLabel });
+    const x = r.extra || {};
+    const coinsTaken = new Set(x.coinsTaken || []);
+    for (const c of this.placedCoins || []) if (coinsTaken.has(c.key) && c.img.active) c.img.destroy();
+    const shardsTaken = new Set(x.shardsTaken || []);
+    for (const i of this.shardItems || []) if (shardsTaken.has(i.pickKey) && i.active) i.destroy();
+    this.placePlayer(pos);
+    this.applyRunExtra(x, r);
+    if (r.hearts) this.lives = Math.max(1, Math.min(this.maxLives, r.hearts));
+    this.updateHearts();
+    this.cameras.main.centerOn(pos.x, pos.y);
+    if (r.extra && r.extra.objective) {
+      this.setObjective(r.extra.objective);
+      this._resumeObjective = r.extra.objective;
+    }
+    this.showCheckpointLabel(r.checkpointLabel || 'the dream', 'continued from the last flag');
+  }
+
+  // ---- pause menu (Esc) -------------------------------------------------------------
+  freezeWorld(on) {
+    this.paused = on;
+    if (on) {
+      this.physics.pause();
+      this.tweens.pauseAll();
+      this.time.paused = true;
+    } else {
+      this.time.paused = false;
+      this.tweens.resumeAll();
+      if (!this.cardActive && !this.dialogActive && !this.puzzleActive) this.physics.resume();
+      // swallow the key that closed the menu so it does not reopen it
+      Phaser.Input.Keyboard.JustDown(this.keyEsc);
+      if (this.player && this.player.keys) Phaser.Input.Keyboard.JustDown(this.player.keys.X);
+    }
+  }
+
+  openPauseMenu({ fromDeath = false } = {}) {
+    if (!fromDeath) this.freezeWorld(true);
+    const label = this.checkpoint.label;
+    const resume = () => {
+      if (fromDeath) this.respawnAtCheckpoint();
+      else {
+        this.pauseMenu.destroy();
+        this.freezeWorld(false);
+      }
+    };
+    const main = () => [
+      { id: 'resume', label: fromDeath ? 'Back to the flag' : 'Resume', action: resume },
+      { id: 'restart', label: label ? `Restart from the flag — ${label}` : 'Restart from the flag', action: () => this.respawnAtCheckpoint() },
+      { id: 'station', label: 'Return to station', action: () => this.returnToStation() },
+      { id: 'settings', label: 'Settings', action: (m) => m.setItems(settings(), { title: 'Settings', lines: [] }) },
+    ];
+    const settings = () => [
+      {
+        id: 'music',
+        label: `Music: ${isMusicOff() ? 'off' : 'on'}`,
+        action: (m) => {
+          this.setMusicLabel(toggleMusic());
+          m.setItems(settings(), { keepIndex: true });
+        },
+      },
+      { id: 'back', label: 'Back', action: (m) => m.setItems(main(), { title: 'Paused', lines: info() }) },
+    ];
+    const info = () => [label ? `Last flag: ${label}` : 'No flag yet: you would wake where the dream began.', this.run ? 'The dream is saved at its last flag.' : ''].filter(Boolean);
+    this.pauseMenu.open({
+      title: 'Paused',
+      lines: info(),
+      items: main(),
+      canClose: true,
+      onClose: (fromEsc) => {
+        if (fromEsc) {
+          if (fromDeath) this.respawnAtCheckpoint();
+          else this.freezeWorld(false);
+        }
+      },
+    });
+  }
+
+  // back to the hub; the run stays saved (Continue on the platform)
+  returnToStation() {
+    if (this.run) this.saveRun();
+    this.pauseMenu.destroy();
+    this.freezeWorld(false);
+    music.stop();
+    this.scene.start('Hub');
   }
 
   // D7 — room-driven music: bpm and state follow whichever room Jo is in,
@@ -519,6 +883,7 @@ export default class BaseLevel extends Phaser.Scene {
 
   // returns true when the frame should be swallowed (modal open / pause)
   handleModalUpdate() {
+    if (this.paused || this.respawning) return true;
     if (this.dialogActive || this.puzzleActive) return true;
     if (this.cardActive) {
       // a card that appears mid-mash must not be confirmed by the mash:
@@ -540,10 +905,7 @@ export default class BaseLevel extends Phaser.Scene {
       return true;
     }
     if (Phaser.Input.Keyboard.JustDown(this.keyEsc)) {
-      this.showCard(['Paused', '', '[X] Keep dreaming', '[Q] Back to Crossroads Station'], null, () => {
-        music.stop();
-        this.scene.start('Hub');
-      });
+      this.openPauseMenu();
       return true;
     }
     // camera look-ahead in facing direction

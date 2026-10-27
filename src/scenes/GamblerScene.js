@@ -150,6 +150,7 @@ export default class GamblerScene extends BaseLevel {
     this.updateHud();
     if (!this.devWarp()) {
       this.time.delayedCall(900, async () => {
+        if (this.resuming && this.F.d0) return; // a continued run: already heard
         await this.dialog.show(DIALOGUES.d0);
         this.setFlag('d0');
       });
@@ -195,7 +196,7 @@ export default class GamblerScene extends BaseLevel {
   }
 
   buildCheckpoints() {
-    this.built.objects.filter((o) => o.type === 'checkpoint').forEach((c) => this.flags.create(c.wx, c.wy, 'flag'));
+    this.placeCheckpoints(this.built.objects);
   }
 
   addInteract(x, y, label, cb, { radius = 44, once = true, when = () => true, follow = null } = {}) {
@@ -1347,7 +1348,7 @@ export default class GamblerScene extends BaseLevel {
     else if ((p.body.touching.left && v.img.body.touching.right) || (p.body.touching.right && v.img.body.touching.left)) {
       if (Math.abs(v.img.body.velocity.x) > 5 && time > (v.hitAt || 0)) {
         v.hitAt = time + 1500;
-        this.hurt();
+        this.hurt({ sourceX: v.img.x });
       }
     }
     v.lastX = v.img.x;
@@ -1667,11 +1668,7 @@ export default class GamblerScene extends BaseLevel {
     this.pit.update(time, dt, p);
     this.updateMirror(p, room);
 
-    if (p.y > this.worldH + 60) {
-      p.setPosition(this.checkpoint.x, this.checkpoint.y);
-      p.setVelocity(0, 0);
-      this.hurt();
-    }
+    if (p.y > this.worldH + 60) this.fallOut();
     void pb;
   }
 
@@ -1838,6 +1835,44 @@ export default class GamblerScene extends BaseLevel {
   }
 
   // ---------- dev warp -----------------------------------------------------------------------
+
+  // ---- the run (plan §2.8): chips, the marker, the horn, the lift
+  runExtra() {
+    return {
+      pending: this.pending,
+      marker: this.marker,
+      cashedWorth: this.cashedWorth,
+      favour: this.favour,
+      hasTrumpet: this.hasTrumpet,
+      silence: !!this.silence,
+      told: { ...this.told },
+    };
+  }
+
+  applyRunExtra(x) {
+    const F = this.F;
+    this.pending = x.pending === undefined ? this.pending : x.pending;
+    setPending(this.pending);
+    this.marker = x.marker || 0;
+    updateSave((s) => (s.wallet.marker = this.marker));
+    this.cashedWorth = x.cashedWorth || 0;
+    this.favour = x.favour || 0;
+    Object.assign(this.told, x.told || {});
+    if (x.hasTrumpet === false) {
+      this.hasTrumpet = false;
+      this.player.tool.setTexture('gm-none');
+    }
+    if (F.coat_taken) this.player.bodyTint = 0xd8d8e8;
+    if (F.lift_down && this.lift) {
+      this.lift.img.y = this.lift.bottomY;
+      this.lift.down = true;
+    }
+    if (F.lift_ready) for (const b of this.balls) b.sunk = true;
+    if (x.silence) this.silence = true;
+    this.updateSatchelHud();
+    this.updateHud();
+    this.updateCoinHud();
+  }
 
   devWarp() {
     let at = null;

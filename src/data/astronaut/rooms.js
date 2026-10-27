@@ -20,7 +20,7 @@ export default [
       { type: 'mark', id: 'poster_fence', x: 9, y: 33 },
       { type: 'npc', who: 'adaeze', x: 12, y: 34, dialogue: 'd0' },
       { type: 'coin', x: 16, y: 33, breadcrumb: true },
-      { type: 'checkpoint', x: 20, y: 35, id: 'CP0' },
+      { type: 'checkpoint', x: 20, y: 35, id: 'CP0', label: 'ARRIVALS' },
       { type: 'gate', x: 23, y: 31, h: 5, id: 'g0', requires: ['d0'] },
     ],
   },
@@ -31,7 +31,7 @@ export default [
     music: { section: 'gym', bpm: 100, state: 'explore' },
     bg: { far: 'gym_wall', mid: 'gym_kit', near: 'ropes', landmark: 'lv3_poster' },
     objects: [
-      { type: 'checkpoint', x: L(40, 24), y: 35, id: 'CP1a' },
+      { type: 'checkpoint', x: L(40, 24), y: 35, id: 'CP1a', label: 'THE TRACK' },
       { type: 'mark', id: 'sheet', x: L(27, 24), y: 34 },
       // the Track: laps on the mezzanine; hurdles are the scene's business
       { type: 'mark', id: 'track_start', x: L(36, 24), y: 30 },
@@ -65,7 +65,7 @@ export default [
       // the deep end: lights off, the sunken locker (tier 4)
       { type: 'shard', x: L(81, 61), y: 48 },
       { type: 'coins', x: L(79, 61), y: 46, n: 2, dx: 2 },
-      { type: 'checkpoint', x: L(86, 61), y: 35, id: 'CP1b' },
+      { type: 'checkpoint', x: L(86, 61), y: 35, id: 'CP1b', label: 'THE POOL' },
     ],
   },
   {
@@ -82,7 +82,7 @@ export default [
       // the Ring
       { type: 'mark', id: 'ring', x: L(103, 87), y: 31 },
       { type: 'coins', x: L(100, 87), y: 29, n: 2, dx: 3 },
-      { type: 'checkpoint', x: L(109, 87), y: 35, id: 'CP1c' },
+      { type: 'checkpoint', x: L(109, 87), y: 35, id: 'CP1c', label: 'THE WALL' },
     ],
   },
   {
@@ -99,7 +99,7 @@ export default [
       { type: 'coin', x: L(121, 111), y: 34, breadcrumb: true },
       { type: 'npc', who: 'halvorsen', x: L(125, 111), y: 34 },
       { type: 'mark', id: 'physical', x: L(126, 111), y: 34 },
-      { type: 'checkpoint', x: L(128, 111), y: 35, id: 'CP1d' },
+      { type: 'checkpoint', x: L(128, 111), y: 35, id: 'CP1d', label: 'THE STUDY ROOM' },
       { type: 'gate', x: L(129, 111), y: 31, h: 5, id: 'g1', requires: ['physical'] },
     ],
   },
@@ -111,7 +111,7 @@ export default [
     music: { section: 'gate', bpm: 60, state: 'quiet' },
     bg: { far: 'gate_grey', mid: 'chairs', near: 'fence', landmark: 'board_door' },
     objects: [
-      { type: 'checkpoint', x: L(142, 130), y: 35, id: 'CP2' }, // by the Board's door, not on top of CP1d
+      { type: 'checkpoint', x: L(142, 130), y: 35, id: 'CP2', label: "THE BOARD'S DOOR" }, // by the Board's door, not on top of CP1d
       { type: 'coin', x: L(143, 130), y: 34, breadcrumb: true },
       { type: 'mark', id: 'board_door', x: L(145, 130), y: 34 },
       { type: 'gate', x: L(152, 130), y: 31, h: 5, id: 'g2', requires: ['selected'] },
@@ -124,7 +124,7 @@ export default [
     music: { section: 'campus', bpm: 96, state: 'explore' },
     bg: { far: 'campus', mid: 'hangars', near: 'fence', landmark: 'centrifuge_dome' },
     objects: [
-      { type: 'checkpoint', x: L(155, 153), y: 35, id: 'CP3a' },
+      { type: 'checkpoint', x: L(155, 153), y: 35, id: 'CP3a', label: 'THE CENTRIFUGE' },
       { type: 'foe', kind: 'security', x: L(164, 153), y: 35, human: true, patrol: [L(160, 153), L(168, 153)], sight: 160 },
       { type: 'hide', x: L(158, 153), y: 35, id: 'crates' },
       { type: 'coins', x: L(160, 153), y: 33, n: 2, dx: 2 },
@@ -145,7 +145,7 @@ export default [
       // inside the mock-up maze (tier 2)
       { type: 'coins', x: L(178, 171), y: 40, n: 2, dx: 3 },
       { type: 'coins', x: L(187, 171), y: 38, n: 1, dx: 2 },
-      { type: 'checkpoint', x: L(197, 171), y: 30, id: 'CP3b' },
+      { type: 'checkpoint', x: L(197, 171), y: 30, id: 'CP3b', label: 'THE DIVE DECK' },
     ],
   },
   {
@@ -158,7 +158,7 @@ export default [
     objects: [
       { type: 'mark', id: 'simulator', x: L(205, 198), y: 33 },
       { type: 'coin', x: L(209, 198), y: 34, breadcrumb: true },
-      { type: 'checkpoint', x: L(209, 198), y: 35, id: 'CP3c' },
+      { type: 'checkpoint', x: L(209, 198), y: 35, id: 'CP3c', label: 'THE SIMULATOR' },
     ],
   },
   {
@@ -182,7 +182,7 @@ export default [
       { type: 'coin', x: L(237, 211), y: 33, breadcrumb: true },
       { type: 'mark', id: 'water_tower', x: L(239, 211), y: 30 },
       { type: 'moment', x: L(239, 211), y: 30, id: 'm2' },
-      { type: 'checkpoint', x: L(239, 211), y: 35, id: 'CP3d' },
+      { type: 'checkpoint', x: L(239, 211), y: 35, id: 'CP3d', label: 'SURVIVAL CAMP' },
       { type: 'gate', x: L(240, 211), y: 31, h: 5, id: 'g3', requires: ['survival'] },
     ],
   },
@@ -212,7 +212,7 @@ export default [
       // The refill proper is the airlock (§3.3); scattering ports through the
       // modules just deleted the suit meter as a pressure.
       { type: 'mark', id: 'o2_port', x: L(277, 257), y: 28 }, // clear of the window's prompt at 281
-      { type: 'checkpoint', x: L(262, 257), y: 27, id: 'CP4b' },
+      { type: 'checkpoint', x: L(262, 257), y: 27, id: 'CP4b', label: 'THE NODE' },
       { type: 'rail', x: L(259, 257), y: 18, len: 12 },
       { type: 'rail', x: L(266, 257), y: 28, len: 5 },
       { type: 'mark', id: 'valve', x: L(268, 257), y: 20 },
@@ -228,7 +228,7 @@ export default [
       { type: 'mark', id: 'wrench_locker', x: L(292, 257), y: 27 },
       { type: 'coin', x: L(294, 257), y: 27, breadcrumb: true },
       { type: 'mark', id: 'airlock', x: L(297, 257), y: 26 },
-      { type: 'checkpoint', x: L(296, 257), y: 27, id: 'CP4c' },
+      { type: 'checkpoint', x: L(296, 257), y: 27, id: 'CP4c', label: 'THE AIRLOCK' },
       { type: 'gate', x: L(300, 257), y: 23, h: 3, id: 'gC', requires: ['wrench'] },
     ],
   },
@@ -261,7 +261,7 @@ export default [
     bg: { far: 'moon_black', mid: 'moon_hills', near: 'regolith', landmark: 'small_earth' },
     objects: [
       { type: 'mark', id: 'lander', x: L(337, 332), y: 33 },
-      { type: 'checkpoint', x: L(338, 332), y: 35, id: 'CP5a' },
+      { type: 'checkpoint', x: L(338, 332), y: 35, id: 'CP5a', label: 'THE MOON FIELD' },
       { type: 'mark', id: 'dust_devil', x: L(348, 332), y: 33 },
       { type: 'mark', id: 'dust_devil', x: L(371, 332), y: 33 },
       { type: 'mark', id: 'sharp_rocks', x: L(359, 332), y: 35 },
@@ -280,7 +280,7 @@ export default [
     music: { section: 'moon', bpm: 56, state: 'quiet' },
     bg: { far: 'moon_black', mid: 'moon_hills', near: 'regolith', landmark: 'small_earth' },
     objects: [
-      { type: 'checkpoint', x: L(387, 385), y: 35, id: 'CP5b' },
+      { type: 'checkpoint', x: L(387, 385), y: 35, id: 'CP5b', label: 'THE CREVASSE' },
       // the bound-jump arcs: 6, 8, 10 tiles — the coins ARE the arc
       { type: 'coins', x: L(391, 385), y: 33, n: 3, dx: 2, dy: 0 },
       { type: 'coins', x: L(402, 385), y: 32, n: 4, dx: 2, dy: 0 },
@@ -303,7 +303,7 @@ export default [
       // the side terrace: shard + consolation (tier 4, off the rescue line)
       { type: 'shard', x: L(453, 432), y: 51 },
       { type: 'coins', x: L(450, 432), y: 51, n: 2, dx: 1 },
-      { type: 'checkpoint', x: L(440, 432), y: 55, id: 'CP5c' },
+      { type: 'checkpoint', x: L(440, 432), y: 55, id: 'CP5c', label: 'THE CRATER RIM' },
       { type: 'mark', id: 'priya_down', x: L(457, 432), y: 59 },
       { type: 'coin', x: L(466, 432), y: 34, breadcrumb: true },
     ],

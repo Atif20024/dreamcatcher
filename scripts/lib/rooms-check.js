@@ -13,7 +13,7 @@ import { maskAt, wearAt } from '../../src/builders/autotile.js';
 // collectibles budgets (references/dream-items.md); the hub keeps no coins
 const BUDGETS = { chef: [60, 80], musician: [120, 150], astronaut: [45, 55], writer: [100, 120], painter: [100, 120], gambler: [40, 50] };
 
-const DREAMS = { chef: chefRooms, musician: musicianRooms, astronaut: astronautRooms, hub: hubRooms, evening: eveningRooms, writer: writerRooms, painter: painterRooms, gambler: gamblerRooms };
+export const DREAMS = { chef: chefRooms, musician: musicianRooms, astronaut: astronautRooms, hub: hubRooms, evening: eveningRooms, writer: writerRooms, painter: painterRooms, gambler: gamblerRooms };
 export function runRoomChecks() {
   let failures = 0;
   let warnings = 0;

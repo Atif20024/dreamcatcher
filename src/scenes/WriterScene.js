@@ -166,6 +166,7 @@ export default class WriterScene extends BaseLevel {
     music.piano();
     if (!this.devWarp()) {
       this.time.delayedCall(900, async () => {
+        if (this.resuming && this.F.d0) return; // a continued run: already heard
         await this.dialog.show(DIALOGUES.d0);
         this.setFlag('d0');
       });
@@ -211,7 +212,7 @@ export default class WriterScene extends BaseLevel {
   }
 
   buildCheckpoints() {
-    this.built.objects.filter((o) => o.type === 'checkpoint').forEach((c) => this.flags.create(c.wx, c.wy, 'flag'));
+    this.placeCheckpoints(this.built.objects);
   }
 
   addInteract(x, y, label, cb, { radius = 44, once = true, when = () => true, follow = null } = {}) {
@@ -1351,15 +1352,11 @@ export default class WriterScene extends BaseLevel {
 
     for (const z of this.inkZones) {
       if (overlaps(pb, z)) {
-        this.hurt();
+        this.hurt({ toSafe: true, source: 'ink' });
         break;
       }
     }
-    if (p.y > this.worldH + 60) {
-      p.setPosition(this.checkpoint.x, this.checkpoint.y);
-      p.setVelocity(0, 0);
-      this.hurt();
-    }
+    if (p.y > this.worldH + 60) this.fallOut();
   }
 
   updateInteracts(p) {
@@ -1661,14 +1658,18 @@ export default class WriterScene extends BaseLevel {
     if (this.deadline <= 0) {
       this.deadline = Math.max(240000, this.deadlineMs * 0.7);
       this.dialog.show(DIALOGUES.isolde_late);
+      // the deadline is a timer, not a hit: back to the press floor's flag
       const cp = this.flags.getChildren().find((f) => Math.abs(f.x - px(544)) < 40);
-      this.checkpoint = cp ? { x: cp.x, y: cp.y - 8 } : this.checkpoint;
+      if (cp) this.checkpoints.setRespawn({ x: cp.x, y: cp.y - 8 }, { id: cp.cpId, label: cp.cpLabel });
       this.leversPulled = [];
       for (const l of this.levers || []) {
         l.pulled = false;
         l.img.setFlipX(false);
       }
-      this.time.delayedCall(300, () => this.hurt());
+      this.time.delayedCall(300, () => {
+        this.loseHeart('deadline');
+        if (!this.respawning) this.placePlayer(this.checkpoint);
+      });
     }
   }
 
@@ -1806,6 +1807,55 @@ export default class WriterScene extends BaseLevel {
   }
 
   // ---------- dev warp ----------------------------------------------------
+
+  // ---- the run (plan §2.8): what a continued dream needs beyond its flags
+  runExtra() {
+    return {
+      pages: this.pages,
+      typos: this.typos,
+      words: [...this.words],
+      everWords: [...this.everWords],
+      pencil: !!this.pencil,
+      deadline: this.deadline,
+      memoryUsed: this.memoryUsed,
+      pageThreeChoice: this.pageThreeChoice,
+      structureOrder: this.structureOrder,
+      machinesFixed: this.machinesFixed,
+    };
+  }
+
+  applyRunExtra(x) {
+    const F = this.F;
+    this.pages = x.pages || 0;
+    this.typos = x.typos || 0;
+    this.words = [...(x.words || [])];
+    this.everWords = new Set(x.everWords || this.words);
+    this.memoryUsed = x.memoryUsed || 0;
+    this.pageThreeChoice = x.pageThreeChoice || null;
+    this.machinesFixed = x.machinesFixed || 0;
+    if (x.deadline !== undefined && x.deadline !== null) this.deadline = x.deadline;
+    if (x.structureOrder) this.structureOrder = x.structureOrder;
+    else if (F.structure) this.structureOrder = structureDefault();
+    if (F.research) {
+      for (const src of this.sourceItems || []) {
+        if (src.taken) continue;
+        src.taken = true;
+        src.img.destroy();
+        src.t.destroy();
+        this.sources.push(src);
+      }
+    }
+    if (F.rent_paid) {
+      const l = this.foes.find((f) => f.kind === 'landlady');
+      if (l) this.standDown(l);
+    }
+    if (x.pencil) {
+      this.pencil = true;
+      this.player.tool.setTexture('tool-pencil');
+    }
+    this.updateSatchel();
+    this.updateHud();
+  }
 
   devWarp() {
     let at = null;

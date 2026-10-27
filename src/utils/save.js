@@ -1,56 +1,28 @@
-const KEY = 'dreamcatcher.save';
-
-const DEFAULTS = {
-  dreamsCaught: 0,
-  dreams: {},
-  seen: [],
-  // hub: small moments, whether the chain has dropped, how long Jo has stood
-  // in the only place where time is real, and which dream he just came from
-  flags: { hub: { moment1: false, moment2: false, moment3: false, gateOpened: false, gateSpoke: false, visits: 0 }, wr: {}, pt: {}, gm: {} },
-  stationSeconds: 0,
-  lastDream: null,
-  // collectibles: the wallet persists across dreams; shards are permanent
-  // (3 = +1 max heart); shop holds Bilal's stall purchases.
-  wallet: { total: 0, byDream: {} },
-  shards: 0,
-  shop: { shardsBought: 0, postcards: {}, tea: false, ticket: false, hats: [], hat: null },
-  // small moments found, per dream ({ chef: ['m1', ...] }) — the evening's
-  // last cards count them; and the cast Jo actually met, per dream, so the
-  // town only roasts him about things that happened
-  moments: {},
-  met: {},
-  cast: {},
-  // THE LONG EVENING saves almost nothing: that it was visited, the child's
-  // map of it, and (on the ridge) that it was finished
-  evening: { visited: false, map: {}, finished: false, finds: {} },
-};
+// The save file is SaveStore v2 (src/meta/SaveStore.js): three slots,
+// global settings and in-dream runs. This module keeps the flat v1 view
+// every caller already uses (getSave / updateSave), read from and written
+// to the active slot.
+import { saveStore } from '../meta/SaveStore.js';
 
 function load() {
-  try {
-    const s = JSON.parse(localStorage.getItem(KEY)) || {};
-    return {
-      ...DEFAULTS,
-      ...s,
-      flags: { ...DEFAULTS.flags, ...(s.flags || {}), hub: { ...DEFAULTS.flags.hub, ...((s.flags || {}).hub || {}) } },
-      wallet: { ...DEFAULTS.wallet, ...(s.wallet || {}), byDream: { ...((s.wallet || {}).byDream || {}) } },
-      shop: { ...DEFAULTS.shop, ...(s.shop || {}), postcards: { ...((s.shop || {}).postcards || {}) }, hats: [...(((s.shop || {}).hats) || [])] },
-      moments: { ...(s.moments || {}) },
-      met: { ...(s.met || {}) },
-      cast: { ...(s.cast || {}) },
-      evening: { ...DEFAULTS.evening, ...(s.evening || {}), map: { ...((s.evening || {}).map || {}) }, finds: { ...((s.evening || {}).finds || {}) } },
-    };
-  } catch {
-    return JSON.parse(JSON.stringify(DEFAULTS));
-  }
+  return saveStore.legacy();
+}
+
+function store(fn) {
+  return saveStore.updateLegacy(fn);
 }
 
 // D8 — remember which just-in-time tutorial cards have been shown.
 export function markSeen(id) {
-  const s = load();
-  if (!s.seen.includes(id)) {
-    s.seen.push(id);
-    localStorage.setItem(KEY, JSON.stringify(s));
-  }
+  if (load().seen.includes(id)) return;
+  store((s) => {
+    if (!s.seen.includes(id)) s.seen.push(id);
+  });
+}
+
+// dev/scenarios: forget a card so it shows again
+export function unmarkSeen(id) {
+  store((s) => (s.seen = s.seen.filter((x) => x !== id)));
 }
 
 export function getSave() {
@@ -62,13 +34,15 @@ export function getDifficulty() {
 }
 
 export function completeDream(key) {
-  const s = load();
-  s.lastDream = key;
-  if (!s.dreams[key]) {
-    s.dreams[key] = true;
-    s.dreamsCaught += 1;
-  }
-  localStorage.setItem(KEY, JSON.stringify(s));
+  const s = store((x) => {
+    x.lastDream = key;
+    if (!x.dreams[key]) {
+      x.dreams[key] = true;
+      x.dreamsCaught += 1;
+    }
+  });
+  // the dream is caught: its in-progress run is over
+  saveStore.clearRun(key);
   return s;
 }
 
@@ -95,8 +69,12 @@ export function momentsFound(s = load()) {
 
 // read-modify-write for anything else (hub flags, the station clock)
 export function updateSave(fn) {
-  const s = load();
-  fn(s);
-  localStorage.setItem(KEY, JSON.stringify(s));
-  return s;
+  return store(fn);
 }
+
+// in-dream runs (plan §2.8): one per dream, in the active slot
+export const getRun = (dreamId) => saveStore.run(dreamId);
+export const setRun = (dreamId, run) => saveStore.setRun(dreamId, run);
+export const clearRun = (dreamId) => saveStore.clearRun(dreamId);
+export const getSettings = () => saveStore.settings();
+export const updateSettings = (fn) => saveStore.updateSettings(fn);

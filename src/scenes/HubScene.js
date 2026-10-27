@@ -15,7 +15,7 @@ import Train from '../entities/Train.js';
 import Silhouettes from '../entities/Silhouette.js';
 import Phrases from '../systems/rhythm.js';
 import { hubState, HEADLINES } from '../systems/hubState.js';
-import { getSave, updateSave } from '../utils/save.js';
+import { getSave, updateSave, getRun } from '../utils/save.js';
 import { getWallet, spend } from '../systems/wallet.js';
 import { HATS, hatById } from '../data/hats.js';
 import { sfx, music, musicDirector, sting, accordion } from '../systems/audio.js';
@@ -433,7 +433,9 @@ export default class HubScene extends BaseLevel {
       const caught = !!this.save.dreams[d.id];
       return caught
         ? { platform: d.platform, title: d.title, departs: '—', status: 'CAUGHT — NO RETURN', dim: true }
-        : { platform: d.platform, title: d.title, departs: 'NOW', status: d.scene ? 'BOARDING' : 'DELAYED', dim: false };
+        : getRun(d.id)
+          ? { platform: d.platform, title: d.title, departs: 'NOW', status: 'CONTINUE', dim: false, hot: true }
+          : { platform: d.platform, title: d.title, departs: 'NOW', status: d.scene ? 'BOARDING' : 'DELAYED', dim: false };
     });
     // the last stop is a train like any other: no chain, no count to clear
     rows.push({ platform: LAST_STOP.platform, title: LAST_STOP.title, departs: 'NOW', status: 'BOARDING', hot: true });
@@ -893,18 +895,27 @@ export default class HubScene extends BaseLevel {
       await this.dialog.show([{ name: 'Conductor', text: `${d.title}? Not in service. The rails go out that way, but nothing runs on them yet.` }]);
       return;
     }
+    // a dream in progress (plan §2.8): continue it from its last flag
+    const run = getRun(d.id);
+    const where = run && run.checkpointLabel ? ` — ${run.checkpointLabel}` : '';
     // a question about the journey ahead, and a real choice
     const answer = await this.dialog.show([
       {
         name: 'Conductor',
-        text: d.conductor,
-        choices: [
-          { label: 'Board this train', value: 'board' },
-          { label: 'Not yet', value: 'wait' },
-        ],
+        text: run ? `You've a seat kept on this one, sir. Same carriage, same stop${run.checkpointLabel ? `: ${run.checkpointLabel.toLowerCase()}` : ''}.` : d.conductor,
+        choices: run
+          ? [
+              { label: `Continue dream${where}`, value: 'continue' },
+              { label: 'Board from the start', value: 'board' },
+              { label: 'Not yet', value: 'wait' },
+            ]
+          : [
+              { label: 'Board this train', value: 'board' },
+              { label: 'Not yet', value: 'wait' },
+            ],
       },
     ]);
-    if (answer !== 'board') {
+    if (answer !== 'board' && answer !== 'continue') {
       this.floatText(this.player.x, this.player.y - 50, 'the doors stay open.', '#c8c0b0');
       return;
     }
@@ -919,7 +930,9 @@ export default class HubScene extends BaseLevel {
       cam.fadeOut(600, 8, 8, 12);
       this.time.delayedCall(650, () => {
         music.stop();
-        this.scene.start('Intro', { levelKey: d.id });
+        // a continued run skips the intro card and wakes at its flag
+        if (answer === 'continue') this.scene.start(d.scene, { levelKey: d.id, resume: true });
+        else this.scene.start('Intro', { levelKey: d.id });
       });
     });
   }

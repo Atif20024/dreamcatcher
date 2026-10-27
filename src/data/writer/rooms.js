@@ -49,7 +49,7 @@ export default [
       { type: 'prop', kind: 'lamp_post', x: 14, y: 33 },
       { type: 'coin', x: 10, y: 31, breadcrumb: true },
       { type: 'coins', x: 22, y: 31, n: 2 },
-      { type: 'checkpoint', x: 24, y: 33, id: 'CP0' },
+      { type: 'checkpoint', x: 24, y: 33, id: 'CP0', label: 'THE TERRACE' },
     ]
   ),
   room(
@@ -65,7 +65,7 @@ export default [
       { type: 'coins', x: 46, y: 15, n: 3 },
       { type: 'prop', kind: 'trunk', x: 47, y: 19, id: 'trunk', noun: 'trunk', adj: 'heavy', to: 'light' },
       { type: 'inkwell', x: 39, y: 20, id: 'ink1' },
-      { type: 'checkpoint', x: 44, y: 20, id: 'CP1a' },
+      { type: 'checkpoint', x: 44, y: 20, id: 'CP1a', label: 'THE ATTIC' },
       { type: 'coin', x: 54, y: 27, breadcrumb: true },
     ]
   ),
@@ -95,7 +95,7 @@ export default [
       { type: 'coins', x: 111, y: 25, n: 2 },
       { type: 'desk', x: 113, y: 26, id: 'desk2', pages: 8, bars: 10 },
       { type: 'moment', x: 116, y: 33, id: 'm1' },
-      { type: 'checkpoint', x: 83, y: 33, id: 'CP1b' },
+      { type: 'checkpoint', x: 83, y: 33, id: 'CP1b', label: 'THE COPY SHOP' },
       { type: 'coin', x: 118, y: 27, breadcrumb: true },
       { type: 'gate', x: 119, y: 29, h: 5, id: 'g1', requires: ['rent_paid', 'pages12'] },
     ]
@@ -107,7 +107,7 @@ export default [
       { type: 'foe', kind: 'talker', x: 123, y: 33, human: true, word: 'wide', line: 'a *wide* berth, that\'s all I asked' },
       { type: 'label', x: 127, y: 32, id: 'gap', noun: 'gap', adj: 'narrow', to: 'wide' },
       { type: 'gate', x: 127, y: 27, h: 7, id: 'g_gap', requires: ['gap_wide'] },
-      { type: 'checkpoint', x: 129, y: 33, id: 'CP2a' },
+      { type: 'checkpoint', x: 129, y: 33, id: 'CP2a', label: 'THE CAFE' },
       { type: 'prop', kind: 'espresso', x: 131, y: 33, id: 'espresso', noun: 'machine', adj: 'loud', to: 'quiet', noisy: true },
       { type: 'moment', x: 129, y: 33, id: 'm2' },
       { type: 'foe', kind: 'talker', x: 135, y: 33, human: true, word: 'quiet', line: 'the *quiet* ones, every time' },
@@ -128,7 +128,6 @@ export default [
       { type: 'prop', kind: 'dog', x: 175, y: 33, id: 'dog', noun: 'dog', adj: 'sleeping', bound: true },
       { type: 'gate', x: 176, y: 31, h: 3, id: 'g_dog', requires: ['dog_awake'] },
       { type: 'coin', x: 174, y: 30 },
-      { type: 'checkpoint', x: 177, y: 33, id: 'CP2b' },
       { type: 'gate', x: 179, y: 29, h: 5, id: 'g2', requires: ['lines', 'pages30'] },
     ]
   ),
@@ -136,7 +135,7 @@ export default [
     { id: 'library', section: 'library', music: { bpm: 80, state: 'quiet' }, bg: { far: 'oak_stacks', mid: 'green_lamps', near: 'book_carts', landmark: 'reading_lamp' } },
     180, 249,
     [
-      { type: 'checkpoint', x: 183, y: 33, id: 'CP3a' },
+      { type: 'checkpoint', x: 183, y: 33, id: 'CP3a', label: 'THE LIBRARY' },
       { type: 'inkwell', x: 184, y: 33, id: 'ink4' },
       { type: 'desk', x: 189, y: 33, id: 'desk4', pages: 30, bars: 14 },
       { type: 'npc', who: 'emmerich', x: 195, y: 33, id: 'emmerich2' },
@@ -173,8 +172,8 @@ export default [
       { type: 'coins', x: 242, y: 17, n: 3 },
       { type: 'shard', x: 218, y: 13 },
       { type: 'coins', x: 214, y: 13, n: 2, dx: 6 },
-      { type: 'checkpoint', x: 247, y: 21, id: 'CP3b' },
-      { type: 'checkpoint', x: 203, y: 13, id: 'CP3c' },
+      { type: 'checkpoint', x: 247, y: 21, id: 'CP3b', label: 'THE HIGH SHELVES' },
+      { type: 'checkpoint', x: 203, y: 13, id: 'CP3c', label: 'THE TOP OF THE STACKS' },
       { type: 'coin', x: 248, y: 32, breadcrumb: true },
       { type: 'gate', x: 249, y: 29, h: 5, id: 'g3', requires: ['research', 'structure', 'pages60'] },
     ]
@@ -183,7 +182,7 @@ export default [
     { id: 'postoffice', section: 'rejections', music: { bpm: 92, state: 'explore' }, bg: { far: 'brass_boxes', mid: 'post_counters', near: 'railings', landmark: 'post_clock' } },
     250, 289,
     [
-      { type: 'checkpoint', x: 252, y: 33, id: 'CP4a' },
+      { type: 'checkpoint', x: 252, y: 33, id: 'CP4a', label: 'THE POST OFFICE' },
       ...[254, 258, 262, 266, 270, 274, 278, 282].map((c, i) => ({ type: 'plate', x: c, y: i % 2 ? 30 : 33, id: `box${i}` })),
       { type: 'foe', kind: 'slip', x: 260, y: 20, human: false, wave: true },
       { type: 'coins', x: 265, y: 28, n: 3 },
@@ -202,7 +201,7 @@ export default [
       { type: 'coins', x: 305, y: 23, n: 3 },
       { type: 'coin', x: 310, y: 26 },
       { type: 'wake', x: 317, y: 33 },
-      { type: 'checkpoint', x: 318, y: 33, id: 'CP4b' },
+      { type: 'checkpoint', x: 318, y: 33, id: 'CP4b', label: 'THE BUS' },
     ]
   ),
   room(
@@ -222,7 +221,7 @@ export default [
       { type: 'panel', x: 377, y: 20, id: 'memory', puzzle: 'memory' },
       { type: 'prop', kind: 'cards', x: 377, y: 20 },
       { type: 'prop', kind: 'typewriter', x: 381, y: 20 },
-      { type: 'checkpoint', x: 385, y: 20, id: 'CP4c' },
+      { type: 'checkpoint', x: 385, y: 20, id: 'CP4c', label: 'THE REWRITE' },
       { type: 'inkwell', x: 388, y: 20, id: 'ink5' },
       { type: 'editor_wait', x: 391, y: 20 },
       { type: 'gate', x: 393, y: 15, h: 6, id: 'g4', requires: ['rewritten'] },
@@ -234,7 +233,7 @@ export default [
     { id: 'editor', section: 'editor', allowNoFoes: true, music: { bpm: 76, state: 'quiet' }, bg: { far: 'paper_wall', mid: 'laundrette', near: 'red_pencils', landmark: 'red_pencil' } },
     400, 459,
     [
-      { type: 'checkpoint', x: 410, y: 33, id: 'CP5a' },
+      { type: 'checkpoint', x: 410, y: 33, id: 'CP5a', label: "THE EDITOR'S DESK" },
       { type: 'prop', kind: 'washer', x: 412, y: 33 },
       { type: 'prop', kind: 'washer', x: 415, y: 33 },
       { type: 'coin', x: 424, y: 27, breadcrumb: true },
@@ -247,7 +246,7 @@ export default [
       { type: 'coins', x: 447, y: 17, n: 2 },
       { type: 'coins', x: 453, y: 24, n: 2 },
       { type: 'coins', x: 429, y: 18, n: 2 },
-      { type: 'checkpoint', x: 449, y: 22, id: 'CP5b' },
+      { type: 'checkpoint', x: 449, y: 22, id: 'CP5b', label: 'THE LAST PAGES' },
       { type: 'gate', x: 459, y: 16, h: 3, id: 'g5', requires: ['cut_done'] },
     ]
   ),
@@ -285,9 +284,9 @@ export default [
       { type: 'foe', kind: 'proofreader', x: 545, y: 33, patrol: [542, 552], human: true },
       { type: 'foe', kind: 'proofreader', x: 550, y: 33, patrol: [546, 553], human: true },
       { type: 'desk', x: 543, y: 33, id: 'typo_desk', fixTypos: true },
-      { type: 'checkpoint', x: 544, y: 33, id: 'CP6a' },
+      { type: 'checkpoint', x: 544, y: 33, id: 'CP6a', label: 'THE PRESS HALL' },
       { type: 'coins', x: 556, y: 24, n: 3 },
-      { type: 'checkpoint', x: 558, y: 16, id: 'CP6b' },
+      { type: 'checkpoint', x: 558, y: 16, id: 'CP6b', label: 'THE PRESS GANTRY' },
       { type: 'plate', x: 560, y: 16, id: 'feed', feed: true },
       { type: 'lever', x: 566, y: 17, id: 'lever_ink', order: 0, name: 'INK' },
       { type: 'hazard', kind: 'roller', x: 575, y: 17, period: 2400, offset: 0 },

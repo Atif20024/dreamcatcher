@@ -15,7 +15,6 @@ import Stroke from '../entities/Stroke.js';
 import { completeDream, recordMoment, markMet, updateSave } from '../utils/save.js';
 import { sfx, music, sting, musicDirector } from '../systems/audio.js';
 import { showTutorial } from '../systems/tutorial.js';
-import { hitStop } from '../systems/effects.js';
 import world from './painter/world.js';
 import beats from './painter/beats.js';
 import { T, px, overlaps } from './painter/util.js';
@@ -101,8 +100,8 @@ export default class PainterScene extends BaseLevel {
     this.dreamCoinId = 'painter';
     markMet('painter');
     this.setupCommon({ worldW: built.worldW, worldH: built.worldH, levelName: 'DREAM — THE YELLOW HOUSE', spawn });
-    // §3.7 — no hearts in this dream: the palette is the health bar
-    this.hearts.forEach((h) => h.setVisible(false));
+    // hearts here too (one failure model, F§5.10); the palette stays his
+    // paint, and a hit still spills a well as its flavour
 
     // §8 difficulty: less paint, more wind
     const d = this.difficulty;
@@ -155,6 +154,7 @@ export default class PainterScene extends BaseLevel {
     music.piano();
     if (!this.devWarp()) {
       this.time.delayedCall(900, async () => {
+        if (this.resuming && this.F.d0) return; // a continued run: already heard
         await this.dialog.show(DIALOGUES.d0);
         this.setFlag('d0');
         showTutorial(this, 'wells');
@@ -201,17 +201,11 @@ export default class PainterScene extends BaseLevel {
   }
 
   buildCheckpoints() {
-    this.built.objects
-      .filter((o) => o.type === 'checkpoint' && !(o.loseAt && this.difficulty >= o.loseAt))
-      .forEach((c) => {
-        const f = this.flags.create(c.wx, c.wy, 'flag');
-        f.cpId = c.id;
-      });
+    this.placeCheckpoints(this.built.objects, (o) => !(o.loseAt && this.difficulty >= o.loseAt));
   }
 
   checkpointAt(id) {
-    const f = this.flags.getChildren().find((c) => c.cpId === id);
-    return f ? { x: f.x, y: f.y - 8 } : this.checkpoint;
+    return this.checkpoints.pointFor(id) || this.checkpoint;
   }
 
   addInteract(x, y, label, cb, { radius = 44, once = true, when = () => true, follow = null } = {}) {
@@ -317,9 +311,8 @@ export default class PainterScene extends BaseLevel {
     this.player.controlLockUntil = this.time.now + 2600;
     this.player.body.setVelocity(0, 0);
     musicDirector.setMix({ pad: 0.5 });
+    // blindness is the paint running out, not a death: he stays where he is
     this.time.delayedCall(2200, () => {
-      this.player.setPosition(this.checkpoint.x, this.checkpoint.y);
-      this.player.setVelocity(0, 0);
       const back = this.palette.lastLost || 'yellow';
       this.palette.take(back);
       this.floatText(this.player.x, this.player.y - 60, `${back}, found at the bottom of the bag.`, '#f2e0a0');
@@ -333,30 +326,28 @@ export default class PainterScene extends BaseLevel {
     });
   }
 
-  onHurtExtra() {}
-
-  // a hit spills a well instead of a heart (BaseLevel.hurt is replaced whole)
-  hurt() {
-    if (this.cardActive || this.dialogActive || this.puzzleActive || this.blind) return;
-    if (this.time.now < this.invulnUntil) return;
-    sfx('hurt');
-    this.scatterCoins();
-    hitStop(this, 60);
-    this.cameras.main.shake(240, 0.008);
-    this.player.burst();
-    this.player.knockHat();
-    this.dropCarry();
-    this.endStroke();
-    this.spillWell();
-    this.player.setPosition(this.checkpoint.x, this.checkpoint.y);
-    this.player.setVelocity(0, 0);
-    this.stopRiding();
-    this.invulnUntil = this.time.now + 2000;
-    this.tweens.add({ targets: this.player, alpha: 0.3, duration: 150, yoyo: true, repeat: 6, onComplete: () => this.player.setAlpha(1) });
+  // a hit costs a heart like everywhere else (BaseLevel.hurt); the
+  // Painter's flavour is that it also spills a well
+  hurt(opts) {
+    if (this.blind) return false;
+    return super.hurt(opts);
   }
 
-  loseHeart() {
+  onHurtExtra() {
+    this.dropCarry();
+    this.endStroke();
+    this.stopRiding();
+    this.spillWell();
+  }
+
+  loseHeart(source) {
     this.spillWell('spilled in the scuffle');
+    super.loseHeart(source);
+  }
+
+  onRespawn() {
+    this.endStroke();
+    this.stopRiding();
   }
 
   // caught by a person: who it was decides where he wakes
@@ -740,11 +731,7 @@ export default class PainterScene extends BaseLevel {
     const fty = Math.floor((p.y + 26) / T);
     if (this.painted.get(`${ftx},${fty}`) === 'violet') this.playerHidden = true;
 
-    if (p.y > this.worldH + 60) {
-      p.setPosition(this.checkpoint.x, this.checkpoint.y);
-      p.setVelocity(0, 0);
-      this.hurt();
-    }
+    if (p.y > this.worldH + 60) this.fallOut();
   }
 
   updateKeys(time) {
@@ -1025,6 +1012,54 @@ export default class PainterScene extends BaseLevel {
     this.updateHud();
     if (ph.isak) this.time.delayedCall(400, () => this.afterStarChosen(10));
     return true;
+  }
+
+  // ---- the run (plan §2.8): the palette, the clock, the crate, and the
+  // world changes his flags stand for (as devWarp applies them)
+  runExtra() {
+    const pal = this.palette;
+    return {
+      wells: pal.wells.map((w) => ({ colour: w.colour, strokes: w.strokes })),
+      sel: pal.sel,
+      mixing: pal.mixing,
+      lastLost: pal.lastLost,
+      hour: this.clock.hour,
+      clockDay: this.clock.day,
+      locked: this.clock.locked,
+      day: this.day,
+      canvases: this.canvases.map((c) => ({ id: c.id, title: c.title, colours: c.colours, day: c.day })),
+      quarrel: this.quarrel || null,
+    };
+  }
+
+  applyRunExtra(x) {
+    const F = this.F;
+    const pal = this.palette;
+    if (x.wells) pal.wells = x.wells.map((w) => ({ colour: w.colour, strokes: w.strokes }));
+    if (x.sel !== undefined) pal.sel = x.sel;
+    if (x.mixing !== undefined) pal.mixing = x.mixing;
+    pal.lastLost = x.lastLost || null;
+    if (x.hour !== undefined) this.clock.set(x.hour);
+    if (x.clockDay) this.clock.day = x.clockDay;
+    if (x.locked !== undefined) this.clock.locked = x.locked;
+    if (x.day) this.day = x.day;
+    for (const c of x.canvases || []) {
+      const key = `pt-canvas-${this.canvasSeq++}`;
+      const cols = !c.colours || c.colours[0] === 'any' ? ['yellow', 'violet'] : c.colours;
+      swatchTexture(this, key, cols, key);
+      this.canvases.push({ ...c, thumb: key });
+    }
+    if (F.bedroom_canvas) this.devPaintBedroom();
+    if (F.bridge_down) this.dropBridge(true);
+    if (F.lock_full) this.fillSurface(this.surfaces.lock, true);
+    if (F.terrace) this.devPaintTerrace();
+    if (F.colours_back) this.gardenPainted(true);
+    if (F.boarded) this.boardHouse(true);
+    if (x.quarrel) this.quarrel = x.quarrel;
+    if (F.paul_gone && this.props.planks) this.props.planks.setVisible(true);
+    else if (F.paul) this.paulArrives(true);
+    this.updateSatchel();
+    this.updateHud();
   }
 
   fakeCanvas(i) {

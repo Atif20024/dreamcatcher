@@ -6,11 +6,9 @@ export default {
   expect: 'fail',
   async run(dc) {
     // un-see the card only (leave the rest of the dev save alone)
-    try {
-      const sv = JSON.parse(localStorage.getItem('dreamcatcher.save') || '{}');
-      sv.seen = (sv.seen || []).filter((id) => id !== 'bet');
-      localStorage.setItem('dreamcatcher.save', JSON.stringify(sv));
-    } catch {}
+    // (the save is v2 now: go through the save module, not the raw key)
+    const { unmarkSeen } = await import('../../utils/save.js');
+    unmarkSeen('bet');
     dc.warp('gambler', 'pit');
     dc.step(30);
     dc.press('Enter', 2);

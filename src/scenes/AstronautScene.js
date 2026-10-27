@@ -131,7 +131,7 @@ export default class AstronautScene extends BaseLevel {
     this.puncturedAt = 0;
 
     this.flags = this.physics.add.staticGroup();
-    built.objects.filter((o) => o.type === 'checkpoint').forEach((c) => this.flags.create(c.wx, c.wy, 'flag'));
+    this.placeCheckpoints(built.objects);
 
     this.initFoes('astronaut');
     this.spawnRoomFoes(built.objects, (o) => o.human);
@@ -191,6 +191,7 @@ export default class AstronautScene extends BaseLevel {
     music.bass();
     if (!this.warped)
       this.time.delayedCall(900, async () => {
+        if (this.resuming && this.F.d0) return; // a continued run: already heard
         await this.dialog.show(A_DIALOGUES.d0);
         this.setFlag('d0');
       });
@@ -200,6 +201,16 @@ export default class AstronautScene extends BaseLevel {
   // Playtesting the launch should not cost a run through the gym. This is
   // opt-in via the URL only; with no ?at= the game opens at the station as
   // always. Phases: gym gate ground pad station eva moon crater field
+  // ---- the run (plan §2.8): the stat sheet and the power budget
+  runExtra() {
+    return { stats: { ...this.stats }, power: this.power };
+  }
+
+  applyRunExtra(x) {
+    if (x.stats) this.stats = { ...this.stats, ...x.stats };
+    if (x.power !== undefined) this.power = x.power;
+  }
+
   devWarp() {
     let at = null;
     try {
@@ -1091,15 +1102,7 @@ export default class AstronautScene extends BaseLevel {
       s.setVelocity(Phaser.Math.Between(-90, 90), Phaser.Math.Between(-70, 70));
       s.setBounce(1, 1);
       this.physics.add.collider(s, this.solids);
-      this.physics.add.overlap(this.player, s, () => {
-        if (this.time.now < this.invulnUntil) return;
-        this.invulnUntil = this.time.now + 1500;
-        sfx('hurt');
-        this.player.body.setVelocity(Phaser.Math.Between(-160, 160), -120);
-        this.lives -= 1;
-        this.updateHearts();
-        if (this.lives <= 0 && !this.tryReturnTicket()) this.sectionRestart();
-      });
+      this.physics.add.overlap(this.player, s, () => this.hurt({ sourceX: s.x, source: 'debris' }));
       this.debris.push(s);
     }
     this.time.delayedCall(14000, () => {
@@ -1128,8 +1131,7 @@ export default class AstronautScene extends BaseLevel {
     cam.fadeIn(1200);
     this.setFlag('landed');
     if (hard) {
-      this.lives -= 1;
-      this.updateHearts();
+      this.loseHeart('hard landing');
       this.floatText(p.x, p.y - 60, 'hard. the lander will forgive you. the power budget won\'t.', '#e86a6a');
     }
     this.setObjective('the dead probe — cross the crevasse field');
@@ -1750,7 +1752,7 @@ export default class AstronautScene extends BaseLevel {
       // an invisible grace while carrying Priya — the rescue cannot fail here
       if (this.o2 <= 0 && !this.carryingPriya) {
         this.o2 = this.o2Max;
-        this.floatText(p.x, p.y - 50, 'the suit wins. you wake at the flag.', '#e86a6a');
+        this.floatText(p.x, p.y - 50, 'the suit wins. it costs you a heart.', '#e86a6a');
         this.hurt();
       }
       this.o2Bar.fillColor = this.o2 < 10 ? 0xe83a2a : 0x88b8d8;
@@ -1891,11 +1893,7 @@ export default class AstronautScene extends BaseLevel {
     this.updatePickups(time, delta);
     this.updateFoes(time);
 
-    if (p.y > this.worldH + 60) {
-      p.setPosition(this.checkpoint.x, this.checkpoint.y);
-      p.setVelocity(0, 0);
-      this.hurt();
-    }
+    if (p.y > this.worldH + 60) this.fallOut();
   }
 
   openMockWall() {

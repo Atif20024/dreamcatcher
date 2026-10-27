@@ -14,6 +14,8 @@ Each asserts the correct future behaviour and returns `{pass, detail}`. Run in t
 - open `http://localhost:5173/dreamcatcher/?scenarios=1`, then read `window.__dcResults` (also logged as `[dc:scenarios]`), or
 - in any dev page console: `await __dc.runScenarios()` (or `__dc.runScenarios('bet-card-hidden')`).
 
+Phase 1.1 adds four that must PASS, each across Chef, Writer, Gambler and Painter (`src/dev/scenarios/failure.js`): `hit-knockback` (a hit costs one heart, knockback, i-frames, no teleport), `zero-hearts-checkpoint` (death card → back at the last flag, hearts refilled, same scene instance, no dialogue replay), `checkpoint-label` (flag name shown on touch and in the pause menu), `continue-run` (a lit flag saves the run; the hub board shows CONTINUE; continuing wakes Jo at that flag with flags restored). They write to the real save and clear the run they made.
+
 `npm run scenarios` prints these instructions (no headless runner yet). Today all three FAIL on purpose: `background-snap` (256 px layer jump), `eva-tether-trap` (untaught drift-away death), `bet-card-hidden` (card depth 242 under modal 300).
 
 ## Lint and tests

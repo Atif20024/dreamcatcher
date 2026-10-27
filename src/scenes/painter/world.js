@@ -861,7 +861,8 @@ export default {
       this.tryRide(time);
       if (p.y > px(26) && !this.riding && !this.inIsak) {
         this.checkpoint = this.F.moon_cp ? this.checkpointAt('CP6b') : this.checkpointAt('CP6top');
-        this.hurt();
+        this.safeGround = null; // off the currents: back to the sky's own flag
+        this.fallOut();
       }
     }
     if (id === 'cypress') this.updateCypress(time);

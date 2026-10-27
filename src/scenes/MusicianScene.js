@@ -73,9 +73,7 @@ export default class MusicianScene extends BaseLevel {
 
     this.flags = this.physics.add.staticGroup();
     this.orbs = this.physics.add.staticGroup();
-    built.objects
-      .filter((o) => o.type === 'checkpoint')
-      .forEach((c) => this.flags.create(c.wx, c.wy, 'flag'));
+    this.placeCheckpoints(built.objects);
 
     // D6 — the people of this dream (bouncer, hecklers, scalper, the Saltbox
     // manager, the roadies) run on the confrontation system. The abstract
@@ -102,11 +100,12 @@ export default class MusicianScene extends BaseLevel {
     this.physics.add.overlap(this.player, this.flags, (_p, f) => this.activateCheckpoint(f));
     this.physics.add.overlap(this.player, this.orbs, (_p, o) => this.catchOrb(o));
     this.physics.add.overlap(this.player, this.bottles, (_p, b) => {
+      const bx = b.x;
       b.destroy();
       this.addNerve(12);
-      this.hurt();
+      this.hurt({ sourceX: bx });
     });
-    this.physics.add.overlap(this.player, this.walkers, () => this.hurt());
+    this.physics.add.overlap(this.player, this.walkers, (_p, w) => this.hurt({ sourceX: w.x }));
     this.physics.add.overlap(this.player, this.wisps, () => this.addNerve(6));
 
     // HUD: breath + nerve + coins
@@ -136,6 +135,7 @@ export default class MusicianScene extends BaseLevel {
     this.setObjective('get to The Blue Cellar');
     music.bass();
     this.time.delayedCall(900, async () => {
+      if (this.resuming && this.F.d0) return; // a continued run: already heard
       await this.dialog.show(M_DIALOGUES.d0);
       this.setFlag('d0');
     });
@@ -902,15 +902,11 @@ export default class MusicianScene extends BaseLevel {
     }
     // static wall touch
     if (this.staticActive && p.x < this.staticWall.x + 40 && this.inZone(345, 381)) {
-      this.hurt();
+      this.hurt({ sourceX: this.staticWall.x - 100 });
       p.x += 60;
     }
 
-    if (p.y > this.worldH + 60) {
-      p.setPosition(this.checkpoint.x, this.checkpoint.y);
-      p.setVelocity(0, 0);
-      this.hurt();
-    }
+    if (p.y > this.worldH + 60) this.fallOut();
   }
 
   updateBusking(time) {

@@ -1,4 +1,5 @@
 import { sfx } from './audio.js';
+import { convKey } from '../play/RunState.js';
 
 // Bottom-screen dialogue with letterbox bars, portrait, name tag and
 // typewriter text (40 cps). Advance with X/E/Space. scene.dialogActive
@@ -12,6 +13,14 @@ export default class DialogueBox {
   // entries: [{name, text, portrait, choices?: [{label, value}]}]
   // Resolves with the value of the last choice made (or null).
   show(entries) {
+    // C3: a resumed run does not replay a conversation it already heard
+    // (only plain ones: a conversation with a choice always plays)
+    const run = this.scene.run;
+    if (run && entries && entries.length) {
+      const key = convKey(entries);
+      if (!entries.some((e) => e.choices) && run.seenBeforeResume(key)) return Promise.resolve(null);
+      run.markConv(key);
+    }
     this.choiceValue = null;
     return new Promise((resolve) => {
       const s = this.scene;

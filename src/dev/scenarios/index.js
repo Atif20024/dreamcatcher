@@ -3,5 +3,6 @@
 import backgroundSnap from './backgroundSnap.js';
 import evaTether from './evaTether.js';
 import betCard from './betCard.js';
+import failure from './failure.js';
 
-export const SCENARIOS = [backgroundSnap, evaTether, betCard];
+export const SCENARIOS = [backgroundSnap, evaTether, betCard, ...failure];
