@@ -105,6 +105,7 @@ export default class BaseLevel extends Phaser.Scene {
     this.cardActive = false;
     this.dialogActive = false;
     this.puzzleActive = false;
+    this.tutorialActive = false; // a scene left with a card up must not wake frozen
     this.worldH = worldH;
     this.dialog = new DialogueBox(this);
     this.flagsState = {};
@@ -799,22 +800,38 @@ export default class BaseLevel extends Phaser.Scene {
     this.scene.start('Hub');
   }
 
-  // D7 — room-driven music: bpm and state follow whichever room Jo is in,
-  // escalating to `danger` whenever a person has noticed him.
+  // D7 — room-driven music: bpm and state follow the room the CAMERA is in
+  // (with hysteresis, so a boundary never flickers), escalating to `danger`
+  // whenever a person has noticed him. The backdrop and the vista zoom are
+  // not events: they blend every frame on the camera's distance across the
+  // boundary (parallax.update / lerpRoom), so nothing snaps.
   updateMusicRoom() {
     if (!this.built || !this.built.rooms) return;
-    const room = RoomBuilder.roomAt(this.built.rooms, this.player.x);
+    const cam = this.cameras.main;
+    const rooms = this.built.rooms;
+    // a room from an earlier build (a warp, a restart) counts as no room
+    if (this._room && !rooms.includes(this._room)) this._room = null;
+    if (!this._room) this._blendZoom = undefined;
+    const room = this._room ? RoomBuilder.roomAtCamera(rooms, cam.scrollX + cam.width / 2, this._room) : RoomBuilder.roomAt(rooms, this.player.x);
     if (room !== this._room) {
       this._room = room;
       if (room.music) {
         musicDirector.setBpm(room.music.bpm);
         this._roomState = room.music.state || 'explore';
       }
-      if (this.parallax) this.parallax.setRoom(room);
-      if (room.vista) this.cameras.main.zoomTo(0.8, 800);
-      else if (this.cameras.main.zoom !== 1) this.cameras.main.zoomTo(1, 600);
     }
-    if (this.parallax) this.parallax.update();
+    if (this.parallax) {
+      this.parallax.update();
+      // vista zoom on the same t; written only while it changes, so other
+      // zooms (a punch-in, a cutscene) are left alone between rooms
+      if (rooms.some((r) => r.vista)) {
+        const z = this.parallax.lerpRoom((r) => (r.vista ? 0.8 : 1));
+        if (z !== null && (this._blendZoom === undefined || Math.abs(z - this._blendZoom) > 1e-4)) {
+          this._blendZoom = z;
+          cam.setZoom(z);
+        }
+      }
+    }
     if (this.look) this.look.update(this.time.now, 16, null);
     const hunted = (this.foes || []).some((f) => f.human && (f.state === 'alert' || f.state === 'windup'));
     musicDirector.setState(this.thrownOut ? 'caught' : hunted ? 'danger' : this._roomState || 'explore');

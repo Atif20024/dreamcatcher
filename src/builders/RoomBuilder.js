@@ -200,4 +200,25 @@ export default class RoomBuilder {
     for (const r of rooms) if (r._x0 <= tx) best = r;
     return best;
   }
+
+  // The room the camera is looking at (F#4 / T2a). `x` is the camera centre;
+  // `prev` is the room already committed. Hysteresis: the committed room is
+  // kept until the centre is `band` px past its edge, so standing on a line
+  // (or the follow-lerp wobbling across it) never flickers music or zoom.
+  // A room's edge is its first column, or `_bx` where the backdrop has
+  // pulled an end-of-world boundary in to where the camera can reach it.
+  static roomAtCamera(rooms, x, prev, band = 1.5 * T) {
+    const edge = (r) => (r._bx !== undefined ? r._bx : r._x0 * T);
+    if (prev) {
+      const i = rooms.indexOf(prev);
+      if (i >= 0) {
+        const x0 = edge(prev);
+        const x1 = i + 1 < rooms.length ? edge(rooms[i + 1]) : Infinity;
+        if (x >= x0 - (i > 0 ? band : Infinity) && x < x1 + band) return prev;
+      }
+    }
+    let best = rooms[0];
+    for (const r of rooms) if (edge(r) <= x) best = r;
+    return best;
+  }
 }

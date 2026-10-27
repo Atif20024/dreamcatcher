@@ -22,6 +22,10 @@ const F = { far: 0.12, scenery: 0.22, mid: 0.34, near: 0.62 };
 // into the sky behind it. This is what lets the play layer read as "in
 // front" -- a backdrop drawn at full strength competes with the terrain no
 // matter how pretty it is.
+// half-width of the blend zone around a room boundary (F§5.2: ~12 tiles in all)
+const BLEND_HALF = 6 * 32;
+// the most the shared horizon may move in one 60 Hz frame
+const HORIZON_STEP = 5;
 const HAZE = { far: 0.62, scenery: 0.74, mid: 0.86, near: 1 };
 
 // ---------------------------------------------------------------------------
@@ -997,6 +1001,9 @@ export default class Parallax {
     this.scenery = null;
     this.landmark = null;
     this.current = null;
+    // scenery + landmark per live room: at most two (both sides of a blend)
+    this.decor = new Map();
+    this.blend = null;
   }
 
   applyTexture(sprite, name, slotName) {
@@ -1011,22 +1018,6 @@ export default class Parallax {
     else sprite.setSize(this.spanW, KIND_H[kind]);
     sprite.wallBand = kind === 'wall';
     return sprite;
-  }
-
-  fadeSlot(slot, name, ms, slotName) {
-    if (!name || name === slot.name) return;
-    slot.name = name;
-    const incoming = slot.pair[1 - slot.i];
-    const outgoing = slot.pair[slot.i];
-    this.applyTexture(incoming, name, slotName);
-    slot.i = 1 - slot.i;
-    if (ms <= 0) {
-      incoming.setAlpha(slot.haze);
-      outgoing.setAlpha(0);
-      return;
-    }
-    this.scene.tweens.add({ targets: incoming, alpha: slot.haze, duration: ms });
-    this.scene.tweens.add({ targets: outgoing, alpha: 0, duration: ms });
   }
 
   // the cast of background objects for one room, laid out along its width
@@ -1064,71 +1055,156 @@ export default class Parallax {
     return cont;
   }
 
-  // called whenever the player's room changes
-  setRoom(room) {
-    if (!room || room === this.current) return;
-    const first = this.current === null;
-    const ms = first ? 0 : 550;
-    this.current = room;
-    const bg = room.bg || {};
+  // F#4 / F§5.2: where the camera is between two rooms. Inside a zone
+  // 2*half wide around a boundary both rooms are alive and t runs 0..1
+  // (smoothstep) with the camera centre; elsewhere L === R and t = 0.
+  blendAt(cx) {
+    const rooms = this.rooms;
+    const n = rooms.length;
+    const edge = (k) => (rooms[k]._bx !== undefined ? rooms[k]._bx : rooms[k]._x0 * 32);
+    let i = 0;
+    for (let k = 1; k < n; k++) if (edge(k) <= cx) i = k;
+    let l = -1;
+    if (i > 0 && cx - edge(i) < this.half(i - 1, i)) l = i - 1;
+    else if (i + 1 < n && edge(i + 1) - cx < this.half(i, i + 1)) l = i;
+    if (l < 0) return { L: rooms[i], R: rooms[i], t: 0 };
+    const h = this.half(l, l + 1);
+    const b = edge(l + 1);
+    const u = Phaser.Math.Clamp((cx - (b - h)) / (2 * h), 0, 1);
+    return { L: rooms[l], R: rooms[l + 1], t: u * u * (3 - 2 * u) };
+  }
 
-    if (bg.far && bg.far !== this._skyName) {
-      this._skyName = bg.far;
-      const inc = this.sky[1 - (this._skyI || 0)];
-      const out = this.sky[this._skyI || 0];
-      inc.setTexture(ensureSkyTexture(this.scene, bg.far)).setDisplaySize(this.spanW, this.camH * 3);
-      this._skyI = 1 - (this._skyI || 0);
-      if (ms <= 0) {
-        inc.setAlpha(1);
-        out.setAlpha(0);
-      } else {
-        this.scene.tweens.add({ targets: inc, alpha: 1, duration: ms });
-        this.scene.tweens.add({ targets: out, alpha: 0, duration: ms });
-      }
-    }
-    this.fadeSlot(this.far, bg.far, ms, 'far');
-    this.fadeSlot(this.mid, bg.mid, ms, 'mid');
-    this.fadeSlot(this.near, bg.near, ms, 'near');
+  half(a, b) {
+    const rooms = this.rooms;
+    if (!this._widths) this._widths = rooms.map((r, k) => (k + 1 < rooms.length ? rooms[k + 1]._x0 - r._x0 : Math.max(...r.grid.map((g) => g.length))) * 32);
+    return Math.min(BLEND_HALF, 0.45 * this._widths[a], 0.45 * this._widths[b]);
+  }
 
-    const retire = (obj) => {
-      if (!obj) return;
-      if (ms <= 0) return obj.destroy();
-      this.scene.tweens.add({ targets: obj, alpha: 0, duration: ms, onComplete: () => obj.destroy() });
-    };
-    retire(this.scenery);
-    retire(this.landmark);
-
-    this.scenery = this.buildScenery(room);
-    this.scene.tweens.add({ targets: this.scenery, alpha: HAZE.scenery, duration: ms || 1 });
-
-    if (bg.landmark) {
-      this.landmark = drawLandmark(this.scene, bg.landmark).setScrollFactor(F.mid, 1).setDepth(D.BG_LANDMARK).setAlpha(0);
-      const centre = (room._x0 + Math.max(...room.grid.map((g) => g.length)) / 2) * 32;
-      this.landmark.x = (this.camW / 2) * (1 - F.mid) + centre * F.mid;
-      this.scene.tweens.add({ targets: this.landmark, alpha: HAZE.mid, duration: ms || 1 });
-    } else {
-      this.landmark = null;
+  // A room at the very end of the world can be narrower than half a screen,
+  // so the camera (clamped to the world) never centres in it. Its boundary is
+  // pulled in to where the camera can still carry the blend all the way
+  // (at the level's widest zoom), and the committed room uses the same edge
+  // (RoomBuilder.roomAtCamera reads _bx).
+  updateEdges(cam) {
+    const rooms = this.rooms;
+    const zMin = rooms.some((r) => r.vista) ? 0.8 : 1;
+    const bw = cam.useBounds ? cam._bounds : null;
+    const lo = bw ? bw.x + this.camW / (2 * zMin) : -Infinity;
+    const hi = bw ? bw.right - this.camW / (2 * zMin) : Infinity;
+    for (let k = 1; k < rooms.length; k++) {
+      const h = this.half(k - 1, k);
+      rooms[k]._bx = lo + h <= hi - h ? Phaser.Math.Clamp(rooms[k]._x0 * 32, lo + h, hi - h) : rooms[k]._x0 * 32;
     }
   }
 
+  // show `wants` ([name, alpha]) on a pair of sprites. A sprite already
+  // showing a name keeps it, so nothing visible is ever re-textured: a sprite
+  // only takes a new texture while it is (or is about to be) invisible.
+  assign(pair, wants, paint) {
+    const used = new Set();
+    for (const [name, alpha, depth] of wants) {
+      let s = pair.find((p) => p.bgName === name && !used.has(p));
+      if (!s) {
+        s = pair.find((p) => !used.has(p) && !wants.some((w) => w[0] === p.bgName)) || pair.find((p) => !used.has(p));
+        paint(s, name);
+        s.bgName = name;
+      }
+      used.add(s);
+      s.setAlpha(alpha);
+      if (depth !== undefined) s.setDepth(depth);
+    }
+    for (const p of pair) if (!used.has(p)) p.setAlpha(0);
+  }
+
+  decorFor(room) {
+    let d = this.decor.get(room);
+    if (d) return d;
+    const bg = room.bg || {};
+    d = { scenery: this.buildScenery(room), landmark: null };
+    if (bg.landmark) {
+      d.landmark = drawLandmark(this.scene, bg.landmark).setScrollFactor(F.mid, 1).setDepth(D.BG_LANDMARK).setAlpha(0);
+      const centre = (room._x0 + Math.max(...room.grid.map((g) => g.length)) / 2) * 32;
+      d.landmark.x = (this.camW / 2) * (1 - F.mid) + centre * F.mid;
+    }
+    this.decor.set(room, d);
+    return d;
+  }
+
+  // Every frame, from the camera centre: no events, no tweens, no snaps.
   update() {
     const cam = this.scene.cameras.main;
+    const cx = cam.scrollX + cam.width / 2;
+    this.frames = (this.frames || 0) + 1; // the harness checks the blend is live
+    this.updateEdges(cam);
+    const { L, R, t } = (this.blend = this.blendAt(cx));
+    this.current = t < 0.5 ? L : R;
+    const bl = L.bg || {};
+    const br = R.bg || {};
+    const pair = (a, b, full) => (a === b || L === R ? [[a, full]] : [[a, full * (1 - t)], [b, full * t]]);
+
+    // sky: opaque, so the incoming one is laid OVER the outgoing at alpha t
+    // (a symmetric crossfade would dip to the canvas colour mid-way)
+    const skyL = bl.far || 'city';
+    const skyR = br.far || 'city';
+    const skyTex = (s, name) => s.setTexture(ensureSkyTexture(this.scene, name)).setDisplaySize(this.spanW, this.camH * 3);
+    this.assign(this.sky, skyL === skyR ? [[skyL, 1, D.SKY]] : [[skyL, 1, D.SKY], [skyR, t, D.SKY + 0.01]], skyTex);
+
     // Depth is a HORIZONTAL cue only. Everything back here stands on the same
     // ground Jo does, so the layers are pinned to the world's horizon and move
     // with the terrain exactly -- give them a vertical parallax factor instead
     // and every jump pans the camera and slides the buildings out of the
     // ground. Being world-anchored also means no one-frame lag against the
-    // camera, so nothing shimmers on landing.
-    const horizon = this.current ? this.current._horizon : cam.scrollY + this.camH * 0.66;
+    // camera, so nothing shimmers on landing. Between rooms the horizon is
+    // lerped on the same t as everything else (never assigned raw).
+    // A rate limit on top (HORIZON_STEP px per 60 Hz frame) keeps a big
+    // floor change across a narrow room from ever reading as a jump; a
+    // teleport (warp, respawn: the camera moved more than a screen) snaps.
+    const target = L._horizon + (R._horizon - L._horizon) * t;
+    if (this._hz === undefined || Math.abs(cam.scrollX - this._lastScrollX) > this.camW) this._hz = target;
+    else {
+      const max = HORIZON_STEP * Math.min(3, this.scene.game.loop.delta / 16.67 || 1);
+      this._hz += Phaser.Math.Clamp(target - this._hz, -max, max);
+    }
+    this._lastScrollX = cam.scrollX;
+    const horizon = this._hz;
 
-    for (const [, slot, f] of this.slots) {
+    for (const [name, slot, f] of this.slots) {
+      const a = bl[name] || 'city';
+      const b = br[name] || 'city';
+      this.assign(slot.pair, pair(a, b, slot.haze), (s, n) => this.applyTexture(s, n, name));
       for (const s of slot.pair) {
         s.y = s.wallBand ? horizon + this.camH : horizon;
         s.tilePositionX = cam.scrollX * f;
       }
     }
 
-    if (this.scenery) this.scenery.y = horizon - this.scenery.lift;
-    if (this.landmark) this.landmark.y = horizon - 18;
+    // scenery and landmarks: both rooms' sets live only inside the zone
+    for (const [room, d] of this.decor) {
+      if (room !== L && room !== R) {
+        d.scenery.destroy();
+        if (d.landmark) d.landmark.destroy();
+        this.decor.delete(room);
+      }
+    }
+    const live = L === R ? [[L, 1]] : [[L, 1 - t], [R, t]];
+    for (const [room, k] of live) {
+      const d = this.decorFor(room);
+      d.scenery.setAlpha(HAZE.scenery * k);
+      d.scenery.y = horizon - d.scenery.lift;
+      if (d.landmark) {
+        d.landmark.setAlpha(HAZE.mid * k);
+        d.landmark.y = horizon - 18;
+      }
+    }
+    const cur = this.decor.get(this.current);
+    this.scenery = cur ? cur.scenery : null;
+    this.landmark = cur ? cur.landmark : null;
+  }
+
+  // per-room value (zoom, ...) blended on the same t
+  lerpRoom(fn) {
+    const b = this.blend;
+    if (!b) return null;
+    return fn(b.L) + (fn(b.R) - fn(b.L)) * b.t;
   }
 }

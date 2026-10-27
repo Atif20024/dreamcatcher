@@ -1278,12 +1278,9 @@ export default class HubScene extends BaseLevel {
     this.queue.update(dt);
     if (this.rain) this.rain.setVisible(p.x < px(40));
     if (this.updateMusicRoom) {
-      const room = RoomBuilder.roomAt(this.built.rooms, p.x);
-      if (room !== this._room) {
-        this._room = room;
-        this.parallax.setRoom(room);
-      }
-      this.parallax.update();
+      const cam = this.cameras.main;
+      this._room = this._room ? RoomBuilder.roomAtCamera(this.built.rooms, cam.scrollX + cam.width / 2, this._room) : RoomBuilder.roomAt(this.built.rooms, p.x);
+      this.parallax.update(); // continuous blend from the camera centre
     }
     if (this.look) this.look.update(time, delta, null);
     musicDirector.setMix(this.state.music);

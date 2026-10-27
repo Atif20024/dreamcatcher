@@ -16,9 +16,15 @@ Each asserts the correct future behaviour and returns `{pass, detail}`. Run in t
 
 Phase 1.1 adds four that must PASS, each across Chef, Writer, Gambler and Painter (`src/dev/scenarios/failure.js`): `hit-knockback` (a hit costs one heart, knockback, i-frames, no teleport), `zero-hearts-checkpoint` (death card → back at the last flag, hearts refilled, same scene instance, no dialogue replay), `checkpoint-label` (flag name shown on touch and in the pause menu), `continue-run` (a lit flag saves the run; the hub board shows CONTINUE; continuing wakes Jo at that flag with flags restored). They write to the real save and clear the run they made.
 
-`npm run scenarios` prints these instructions (no headless runner yet). Still FAILING on purpose (later workstreams): `background-snap` (256 px layer jump), `eva-tether-trap` (untaught drift-away death).
+`npm run scenarios` prints these instructions (no headless runner yet). Still FAILING on purpose (later workstreams): `eva-tether-trap` (untaught drift-away death).
 
 Phase 1.2 (UI layer): `bet-card-hidden` now PASSES (the BET card is the top ModalManager modal; the stake selector waits hidden under it and returns), and `hud-scale-zoom` asserts the hearts, the level line and a screen-space probe keep their on-screen size when the world camera zooms to 0.62 (they live on UIScene at zoom 1). The warp keeps UIScene running.
+
+Phase 1.3 (room transitions): `background-snap` now PASSES. `blend-continuity` pans the camera across every room boundary, both ways, in all eight places (no visible backdrop layer y jump > 8 px, alpha jump > 0.1 or zoom jump > 0.02 per frame); `boundary-no-flicker` wobbles the camera on each boundary for 120 frames and asserts the committed room never changes.
+
+## Room transitions (phase 1.3)
+- The current room (`scene._room`: music, ambience, room-scoped logic) comes from the camera centre with 1.5 tiles of hysteresis (`RoomBuilder.roomAtCamera`). Gameplay that asks where Jo stands still uses `RoomBuilder.roomAt(rooms, player.x)`.
+- `Parallax.update()` blends every frame: `blendAt(cx)` gives `{L, R, t}` (smoothstep over a 12-tile zone, narrower for small rooms). Sky, layers, scenery and landmark crossfade on `t`; the horizon lerps on `t` (rate-limited to 5 px/frame); vista zoom is `parallax.lerpRoom(...)`. Both rooms' scenery exists only inside the zone. End-of-world rooms the camera cannot centre in get a pulled-in edge (`room._bx`).
 
 ## UI layer (phase 1.2)
 - `src/ui/UIScene.js` runs over every scene; screen-space objects (`setScrollFactor(0)` at depth >= 100) are moved onto it automatically (`src/ui/ui.js`); world overlays opt out with `keepInWorld = true`.

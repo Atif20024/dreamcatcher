@@ -6,4 +6,4 @@ import betCard from './betCard.js';
 import failure from './failure.js';
 import hudScale from './hudScale.js';
 
-export const SCENARIOS = [backgroundSnap, evaTether, betCard, ...failure, hudScale];
+export const SCENARIOS = [...backgroundSnap, evaTether, betCard, ...failure, hudScale];

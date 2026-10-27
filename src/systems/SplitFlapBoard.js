@@ -97,7 +97,7 @@ export default class SplitFlapBoard {
     const cells = this.cells[i].filter((c) => c.text !== ' ');
     if (!cells.length) return;
     const cell = Phaser.Utils.Array.GetRandom(cells);
-    this.flip(cell, cell.text, cell.style.color, 0);
+    this.flip(cell, cell.text, cell.flapColor || '#f2e6cc', 0); // bitmap text has no .style (phase 1.2)
   }
 
   destroy() {

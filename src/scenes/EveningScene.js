@@ -826,7 +826,7 @@ export default class EveningScene extends BaseLevel {
   }
 
   baseZoom() {
-    const room = RoomBuilder.roomAt(this.built.rooms, this.player.x);
+    const room = this._room || RoomBuilder.roomAt(this.built.rooms, this.player.x);
     return room && room.vista && !this.onRoadNow ? 0.75 : room && room.vista ? 0.85 : 1;
   }
 
@@ -1445,7 +1445,9 @@ export default class EveningScene extends BaseLevel {
     const cam = this.cameras.main;
     const p = this.player;
     if (this.ending) return;
-    const room = RoomBuilder.roomAt(this.built.rooms, p.x);
+    // the camera's room, with hysteresis (no flicker standing on a line);
+    // the zoom eases over 1.4 s, the horizon bands are continuous already
+    const room = this._room ? RoomBuilder.roomAtCamera(this.built.rooms, cam.scrollX + cam.width / 2, this._room) : RoomBuilder.roomAt(this.built.rooms, p.x);
     if (room !== this._room) {
       this._room = room;
       if (!this.joSitting) cam.zoomTo(this.baseZoom(), 1400, 'Sine.easeInOut', true);
