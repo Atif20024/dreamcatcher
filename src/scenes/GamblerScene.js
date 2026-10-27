@@ -17,6 +17,8 @@ import { completeDream, recordMoment, markMet, updateSave } from '../utils/save.
 import { sfx, music, sting, musicDirector, playTone, trumpet } from '../systems/audio.js';
 import { showTutorial } from '../systems/tutorial.js';
 import { coinWorth, deductWorth, setPending, addMarker, getMarker, cash, voidPending } from '../systems/wallet.js';
+import { uiText } from '../ui/text.js';
+import { hud } from '../ui/hud.js';
 
 const T = 32;
 const px = (tile) => tile * T + T / 2;
@@ -128,11 +130,7 @@ export default class GamblerScene extends BaseLevel {
     this.physics.add.overlap(this.player, this.spikes, () => this.hurt());
     this.physics.add.overlap(this.player, this.orbs, (_p, o) => this.catchOrb(o));
 
-    this.promptText = this.add
-      .text(0, 0, '[E]', { fontFamily: 'monospace', fontSize: '13px', color: '#f2d580', backgroundColor: '#14101c' })
-      .setOrigin(0.5)
-      .setDepth(80)
-      .setVisible(false);
+    this.promptText = hud.prompt(); // the HUD's interact prompt, pinned over the world point
     this.rain = this.add
       .tileSprite(this.cameras.main.width / 2, this.cameras.main.height / 2, this.cameras.main.width / 0.5, this.cameras.main.height / 0.5, 'gm-rain')
       .setScrollFactor(0)
@@ -493,7 +491,7 @@ export default class GamblerScene extends BaseLevel {
     // birds over the car park, once it is light
     this.birds = [];
     for (let i = 0; i < 6; i++) {
-      const b = this.add.text(px(340 + i * 24), px(8 + (i % 3) * 2), '~', { fontFamily: 'monospace', fontSize: '12px', color: '#2a2e3a' }).setDepth(D.BEHIND);
+      const b = uiText(this, px(340 + i * 24), px(8 + (i % 3) * 2), '~', { fontSize: '12px', color: '#2a2e3a' }).setDepth(D.BEHIND);
       b.baseX = b.x;
       this.birds.push(b);
     }
@@ -536,7 +534,7 @@ export default class GamblerScene extends BaseLevel {
         this.tweens.add({ targets: c, angle: Phaser.Math.Between(-180, 180), duration: 700 });
       },
     });
-    this.add.text(x, floor - 126, 'THE MERIDIAN FOUNTAIN', { fontFamily: 'monospace', fontSize: '9px', color: '#e9b84a' }).setOrigin(0.5).setDepth(8).setAlpha(0.8);
+    uiText(this, x, floor - 126, 'THE MERIDIAN FOUNTAIN', { fontSize: '9px', color: '#e9b84a' }).setOrigin(0.5).setDepth(8).setAlpha(0.8);
   }
 
   buildLamp(o, floor) {
@@ -638,7 +636,7 @@ export default class GamblerScene extends BaseLevel {
     this.add.rectangle(o.wx - 30, floor - 2, 6, 10, 0x4a3a2a).setDepth(7);
     this.add.rectangle(o.wx + 30, floor - 2, 6, 10, 0x4a3a2a).setDepth(7);
     this.add.image(o.wx - 20, floor - 26, 'gm-chipstack').setDepth(8).setScale(0.8);
-    t.label = this.add.text(o.wx, floor - 40, o.name, { fontFamily: 'monospace', fontSize: '9px', color: '#e9b84a' }).setOrigin(0.5).setDepth(8);
+    t.label = uiText(this, o.wx, floor - 40, o.name, { fontSize: '9px', color: '#e9b84a' }).setOrigin(0.5).setDepth(8);
     this.tables.push(t);
   }
 
@@ -848,7 +846,7 @@ export default class GamblerScene extends BaseLevel {
     const seq = (this.dealCache ||= {})[o.deck] || dealSequence(o.deck, 12, this.difficulty);
     const w = seq.length * 16 + 20;
     this.add.rectangle(o.wx, floor - 30, w, 44, 0x1a0e14, 0.9).setDepth(6).setStrokeStyle(1, 0x8a5a24);
-    this.add.text(o.wx, floor - 52, 'DISCARDS — IN ORDER', { fontFamily: 'monospace', fontSize: '8px', color: '#e9b84a' }).setOrigin(0.5).setDepth(6);
+    uiText(this, o.wx, floor - 52, 'DISCARDS — IN ORDER', { fontSize: '8px', color: '#e9b84a' }).setOrigin(0.5).setDepth(6);
     seq.forEach((c, i) => {
       this.add.image(o.wx - w / 2 + 14 + i * 16, floor - 28, cardTextureKey(this, c)).setScale(0.8).setDepth(6).setAngle(-6 + (i % 3) * 6);
     });
@@ -868,7 +866,7 @@ export default class GamblerScene extends BaseLevel {
     // the window on the wall beside the reel: the symbol now, and the two to come
     const bg = this.add.rectangle(x, topY - 60, 36, 96, 0x1a0e14, 0.92).setDepth(6).setStrokeStyle(2, 0xe9b84a);
     void bg;
-    const texts = [0, 1, 2].map((i) => this.add.text(x, topY - 92 + i * 32, '', { fontFamily: 'monospace', fontSize: i === 0 ? '18px' : '12px', color: '#e8dcc8' }).setOrigin(0.5).setDepth(7));
+    const texts = [0, 1, 2].map((i) => uiText(this, x, topY - 92 + i * 32, '', { fontSize: i === 0 ? '18px' : '12px', color: '#e8dcc8' }).setOrigin(0.5).setDepth(7));
     this.add.rectangle(x, topY - 92, 34, 26, 0xe9b84a, 0).setDepth(7).setStrokeStyle(1, 0xff3aa0);
     const topTile = this.solids.getChildren().find((img) => img.tx === o.tx && img.ty === o.ty);
     const reel = { ...o, x, topY, strip, idx: 0, texts, spinning: false, onIt: false, topTile };
@@ -952,7 +950,7 @@ export default class GamblerScene extends BaseLevel {
     const y = floor - 74;
     const img = this.add.image(o.wx, y, 'gm-wheel').setDepth(8);
     const ball = this.add.circle(o.wx, y - 20, 4, 0xf2eee4).setDepth(9);
-    const mark = this.add.text(o.wx, y - 46, `STOP ON ${o.colour.toUpperCase()}`, { fontFamily: 'monospace', fontSize: '9px', color: o.colour === 'red' ? '#e84a5a' : '#e8dcc8' }).setOrigin(0.5).setDepth(9);
+    const mark = uiText(this, o.wx, y - 46, `STOP ON ${o.colour.toUpperCase()}`, { fontSize: '9px', color: o.colour === 'red' ? '#e84a5a' : '#e8dcc8' }).setOrigin(0.5).setDepth(9);
     const w = { ...o, img, ball, mark, y, angle: 0, omega: 5.2, stopping: false, travel: 0, done: false };
     this.wheels.push(w);
     this.addInteract(o.wx, floor - 20, 'stop the wheel', () => {
@@ -997,15 +995,15 @@ export default class GamblerScene extends BaseLevel {
 
   buildDice(o, floor) {
     const plate = this.add.rectangle(o.wx, floor - 3, 30, 6, 0xe9b84a).setDepth(8);
-    this.add.text(o.wx, floor - 20, 'ROLL', { fontFamily: 'monospace', fontSize: '8px', color: '#e9b84a' }).setOrigin(0.5).setDepth(8);
+    uiText(this, o.wx, floor - 20, 'ROLL', { fontSize: '8px', color: '#e9b84a' }).setOrigin(0.5).setDepth(8);
     const b = o.bridge;
     const wallX = px((b.x0 + b.x1) / 2);
     const wallY = px(b.y - 8);
     const d1 = this.add.image(wallX - 50, wallY, 'gm-dice').setScale(3).setDepth(6).setAlpha(0.25);
     const d2 = this.add.image(wallX + 50, wallY, 'gm-dice').setScale(3).setDepth(6).setAlpha(0.25);
-    const t1 = this.add.text(wallX - 50, wallY, '', { fontFamily: 'monospace', fontSize: '40px', color: '#1a1a20', fontStyle: 'bold' }).setOrigin(0.5).setDepth(7);
-    const t2 = this.add.text(wallX + 50, wallY, '', { fontFamily: 'monospace', fontSize: '40px', color: '#1a1a20', fontStyle: 'bold' }).setOrigin(0.5).setDepth(7);
-    const sum = this.add.text(wallX, wallY + 70, '', { fontFamily: 'monospace', fontSize: '14px', color: '#e9b84a' }).setOrigin(0.5).setDepth(7);
+    const t1 = uiText(this, wallX - 50, wallY, '', { fontSize: '40px', color: '#1a1a20' }).setOrigin(0.5).setDepth(7);
+    const t2 = uiText(this, wallX + 50, wallY, '', { fontSize: '40px', color: '#1a1a20' }).setOrigin(0.5).setDepth(7);
+    const sum = uiText(this, wallX, wallY + 70, '', { fontSize: '14px', color: '#e9b84a' }).setOrigin(0.5).setDepth(7);
     this.dice = { ...o, plate, floor, d1, d2, t1, t2, sum, rolled: 0, tiles: [], rng: seededRng('dice'), rolling: false };
     this.addInteract(o.wx, floor - 20, 're-roll (1 chip)', () => {
       if (this.pending < 1) {
@@ -1071,7 +1069,7 @@ export default class GamblerScene extends BaseLevel {
 
   buildCage(o, floor) {
     this.add.image(o.wx, floor, 'gm-cage').setOrigin(0.5, 1).setDepth(7);
-    this.add.text(o.wx, floor - 76, 'CASHIER', { fontFamily: 'monospace', fontSize: '9px', color: '#e9b84a' }).setOrigin(0.5).setDepth(8);
+    uiText(this, o.wx, floor - 76, 'CASHIER', { fontSize: '9px', color: '#e9b84a' }).setOrigin(0.5).setDepth(8);
     const cage = { ...o, x: o.wx, floor };
     this.addInteract(o.wx, floor - 20, 'cash out', async () => {
       if (o.id === 'cage2' && !this.told.d6) {
@@ -1135,7 +1133,7 @@ export default class GamblerScene extends BaseLevel {
     lift.body.checkCollision.down = false;
     this.physics.add.collider(this.player, lift);
     this.add.rectangle(o.wx, (topY + bottomY) / 2, 96, bottomY - topY + 40, 0x0a0a12, 0.55).setDepth(D.TERRAIN - 0.5);
-    this.add.text(o.wx, topY - 70, 'PRIVATE', { fontFamily: 'monospace', fontSize: '9px', color: '#e9b84a' }).setOrigin(0.5).setDepth(8);
+    uiText(this, o.wx, topY - 70, 'PRIVATE', { fontSize: '9px', color: '#e9b84a' }).setOrigin(0.5).setDepth(8);
     this.lift = { img: lift, topY, bottomY, down: false };
   }
 
@@ -1166,7 +1164,7 @@ export default class GamblerScene extends BaseLevel {
 
   buildMarkerWindow(o, floor) {
     this.add.image(o.wx, floor - 20, 'gm-window').setOrigin(0.5, 1).setDepth(7);
-    this.add.text(o.wx, floor - 54, 'MARKERS', { fontFamily: 'monospace', fontSize: '8px', color: '#c8c0b0' }).setOrigin(0.5).setDepth(8);
+    uiText(this, o.wx, floor - 54, 'MARKERS', { fontSize: '8px', color: '#c8c0b0' }).setOrigin(0.5).setDepth(8);
     this.markerWindow = { x: o.wx, floor };
     this.addInteract(o.wx, floor - 20, 'the window (a marker: +10 chips)', () => this.collectorOffer(), { once: false, when: () => this.F.marker_offer || this.F.marker || this.pending === 0 });
   }
@@ -1183,7 +1181,7 @@ export default class GamblerScene extends BaseLevel {
 
   buildPawn(o, floor) {
     this.add.image(o.wx, floor - 20, 'gm-hatch').setOrigin(0.5, 1).setDepth(7);
-    this.add.text(o.wx, floor - 54, 'PAWN', { fontFamily: 'monospace', fontSize: '8px', color: '#c8c0b0' }).setOrigin(0.5).setDepth(8);
+    uiText(this, o.wx, floor - 54, 'PAWN', { fontSize: '8px', color: '#c8c0b0' }).setOrigin(0.5).setDepth(8);
     this.addInteract(o.wx, floor - 20, 'the hatch', async () => {
       await this.dialog.show(this.hornWithFavour ? DIALOGUES.d5_ticket : DIALOGUES.d5);
       const choice = await this.dialog.show([{ name: 'THE PAWN WINDOW', portrait: 'portrait-pawn', text: 'Twenty-five.', choices: [{ label: 'Not yet', value: 'no' }, { label: this.hornWithFavour ? 'Pawn the ticket' : 'Pawn the horn', value: 'pawn' }] }]);
@@ -1203,7 +1201,7 @@ export default class GamblerScene extends BaseLevel {
   louVent() {
     if (this.told.vent || !this.vent) return;
     this.told.vent = true;
-    const t = this.add.text(this.vent.x, this.vent.y - 20, '"Sir, I\'d go."', { fontFamily: 'monospace', fontSize: '11px', color: '#c8c0b0', fontStyle: 'italic' }).setOrigin(0.5).setDepth(40).setAlpha(0);
+    const t = uiText(this, this.vent.x, this.vent.y - 20, '"Sir, I\'d go."', { fontSize: '11px', color: '#c8c0b0' }).setOrigin(0.5).setDepth(40).setAlpha(0);
     this.tweens.add({ targets: t, alpha: 0.8, y: t.y - 10, duration: 1200, yoyo: true, hold: 2500, onComplete: () => t.destroy() });
     sfx('groan');
     this.dialog.show(DIALOGUES.lou_vent);
@@ -1211,7 +1209,7 @@ export default class GamblerScene extends BaseLevel {
 
   buildSafe(o, floor) {
     this.add.image(o.wx, floor, 'gm-safe').setOrigin(0.5, 1).setDepth(7);
-    this.add.text(o.wx, floor - 46, 'THE SLOT COUNTS 25', { fontFamily: 'monospace', fontSize: '8px', color: '#c8c0b0' }).setOrigin(0.5).setDepth(8);
+    uiText(this, o.wx, floor - 46, 'THE SLOT COUNTS 25', { fontSize: '8px', color: '#c8c0b0' }).setOrigin(0.5).setDepth(8);
     this.addInteract(o.wx, floor - 20, 'feed twenty-five chips', () => {
       if (this.pending < 25) {
         this.floatText(o.wx, floor - 70, `${this.pending} of 25. the slot waits.`, '#c8c0b0');
@@ -1323,7 +1321,7 @@ export default class GamblerScene extends BaseLevel {
     this.physics.add.collider(this.player, img);
     const x0 = o.wx;
     const x1 = px(o.x1 + this.roomOf(o)._x0);
-    const beep = this.add.text(o.wx, floor - 50, '', { fontFamily: 'monospace', fontSize: '11px', color: '#e86a6a' }).setOrigin(0.5).setDepth(30);
+    const beep = uiText(this, o.wx, floor - 50, '', { fontSize: '11px', color: '#e86a6a' }).setOrigin(0.5).setDepth(30);
     this.van = { img, x0, x1, dir: 1, floor, beep, waitUntil: 0, lastX: img.x };
   }
 
@@ -1423,7 +1421,7 @@ export default class GamblerScene extends BaseLevel {
       callback: () => {
         if (this.orbCaught) return this.counting.remove();
         n += 1;
-        const txt = this.add.text(t.x + 30, t.floor - 150, `${n}.`, { fontFamily: 'monospace', fontSize: '13px', color: '#c8c0b0' }).setOrigin(0.5).setDepth(40).setAlpha(0);
+        const txt = uiText(this, t.x + 30, t.floor - 150, `${n}.`, { fontSize: '13px', color: '#c8c0b0' }).setOrigin(0.5).setDepth(40).setAlpha(0);
         this.tweens.add({ targets: txt, alpha: 0.9, y: txt.y - 14, duration: 500, yoyo: true, hold: 500, onComplete: () => txt.destroy() });
         sfx('tick');
       },
@@ -1433,7 +1431,7 @@ export default class GamblerScene extends BaseLevel {
   // ---------- hand 6: lost and found ------------------------------------------------
 
   buildBox(o, floor, img) {
-    this.add.text(o.wx, floor - 36, 'LOST & FOUND', { fontFamily: 'monospace', fontSize: '8px', color: '#3a3a44' }).setOrigin(0.5).setDepth(10);
+    uiText(this, o.wx, floor - 36, 'LOST & FOUND', { fontSize: '8px', color: '#3a3a44' }).setOrigin(0.5).setDepth(10);
     this.addInteract(o.wx, floor - 16, 'the box', async () => {
       if (this.F.took_marker || this.orbCaught) {
         this.floatText(o.wx, floor - 60, 'an empty box. a note, in pencil.', '#c8c0b0');
@@ -1506,8 +1504,8 @@ export default class GamblerScene extends BaseLevel {
       this.player.body.setVelocity(0, 0);
       if (id === 'm2') this.duet();
       const cam = this.cameras.main;
-      const t1 = this.add.text(cam.width / 2, cam.height - 150, m.sub, { fontFamily: 'monospace', fontSize: '14px', color: '#c8c0b0', align: 'center', wordWrap: { width: 700 } }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
-      const t2 = this.add.text(cam.width / 2, cam.height - 116, m.text, { fontFamily: 'monospace', fontSize: '17px', color: '#f2e0a0', fontStyle: 'italic' }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
+      const t1 = uiText(this, cam.width / 2, cam.height - 150, m.sub, { fontSize: '14px', color: '#c8c0b0', align: 'center', wordWrap: { width: 700 } }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
+      const t2 = uiText(this, cam.width / 2, cam.height - 116, m.text, { fontSize: '17px', color: '#f2e0a0' }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
       this.tweens.add({ targets: [t1, t2], alpha: 1, duration: 900 });
       this.time.delayedCall(id === 'm2' ? 7000 : 5000, () => this.tweens.add({ targets: [t1, t2], alpha: 0, duration: 800, onComplete: () => [t1, t2].forEach((t) => t.destroy()) }));
     });
@@ -1545,7 +1543,7 @@ export default class GamblerScene extends BaseLevel {
     if (collector) this.addDebt(this.markerPerCatch, 'a word outside');
     const cam = this.cameras.main;
     const wipe = this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x000000, 0).setScrollFactor(0).setDepth(230);
-    const label = this.add.text(cam.width / 2, cam.height / 2, collector ? 'A WORD OUTSIDE' : 'ESCORTED OUT', { fontFamily: 'monospace', fontSize: '26px', color: '#e8dcc8' }).setOrigin(0.5).setScrollFactor(0).setDepth(231).setAlpha(0);
+    const label = uiText(this, cam.width / 2, cam.height / 2, collector ? 'A WORD OUTSIDE' : 'ESCORTED OUT', { fontSize: '26px', color: '#e8dcc8' }).setOrigin(0.5).setScrollFactor(0).setDepth(231).setAlpha(0);
     this.tweens.add({ targets: [wipe], alpha: 0.9, duration: 500 });
     this.tweens.add({ targets: [label], alpha: 1, duration: 500 });
     this.time.delayedCall(1000, () => {
@@ -1579,20 +1577,22 @@ export default class GamblerScene extends BaseLevel {
 
   // ---------- HUD ---------------------------------------------------------------------------
 
+  // the tool slot, top-right (HudGrid): chips and the marker; the horn line
+  // only once it is gone. The table's own [E] BET prompt is the interact
+  // prompt over the felt, so there is no second one on the HUD.
   buildHud() {
-    const mk = (y, color = '#c8c0b0', size = 12) => this.add.text(16, y, '', { fontFamily: 'monospace', fontSize: `${size}px`, color, stroke: '#14101c', strokeThickness: 3 }).setScrollFactor(0).setDepth(150);
-    this.chipHud = mk(112, '#f2d580');
-    this.markerHud = mk(130, '#e86a6a');
-    this.betHud = mk(150, '#6a6478', 15);
-    this.betHud.setText('[E] BET');
-    this.hornHud = mk(172, '#8a8478', 11);
+    this.chipHud = this.hud.toolLine(0, '#f2d580');
+    this.markerHud = this.hud.toolLine(1, '#e86a6a');
+    this.hornHud = this.hud.toolLine(2, '#8a8478');
+    const noop = { setText: () => noop, setColor: () => noop, setAlpha: () => noop, setVisible: () => noop };
+    this.betHud = noop;
     this.updateHud();
   }
 
   updateHud() {
     if (!this.chipHud) return;
-    this.chipHud.setText(`CHIPS   pending ${this.pending}   ·   real $${this.cashedWorth}`);
-    this.markerHud.setText(this.marker > 0 ? `MARKER  ${'|'.repeat(Math.min(30, this.marker))}  ${this.marker}` : '');
+    this.chipHud.setText(`CHIPS ${this.pending} PENDING · $${this.cashedWorth} REAL`);
+    this.markerHud.setText(this.marker > 0 ? `MARKER ${'|'.repeat(Math.min(12, this.marker))} ${this.marker}` : '');
     this.hornHud.setText(this.hasTrumpet ? '' : this.hornWithFavour && !this.F.trumpet_pawned ? 'the horn: cloakroom' : 'the horn: gone');
   }
 

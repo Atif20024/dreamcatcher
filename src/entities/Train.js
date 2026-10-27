@@ -1,6 +1,7 @@
 import { sfx } from '../systems/audio.js';
 import { D } from '../builders/depths.js';
 import { hubTex } from '../art/hubArt.js';
+import { uiText } from '../ui/text.js';
 
 // A train idling at its platform. States: idle / departing_with_jo /
 // returning / dead. `dead` leaves an oil stain and a RESERVED sign: that
@@ -92,8 +93,7 @@ export default class Train {
     this.lamps.forEach((l) => l.destroy());
     const s = this.scene;
     this.stain = s.add.image(this.x + 6, this.groundY - 2, hubTex(s, 'stain', 96, 12)).setDepth(D.INTERACT - 2).setAlpha(0.8);
-    this.sign = s.add
-      .text(this.x + 60, this.groundY - 26, 'RESERVED', { fontFamily: 'monospace', fontSize: '10px', color: '#8a8478', backgroundColor: '#2a2a30' })
+    this.sign = uiText(s, this.x + 60, this.groundY - 26, 'RESERVED', { fontSize: '10px', color: '#8a8478', backgroundColor: '#2a2a30' })
       .setOrigin(0.5)
       .setDepth(D.INTERACT - 1);
     if (!instant) {

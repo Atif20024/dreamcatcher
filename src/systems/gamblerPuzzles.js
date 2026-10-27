@@ -22,8 +22,7 @@ const cardAt = (m, scene, x, y, card, faceDown = false, scale = 2) => m.add(draw
 const wait = (scene, ms) => new Promise((r) => scene.time.delayedCall(ms, r));
 // a handler that stays attached across awaits; Modal.close removes it
 const listenAsync = (m, fn) => {
-  m.keyHandler = (e) => fn(e.code);
-  m.scene.input.keyboard.on('keydown', m.keyHandler);
+  m.keyHandler = (e) => fn(e.code); // the Modal's ModalManager handle delivers keys
 };
 const waitKey = (m, codes) =>
   new Promise((resolve) => {
@@ -172,14 +171,15 @@ export function twentyOne(scene, stake, { chips, hearts, difficulty = 0 }) {
     const lou = portrait(m, scene, cx - 240, cy - 70, 'portrait-lou');
     m.text(cx - 240, cy - 20, 'LOU', 10, GOLD);
     const tell = new Tell(scene, lou, { base: 'portrait-lou', tell: 'portrait-lou-tell', condition: (c) => isTenValue(c.hole), difficulty });
-    const shoeText = m.text(cx + 220, cy - 70, '', 9, INK);
-    m.text(cx + 220, cy - 108, 'THE SHOE', 10, DIM);
-    const dealerLabel = m.text(cx, cy - 92, '', 12, INK);
-    const playerLabel = m.text(cx, cy + 92, '', 12, INK);
-    const status = m.text(cx, cy + 150, '', 13, GOLD);
-    const tally = m.text(cx, cy + 172, '', 11, DIM);
-    const betText = m.text(cx - 240, cy + 60, '', 11, INK);
-    const felted = m.text(cx, cy + 118, 'TIES GO TO THE HOUSE · DEALER STANDS ON 17 · BLACKJACK PAYS 3:2', 9, '#6aa07a');
+    // the shoe as one line under the felt (a 13-row column no longer fits
+    // the larger type)
+    const shoeText = m.text(cx, cy + 126, '', 9, INK);
+    const dealerLabel = m.text(cx, cy - 104, '', 12, INK);
+    const playerLabel = m.text(cx + 150, cy + 48, '', 12, INK);
+    const status = m.text(cx, cy + 172, '', 13, GOLD);
+    const tally = m.text(cx, cy + 196, '', 11, DIM);
+    const betText = m.text(cx - 220, cy + 60, '', 11, INK);
+    const felted = m.text(cx, cy + 148, 'TIES GO TO THE HOUSE · DEALER STANDS ON 17 · BLACKJACK PAYS 3:2', 9, '#6aa07a');
     void felted;
     let cards = [];
     const clearCards = () => {
@@ -188,13 +188,13 @@ export function twentyOne(scene, stake, { chips, hearts, difficulty = 0 }) {
     };
     const renderShoe = () => {
       if (difficulty >= 2) {
-        shoeText.setText(`${shoe.length} cards left`);
+        shoeText.setText(`THE SHOE: ${shoe.length} cards left`);
         return;
       }
       const by = {};
       for (const c of shoe) by[rankLabel(c.r)] = (by[rankLabel(c.r)] || 0) + 1;
       const order = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
-      shoeText.setText(order.map((r) => `${r.padStart(2)} ×${by[r] || 0}`).join('\n'));
+      shoeText.setText(`SHOE  ${order.map((r) => `${r}×${by[r] || 0}`).join(' ')}`);
     };
     const renderTally = () => tally.setText(`hand ${Math.min(6, hand)} of 6 · won ${wins} · chips ${chips + netChips} pending · ♥ ${hearts + netHearts}`);
     const showHands = (dealer, player, hole) => {

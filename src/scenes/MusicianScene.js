@@ -14,6 +14,8 @@ import { tuning, playTheRoom, theMix } from '../systems/puzzles.js';
 import { completeDream, recordMoment, markMet, updateSave } from '../utils/save.js';
 import { addCoins } from '../systems/wallet.js';
 import { sfx, music, sting, trumpet, bassNote } from '../systems/audio.js';
+import { uiText } from '../ui/text.js';
+import { hud, TOOL_BARS } from '../ui/hud.js';
 
 const T = 32;
 const px = (t) => t * T + T / 2;
@@ -109,28 +111,19 @@ export default class MusicianScene extends BaseLevel {
     this.physics.add.overlap(this.player, this.wisps, () => this.addNerve(6));
 
     // HUD: breath + nerve + coins
-    this.breathBarBg = this.add.rectangle(28, 78, 90, 8, 0x2a2a34).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150);
-    this.breathBar = this.add.rectangle(28, 78, 90, 8, 0x88b8d8).setOrigin(0, 0.5).setScrollFactor(0).setDepth(151);
-    this.nerveBar = this.add.rectangle(28, 90, 90, 8, 0xe86a6a).setOrigin(0, 0.5).setScrollFactor(0).setDepth(151).setVisible(false);
-    this.coinText = this.add
-      .text(126, 78, '', { fontFamily: 'monospace', fontSize: '13px', color: '#f2d580' })
-      .setOrigin(0, 0.5)
-      .setScrollFactor(0)
-      .setDepth(150);
-    this.promptText = this.add
-      .text(0, 0, '[E]', { fontFamily: 'monospace', fontSize: '13px', color: '#f2d580', backgroundColor: '#14101c' })
-      .setOrigin(0.5)
-      .setDepth(80)
-      .setVisible(false);
-    this.hintText = this.add
-      .text(this.cameras.main.width / 2, this.cameras.main.height - 24, '[Q] play · [E] interact/case · [F] call Nia', {
-        fontFamily: 'monospace',
-        fontSize: '11px',
-        color: '#6a6478',
-      })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(150);
+    // the tool slot, top-right (HudGrid): breath, and nerve during a gig
+    const B = TOOL_BARS;
+    const y0 = this.hud.toolBottom() + 24;
+    const bx = B.right - B.w;
+    this.barW = B.w;
+    this.breathBarBg = this.add.rectangle(bx, y0, B.w, B.h, 0x2a2a34).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150);
+    this.breathBar = this.add.rectangle(bx, y0, B.w, B.h, 0x88b8d8).setOrigin(0, 0.5).setScrollFactor(0).setDepth(151);
+    uiText(this, bx - 8, y0, 'BREATH', { size: 'small', color: '#88b8d8' }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(150);
+    this.nerveBar = this.add.rectangle(bx, y0 + B.gap + 4, B.w, B.h, 0xe86a6a).setOrigin(0, 0.5).setScrollFactor(0).setDepth(151).setVisible(false);
+    this.coinText = this.hud.toolLine(0, '#f2d580');
+    this.promptText = hud.prompt(); // the HUD's interact prompt, pinned over the world point
+    this.hintText = { setText: (t) => this.hud.set('caption', t) };
+    this.hintText.setText('[Q] play · [E] interact/case · [F] call Nia');
 
     this.setObjective('get to The Blue Cellar');
     music.bass();
@@ -202,8 +195,8 @@ export default class MusicianScene extends BaseLevel {
       this.player.controlLockUntil = this.time.now + 5000;
       this.player.body.setVelocity(0, 0);
       const cam = this.cameras.main;
-      const t1 = this.add.text(cam.width / 2, cam.height - 150, m.sub, { fontFamily: 'monospace', fontSize: '14px', color: '#c8c0b0' }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
-      const t2 = this.add.text(cam.width / 2, cam.height - 120, m.text, { fontFamily: 'monospace', fontSize: '17px', color: '#f2e0a0', fontStyle: 'italic' }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
+      const t1 = uiText(this, cam.width / 2, cam.height - 150, m.sub, { fontSize: '14px', color: '#c8c0b0' }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
+      const t2 = uiText(this, cam.width / 2, cam.height - 120, m.text, { fontSize: '17px', color: '#f2e0a0' }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
       this.tweens.add({ targets: [t1, t2], alpha: 1, duration: 900 });
       this.time.delayedCall(5000, () => this.tweens.add({ targets: [t1, t2], alpha: 0, duration: 800, onComplete: () => [t1, t2].forEach((t) => t.destroy()) }));
     });
@@ -231,7 +224,7 @@ export default class MusicianScene extends BaseLevel {
   // ------- day builders -------------------------------------------------
 
   buildDay0() {
-    this.add.text(px(12), px(28), 'MERIDIAN JAZZ FESTIVAL — SAT\n     THE  BIG  STAGE', { fontFamily: 'monospace', fontSize: '15px', color: '#f2d580', align: 'center' }).setDepth(4);
+    uiText(this, px(12), px(28), 'MERIDIAN JAZZ FESTIVAL — SAT\n     THE  BIG  STAGE', { fontSize: '15px', color: '#f2d580', align: 'center' }).setDepth(4);
     this.resonant(px(8), px(34), 'mus-lamp', () => {
       sfx('bell');
       this.floatText(px(8), px(33), 'the horn in the window rings back');
@@ -438,7 +431,7 @@ export default class MusicianScene extends BaseLevel {
     }
     this.addInteract(px(218), px(35), 'Riverside Pavilion', () => this.gigPavilion(), { once: false, when: () => this.F.ray_lesson && !this.F.pavilion_done });
     // saltbox
-    this.add.text(px(233), px(32), 'BAND CANCELLED\n   TV NIGHT', { fontFamily: 'monospace', fontSize: '13px', color: '#a05a4a' }).setDepth(6);
+    uiText(this, px(233), px(32), 'BAND CANCELLED\n   TV NIGHT', { fontSize: '13px', color: '#a05a4a' }).setDepth(6);
     this.dogCalmUntil = 0;
     this.dog = this.resonant(px(238), px(35), 'mus-walker', () => {
       this.dogCalmUntil = this.time.now + 10000;
@@ -771,9 +764,9 @@ export default class MusicianScene extends BaseLevel {
     const drainRate = this.sustain ? 23 : this.inZone(231, 291) ? 55 : 28;
     if (qDown) this.breath = Math.max(0, this.breath - drainRate * dt);
     else this.breath = Math.min(100, this.breath + 50 * dt);
-    this.breathBar.width = (this.breath / 100) * 90;
+    this.breathBar.width = (this.breath / 100) * this.barW;
     this.nerveBar.setVisible(!!this.gig);
-    this.nerveBar.width = (this.nerve / 100) * 90;
+    this.nerveBar.width = (this.nerve / 100) * this.barW;
     this.coinText.setText(this.inZone(86, 106) ? `¢ ${this.coins}/12` : '');
 
     if (qJust) {

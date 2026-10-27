@@ -19,6 +19,8 @@ import { getSave, updateSave, getRun } from '../utils/save.js';
 import { getWallet, spend } from '../systems/wallet.js';
 import { HATS, hatById } from '../data/hats.js';
 import { sfx, music, musicDirector, sting, accordion } from '../systems/audio.js';
+import { uiText } from '../ui/text.js';
+import { hud } from '../ui/hud.js';
 
 const T = 32;
 const px = (tile) => tile * T + T / 2;
@@ -98,8 +100,8 @@ export default class HubScene extends BaseLevel {
     }
     this.player = new Player(this, spawn.x, spawn.y);
     this.dreamCoinId = 'musician'; // the station pays in busker change
+    this.hudProfile = 'hub'; // nothing here can hurt you: no hearts on the HUD
     this.setupCommon({ worldW: built.worldW, worldH: built.worldH, levelName: 'CROSSROADS STATION', spawn });
-    this.hearts.forEach((h) => h.setVisible(false)); // nothing here can hurt you
 
     this.interacts = [];
     this.npcs = {};
@@ -123,11 +125,7 @@ export default class HubScene extends BaseLevel {
     this.physics.add.collider(this.player, this.solids, null, () => !this.player.climbing);
     this.physics.add.collider(this.player, this.oneWays, null, () => !this.player.climbing);
 
-    this.promptText = this.add
-      .text(0, 0, '[E]', { fontFamily: 'monospace', fontSize: '13px', color: '#f2d580', backgroundColor: '#14101c' })
-      .setOrigin(0.5)
-      .setDepth(80)
-      .setVisible(false);
+    this.promptText = hud.prompt(); // the HUD's interact prompt, pinned over the world point
 
     musicDirector.setBpm(104);
     musicDirector.setMix(this.state.music);
@@ -209,8 +207,7 @@ export default class HubScene extends BaseLevel {
     // newspaper kiosk with headlines that change with the count
     const k = this.obj('kiosk');
     this.add.image(k.wx, street - 16, 'hub-kiosk').setDepth(D.INTERACT - 2);
-    this.add
-      .text(k.wx, street - 44, HEADLINES[this.N], { fontFamily: 'monospace', fontSize: '8px', color: '#f2e6cc', wordWrap: { width: 90 }, align: 'center' })
+    uiText(this, k.wx, street - 44, HEADLINES[this.N], { fontSize: '8px', color: '#f2e6cc', wordWrap: { width: 90 }, align: 'center' })
       .setOrigin(0.5)
       .setDepth(D.INTERACT - 1);
     this.addInteract(k.wx, street - 20, 'paper', () => this.floatText(k.wx, street - 70, `"${HEADLINES[this.N]}"`, '#c8c0b0'));
@@ -220,7 +217,7 @@ export default class HubScene extends BaseLevel {
       const img = this.add.image(o.wx, FLOOR - 20, 'hub-door').setDepth(D.INTERACT - 2);
       if (o.chained) {
         this.add.image(o.wx, FLOOR - 24, 'hub-chain').setDepth(D.INTERACT - 1);
-        this.add.text(o.wx, FLOOR - 50, '🔒', { fontSize: '10px' }).setOrigin(0.5).setDepth(D.INTERACT - 1).setAlpha(0.8);
+        uiText(this, o.wx, FLOOR - 50, '🔒', { fontSize: '10px' }).setOrigin(0.5).setDepth(D.INTERACT - 1).setAlpha(0.8);
       } else {
         this.mainDoor = img;
         this.tweens.add({ targets: img, scaleX: 0.15, duration: 1400, yoyo: true, repeat: -1, ease: 'sine.inout', paused: true });
@@ -317,7 +314,7 @@ export default class HubScene extends BaseLevel {
     [-14, 14].forEach((dx) => this.add.image(phones.wx + dx, FLOOR - 16, 'hub-phone').setDepth(D.INTERACT - 3));
     const lf = this.obj('lostfound');
     this.add.image(lf.wx, lf.wy, hubTex(this, 'lostfound', 90, 40)).setDepth(D.INTERACT - 3);
-    this.add.text(lf.wx, lf.wy, 'LOST & FOUND', { fontFamily: 'monospace', fontSize: '9px', color: '#c4a25c' }).setOrigin(0.5).setDepth(D.INTERACT - 2);
+    uiText(this, lf.wx, lf.wy, 'LOST & FOUND', { fontSize: '9px', color: '#c4a25c' }).setOrigin(0.5).setDepth(D.INTERACT - 2);
 
     // the bench and the man who sleeps on it under a coat
     const bench = this.obj('bench', (o) => o.sleeper);
@@ -375,12 +372,10 @@ export default class HubScene extends BaseLevel {
     this.add.image(hatchX, FLOOR + 3, hubTex(this, 'grate', 38, 12)).setDepth(D.TERRAIN + 1);
     this.add.image(hatchX + 36, FLOOR - 30, hubTex(this, 'signpost', 4, 60)).setDepth(D.INTERACT - 3);
     this.add.image(hatchX + 36, FLOOR - 58, hubTex(this, 'signboard', 96, 24)).setDepth(D.INTERACT - 3);
-    this.add
-      .text(hatchX + 36, FLOOR - 58, '\u2193 LEFT LUGGAGE', { fontFamily: 'monospace', fontSize: '9px', color: '#f2e6cc' })
+    uiText(this, hatchX + 36, FLOOR - 58, '\u2193 LEFT LUGGAGE', { fontSize: '9px', color: '#f2e6cc' })
       .setOrigin(0.5)
       .setDepth(D.INTERACT - 2);
-    this.hatchPrompt = this.add
-      .text(hatchX, FLOOR - 40, '[\u2193] down', { fontFamily: 'monospace', fontSize: '12px', color: '#88b8d8', backgroundColor: '#14101c' })
+    this.hatchPrompt = uiText(this, hatchX, FLOOR - 40, '[\u2193] down', { fontSize: '12px', color: '#88b8d8', backgroundColor: '#14101c' })
       .setOrigin(0.5)
       .setDepth(80)
       .setVisible(false);
@@ -424,7 +419,7 @@ export default class HubScene extends BaseLevel {
 
   buskerPuff(bk) {
     if (this.N >= 3 || this.duetting) return; // the busker has stopped
-    const t = this.add.text(bk.x + 14, bk.y - 30, '♪', { fontFamily: 'monospace', fontSize: '13px', color: '#f2d580' }).setDepth(D.INTERACT + 2);
+    const t = uiText(this, bk.x + 14, bk.y - 30, '♪', { fontSize: '13px', color: '#f2d580' }).setDepth(D.INTERACT + 2);
     this.tweens.add({ targets: t, y: t.y - 24, alpha: 0, duration: 1200, onComplete: () => t.destroy() });
   }
 
@@ -493,22 +488,20 @@ export default class HubScene extends BaseLevel {
     const text = caught ? '#8a8478' : running ? '#f2e6cc' : '#8a8a90';
     this.add.image(x, y - 34, hubTex(this, 'signpost', 3, 40)).setDepth(D.INTERACT - 3);
     this.add.image(x, y + 1, hubTex(this, 'signboard', w, 42, { body, trim })).setDepth(D.INTERACT - 2);
-    this.add
-      .text(x, y - 9, `PLATFORM ${d.platform}`, { fontFamily: 'monospace', fontSize: '10px', color: text })
+    uiText(this, x, y - 9, `PLATFORM ${d.platform}`, { fontSize: '10px', color: text })
       .setOrigin(0.5)
       .setDepth(D.INTERACT - 1);
-    this.add
-      .text(x, y + 8, d.title, { fontFamily: 'monospace', fontSize: '13px', color: text, fontStyle: 'bold' })
+    uiText(this, x, y + 8, d.title, { fontSize: '13px', color: text })
       .setOrigin(0.5)
       .setDepth(D.INTERACT - 1);
     if (caught) {
-      this.add.text(x, y + 30, 'CAUGHT — NO RETURN SERVICE', { fontFamily: 'monospace', fontSize: '9px', color: '#6a6478' }).setOrigin(0.5).setDepth(D.INTERACT - 1);
+      uiText(this, x, y + 30, 'CAUGHT — NO RETURN SERVICE', { fontSize: '9px', color: '#6a6478' }).setOrigin(0.5).setDepth(D.INTERACT - 1);
     } else if (!running) {
       // the bar across the sign is what you read from far away
       this.add.image(x, y + 30, hubTex(this, 'redbar', w, 16)).setDepth(D.INTERACT - 1);
-      this.add.text(x, y + 30, 'NOT IN SERVICE', { fontFamily: 'monospace', fontSize: '10px', color: '#f2e6cc', fontStyle: 'bold' }).setOrigin(0.5).setDepth(D.INTERACT);
+      uiText(this, x, y + 30, 'NOT IN SERVICE', { fontSize: '10px', color: '#f2e6cc' }).setOrigin(0.5).setDepth(D.INTERACT);
     } else {
-      const tag = this.add.text(x, y + 30, '● BOARDING', { fontFamily: 'monospace', fontSize: '10px', color: '#7ec87e' }).setOrigin(0.5).setDepth(D.INTERACT - 1);
+      const tag = uiText(this, x, y + 30, '● BOARDING', { fontSize: '10px', color: '#7ec87e' }).setOrigin(0.5).setDepth(D.INTERACT - 1);
       this.tweens.add({ targets: tag, alpha: 0.35, duration: 900, yoyo: true, repeat: -1, ease: 'sine.inout' });
     }
   }
@@ -522,14 +515,14 @@ export default class HubScene extends BaseLevel {
     if (!key) return;
     this.add.image(at(0), y, key).setOrigin(0, 1).setDepth(dep);
     if (d.propsKind === 'produce') {
-      this.add.text(at(170), y - 45, 'MENU', { fontFamily: 'monospace', fontSize: '8px', color: '#f2e6cc' }).setOrigin(0.5).setDepth(dep + 1);
+      uiText(this, at(170), y - 45, 'MENU', { fontSize: '8px', color: '#f2e6cc' }).setOrigin(0.5).setDepth(dep + 1);
       this.time.addEvent({ delay: 700, loop: true, callback: () => this.smell(at(26), y - 34) });
     }
   }
 
   smell(x, y) {
     if (this.save.dreams.chef) return;
-    const s = this.add.text(x, y, '~', { fontFamily: 'monospace', fontSize: '12px', color: '#c8c0b0' }).setDepth(D.INTERACT - 1).setAlpha(0.6);
+    const s = uiText(this, x, y, '~', { fontSize: '12px', color: '#c8c0b0' }).setDepth(D.INTERACT - 1).setAlpha(0.6);
     this.tweens.add({ targets: s, y: y - 30, x: x + 6, alpha: 0, duration: 1600, onComplete: () => s.destroy() });
   }
 
@@ -548,7 +541,7 @@ export default class HubScene extends BaseLevel {
     this.drawTally(this.state.tally);
     const sign = this.obj('sign');
     this.add.image(sign.wx + 16, sign.wy, hubTex(this, 'creamsign', 120, 28)).setDepth(D.INTERACT - 2).setAngle(-2);
-    this.add.text(sign.wx + 16, sign.wy, sign.text, { fontFamily: 'monospace', fontSize: '11px', color: '#2a2230' }).setOrigin(0.5).setDepth(D.INTERACT - 1).setAngle(-2);
+    uiText(this, sign.wx + 16, sign.wy, sign.text, { fontSize: '11px', color: '#2a2230' }).setOrigin(0.5).setDepth(D.INTERACT - 1).setAngle(-2);
 
     // a bar of cold blue light between the leaves once it is ajar
     this.gateLight = this.add.image(gx, (top + bottom) / 2, hubTex(this, 'lightbar', 10, 8)).setDisplaySize(10, bottom - top).setAlpha(0).setDepth(D.INTERACT + 2);
@@ -562,8 +555,7 @@ export default class HubScene extends BaseLevel {
     const t = this.obj('turnstile');
     this.add.image(t.wx, FLOOR - 14, 'hub-turnstile').setDepth(D.INTERACT - 2);
     this.add.image(t.wx, FLOOR - 52, 'hub-counter').setDepth(D.INTERACT - 2);
-    this.add
-      .text(t.wx, FLOOR - 52, String(this.save.dreamsCaught).padStart(3, '0'), { fontFamily: 'monospace', fontSize: '11px', color: '#f2e6cc' })
+    uiText(this, t.wx, FLOOR - 52, String(this.save.dreamsCaught).padStart(3, '0'), { fontSize: '11px', color: '#f2e6cc' })
       .setOrigin(0.5)
       .setDepth(D.INTERACT - 1);
 
@@ -627,9 +619,8 @@ export default class HubScene extends BaseLevel {
     this.add.image(tk.wx, UNDER - 30, hubTex(this, 'teakitchen', 120, 60)).setDepth(D.INTERACT - 3);
     this.add.image(tk.wx - 30, UNDER - 10, 'hub-teapot').setDepth(D.INTERACT - 2);
     this.add.image(tk.wx + 20, UNDER - 10, 'hub-teapot').setDepth(D.INTERACT - 2);
-    this.add.text(tk.wx, UNDER - 52, "BILAL'S", { fontFamily: 'monospace', fontSize: '9px', color: '#f2d580' }).setOrigin(0.5).setDepth(D.INTERACT - 2);
-    this.add
-      .text(tk.wx, UNDER - 66, 'THE EXPRESS', { fontFamily: 'monospace', fontSize: '8px', color: '#c8a25c' })
+    uiText(this, tk.wx, UNDER - 52, "BILAL'S", { fontSize: '9px', color: '#f2d580' }).setOrigin(0.5).setDepth(D.INTERACT - 2);
+    uiText(this, tk.wx, UNDER - 66, 'THE EXPRESS', { fontSize: '8px', color: '#c8a25c' })
       .setOrigin(0.5)
       .setDepth(D.INTERACT - 2);
     this.addInteract(tk.wx, UNDER - 20, 'shop', () => this.shop());
@@ -654,7 +645,7 @@ export default class HubScene extends BaseLevel {
         this.add.image(x + k * 20, y, this.save.dreams[d.id] && k === 5 ? 'hub-suitcase-tag' : 'hub-suitcase').setDepth(D.INTERACT - 2).setAlpha(0.85);
       }
     });
-    this.add.text(ld.wx, UNDER - 106, 'LEFT LUGGAGE', { fontFamily: 'monospace', fontSize: '9px', color: '#8a8478' }).setOrigin(0.5).setDepth(D.INTERACT - 2);
+    uiText(this, ld.wx, UNDER - 106, 'LEFT LUGGAGE', { fontSize: '9px', color: '#8a8478' }).setOrigin(0.5).setDepth(D.INTERACT - 2);
 
     // the slot: the far side of the service gate. A corridor of tally under
     // one bulb, receding. Nothing moves in it.
@@ -750,7 +741,6 @@ export default class HubScene extends BaseLevel {
     this.tweens.add({ targets: this.mainDoor, scaleX: 0.1, duration: 500, yoyo: true });
     sfx('click');
     const cam = this.cameras.main;
-    const inv = 1 / 0.62;
     // Camera, title and return are one chain, so nothing can overlap: pull
     // back to the vista -> hold while the title reads -> come back to Jo.
     this.time.delayedCall(500, () => {
@@ -766,19 +756,16 @@ export default class HubScene extends BaseLevel {
         duration: 2600,
         ease: 'sine.inout',
         onComplete: () => {
-          const title = this.add
-            .text(480, 270 - 90 * inv, 'DREAMCATCHER', { fontFamily: 'monospace', fontSize: '44px', color: '#f2e6cc', stroke: '#14141c', strokeThickness: 6 })
+          // on UIScene (zoom 1): no counter-scaling for the vista zoom
+          const title = uiText(this, 480, 124, 'DREAMCATCHER', { size: 'display', scale: 3, color: '#f2e6cc' })
             .setOrigin(0.5)
             .setScrollFactor(0)
             .setDepth(240)
-            .setScale(inv)
             .setAlpha(0);
-          const sub = this.add
-            .text(480, 270 - 50 * inv, 'Crossroads Station. Everyone here is going somewhere else.', { fontFamily: 'monospace', fontSize: '14px', color: '#e8dcc8', stroke: '#14141c', strokeThickness: 4 })
+          const sub = uiText(this, 480, 184, 'Crossroads Station. Everyone here is going somewhere else.', { size: 'body', color: '#e8dcc8' })
             .setOrigin(0.5)
             .setScrollFactor(0)
             .setDepth(240)
-            .setScale(inv)
             .setAlpha(0);
           this.tweens.add({ targets: title, alpha: 1, duration: 1200 });
           this.tweens.add({
@@ -1216,7 +1203,7 @@ export default class HubScene extends BaseLevel {
       sw.lamp.setPosition(sw.x, sw.y - 6);
       if (Math.floor(time / 2400) !== sw.lastHum && Math.abs(p.x - sw.x) < 300) {
         sw.lastHum = Math.floor(time / 2400);
-        const t = this.add.text(sw.x + 10, sw.y - 28, '♩', { fontFamily: 'monospace', fontSize: '11px', color: '#c8c0b0' }).setDepth(D.INTERACT + 2).setAlpha(0.6);
+        const t = uiText(this, sw.x + 10, sw.y - 28, '♩', { fontSize: '11px', color: '#c8c0b0' }).setDepth(D.INTERACT + 2).setAlpha(0.6);
         this.tweens.add({ targets: t, y: t.y - 20, alpha: 0, duration: 1600, onComplete: () => t.destroy() });
       }
     }

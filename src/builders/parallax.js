@@ -3,6 +3,7 @@ import { isSolidChar } from './legend.js';
 import { D } from './depths.js';
 import { paintOverLayer, paintSky } from '../art/levelArt.js';
 import { paintHubLayer, paintHubLandmark } from '../art/hubArt.js';
+import { uiText } from '../ui/text.js';
 
 // D7 — parallax backdrops.
 //
@@ -601,7 +602,7 @@ function drawLandmark(scene, name) {
     return o;
   };
   const label = (t, col = '#f2d580', size = 14) =>
-    add(scene.add.text(0, -70, t, { fontFamily: 'monospace', fontSize: `${size}px`, color: col }).setOrigin(0.5));
+    add(uiText(scene, 0, -70, t, { fontSize: `${size}px`, color: col }).setOrigin(0.5));
   switch (name) {
     // --- the second draft ---
     case 'attic_window':
@@ -639,7 +640,7 @@ function drawLandmark(scene, name) {
     case 'bus_stop':
       add(scene.add.rectangle(0, -60, 4, 120, 0x3a3a44));
       add(scene.add.rectangle(0, -120, 50, 22, 0xe8a030));
-      add(scene.add.text(0, -120, 'N', { fontFamily: 'monospace', fontSize: '14px', color: '#14101c' }).setOrigin(0.5));
+      add(uiText(scene, 0, -120, 'N', { fontSize: '14px', color: '#14101c' }).setOrigin(0.5));
       break;
     case 'lit_window':
       add(scene.add.rectangle(0, -150, 30, 36, 0xf2c078, 0.9));
@@ -780,7 +781,7 @@ function drawLandmark(scene, name) {
     case 'adaeze_sign':
       add(scene.add.rectangle(0, -76, 300, 60, 0x3a3428));
       label("ADAEZE'S", '#f2d580', 18);
-      add(scene.add.text(0, -52, 'BOXING · POOL · "COME AS YOU ARE."', { fontFamily: 'monospace', fontSize: '10px', color: '#c8c0b0' }).setOrigin(0.5));
+      add(uiText(scene, 0, -52, 'BOXING · POOL · "COME AS YOU ARE."', { fontSize: '10px', color: '#c8c0b0' }).setOrigin(0.5));
       break;
     case 'lv3_poster':
       add(scene.add.rectangle(0, -90, 130, 170, 0x1e2a4a));
@@ -788,16 +789,16 @@ function drawLandmark(scene, name) {
       add(scene.add.triangle(0, -152, -9, 14, 9, 14, 0, -10, 0xd8dce8));
       add(scene.add.rectangle(0, -78, 22, 3, 0xe8762a));
       add(scene.add.rectangle(0, -104, 22, 3, 0xe8762a));
-      add(scene.add.text(0, -36, 'MERIDIAN LV-3\nTHREE STAGES', { fontFamily: 'monospace', fontSize: '10px', color: '#88b8d8', align: 'center' }).setOrigin(0.5));
+      add(uiText(scene, 0, -36, 'MERIDIAN LV-3\nTHREE STAGES', { fontSize: '10px', color: '#88b8d8', align: 'center' }).setOrigin(0.5));
       break;
     case 'lane_numbers':
       add(scene.add.rectangle(0, -60, 260, 40, 0x2e4a56));
-      add(scene.add.text(0, -60, 'LANES  1 · 9 · 7 · 4', { fontFamily: 'monospace', fontSize: '14px', color: '#9ac4dc' }).setOrigin(0.5));
+      add(uiText(scene, 0, -60, 'LANES  1 · 9 · 7 · 4', { fontSize: '14px', color: '#9ac4dc' }).setOrigin(0.5));
       break;
     case 'fight_poster':
       add(scene.add.rectangle(0, -84, 120, 150, 0x4a2020).setAngle(-2));
-      add(scene.add.text(0, -108, 'ADAEZE', { fontFamily: 'monospace', fontSize: '16px', color: '#f2d580' }).setOrigin(0.5).setAngle(-2));
-      add(scene.add.text(0, -72, '31 — 2', { fontFamily: 'monospace', fontSize: '20px', color: '#e8dcc8' }).setOrigin(0.5).setAngle(-2));
+      add(uiText(scene, 0, -108, 'ADAEZE', { fontSize: '16px', color: '#f2d580' }).setOrigin(0.5).setAngle(-2));
+      add(uiText(scene, 0, -72, '31 — 2', { fontSize: '20px', color: '#e8dcc8' }).setOrigin(0.5).setAngle(-2));
       break;
     case 'study_lamp':
       add(scene.add.rectangle(0, -50, 4, 60, 0x3a3a44));
@@ -807,7 +808,7 @@ function drawLandmark(scene, name) {
     case 'board_door':
       add(scene.add.rectangle(0, -70, 70, 140, 0x3a3228));
       add(scene.add.circle(0, -148, 7, 0xe83a2a, 0.9));
-      add(scene.add.text(0, -34, 'SELECTION\nBOARD', { fontFamily: 'monospace', fontSize: '10px', color: '#8a8478', align: 'center' }).setOrigin(0.5));
+      add(uiText(scene, 0, -34, 'SELECTION\nBOARD', { fontSize: '10px', color: '#8a8478', align: 'center' }).setOrigin(0.5));
       break;
     case 'centrifuge_dome':
       add(scene.add.arc(0, -20, 110, 180, 360, false, 0x4e565e));

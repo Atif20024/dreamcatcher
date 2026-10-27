@@ -16,6 +16,8 @@ import InnerEditor from '../entities/InnerEditor.js';
 import { completeDream, recordMoment, markMet, updateSave } from '../utils/save.js';
 import { sfx, music, sting, musicDirector } from '../systems/audio.js';
 import { showTutorial } from '../systems/tutorial.js';
+import { uiText } from '../ui/text.js';
+import { TOOL_BARS, hud } from '../ui/hud.js';
 
 const T = 32;
 const px = (tile) => tile * T + T / 2;
@@ -149,11 +151,7 @@ export default class WriterScene extends BaseLevel {
     this.physics.add.overlap(this.player, this.spikes, () => this.hurt());
     this.physics.add.overlap(this.player, this.orbs, (_p, o) => this.catchOrb(o));
 
-    this.promptText = this.add
-      .text(0, 0, '[E]', { fontFamily: 'monospace', fontSize: '13px', color: '#f2d580', backgroundColor: '#14101c' })
-      .setOrigin(0.5)
-      .setDepth(80)
-      .setVisible(false);
+    this.promptText = hud.prompt(); // the HUD's interact prompt, pinned over the world point
 
     // rain, for the rooms that have it
     this.rain = this.add
@@ -423,7 +421,7 @@ export default class WriterScene extends BaseLevel {
           break;
         case 'word': {
           const g = this.add.image(o.wx, o.wy, 'wr-page').setDepth(20);
-          const t = this.add.text(o.wx, o.wy - 16, o.word, { fontFamily: 'monospace', fontSize: '11px', color: '#f2e0a0', fontStyle: 'italic', backgroundColor: '#14101c' }).setOrigin(0.5).setDepth(21);
+          const t = uiText(this, o.wx, o.wy - 16, o.word, { fontSize: '11px', color: '#f2e0a0', backgroundColor: '#14101c' }).setOrigin(0.5).setDepth(21);
           this.tweens.add({ targets: [g, t], y: '-=4', duration: 900, yoyo: true, repeat: -1, ease: 'sine.inout' });
           (this.wordPickups ||= []).push({ ...o, g, t, taken: false });
           break;
@@ -479,7 +477,7 @@ export default class WriterScene extends BaseLevel {
         }
         case 'lever': {
           const img = this.add.image(o.wx, floor, 'wr-lever').setOrigin(0.5, 1).setDepth(9);
-          if (o.name) this.add.text(o.wx, floor - 30, o.name, { fontFamily: 'monospace', fontSize: '10px', color: '#e8762a' }).setOrigin(0.5).setDepth(9);
+          if (o.name) uiText(this, o.wx, floor - 30, o.name, { fontSize: '10px', color: '#e8762a' }).setOrigin(0.5).setDepth(9);
           const lever = { ...o, img, pulled: false };
           (this.levers ||= []).push(lever);
           this.addInteract(o.wx, floor - 12, `pull ${o.name || 'the lever'}`, () => this.pullLever(lever), { once: false, when: () => !lever.pulled });
@@ -805,7 +803,7 @@ export default class WriterScene extends BaseLevel {
 
   buildSource(o, floor) {
     const img = this.add.image(o.wx, o.shelf ? px(11) : floor - 4, 'wr-book').setOrigin(0.5, 1).setDepth(20);
-    const t = this.add.text(o.wx, img.y - 30, o.name, { fontFamily: 'monospace', fontSize: '9px', color: '#e8e4d8' }).setOrigin(0.5).setDepth(21);
+    const t = uiText(this, o.wx, img.y - 30, o.name, { fontSize: '9px', color: '#e8e4d8' }).setOrigin(0.5).setDepth(21);
     const src = { ...o, img, t, shown: !o.hidden, taken: false };
     if (o.hidden) {
       img.setVisible(false);
@@ -904,8 +902,8 @@ export default class WriterScene extends BaseLevel {
       this.player.controlLockUntil = this.time.now + 5000;
       this.player.body.setVelocity(0, 0);
       const cam = this.cameras.main;
-      const t1 = this.add.text(cam.width / 2, cam.height - 150, m.sub, { fontFamily: 'monospace', fontSize: '14px', color: '#c8c0b0', align: 'center', wordWrap: { width: 700 } }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
-      const t2 = this.add.text(cam.width / 2, cam.height - 116, m.text, { fontFamily: 'monospace', fontSize: '17px', color: '#f2e0a0', fontStyle: 'italic' }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
+      const t1 = uiText(this, cam.width / 2, cam.height - 150, m.sub, { fontSize: '14px', color: '#c8c0b0', align: 'center', wordWrap: { width: 700 } }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
+      const t2 = uiText(this, cam.width / 2, cam.height - 116, m.text, { fontSize: '17px', color: '#f2e0a0' }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
       this.tweens.add({ targets: [t1, t2], alpha: 1, duration: 900 });
       this.time.delayedCall(5000, () => this.tweens.add({ targets: [t1, t2], alpha: 0, duration: 800, onComplete: () => [t1, t2].forEach((t) => t.destroy()) }));
     });
@@ -1068,8 +1066,8 @@ export default class WriterScene extends BaseLevel {
     music.soloPiano();
     const cam = this.cameras.main;
     const bg = this.add.rectangle(cam.width / 2, cam.height - 110, 700, 120, 0x14101c, 0.9).setScrollFactor(0).setDepth(170).setStrokeStyle(1, 0x8a8aa8);
-    const t = this.add.text(cam.width / 2 - 330, cam.height - 160, '', { fontFamily: 'monospace', fontSize: '15px', color: '#e8dcc8', wordWrap: { width: 660 }, lineSpacing: 6 }).setScrollFactor(0).setDepth(171);
-    const hint = this.add.text(cam.width / 2, cam.height - 40, 'any key. any speed. there are no misses.', { fontFamily: 'monospace', fontSize: '11px', color: '#8a8478' }).setOrigin(0.5).setScrollFactor(0).setDepth(171);
+    const t = uiText(this, cam.width / 2 - 330, cam.height - 160, '', { fontSize: '15px', color: '#e8dcc8', wordWrap: { width: 660 }, lineSpacing: 6 }).setScrollFactor(0).setDepth(171);
+    const hint = uiText(this, cam.width / 2, cam.height - 40, 'any key. any speed. there are no misses.', { fontSize: '11px', color: '#8a8478' }).setOrigin(0.5).setScrollFactor(0).setDepth(171);
     const words = FIRST_PARAGRAPH.split(' ');
     let i = 0;
     const handler = () => {
@@ -1147,7 +1145,7 @@ export default class WriterScene extends BaseLevel {
     this.setFlag('later');
     const cam = this.cameras.main;
     const wipe = this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x000000, 0).setScrollFactor(0).setDepth(230);
-    const label = this.add.text(cam.width / 2, cam.height / 2, 'later.', { fontFamily: 'monospace', fontSize: '22px', color: '#e8dcc8', fontStyle: 'italic' }).setOrigin(0.5).setScrollFactor(0).setDepth(231).setAlpha(0);
+    const label = uiText(this, cam.width / 2, cam.height / 2, 'later.', { fontSize: '22px', color: '#e8dcc8' }).setOrigin(0.5).setScrollFactor(0).setDepth(231).setAlpha(0);
     this.player.controlLockUntil = this.time.now + 2400;
     this.player.body.setVelocity(0, 0);
     this.tweens.add({ targets: wipe, alpha: 1, duration: 700 });
@@ -1246,7 +1244,7 @@ export default class WriterScene extends BaseLevel {
     music.stop();
     const cam = this.cameras.main;
     const wipe = this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0xf2eee4, 0).setScrollFactor(0).setDepth(230);
-    const label = this.add.text(cam.width / 2, cam.height / 2, 'the page goes blank.', { fontFamily: 'monospace', fontSize: '20px', color: '#14101c' }).setOrigin(0.5).setScrollFactor(0).setDepth(231).setAlpha(0);
+    const label = uiText(this, cam.width / 2, cam.height / 2, 'the page goes blank.', { fontSize: '20px', color: '#14101c' }).setOrigin(0.5).setScrollFactor(0).setDepth(231).setAlpha(0);
     this.player.controlLockUntil = this.time.now + 1600;
     this.player.body.setVelocity(0, 0);
     this.tweens.add({ targets: wipe, alpha: 1, duration: 500 });
@@ -1275,20 +1273,23 @@ export default class WriterScene extends BaseLevel {
 
   // ---------- HUD ------------------------------------------------------
 
+  // the tool slot, top-right (HudGrid): ink, draft, the Friday clock and the
+  // noise readout, with the noise meter under them, not a stack on the left
   buildHud() {
-    const mk = (y, color = '#c8c0b0') => this.add.text(16, y, '', { fontFamily: 'monospace', fontSize: '12px', color, stroke: '#14101c', strokeThickness: 3 }).setScrollFactor(0).setDepth(150);
-    this.inkHud = mk(112, '#88b8d8');
-    this.draftHud = mk(130, '#f2e0a0');
-    this.noiseBg = this.add.rectangle(16, 152, 90, 8, 0x2a2a34).setOrigin(0, 0.5).setScrollFactor(0).setDepth(149).setVisible(false);
-    this.noiseBar = this.add.rectangle(16, 152, 0, 8, 0xe8a030).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150).setVisible(false);
-    this.noiseLabel = mk(158, '#8a8478');
-    this.deadlineHud = this.add.text(this.cameras.main.width / 2, 30, '', { fontFamily: 'monospace', fontSize: '18px', color: '#e86a6a', stroke: '#14101c', strokeThickness: 4 }).setOrigin(0.5).setScrollFactor(0).setDepth(150);
+    const hud = this.hud;
+    this.inkHud = hud.toolLine(0, '#88b8d8');
+    this.draftHud = hud.toolLine(1, '#f2e0a0');
+    this.deadlineHud = hud.toolLine(2, '#e86a6a');
+    this.noiseLabel = hud.toolLine(3, '#8a8478');
+    const B = TOOL_BARS;
+    this.noiseBg = this.add.rectangle(B.right - B.w, 0, B.w, B.h, 0x2a2a34).setOrigin(0, 0.5).setScrollFactor(0).setDepth(149).setVisible(false);
+    this.noiseBar = this.add.rectangle(B.right - B.w, 0, 0, B.h, 0xe8a030).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150).setVisible(false);
     this.updateHud();
   }
 
   updateHud() {
-    this.inkHud.setText(`ink  ${'▮'.repeat(this.ink)}${'▯'.repeat(Math.max(0, this.inkMax - this.ink))}`);
-    this.draftHud.setText(`DRAFT  ${this.pages} pp.${this.typos ? `   typos ${this.typos}` : ''}`);
+    this.inkHud.setText(`INK ${'▮'.repeat(this.ink)}${'▯'.repeat(Math.max(0, this.inkMax - this.ink))}`);
+    this.draftHud.setText(`DRAFT ${this.pages} PP.${this.typos ? ` · TYPOS ${this.typos}` : ''}`);
     this.draftHud.setColor(this.typos ? '#e8a090' : '#f2e0a0');
     if (this.deadline !== null) {
       const s = Math.max(0, Math.ceil(this.deadline / 1000));
@@ -1513,8 +1514,9 @@ export default class WriterScene extends BaseLevel {
       this.noise = Math.max(0, this.noise - dt * 0.5);
       this.loudNow = false;
     }
-    this.noiseBg.setVisible(noisy);
-    this.noiseBar.setVisible(noisy).setSize(90 * this.noise, 8);
+    const by = this.hud.toolBottom() + 4;
+    this.noiseBg.setVisible(noisy).setY(by);
+    this.noiseBar.setVisible(noisy).setSize(TOOL_BARS.w * this.noise, TOOL_BARS.h).setY(by);
     this.noiseBar.setFillStyle(this.noise > this.noiseThreshold ? 0xe86a6a : 0xe8a030);
     this.noiseLabel.setText(noisy ? (this.noise > this.noiseThreshold ? (id === 'library' ? 'they can hear you' : "can't hear himself think") : id === 'library' ? 'quiet' : 'noise') : '');
 
@@ -1792,9 +1794,9 @@ export default class WriterScene extends BaseLevel {
     const parts = f.line.split('*');
     const c = this.add.container(f.x, f.y - 66).setDepth(41);
     const bg = this.add.rectangle(0, 0, 10, 20, 0xe8e4d8, 0.95).setStrokeStyle(1, 0x14101c);
-    const before = this.add.text(0, 0, parts[0], { fontFamily: 'monospace', fontSize: '10px', color: '#2a2230' }).setOrigin(0, 0.5);
-    const word = this.add.text(0, 0, parts[1], { fontFamily: 'monospace', fontSize: '10px', color: '#c03a2a', fontStyle: 'bold' }).setOrigin(0, 0.5);
-    const after = this.add.text(0, 0, parts[2] || '', { fontFamily: 'monospace', fontSize: '10px', color: '#2a2230' }).setOrigin(0, 0.5);
+    const before = uiText(this, 0, 0, parts[0], { fontSize: '10px', color: '#2a2230' }).setOrigin(0, 0.5);
+    const word = uiText(this, 0, 0, parts[1], { fontSize: '10px', color: '#c03a2a' }).setOrigin(0, 0.5);
+    const after = uiText(this, 0, 0, parts[2] || '', { fontSize: '10px', color: '#2a2230' }).setOrigin(0, 0.5);
     const w = before.width + word.width + after.width;
     before.x = -w / 2;
     word.x = before.x + before.width;

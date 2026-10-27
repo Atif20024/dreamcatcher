@@ -18,6 +18,8 @@ import { showTutorial } from '../systems/tutorial.js';
 import world from './painter/world.js';
 import beats from './painter/beats.js';
 import { T, px, overlaps } from './painter/util.js';
+import { uiText } from '../ui/text.js';
+import { hud } from '../ui/hud.js';
 
 const NIGHT_ROOMS = new Set(['cafe', 'roofs', 'cypress', 'sky']);
 
@@ -144,11 +146,7 @@ export default class PainterScene extends BaseLevel {
     this.physics.add.overlap(this.player, this.spikes, (_p, h) => h.body.enable && this.hurt());
     this.physics.add.overlap(this.player, this.orbs, (_p, o) => this.catchOrb(o));
 
-    this.promptText = this.add
-      .text(0, 0, '[E]', { fontFamily: 'monospace', fontSize: '13px', color: '#f2d580', backgroundColor: '#14101c' })
-      .setOrigin(0.5)
-      .setDepth(80)
-      .setVisible(false);
+    this.promptText = hud.prompt(); // the HUD's interact prompt, pinned over the world point
 
     this.setObjective('the yellow house. two streets.');
     music.piano();
@@ -305,7 +303,7 @@ export default class PainterScene extends BaseLevel {
     this.blind = true;
     const cam = this.cameras.main;
     const grey = this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x4a5566, 0).setScrollFactor(0).setDepth(88);
-    const label = this.add.text(cam.width / 2, cam.height / 2, "he can't see colour.", { fontFamily: 'monospace', fontSize: '20px', color: '#c8c0b0' }).setOrigin(0.5).setScrollFactor(0).setDepth(231).setAlpha(0);
+    const label = uiText(this, cam.width / 2, cam.height / 2, "he can't see colour.", { fontSize: '20px', color: '#c8c0b0' }).setOrigin(0.5).setScrollFactor(0).setDepth(231).setAlpha(0);
     this.tweens.add({ targets: grey, alpha: 0.7, duration: 900 });
     this.tweens.add({ targets: label, alpha: 1, duration: 900 });
     this.player.controlLockUntil = this.time.now + 2600;
@@ -367,7 +365,7 @@ export default class PainterScene extends BaseLevel {
     this.endStroke();
     const cam = this.cameras.main;
     const wipe = this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x1f3a5f, 0).setScrollFactor(0).setDepth(230);
-    const t = this.add.text(cam.width / 2, cam.height / 2, label, { fontFamily: 'monospace', fontSize: '26px', color: '#e8dcc8' }).setOrigin(0.5).setScrollFactor(0).setDepth(231).setAlpha(0);
+    const t = uiText(this, cam.width / 2, cam.height / 2, label, { fontSize: '26px', color: '#e8dcc8' }).setOrigin(0.5).setScrollFactor(0).setDepth(231).setAlpha(0);
     this.tweens.add({ targets: wipe, alpha: 0.9, duration: 500 });
     this.tweens.add({ targets: t, alpha: 1, duration: 500 });
     this.time.delayedCall(1000, () => {
@@ -880,21 +878,22 @@ export default class PainterScene extends BaseLevel {
   buildHud() {
     const cam = this.cameras.main;
     this.lightWash = this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0xfff2a0, 0.04).setScrollFactor(0).setDepth(86).setBlendMode(Phaser.BlendModes.MULTIPLY);
-    const mk = (x, y, color = '#c8c0b0', size = 12) => this.add.text(x, y, '', { fontFamily: 'monospace', fontSize: `${size}px`, color, stroke: '#14101c', strokeThickness: 3 }).setScrollFactor(0).setDepth(150);
-    // §3.2 the palette, bottom-left: three wells as smears
+    const mk = (x, y, color = '#c8c0b0', size = 12) => uiText(this, x, y, '', { fontSize: `${size}px`, color }).setScrollFactor(0).setDepth(150);
+    // §3.2 the palette, bottom-left: three wells as smears (a widget above
+    // the satchel line); the light clock and crates are the tool slot
     this.wellHud = [];
     for (let i = 0; i < this.palette.max; i++) {
       const x = 30 + i * 58;
-      const y = cam.height - 40;
+      const y = cam.height - 66;
       const frame = this.add.rectangle(x, y, 50, 30, 0x14101c, 0.7).setScrollFactor(0).setDepth(148).setStrokeStyle(2, 0x4a3f5c);
       const smear = this.add.image(x, y, 'pt-well-yellow').setScrollFactor(0).setDepth(149).setVisible(false);
-      const n = mk(x + 14, y - 6, '#e8dcc8', 11).setOrigin(0.5);
+      const n = mk(x + 14, y - 6, '#e8dcc8', 11).setOrigin(0.5).setScale(1);
       const key = mk(x - 18, y - 24, '#8a8478', 10).setText(`${i + 1}`);
       this.wellHud.push({ frame, smear, n, key });
     }
-    this.brushHud = mk(16, cam.height - 70, '#f2e0a0');
-    this.clockHud = mk(16, 112, '#e8c060');
-    this.crateHud = mk(16, 130, '#c8c0b0');
+    this.brushHud = mk(16, cam.height - 112, '#f2e0a0');
+    this.clockHud = this.hud.toolLine(0, '#e8c060');
+    this.crateHud = this.hud.toolLine(1, '#c8c0b0');
     this.updateHud();
   }
 

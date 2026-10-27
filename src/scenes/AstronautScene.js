@@ -13,6 +13,8 @@ import { systemsCards, selectionBoard, docking, hinge, BOLT_ORDER } from '../sys
 import { completeDream, recordMoment, markMet } from '../utils/save.js';
 import { sfx, music, sting } from '../systems/audio.js';
 import { showTutorial } from '../systems/tutorial.js';
+import { uiText } from '../ui/text.js';
+import { hud, TOOL_BARS } from '../ui/hud.js';
 
 const T = 32;
 const px = (t) => t * T + T / 2;
@@ -172,20 +174,10 @@ export default class AstronautScene extends BaseLevel {
     this.input.keyboard.on('keydown-TAB', (e) => e.preventDefault());
     this.keyF = this.input.keyboard.addKey('F');
 
-    this.promptText = this.add
-      .text(0, 0, '[E]', { fontFamily: 'monospace', fontSize: '13px', color: '#f2d580', backgroundColor: '#14101c' })
-      .setOrigin(0.5)
-      .setDepth(80)
-      .setVisible(false);
-    this.hintText = this.add
-      .text(this.cameras.main.width / 2, this.cameras.main.height - 24, '[E] interact · [Tab] visor · [F] tether / Priya', {
-        fontFamily: 'monospace',
-        fontSize: '11px',
-        color: '#6a6478',
-      })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(150);
+    this.promptText = hud.prompt(); // the HUD's interact prompt, pinned over the world point
+    // the controls caption (HudGrid, bottom centre): shown when the physics
+    // model changes, then it fades
+    this.hintText = { setText: (t) => this.hud && this.hud.set('caption', t) };
 
     if (!this.devWarp()) this.setObjective('reach 3 pips in every stat');
     music.bass();
@@ -325,8 +317,8 @@ export default class AstronautScene extends BaseLevel {
     this.player.controlLockUntil = this.time.now + 5000;
     this.player.body.setVelocity(0, 0);
     const cam = this.cameras.main;
-    const t1 = this.add.text(cam.width / 2, cam.height - 150, m.sub, { fontFamily: 'monospace', fontSize: '14px', color: '#c8c0b0' }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
-    const t2 = this.add.text(cam.width / 2, cam.height - 120, m.text, { fontFamily: 'monospace', fontSize: '17px', color: '#f2e0a0', fontStyle: 'italic' }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
+    const t1 = uiText(this, cam.width / 2, cam.height - 150, m.sub, { fontSize: '14px', color: '#c8c0b0' }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
+    const t2 = uiText(this, cam.width / 2, cam.height - 120, m.text, { fontSize: '17px', color: '#f2e0a0' }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
     this.tweens.add({ targets: [t1, t2], alpha: 1, duration: 900 });
     this.time.delayedCall(5000, () => this.tweens.add({ targets: [t1, t2], alpha: 0, duration: 800, onComplete: () => [t1, t2].forEach((t) => t.destroy()) }));
   }
@@ -347,29 +339,26 @@ export default class AstronautScene extends BaseLevel {
   buildHud() {
     const cam = this.cameras.main;
     // the clipboard: four stats as pips, up while the gym is the world
-    this.statHud = this.add
-      .text(16, 112, '', { fontFamily: 'monospace', fontSize: '11px', color: '#e8dcc8', backgroundColor: '#14101cbb', padding: { x: 6, y: 4 } })
-      .setScrollFactor(0)
-      .setDepth(150);
-    // suit meters
-    this.o2BarBg = this.add.rectangle(28, 78, 90, 8, 0x2a2a34).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150).setVisible(false);
-    this.o2Bar = this.add.rectangle(28, 78, 90, 8, 0x88b8d8).setOrigin(0, 0.5).setScrollFactor(0).setDepth(151).setVisible(false);
-    this.o2Label = this.add.text(122, 78, 'O₂', { fontFamily: 'monospace', fontSize: '10px', color: '#88b8d8' }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150).setVisible(false);
-    this.pwrBarBg = this.add.rectangle(28, 90, 90, 8, 0x2a2a34).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150).setVisible(false);
-    this.pwrBar = this.add.rectangle(28, 90, 90, 8, 0xe8a030).setOrigin(0, 0.5).setScrollFactor(0).setDepth(151).setVisible(false);
-    this.pwrLabel = this.add.text(122, 90, 'PWR', { fontFamily: 'monospace', fontSize: '10px', color: '#e8a030' }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150).setVisible(false);
+    // the tool slot, top-right (HudGrid): the clipboard while the gym is
+    // the world, the radio once docked; the suit meters under the coins
+    this.statHud = this.hud.toolLine(0, '#e8dcc8');
+    const B = TOOL_BARS;
+    const y0 = this.hud.toolBottom() + 44; // under the radio line (the stats are gone by then)
+    const bx = B.right - B.w;
+    this.o2BarBg = this.add.rectangle(bx, y0, B.w, B.h, 0x2a2a34).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150).setVisible(false);
+    this.o2Bar = this.add.rectangle(bx, y0, B.w, B.h, 0x88b8d8).setOrigin(0, 0.5).setScrollFactor(0).setDepth(151).setVisible(false);
+    this.o2Label = uiText(this, bx - 8, y0, 'O₂', { size: 'small', color: '#88b8d8' }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(150).setVisible(false);
+    this.pwrBarBg = this.add.rectangle(bx, y0 + B.gap + 4, B.w, B.h, 0x2a2a34).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150).setVisible(false);
+    this.pwrBar = this.add.rectangle(bx, y0 + B.gap + 4, B.w, B.h, 0xe8a030).setOrigin(0, 0.5).setScrollFactor(0).setDepth(151).setVisible(false);
+    this.pwrLabel = uiText(this, bx - 8, y0 + B.gap + 4, 'PWR', { size: 'small', color: '#e8a030' }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(150).setVisible(false);
     // pool breath (phase 1/3)
-    this.breathBar = this.add.rectangle(28, 78, 90, 8, 0x9ac4dc).setOrigin(0, 0.5).setScrollFactor(0).setDepth(151).setVisible(false);
+    this.breathBar = this.add.rectangle(bx, y0, B.w, B.h, 0x9ac4dc).setOrigin(0, 0.5).setScrollFactor(0).setDepth(151).setVisible(false);
+    this.barW = B.w;
     // §3.4 — the radio
-    this.signalHud = this.add
-      .text(16, 112, '', { fontFamily: 'monospace', fontSize: '11px', color: '#7ec87e' })
-      .setScrollFactor(0)
-      .setDepth(150)
-      .setVisible(false);
+    this.signalHud = this.hud.toolLine(1, '#7ec87e').setVisible(false);
     // the visor: a translucent overlay the player must learn to read
     this.visor = this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x1a3a5a, 0).setScrollFactor(0).setDepth(140);
-    this.visorText = this.add
-      .text(cam.width / 2, 60, '', { fontFamily: 'monospace', fontSize: '12px', color: '#7ec8d8', align: 'center' })
+    this.visorText = uiText(this, cam.width / 2, 92, '', { size: 'small', color: '#7ec8d8', align: 'center' })
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(141)
@@ -380,7 +369,7 @@ export default class AstronautScene extends BaseLevel {
   updateStatHud() {
     const pip = (n) => '●'.repeat(n) + '○'.repeat(5 - n);
     const s = this.stats;
-    this.statHud.setText(`LUNGS ${pip(s.lungs)}\nGRIP  ${pip(s.grip)}\nLEGS  ${pip(s.legs)}\nNERVE ${pip(s.nerve)}`);
+    this.statHud.setText(`LUNGS ${pip(s.lungs)}\nGRIP ${pip(s.grip)}\nLEGS ${pip(s.legs)}\nNERVE ${pip(s.nerve)}`);
     this.o2Max = 40 + 10 * s.lungs;
   }
 
@@ -418,8 +407,7 @@ export default class AstronautScene extends BaseLevel {
   buildArrival() {
     const o = this.obj('poster_fence');
     this.add.rectangle(o.wx, o.wy - 20, 84, 60, 0x2e3a52).setDepth(D.INTERACT - 1);
-    this.add
-      .text(o.wx, o.wy - 20, 'MERIDIAN\nORBITAL\nPROGRAM', { fontFamily: 'monospace', fontSize: '9px', color: '#88b8d8', align: 'center' })
+    uiText(this, o.wx, o.wy - 20, 'MERIDIAN\nORBITAL\nPROGRAM', { fontSize: '9px', color: '#88b8d8', align: 'center' })
       .setOrigin(0.5)
       .setDepth(D.INTERACT);
     const ad = this.built.objects.find((v) => v.type === 'npc' && v.who === 'adaeze');
@@ -435,7 +423,7 @@ export default class AstronautScene extends BaseLevel {
     const start = this.obj('track_start');
     const far = this.obj('track_far');
     this.add.rectangle(start.wx, start.wy + 10, 4, 40, 0xf2d580, 0.8).setDepth(D.INTERACT);
-    this.add.text(start.wx - 10, start.wy - 26, 'LAP', { fontFamily: 'monospace', fontSize: '10px', color: '#f2d580' }).setDepth(D.INTERACT);
+    uiText(this, start.wx - 10, start.wy - 26, 'LAP', { fontSize: '10px', color: '#f2d580' }).setDepth(D.INTERACT);
     this.track = { start: start.wx, far: far.wx, phase: 'home', laps: 0 };
     this.balls = [0, 1].map((i) => {
       const b = this.add.circle(start.wx + 120 + i * 220, px(30), 12, 0x8a2a20).setDepth(D.FOE);
@@ -450,7 +438,7 @@ export default class AstronautScene extends BaseLevel {
       return { x: o.wx, y: o.wy, img, hit: false };
     });
     const pb = this.obj('pool_board');
-    this.add.text(pb.wx - 30, pb.wy - 40, 'THE POOL\n5 hoops,\none breath', { fontFamily: 'monospace', fontSize: '9px', color: '#9ac4dc' }).setDepth(D.INTERACT);
+    uiText(this, pb.wx - 30, pb.wy - 40, 'THE POOL\n5 hoops,\none breath', { fontSize: '9px', color: '#9ac4dc' }).setDepth(D.INTERACT);
 
     // -- the Wall (Grip): the bell at the top
     const bell = this.obj('bell');
@@ -466,8 +454,7 @@ export default class AstronautScene extends BaseLevel {
     }, { once: false });
     const plaque = this.obj('plaque');
     this.add.rectangle(plaque.wx + 26, plaque.wy, 92, 30, 0x6a5a3a).setDepth(D.INTERACT - 1);
-    this.add
-      .text(plaque.wx + 26, plaque.wy, 'FIRST MERIDIAN CREW\nOKONKWO · VANCE · LIU', { fontFamily: 'monospace', fontSize: '7px', color: '#f2e0a0', align: 'center' })
+    uiText(this, plaque.wx + 26, plaque.wy, 'FIRST MERIDIAN CREW\nOKONKWO · VANCE · LIU', { fontSize: '7px', color: '#f2e0a0', align: 'center' })
       .setOrigin(0.5)
       .setDepth(D.INTERACT);
 
@@ -836,7 +823,7 @@ export default class AstronautScene extends BaseLevel {
     const barBg = this.add.rectangle(cam.width / 2, cam.height / 2, 300, 22, 0x2a2a34).setScrollFactor(0).setDepth(201);
     const band = this.add.rectangle(cam.width / 2, cam.height / 2, 90, 22, 0x3a6a3a).setScrollFactor(0).setDepth(201);
     const needle = this.add.rectangle(cam.width / 2 - 150, cam.height / 2, 5, 30, 0xe86a6a).setScrollFactor(0).setDepth(202);
-    const label = this.add.text(cam.width / 2, cam.height / 2 - 60, '', { fontFamily: 'monospace', fontSize: '15px', color: '#e8dcc8', align: 'center' }).setOrigin(0.5).setScrollFactor(0).setDepth(202);
+    const label = uiText(this, cam.width / 2, cam.height / 2 - 60, '', { fontSize: '15px', color: '#e8dcc8', align: 'center' }).setOrigin(0.5).setScrollFactor(0).setDepth(202);
     let stage = 0;
     let pos = 0;
     let ok = true;
@@ -898,7 +885,7 @@ export default class AstronautScene extends BaseLevel {
     // O2 ports
     this.objAll('o2_port').forEach((o) => {
       const panel = this.add.rectangle(o.wx, o.wy, 20, 26, 0x2a3a52).setDepth(D.INTERACT - 1).setStrokeStyle(1, 0x88b8d8);
-      const label = this.add.text(o.wx, o.wy, 'O₂', { fontFamily: 'monospace', fontSize: '9px', color: '#88b8d8' }).setOrigin(0.5).setDepth(D.INTERACT);
+      const label = uiText(this, o.wx, o.wy, 'O₂', { fontSize: '9px', color: '#88b8d8' }).setOrigin(0.5).setDepth(D.INTERACT);
       // one charge, spent for good: a lifeline, not a fountain
       this.addInteract(o.wx, o.wy, 'emergency O₂ — one charge', () => {
         this.o2 = this.o2Max;
@@ -912,8 +899,7 @@ export default class AstronautScene extends BaseLevel {
     const comms = this.obj('comms');
     this.add.image(comms.wx, comms.wy, 'astro-comms').setDepth(D.INTERACT);
     // it sits near the ceiling; without a sign nobody finds it from the deck
-    const commsSign = this.add
-      .text(comms.wx, comms.wy + 22, 'COMMS  [E]', { fontFamily: 'monospace', fontSize: '10px', color: '#7ec87e' })
+    const commsSign = uiText(this, comms.wx, comms.wy + 22, 'COMMS  [E]', { fontSize: '10px', color: '#7ec87e' })
       .setOrigin(0.5)
       .setDepth(D.INTERACT);
     this.tweens.add({ targets: commsSign, alpha: 0.35, duration: 700, yoyo: true, repeat: -1 });
@@ -956,7 +942,7 @@ export default class AstronautScene extends BaseLevel {
 
     const plate = this.obj('code_plate');
     this.add.rectangle(plate.wx, plate.wy, 70, 20, 0x4a4c54).setDepth(D.INTERACT - 1);
-    this.add.text(plate.wx, plate.wy, BOLT_ORDER.join(' '), { fontFamily: 'monospace', fontSize: '10px', color: '#f2d580' }).setOrigin(0.5).setDepth(D.INTERACT);
+    uiText(this, plate.wx, plate.wy, BOLT_ORDER.join(' '), { fontSize: '10px', color: '#f2d580' }).setOrigin(0.5).setDepth(D.INTERACT);
     const arr = this.obj('array');
     this.arrayImg = this.add.rectangle(arr.wx + 20, arr.wy - 40, 16, 110, 0x2a3a52).setDepth(D.INTERACT - 1).setStrokeStyle(2, 0x88b8d8).setAngle(50);
     this.addInteract(arr.wx, arr.wy, 'the jammed hinge', async () => {
@@ -994,7 +980,7 @@ export default class AstronautScene extends BaseLevel {
     music.stop();
     const cam = this.cameras.main;
     const say = (t, c = '#e8dcc8') =>
-      this.add.text(cam.width / 2, 140, t, { fontFamily: 'monospace', fontSize: '18px', color: c, align: 'center', stroke: '#14101c', strokeThickness: 4 }).setOrigin(0.5).setScrollFactor(0).setDepth(210);
+      uiText(this, cam.width / 2, 140, t, { fontSize: '18px', color: c, align: 'center' }).setOrigin(0.5).setScrollFactor(0).setDepth(210);
     // countdown
     for (let n = 3; n >= 1; n--) {
       const t = say(String(n));
@@ -1150,7 +1136,7 @@ export default class AstronautScene extends BaseLevel {
       const ellipse = this.add.ellipse(cam.width / 2, cam.height - 60, 140, 24, 0x2e6a4a).setScrollFactor(0).setDepth(221);
       const lander = this.add.image(cam.width / 2 - 120, 60, 'astro-lander').setScrollFactor(0).setDepth(223);
       const dust = this.add.rectangle(cam.width / 2, cam.height - 70, cam.width, 140, 0x38383e, 0).setScrollFactor(0).setDepth(224);
-      const label = this.add.text(cam.width / 2, 30, 'DESCENT — [Space] thrust · [←][→] drift · land in the ellipse, slow', { fontFamily: 'monospace', fontSize: '13px', color: '#e8dcc8' }).setOrigin(0.5).setScrollFactor(0).setDepth(225);
+      const label = uiText(this, cam.width / 2, 30, 'DESCENT — [Space] thrust · [←][→] drift · land in the ellipse, slow', { fontSize: '13px', color: '#e8dcc8' }).setOrigin(0.5).setScrollFactor(0).setDepth(225);
       const vel = { x: 24, y: 0 };
       const p = this.player;
       const ev = this.time.addEvent({
@@ -1257,7 +1243,7 @@ export default class AstronautScene extends BaseLevel {
     this.alarmOn = true;
     this.setObjective('the crater. her signal is one pip.');
     // the Alarm: a screech that follows him
-    this.alarmMark = this.add.text(0, 0, '⚠', { fontFamily: 'monospace', fontSize: '16px', color: '#e83a2a' }).setDepth(D.PLAYER + 1);
+    this.alarmMark = uiText(this, 0, 0, '⚠', { fontSize: '16px', color: '#e83a2a' }).setDepth(D.PLAYER + 1);
     this.alarmEv = this.time.addEvent({
       delay: 1800,
       loop: true,
@@ -1310,7 +1296,7 @@ export default class AstronautScene extends BaseLevel {
     cam.fadeOut(800, 8, 4, 2);
     await new Promise((res) => this.time.delayedCall(1000, res));
     const fire = this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0xe8762a, 0.5).setScrollFactor(0).setDepth(220);
-    const label = this.add.text(cam.width / 2, cam.height / 2, 'RE-ENTRY. comms blackout.\n\nhold [Space]. just hold it.', { fontFamily: 'monospace', fontSize: '17px', color: '#fff2c8', align: 'center' }).setOrigin(0.5).setScrollFactor(0).setDepth(221);
+    const label = uiText(this, cam.width / 2, cam.height / 2, 'RE-ENTRY. comms blackout.\n\nhold [Space]. just hold it.', { fontSize: '17px', color: '#fff2c8', align: 'center' }).setOrigin(0.5).setScrollFactor(0).setDepth(221);
     this.signal = 0;
     music.stop();
     cam.shake(9000, 0.006);
@@ -1376,7 +1362,7 @@ export default class AstronautScene extends BaseLevel {
     const lines = ['"Eleven days."', '"Was it enough?"'];
     if (this.F.notebook_read) lines.push('"She\'d written the answers for him."');
     if (this.rejectedTwice) lines.push('"Twelve months, twice. He\'d have done twelve more."');
-    const txt = this.add.text(cam.width / 2, cam.height / 2, '', { fontFamily: 'monospace', fontSize: '20px', color: '#2a2a34', align: 'center' }).setOrigin(0.5).setScrollFactor(0).setDepth(241);
+    const txt = uiText(this, cam.width / 2, cam.height / 2, '', { fontSize: '20px', color: '#2a2a34', align: 'center' }).setOrigin(0.5).setScrollFactor(0).setDepth(241);
     for (const l of lines) {
       txt.setText(l).setAlpha(0);
       this.tweens.add({ targets: txt, alpha: 1, duration: 700 });
@@ -1734,13 +1720,13 @@ export default class AstronautScene extends BaseLevel {
 
     // suit meters run wherever the suit is the only air
     const suited = phys === 'zero' || phys === 'moon';
-    this.o2Bar.setVisible(suited).width = (this.o2 / this.o2Max) * 90;
+    this.o2Bar.setVisible(suited).width = (this.o2 / this.o2Max) * this.barW;
     this.o2BarBg.setVisible(suited);
     this.o2Label.setVisible(suited);
-    this.pwrBar.setVisible(suited).width = (this.power / 100) * 90;
+    this.pwrBar.setVisible(suited).width = (this.power / 100) * this.barW;
     this.pwrBarBg.setVisible(suited);
     this.pwrLabel.setVisible(suited);
-    this.breathBar.setVisible(swimming && !suited).width = (this.breath / 100) * 90;
+    this.breathBar.setVisible(swimming && !suited).width = (this.breath / 100) * this.barW;
     if (swimming && !suited) this.o2BarBg.setVisible(true);
     if (suited) {
       const leak = this.puncturedAt ? 3 : 1;
@@ -1764,7 +1750,7 @@ export default class AstronautScene extends BaseLevel {
     const inCrater = room.id === 'p5_crater' && p.y > px(40);
     this.signal = inCrater ? 0 : this.F.rescue_on && room.id.startsWith('p5') ? 1 : 3;
     this.signalHud.setVisible(this.F.docked || room.id.startsWith('p5'));
-    this.signalHud.setText(`radio ${'▮'.repeat(this.signal)}${'▯'.repeat(3 - this.signal)}${this.signal === 0 ? '  — alone' : ''}`);
+    this.signalHud.setText(`RADIO ${'▮'.repeat(this.signal)}${'▯'.repeat(3 - this.signal)}${this.signal === 0 ? '  — alone' : ''}`);
     this.signalHud.setColor(this.signal === 0 ? '#e86a6a' : '#7ec87e');
     if (inCrater && !this.wasInCrater) music.stop();
     this.wasInCrater = inCrater;

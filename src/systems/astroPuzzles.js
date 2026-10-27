@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { Modal } from './puzzles.js';
 import { sfx } from './audio.js';
 import { FLASHCARDS, BOARD_QUESTIONS } from '../data/astronautData.js';
+import { uiText } from '../ui/text.js';
 
 // THE QUIET ABOVE — the four puzzle-boxes. Each resolves a result object.
 
@@ -130,7 +131,7 @@ export function docking(scene, { label = 'DOCKING SIMULATOR', fuel = 30 } = {}) 
     const cy = cam.height / 2 + 20;
     m.add(scene.add.circle(cx, cy, 60, 0x1e2a3c).setScrollFactor(0).setDepth(m.depth + 1).setStrokeStyle(2, 0x88b8d8));
     m.add(scene.add.circle(cx, cy, 24, 0x2a3a52).setScrollFactor(0).setDepth(m.depth + 1).setStrokeStyle(1, 0xf2d580));
-    const cross = m.add(scene.add.text(cx, cy, '+', { fontFamily: 'monospace', fontSize: '26px', color: '#f2d580' }).setOrigin(0.5).setScrollFactor(0).setDepth(m.depth + 3));
+    const cross = m.add(uiText(scene, cx, cy, '+', { fontSize: '26px', color: '#f2d580' }).setOrigin(0.5).setScrollFactor(0).setDepth(m.depth + 3));
     const fuelText = m.text(cx, cy + 130, '', 14, '#e8a030');
     const rangeText = m.text(cx, cy - 130, '', 14, '#88b8d8');
     const state = { x: 160, y: -90, vx: 0, vy: 0, range: 40, vr: 0, fuel };

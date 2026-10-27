@@ -3,8 +3,8 @@
 
 const DEFAULTS = {
   eventBus: false, // scenes emit on the shared bus
-  uiScene: false, // UI moves to its own scene
-  bitmapText: false, // bitmap fonts replace Phaser default text
+  uiScene: true, // UI on its own scene (phase 1.2: always on)
+  bitmapText: true, // bitmap fonts replace Phaser default text (phase 1.2: always on)
   teach: false, // new tutorial/Teach service
   roomStreamer: false, // new room graph + streaming
 };

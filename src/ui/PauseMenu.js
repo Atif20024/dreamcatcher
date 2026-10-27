@@ -1,8 +1,9 @@
 // PauseMenu (plan §2.11): a self-contained menu panel. It knows nothing
 // about levels: the host passes a title, info lines and items, and gets
-// callbacks. Today it draws on the host scene's camera with Phaser text;
-// a later workstream re-hosts it on UIScene with bitmap fonts (only
-// `_draw` changes).
+// callbacks. It is a ModalManager modal ('pause', or 'death' when it cannot
+// be closed): drawn on UIScene in bitmap type, keys only while it is on top,
+// and the world frozen through the manager. The death card clears a stale
+// tutorial card instead of drawing over it.
 //
 //   const m = new PauseMenu(scene);
 //   m.open({ title, lines, items: [{ label, action, id }], canClose, onClose });
@@ -13,6 +14,10 @@
 const NAV_UP = ['ArrowUp', 'KeyW'];
 const NAV_DOWN = ['ArrowDown', 'KeyS'];
 const CHOOSE = ['KeyX', 'KeyE', 'Enter', 'Space'];
+
+import ModalManager from './ModalManager.js';
+import { uiText } from './text.js';
+import { drawPanel, dim } from './Panel.js';
 
 export default class PauseMenu {
   constructor(scene, { depth = 260 } = {}) {
@@ -27,6 +32,11 @@ export default class PauseMenu {
 
   open({ title = 'Paused', lines = [], items = [], canClose = true, onClose = null, guardMs = 0 } = {}) {
     if (this.isOpen) this._clear();
+    if (this.handle) {
+      const h = this.handle;
+      this.handle = null;
+      h.close('reopened');
+    }
     this.title = title;
     this.lines = lines;
     this.items = items;
@@ -35,11 +45,21 @@ export default class PauseMenu {
     this.idx = 0;
     this.isOpen = true;
     this.guardUntil = this.scene.time.now + guardMs; // a death card must not be confirmed by the mash that caused it
+    const death = !canClose;
+    const h = ModalManager.for(this.scene).open({
+      kind: death ? 'death' : 'pause',
+      freeze: 'world',
+      clears: death ? ['tutorial'] : [],
+      onKey: (e) => this._key(e),
+      onClose: () => {
+        if (this.handle === h) {
+          this.handle = null;
+          this.close();
+        }
+      },
+    });
+    this.handle = h;
     this._draw();
-    if (!this.keyHandler) {
-      this.keyHandler = (e) => this._key(e);
-      this.scene.input.keyboard.on('keydown', this.keyHandler);
-    }
     return this;
   }
 
@@ -58,9 +78,10 @@ export default class PauseMenu {
     if (!this.isOpen) return;
     this.isOpen = false;
     this._clear();
-    if (this.keyHandler) {
-      this.scene.input.keyboard.off('keydown', this.keyHandler);
-      this.keyHandler = null;
+    if (this.handle) {
+      const h = this.handle;
+      this.handle = null;
+      h.close();
     }
     const fn = this.onClose;
     this.onClose = null;
@@ -117,39 +138,50 @@ export default class PauseMenu {
     const cam = s.cameras.main;
     const cx = cam.width / 2;
     const cy = cam.height / 2;
-    const text = (x, y, str, style) =>
-      s.add
-        .text(x, y, str, { fontFamily: 'monospace', color: '#e8dcc8', align: 'center', ...style })
-        .setOrigin(0.5)
-        .setScrollFactor(0)
-        .setDepth(this.depth + 1);
-    const h = 120 + this.lines.length * 20 + this.items.length * 30;
-    this.objs.push(s.add.rectangle(cx, cy, cam.width, cam.height, 0x000000, 0.72).setScrollFactor(0).setDepth(this.depth));
-    this.objs.push(
-      s.add.rectangle(cx, cy, 460, h, 0x14101c, 0.96).setStrokeStyle(2, 0x8a8aa8).setScrollFactor(0).setDepth(this.depth)
-    );
-    let y = cy - h / 2 + 34;
-    this.objs.push(text(cx, y, this.title, { fontSize: '20px', color: '#f2d580', wordWrap: { width: 420 } }));
-    y += 34;
-    for (const l of this.lines) {
-      this.objs.push(text(cx, y, l, { fontSize: '13px', color: '#c8c0b0', wordWrap: { width: 420 } }));
-      y += 20;
-    }
-    y += 10;
-    this.itemTexts = this.items.map((it, i) => {
-      const t = text(cx, y + i * 30, it.label, { fontSize: '16px' });
-      this.objs.push(t);
+    const W = 560;
+    const add = (o) => {
+      this.objs.push(o);
+      if (this.handle) this.handle.add(o);
+      return o;
+    };
+    const text = (y, str, opts) =>
+      add(uiText(s, cx, y, str, { align: 'center', wrap: W - 60, ...opts }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(this.depth + 2));
+    add(dim(s, 0.72, this.depth));
+    const frame = add(s.add.graphics().setScrollFactor(0).setDepth(this.depth + 1));
+    // lay the text out first, then size the panel to it
+    let y = 0;
+    const title = text(y, this.title, { size: 'body', color: 'accent' });
+    y += title.height + 14;
+    const lines = this.lines.map((l) => {
+      const t = text(y, l, { size: 'small', color: 'ink-dim' });
+      y += t.height + 8;
       return t;
     });
+    y += 10;
+    this.itemTexts = this.items.map((it) => {
+      const t = text(y, it.label, { size: 'body', color: 'ink' });
+      y += Math.max(t.height, 18) + 12;
+      return t;
+    });
+    const h = y + 40;
+    const top = Math.round(cy - h / 2);
+    [title, ...lines, ...this.itemTexts].forEach((t) => t.setY(t.y + top + 24));
+    frame.clear();
+    this._frame = frame;
+    this._drawFrame(frame, cx - W / 2, top, W, h);
     this._renderItems();
+  }
+
+  _drawFrame(g, x, y, w, h) {
+    drawPanel(g, x, y, w, h);
   }
 
   _renderItems() {
     (this.itemTexts || []).forEach((t, i) => {
       const it = this.items[i];
       const on = i === this.idx;
-      t.setText(on ? `▸ ${it.label} ◂` : it.label);
-      t.setColor(on ? '#f2d580' : '#a8a090');
+      t.setText(on ? `→ ${it.label}` : it.label);
+      t.setColor(on ? 'accent' : 'ink-dim');
     });
   }
 }

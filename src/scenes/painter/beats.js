@@ -8,6 +8,7 @@ import Stroke from '../../entities/Stroke.js';
 import { sfx, music, musicDirector } from '../../systems/audio.js';
 import { showTutorial } from '../../systems/tutorial.js';
 import { T, px, hex } from './util.js';
+import { uiText } from '../../ui/text.js';
 
 // THE YELLOW HOUSE — the scripted beats, canvas by canvas. Mixed into
 // PainterScene.prototype.
@@ -119,7 +120,7 @@ export default {
       this.day = this.clock.day;
       this.checkpoint = { x: easel.wx, y: easel.floor - 34 };
       this.told.night = false;
-      const label = this.add.text(cam.width / 2, cam.height / 2, `day ${this.day}`, { fontFamily: 'monospace', fontSize: '22px', color: '#f2d060' }).setOrigin(0.5).setScrollFactor(0).setDepth(231);
+      const label = uiText(this, cam.width / 2, cam.height / 2, `day ${this.day}`, { fontSize: '22px', color: '#f2d060' }).setOrigin(0.5).setScrollFactor(0).setDepth(231);
       if (this.day >= this.mistralDay && !this.told.mistral) {
         this.told.mistral = true;
         label.setText(`day ${this.day}. the mistral is up.`);
@@ -268,7 +269,7 @@ export default {
       const img = this.add.image(cam.width + 40, cam.height / 2 - 40, c.thumb).setScrollFactor(0).setDepth(100).setDisplaySize(96, 72).setAngle((Math.random() - 0.5) * 6);
       this.tweens.add({ targets: img, x: -60, duration: 11000, delay: i * (9000 / Math.max(1, items.length)), onComplete: () => img.destroy() });
     });
-    const t = this.add.text(cam.width / 2, cam.height - 80, '', { fontFamily: 'monospace', fontSize: '13px', color: '#8a8478' }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
+    const t = uiText(this, cam.width / 2, cam.height - 80, '', { fontSize: '13px', color: '#8a8478' }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
     for (let s = 1; s <= 11; s++) this.time.delayedCall(s * 1000, () => t.setText('.'.repeat(s)));
     await new Promise((r) => this.time.delayedCall(11200, r));
     t.destroy();
@@ -743,7 +744,7 @@ export default {
     // the stacks carry his pictures, backs showing, titles chalked
     if (this.stack) this.stack.imgs.forEach((img, i) => {
       const c = this.canvases[i];
-      if (c) this.add.text(img.x, img.y - 50 - (i % 3) * 2, c.title.split(' ').slice(-1)[0], { fontFamily: 'monospace', fontSize: '8px', color: '#e8e4d8' }).setOrigin(0.5).setDepth(6.1).setAngle(78);
+      if (c) uiText(this, img.x, img.y - 50 - (i % 3) * 2, c.title.split(' ').slice(-1)[0], { fontSize: '8px', color: '#e8e4d8' }).setOrigin(0.5).setDepth(6.1).setAngle(78);
     });
     // the one that hangs over the stove
     const hung = this.add.image(this.frame.wx, this.frame.wy, this.chosen.thumb).setDepth(8.5).setDisplaySize(48, 36).setAngle(-2);

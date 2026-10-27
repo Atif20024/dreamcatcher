@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { laughSfx } from '../systems/audio.js';
+import { uiText } from '../ui/text.js';
 
 // A person in the long evening. Not physics: they walk the ground by
 // querying the scene's surface (scene.groundY), step their legs by distance
@@ -110,9 +111,7 @@ export default class Townsfolk {
     const s = this.scene;
     if (this.bubble) this.bubble.destroy();
     const plain = text.replace(/\*/g, '');
-    this.bubble = s.add
-      .text(this.x, this.y - 58 * this.scale, plain, {
-        fontFamily: 'monospace',
+    this.bubble = uiText(s, this.x, this.y - 58 * this.scale, plain, {
         fontSize: '12px',
         color: '#f2e9d8',
         backgroundColor: '#1b1725e0',

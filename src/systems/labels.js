@@ -1,11 +1,14 @@
 import Phaser from 'phaser';
 import { sfx } from './audio.js';
+import ModalManager from '../ui/ModalManager.js';
+import { uiText } from '../ui/text.js';
+import { panel } from '../ui/Panel.js';
 
 // THE SECOND DRAFT §3.1 — the world is labelled, and labels can be edited.
 // A label is a typewriter word over a thing: `adj noun`. The pen strikes the
 // adjective and writes one Jo has collected. Bound words are underlined and
 // cannot be changed; nouns never can. Each edit costs one ink.
-const FONT = { fontFamily: 'monospace', fontSize: '11px', color: '#e8e4d8' };
+const FONT = { size: 'body', scale: 1, color: '#e8e4d8' };
 const NONSENSE = 'qzxjvkwyfbgh';
 
 export default class Labels {
@@ -19,8 +22,8 @@ export default class Labels {
   add({ id, x, y, noun, adj, bound = false, to = null, follow = null }) {
     const s = this.scene;
     const strip = s.add.rectangle(x, y, 10, 16, 0x14101c, 0.72).setDepth(40).setOrigin(0.5);
-    const adjText = s.add.text(x, y, adj, { ...FONT, fontStyle: 'italic', color: bound ? '#c8c0b0' : '#f2e0a0' }).setOrigin(0, 0.5).setDepth(41);
-    const nounText = s.add.text(x, y, noun, FONT).setOrigin(0, 0.5).setDepth(41);
+    const adjText = uiText(s, x, y, adj, { ...FONT, color: bound ? '#c8c0b0' : '#f2e0a0' }).setOrigin(0, 0.5).setDepth(41);
+    const nounText = uiText(s, x, y, noun, FONT).setOrigin(0, 0.5).setDepth(41);
     const line = s.add.rectangle(x, y + 7, 10, 1, 0xc8c0b0).setOrigin(0, 0.5).setDepth(41).setVisible(bound);
     const label = { id, x, y, noun, adj, orig: adj, bound, to, follow, strip, adjText, nounText, line, changed: false, hidden: false };
     this.layout(label);
@@ -103,31 +106,31 @@ export default class Labels {
       return;
     }
     s.puzzleActive = true;
-    s.physics.pause();
+    const handle = ModalManager.for(s).open({ kind: 'encounter', name: 'pen', freeze: 'physics', onKey: (e) => handler(e) });
     let idx = Math.max(0, words.indexOf(label.to));
     const cam = s.cameras.main;
     const cx = cam.width / 2;
     const cy = 110;
     const objs = [];
-    objs.push(s.add.rectangle(cx, cy, 380, 84, 0x14101c, 0.95).setScrollFactor(0).setDepth(300).setStrokeStyle(1, 0xd8b858));
-    objs.push(s.add.text(cx, cy - 28, `${label.adj} ${label.noun}`, { fontFamily: 'monospace', fontSize: '15px', color: '#c8c0b0' }).setOrigin(0.5).setScrollFactor(0).setDepth(301));
-    const strike = s.add.rectangle(cx - 60, cy - 28, 40, 2, 0xc03a2a).setScrollFactor(0).setDepth(302).setOrigin(0, 0.5);
-    objs.push(strike);
-    const choice = s.add.text(cx, cy + 4, '', { fontFamily: 'monospace', fontSize: '17px', color: '#f2e0a0', fontStyle: 'italic' }).setOrigin(0.5).setScrollFactor(0).setDepth(301);
-    objs.push(choice);
-    objs.push(s.add.text(cx, cy + 30, `←/→ choose   [Enter] write (1 ink of ${s.ink})   [Esc] leave it`, { fontFamily: 'monospace', fontSize: '10px', color: '#8a8478' }).setOrigin(0.5).setScrollFactor(0).setDepth(301));
+    const add = (o) => (objs.push(o), handle.add(o));
+    add(panel(s, cx, cy, 640, 110, { depth: 300, accent: 0xd8b858 }));
+    const adjT = add(uiText(s, cx, cy - 32, `${label.adj} `, { size: 'body', color: '#c8c0b0' }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(301));
+    const nounT = add(uiText(s, cx, cy - 32, label.noun, { size: 'body', color: '#c8c0b0' }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(301));
+    const lw = adjT.width + nounT.width;
+    adjT.setX(Math.round(cx - lw / 2));
+    nounT.setX(Math.round(cx - lw / 2 + adjT.width));
+    const strike = add(s.add.rectangle(adjT.x, cy - 32, Math.max(4, adjT.width - 8), 2, 0xc03a2a).setScrollFactor(0).setDepth(302).setOrigin(0, 0.5));
+    const choice = add(uiText(s, cx, cy + 2, '', { size: 'body', color: '#f2e0a0' }).setOrigin(0.5).setScrollFactor(0).setDepth(301));
+    add(uiText(s, cx, cy + 34, `←/→ choose   [Enter] write (1 ink of ${s.ink})   [Esc] leave it`, { size: 'small', color: 'ink-dim' }).setOrigin(0.5).setScrollFactor(0).setDepth(301));
     const render = () => {
       choice.setText(`◂ ${words[idx]} ▸`);
-      const adjW = label.adj.length * 9;
-      strike.setSize(adjW, 2).setPosition(cx - (label.adj.length + 1 + label.noun.length) * 4.5, cy - 28);
+      strike.setPosition(adjT.x, cy - 32);
     };
     render();
     const close = () => {
-      s.input.keyboard.off('keydown', handler);
-      objs.forEach((o) => o.destroy());
-      s.puzzleActive = false;
+      handle.close();
+      s.puzzleActive = !!s.modals.has('encounter');
       this.editing = null;
-      if (!s.cardActive && !s.dialogActive) s.physics.resume();
     };
     const handler = (e) => {
       if (e.code === 'Escape') return close();
@@ -146,7 +149,6 @@ export default class Labels {
       }
     };
     this.editing = label;
-    s.input.keyboard.on('keydown', handler);
   }
 
   apply(label, word, { free = false, revert = false } = {}) {

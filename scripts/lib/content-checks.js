@@ -23,10 +23,19 @@ export function deadCards(tutorialSrc, otherSrcs) {
 }
 
 // Phaser default text debt: add.text( and monospace font mentions
+// Phaser default text, canvas text and web/system fonts are banned (ui-type
+// skill; phase 1.2): everything goes through src/ui/text.js (uiText) or
+// paintGlyphs. A line can opt out with `lint-allow default-text: <reason>`.
+export const ALLOW_DEFAULT_TEXT = /lint-allow default-text:/;
 export function countDefaultText(src) {
-  const addText = (src.match(/\badd\s*\.\s*text\s*\(/g) || []).length;
-  const mono = (src.match(/monospace/g) || []).length;
-  return { addText, mono };
+  const code = src
+    .split('\n')
+    .filter((l) => !ALLOW_DEFAULT_TEXT.test(l))
+    .join('\n');
+  const addText = (code.match(/\b(?:add|make)\s*\.\s*text\s*\(|GameObjects\.Text\s*\(/g) || []).length;
+  const mono = (code.match(/monospace/g) || []).length;
+  const canvas = (code.match(/\.fillText\s*\(|\.strokeText\s*\(|ctx\.font\s*=/g) || []).length;
+  return { addText, mono, canvas };
 }
 
 // checkpoints (plan §2.8, F#5): every flag has an id unique in its dream and

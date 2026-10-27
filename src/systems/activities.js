@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { sfx, playFx } from './audio.js';
 import { joNote, ORB_THEME, THEME_PARTS } from './soundscape.js';
+import { uiText } from '../ui/text.js';
 
 // §3/§4 — the only verb is *help*, and even that is optional.
 //
@@ -622,7 +623,7 @@ class Shootout extends Activity {
     this.ball.body.setAllowGravity(false).setVelocity(0, 0);
     this.k.say('Five each. I keep score. Nobody argues with the score.');
     this.k.walkTo(this.goalX - 14, null, 120);
-    this.board = s.add.text(this.goalX - 40, this.k.y - 96, '', { fontFamily: 'monospace', fontSize: '11px', color: '#f2e9d8', stroke: '#1b1725', strokeThickness: 3 }).setOrigin(0.5).setDepth(70);
+    this.board = uiText(s, this.goalX - 40, this.k.y - 96, '', { fontSize: '11px', color: '#f2e9d8' }).setOrigin(0.5).setDepth(70);
     this.drawGoal();
   }
   drawGoal() {

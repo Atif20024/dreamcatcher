@@ -38,7 +38,7 @@ export function hitStop(scene, ms = 60) {
   scene.physics.world.pause();
   scene.time.delayedCall(ms, () => {
     scene._hitStopping = false;
-    if (!scene.cardActive && !scene.dialogActive && !scene.puzzleActive && !scene.paused) scene.physics.resume();
+    if (!scene.cardActive && !scene.dialogActive && !scene.puzzleActive && !scene.paused && !(scene.modals && scene.modals.active)) scene.physics.resume();
   });
 }
 

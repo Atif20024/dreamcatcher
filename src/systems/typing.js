@@ -1,10 +1,11 @@
 import Phaser from 'phaser';
 import { sfx } from './audio.js';
+import { uiText } from '../ui/text.js';
 
 // THE SECOND DRAFT §3.2 — the typing rhythm. Letters fall like notes down a
 // strip over the desk; press the letter as it reaches the line. A miss or a
 // wrong key is a typo, and typos come due in Chapter 6.
-const FONT = { fontFamily: 'monospace', fontSize: '20px', color: '#e8e4d8' };
+const FONT = { fontSize: '20px', color: '#e8e4d8' };
 const WORDS = 'the page was there and it was the only hour nobody wanted from him morning tin of pens stuck key skimmed milk copies moods tide'.split(' ');
 
 export default class Typing {
@@ -26,8 +27,8 @@ export default class Typing {
     this.bg = scene.add.rectangle(0, 60, 420, 130, 0x14101c, 0.88).setStrokeStyle(2, 0x8a8aa8);
     this.lineY = 105;
     this.line = scene.add.rectangle(0, this.lineY, 380, 2, 0xf2d580);
-    this.label = scene.add.text(0, 8, 'type the letters as they reach the line', { fontFamily: 'monospace', fontSize: '11px', color: '#c8c0b0' }).setOrigin(0.5);
-    this.count_ = scene.add.text(190, 8, '', { fontFamily: 'monospace', fontSize: '11px', color: '#c8c0b0' }).setOrigin(1, 0.5);
+    this.label = uiText(scene, 0, 8, 'type the letters as they reach the line', { fontSize: '11px', color: '#c8c0b0' }).setOrigin(0.5);
+    this.count_ = uiText(scene, 190, 8, '', { fontSize: '11px', color: '#c8c0b0' }).setOrigin(1, 0.5);
     this.ui.add([this.bg, this.line, this.label, this.count_]);
     this.text = WORDS.join(' ');
     this.ti = Phaser.Math.Between(0, this.text.length - 1);
@@ -92,7 +93,7 @@ export default class Typing {
       this.nextAt = time + this.beatMs * (this.spawned % 4 === 0 ? 2 : 1);
       const ch = this.nextChar();
       const x = -150 + Phaser.Math.Between(0, 300);
-      const t = this.scene.add.text(x, 22, ch, FONT).setOrigin(0.5);
+      const t = uiText(this.scene, x, 22, ch, FONT).setOrigin(0.5);
       this.ui.add(t);
       const l = { ch, t, born: time, hitAt: time + this.fall, judged: false, pawed: false };
       this.letters.push(l);

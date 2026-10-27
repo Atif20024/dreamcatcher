@@ -29,6 +29,7 @@ import { getSave, updateSave, momentsFound, MOMENT_TOTAL } from '../utils/save.j
 import { sfx, music, laughSfx, toggleMusic, playFx, audioOut } from '../systems/audio.js';
 import DialogueBox from '../systems/DialogueBox.js';
 import { buildWorld, buildArchitecture, makeGround, bucketTerrain, mulC } from './evening/world.js';
+import { uiText } from '../ui/text.js';
 
 // THE LONG EVENING — the last place in the game, and the only fully
 // beautiful one (docs/finale_long_evening.md).
@@ -200,8 +201,7 @@ export default class EveningScene extends BaseLevel {
     this.physics.add.collider(p, this.solids, null, () => !p.climbing);
     this.physics.add.collider(p, this.oneWays, null, () => !p.climbing);
 
-    this.prompt = this.add
-      .text(0, 0, '', { fontFamily: 'monospace', fontSize: '11px', color: '#f2e9d8', backgroundColor: '#1b1725c0', padding: { x: 5, y: 2 } })
+    this.prompt = uiText(this, 0, 0, '', { fontSize: '11px', color: '#f2e9d8', backgroundColor: '#1b1725c0', padding: { x: 5, y: 2 } })
       .setOrigin(0.5, 1)
       .setDepth(90)
       .setVisible(false);
@@ -449,19 +449,19 @@ export default class EveningScene extends BaseLevel {
   hudRitual() {
     const cam = this.cameras.main;
     const hud = [];
-    const hearts = [0, 1, 2].map((i) => this.add.image(28 + i * 30, 30, 'heart').setScrollFactor(0).setDepth(150));
-    const coin = [
-      this.add.circle(cam.width - 150, 82, 6, 0xc08a50).setScrollFactor(0).setDepth(150),
-      this.add.text(cam.width - 138, 82, `${this.save.wallet.total ? '0   $' + this.save.wallet.total : '0'}`, { fontFamily: 'monospace', fontSize: '13px', color: '#f2d580' }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150),
-    ];
-    const objective = [this.add.text(cam.width - 16, 52, '—', { fontFamily: 'monospace', fontSize: '13px', color: '#f2d580', stroke: '#14101c', strokeThickness: 4 }).setOrigin(1, 0).setScrollFactor(0).setDepth(150)];
+    // the same slots as the HudGrid (src/ui/HudGrid.js), so the ritual takes
+    // away the HUD the player knows, piece by piece
+    const hearts = [0, 1, 2].map((i) => this.add.image(16 + i * 28, 12, 'heart').setOrigin(0, 0).setScrollFactor(0).setDepth(150));
+    const coinText = uiText(this, cam.width - 16, 12, `${this.save.wallet.total ? '0  $' + this.save.wallet.total : '0'}`, { size: 'small', color: 'accent' }).setOrigin(1, 0).setScrollFactor(0).setDepth(150);
+    const coin = [this.add.circle(coinText.x - coinText.width - 12, 19, 6, 0xc08a50).setScrollFactor(0).setDepth(150), coinText];
+    const objective = [uiText(this, cam.width / 2, 12, '—', { size: 'small', color: 'accent' }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(150)];
     const meters = [
-      this.add.rectangle(16, 112, 90, 6, 0x2a2a34).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150),
-      this.add.rectangle(16, 112, 70, 6, 0x88b8d8).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150),
+      this.add.rectangle(cam.width - 136, 46, 120, 8, 0x2a2a34).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150),
+      this.add.rectangle(cam.width - 136, 46, 92, 8, 0x88b8d8).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150),
     ];
     const rest = [
-      this.add.text(16, 52, 'THE LONG EVENING', { fontFamily: 'monospace', fontSize: '14px', color: '#e8dcc8', stroke: '#14101c', strokeThickness: 4 }).setScrollFactor(0).setDepth(150),
-      this.add.text(cam.width - 16, 26, '[Esc] pause', { fontFamily: 'monospace', fontSize: '12px', color: '#c8c0b0', stroke: '#14101c', strokeThickness: 3 }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(150),
+      uiText(this, 16, 44, 'THE LONG EVENING', { size: 'small', color: 'ink-dim' }).setScrollFactor(0).setDepth(150),
+      uiText(this, cam.width - 16, cam.height - 16, '[Esc] pause', { size: 'small', color: 'ink-dim' }).setOrigin(1, 1).setScrollFactor(0).setDepth(150),
     ];
     hud.push(hearts, coin, objective, meters, rest);
     hud.forEach((group, i) => {
@@ -499,7 +499,7 @@ export default class EveningScene extends BaseLevel {
     }
     if (at === 'station') this.stationEnded = false;
     this.lastX = p.x;
-    const t = this.add.text(p.x, p.y - 70, `[dev] ${at}`, { fontFamily: 'monospace', fontSize: '12px', color: '#7ec8d8' }).setOrigin(0.5).setDepth(90);
+    const t = uiText(this, p.x, p.y - 70, `[dev] ${at}`, { fontSize: '12px', color: '#7ec8d8' }).setOrigin(0.5).setDepth(90);
     this.tweens.add({ targets: t, alpha: 0, delay: 1500, duration: 800, onComplete: () => t.destroy() });
     return true;
   }
@@ -1123,7 +1123,7 @@ export default class EveningScene extends BaseLevel {
 
   postbox() {
     // nothing to post. that's fine.
-    const t = this.add.text(this.player.x, this.player.y - 60, '(nothing to post.)', { fontFamily: 'monospace', fontSize: '12px', color: '#c8c0b0' }).setOrigin(0.5).setDepth(90);
+    const t = uiText(this, this.player.x, this.player.y - 60, '(nothing to post.)', { fontSize: '12px', color: '#c8c0b0' }).setOrigin(0.5).setDepth(90);
     this.tweens.add({ targets: t, y: t.y - 20, alpha: 0, duration: 2600, onComplete: () => t.destroy() });
   }
 
@@ -1131,7 +1131,7 @@ export default class EveningScene extends BaseLevel {
     this.hasCamera = true;
     this.world.camera.img.destroy();
     sfx('pickup');
-    const t = this.add.text(this.player.x, this.player.y - 64, '(an old camera. [C])', { fontFamily: 'monospace', fontSize: '12px', color: '#f2e9d8' }).setOrigin(0.5).setDepth(90);
+    const t = uiText(this, this.player.x, this.player.y - 64, '(an old camera. [C])', { fontSize: '12px', color: '#f2e9d8' }).setOrigin(0.5).setDepth(90);
     this.tweens.add({ targets: t, y: t.y - 16, alpha: 0, delay: 1600, duration: 1600, onComplete: () => t.destroy() });
   }
 
@@ -2033,7 +2033,7 @@ export default class EveningScene extends BaseLevel {
     const p = this.player;
     const near = (list) => list.slice().sort((a, b) => Math.abs(a.x - p.x) - Math.abs(b.x - p.x))[0];
     const floatLine = (text) => {
-      const t = this.add.text(p.x + Phaser.Math.Between(-60, 60), p.y - 90, text, { fontFamily: 'monospace', fontSize: '12px', color: '#e8dcc8', fontStyle: 'italic' }).setOrigin(0.5).setDepth(90).setAlpha(0);
+      const t = uiText(this, p.x + Phaser.Math.Between(-60, 60), p.y - 90, text, { fontSize: '12px', color: '#e8dcc8' }).setOrigin(0.5).setDepth(90).setAlpha(0);
       this.tweens.add({ targets: t, alpha: 0.9, duration: 800, hold: 2600, yoyo: true, onComplete: () => t.destroy() });
     };
     if (SIT_EVENT_LINES[id]) floatLine(SIT_EVENT_LINES[id][Math.floor(Math.random() * SIT_EVENT_LINES[id].length)]);
@@ -2176,6 +2176,7 @@ export default class EveningScene extends BaseLevel {
     const cy = cam.height / 2;
     this.uiPins = this.uiPins.filter((pin) => {
       if (!pin.obj.active) return false;
+      if (pin.obj.__ui) return false; // on UIScene now: never zoomed, nothing to undo
       pin.obj.setScale(pin.s / z).setPosition(cx + (pin.x - cx) / z, cy + (pin.y - cy) / z);
       return true;
     });
@@ -2199,8 +2200,7 @@ export default class EveningScene extends BaseLevel {
   // a line of text on the golden world (never on black)
   cardLine(text, ms = 3400, y = null) {
     const cam = this.cameras.main;
-    const t = this.add
-      .text(cam.width / 2, y === null ? cam.height * 0.3 : y, text, { fontFamily: 'monospace', fontSize: '18px', color: '#f2e9d8', align: 'center', stroke: '#2a2030', strokeThickness: 3 })
+    const t = uiText(this, cam.width / 2, y === null ? cam.height * 0.3 : y, text, { fontSize: '18px', color: '#f2e9d8', align: 'center' })
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(200)
@@ -2496,11 +2496,11 @@ export default class EveningScene extends BaseLevel {
       }
     }
     // the logo, small, at the bottom; and slow credits, over a sky that keeps moving
-    const logo = this.add.text(cam.width / 2, cam.height - 42, 'DREAMCATCHER', { fontFamily: 'monospace', fontSize: '16px', color: '#e9b84a' }).setOrigin(0.5).setScrollFactor(0).setDepth(200).setAlpha(0).setLetterSpacing(4).setShadow(2, 2, '#6b4a1f', 0, false, true);
+    const logo = uiText(this, cam.width / 2, cam.height - 42, 'DREAMCATCHER', { fontSize: '16px', color: '#e9b84a' }).setOrigin(0.5).setScrollFactor(0).setDepth(200).setAlpha(0).setLetterSpacing(4).setShadow(2, 2, '#6b4a1f', 0, false, true);
     this.pinUI(logo);
     this.tweens.add({ targets: logo, alpha: 0.85, duration: 3000 });
     const credits = ['DREAMCATCHER', '', 'Jo', 'the town', 'the road', HER_NAME, 'the old dog', 'seven cats', 'a goat nobody explains', '', 'thank you for staying'];
-    const roll = this.add.text(cam.width / 2, cam.height + 20, credits.join('\n\n'), { fontFamily: 'monospace', fontSize: '13px', color: '#d8d0c0', align: 'center', lineSpacing: 4 }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(200).setAlpha(0.85);
+    const roll = uiText(this, cam.width / 2, cam.height + 20, credits.join('\n\n'), { fontSize: '13px', color: '#d8d0c0', align: 'center', lineSpacing: 4 }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(200).setAlpha(0.85);
     const rollPin = this.pinUI(roll);
     await new Promise((res) => this.tweens.add({ targets: rollPin, y: -roll.height - 40, duration: 50000, ease: 'Linear', onComplete: res }));
     roll.destroy();
@@ -2529,7 +2529,7 @@ export default class EveningScene extends BaseLevel {
     add(this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x0e0b14, 0.6));
     this.drawMap(add);
     this.drawThingsToDo(add);
-    add(this.add.text(cam.width / 2, cam.height - 40, '[X] stay     [A] the photos     [Q] back to the station', { fontFamily: 'monospace', fontSize: '12px', color: '#c8c0b0' }).setOrigin(0.5));
+    add(uiText(this, cam.width / 2, cam.height - 40, '[X] stay     [A] the photos     [Q] back to the station', { fontSize: '12px', color: '#c8c0b0' }).setOrigin(0.5));
     this.paused = { objs, album: null, openedAt: this.game.loop.time };
   }
 
@@ -2555,7 +2555,7 @@ export default class EveningScene extends BaseLevel {
     lines.push('', `pocket: ${n}/${FINDS.length} lost things`);
     for (const f of FINDS) if (finds[f.id]) lines.push(`  ${f.name}`);
     add(this.add.rectangle(x, cam.height / 2 - 20, 214, 340, 0xf6efe0, 0.92).setAngle(1.5));
-    add(this.add.text(x - 96, y0, lines.join('\n'), { fontFamily: 'monospace', fontSize: '9px', color: '#3a2a22', lineSpacing: 1, wordWrap: { width: 196 } }).setAngle(1.5));
+    add(uiText(this, x - 96, y0, lines.join('\n'), { fontSize: '9px', color: '#3a2a22', lineSpacing: 1, wordWrap: { width: 196 } }).setAngle(1.5));
   }
 
   // A4.4 — wobbly lines, wrong proportions, labels in a child's hand; it gets
@@ -2611,7 +2611,7 @@ export default class EveningScene extends BaseLevel {
       if (visits >= 5) g.fillStyle(0xf2d580, 0.35).fillCircle(x, y - 14, 16);
       // the label, in wobbly handwriting
       const name = { allotments: 'gardns', rooftops: 'roofs', laundry: 'washing', steep: 'hill st' }[id] || id;
-      [...name].forEach((ch, k) => add(this.add.text(x - name.length * 3.5 + k * 7, y + 12 + rand.between(-2, 2), ch, { fontFamily: 'monospace', fontSize: '11px', color: '#3a3050' }).setAngle(rand.between(-10, 10))));
+      [...name].forEach((ch, k) => add(uiText(this, x - name.length * 3.5 + k * 7, y + 12 + rand.between(-2, 2), ch, { fontSize: '11px', color: '#3a3050' }).setAngle(rand.between(-10, 10))));
     });
     // the road off the edge, going up, if he has been
     if (map.hedge) {
@@ -2622,7 +2622,7 @@ export default class EveningScene extends BaseLevel {
       g.strokePath();
       if (map.ridge) g.fillStyle(0x60e8a0, 0.6).fillRect(x0 + places.length * step + 70, cy - H / 2 + 30, 60, 8);
     }
-    add(this.add.text(cx + W / 2 - 60, cy + H / 2 - 30, 'my town', { fontFamily: 'monospace', fontSize: '12px', color: '#c03a2a' }).setAngle(-6));
+    add(uiText(this, cx + W / 2 - 60, cy + H / 2 - 30, 'my town', { fontSize: '12px', color: '#c03a2a' }).setAngle(-6));
   }
 
   async openAlbum() {
@@ -2634,7 +2634,7 @@ export default class EveningScene extends BaseLevel {
     add(this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x0e0b14, 0.92));
     const list = loadAlbum();
     if (!list.length) {
-      add(this.add.text(cam.width / 2, cam.height / 2, 'no photos yet.', { fontFamily: 'monospace', fontSize: '14px', color: '#c8c0b0' }).setOrigin(0.5));
+      add(uiText(this, cam.width / 2, cam.height / 2, 'no photos yet.', { fontSize: '14px', color: '#c8c0b0' }).setOrigin(0.5));
       return;
     }
     const keys = await photoTextures(this, list);

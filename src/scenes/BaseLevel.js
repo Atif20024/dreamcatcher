@@ -20,6 +20,10 @@ import { HealthModel } from '../play/Health.js';
 import CheckpointService from '../play/Checkpoints.js';
 import { RunState } from '../play/RunState.js';
 import PauseMenu from '../ui/PauseMenu.js';
+import ModalManager from '../ui/ModalManager.js';
+import { hud } from '../ui/hud.js';
+import { uiText } from '../ui/text.js';
+import { panel, dim } from '../ui/Panel.js';
 
 const T = 32;
 // scene key → dream id (Hub and the Evening have no in-dream run)
@@ -71,6 +75,11 @@ export default class BaseLevel extends Phaser.Scene {
     else this._checkpoint = v;
   }
 
+  // the goal line lives on the HUD (UIScene); old readers see `.text`
+  get objectiveText() {
+    return { text: this._objective || '', scene: this };
+  }
+
   setupCommon({ worldW, worldH, levelName, spawn }) {
     this.difficulty = getDifficulty();
     const save = getSave();
@@ -82,6 +91,9 @@ export default class BaseLevel extends Phaser.Scene {
     this.paused = false;
     this.safeGround = null;
     this.levelStartedAt = this.time.now;
+    this.modals = ModalManager.for(this);
+    this.hud = hud.bind(this, this.hudProfile || 'default');
+    this._objective = '';
     this.pauseMenu = new PauseMenu(this);
     this.initRun();
     // Bilal's tea: a heart refill banked for the next dream's first section —
@@ -120,22 +132,10 @@ export default class BaseLevel extends Phaser.Scene {
         .setDepth(90);
     }
 
+    // the HUD is published to the HudGrid on UIScene (plan §2.11)
     this.hearts = [];
     this.updateHearts();
-    this.add
-      .text(16, 52, levelName, { fontFamily: 'monospace', fontSize: '14px', color: '#e8dcc8', stroke: '#14101c', strokeThickness: 4 })
-      .setScrollFactor(0)
-      .setDepth(150);
-    this.objectiveText = this.add
-      .text(cam.width - 16, 52, '', { fontFamily: 'monospace', fontSize: '13px', color: '#f2d580', align: 'right', stroke: '#14101c', strokeThickness: 4 })
-      .setOrigin(1, 0)
-      .setScrollFactor(0)
-      .setDepth(150);
-    this.add
-      .text(cam.width - 16, 26, '[Esc] pause', { fontFamily: 'monospace', fontSize: '12px', color: '#c8c0b0', stroke: '#14101c', strokeThickness: 3 })
-      .setOrigin(1, 0.5)
-      .setScrollFactor(0)
-      .setDepth(150);
+    this.hud.set('level', levelName);
 
     // Collectibles §8 — HUD: the dream's coin + count this level under the
     // objective, with the wallet's worth total; shard tally under hearts.
@@ -145,24 +145,14 @@ export default class BaseLevel extends Phaser.Scene {
       createCoinTextures(this, this.dream.id, this.dream.coin.pal);
       createShardTexture(this);
       this.coinMgr = new CoinManager(this, this.dream.id);
-      this.add.image(cam.width - 150, 82, `coin-${this.dream.id}-0`).setScrollFactor(0).setDepth(150).setScale(0.8);
-      this.coinHud = this.add
-        .text(cam.width - 138, 82, '', { fontFamily: 'monospace', fontSize: '13px', color: '#f2d580' })
-        .setOrigin(0, 0.5)
-        .setScrollFactor(0)
-        .setDepth(150);
+      this.coinIcon = `coin-${this.dream.id}-0`;
+      this.coinHud = { setText: (t) => this.hud.set('coins', { text: t, icon: this.coinIcon }) };
       this.updateCoinHud();
     }
-    this.shardHud = this.add
-      .text(16, 74, '', { fontFamily: 'monospace', fontSize: '12px', color: '#7ec8d8' })
-      .setScrollFactor(0)
-      .setDepth(150);
+    this.shardHud = this.hud.line('shards');
     this.updateShardHud();
     this.satchel = [];
-    this.satchelHud = this.add
-      .text(16, 92, '', { fontFamily: 'monospace', fontSize: '11px', color: '#c8c0b0' })
-      .setScrollFactor(0)
-      .setDepth(150);
+    this.satchelHud = this.hud.line('context');
     this.coinsSinceCP = 0;
 
     // D7 — the director drives the mix and the beat clock for this level
@@ -176,14 +166,8 @@ export default class BaseLevel extends Phaser.Scene {
       this.events.off('beat');
     });
 
-    // music on/off: a HUD button you can click, and [M]
-    this.musicBtn = this.add
-      .text(cam.width - 16, cam.height - 18, '', { fontFamily: 'monospace', fontSize: '12px', color: '#c8c0b0', backgroundColor: '#14101c', padding: { x: 6, y: 3 } })
-      .setOrigin(1, 0.5)
-      .setScrollFactor(0)
-      .setDepth(150)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => this.setMusicLabel(toggleMusic()));
+    // music on/off: the HUD footer is a button you can click, and [M]
+    this.musicBtn = true;
     this.setMusicLabel(isMusicOff());
     this.input.keyboard.on('keydown-M', () => this.setMusicLabel(toggleMusic()));
 
@@ -246,8 +230,7 @@ export default class BaseLevel extends Phaser.Scene {
         const front = tex
           ? [this.add.image(o.wx - 12, floor - 14, tex).setDepth(D.FOE + 2), this.add.image(o.wx + 14, floor - 12, tex).setDepth(D.FOE + 2).setScale(0.8), this.add.image(o.wx - 4, floor - 40, tex).setDepth(D.FOE + 2).setScale(0.9)]
           : [this.add.rectangle(o.wx, floor - 20, 40, 40, 0x6a4a32).setDepth(D.FOE + 2)];
-        const prompt = this.add
-          .text(o.wx, floor - 76, '[\u2193] hide', { fontFamily: 'monospace', fontSize: '12px', color: '#88b8d8', backgroundColor: '#14101c' })
+        const prompt = uiText(this, o.wx, floor - 76, '[\u2193] hide', { size: 'small', color: 'calm', bg: '#14101c' })
           .setOrigin(0.5)
           .setDepth(80)
           .setVisible(false);
@@ -271,8 +254,7 @@ export default class BaseLevel extends Phaser.Scene {
       .rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x000000, 0)
       .setScrollFactor(0)
       .setDepth(230);
-    const label = this.add
-      .text(cam.width / 2, cam.height / 2, 'THROWN OUT', { fontFamily: 'monospace', fontSize: '26px', color: '#e8dcc8' })
+    const label = uiText(this, cam.width / 2, cam.height / 2, 'THROWN OUT', { size: 'display', color: 'danger' })
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(231)
@@ -354,7 +336,11 @@ export default class BaseLevel extends Phaser.Scene {
   }
 
   setMusicLabel(off) {
-    if (this.musicBtn) this.musicBtn.setText(off ? '[M] ♪ music: off' : '[M] ♪ music: on');
+    if (this.hud && this.hud.owner === this) this.hud.set('footer', `[Esc] pause   [M] ♪ ${off ? 'off' : 'on'}`);
+  }
+
+  toggleMusicFromHud() {
+    this.setMusicLabel(toggleMusic());
   }
 
   // ---- collectibles ----------------------------------------------------
@@ -394,8 +380,7 @@ export default class BaseLevel extends Phaser.Scene {
         for (let i = 0; i < n; i++) place(o.wx + i * dx * T, o.wy + i * dy * T);
       } else if (o.type === 'moment' && getSave().shop.postcards[this.dream && this.dream.id]) {
         // the postcard marks the small moments (§2)
-        const mk = this.add
-          .text(o.wx, o.wy - 54, '\u2318', { fontFamily: 'monospace', fontSize: '14px', color: '#f2c078' })
+        const mk = uiText(this, o.wx, o.wy - 54, '\u2318', { size: 'body', color: '#f2c078' })
           .setOrigin(0.5)
           .setDepth(21)
           .setAlpha(0.9);
@@ -448,25 +433,19 @@ export default class BaseLevel extends Phaser.Scene {
   setObjective(text) {
     // a late async beat (a conversation that resolved after the scene was
     // stopped) must not write into a destroyed HUD
-    if (!this.objectiveText || !this.objectiveText.scene) return;
-    this.objectiveText.setText(text);
-    this.tweens.add({ targets: this.objectiveText, alpha: 0.2, duration: 120, yoyo: true, repeat: 2 });
+    if (!this.hud || this.hud.owner !== this) return;
+    this._objective = text || '';
+    this.hud.set('objective', this._objective);
+    events.emit('objective:changed', { scene: this.scene.key, text: this._objective });
   }
 
   updateHearts() {
-    if (!this.hearts || !this.health) return;
-    const n = Math.max(this.maxLives, this.lives);
-    while (this.hearts.length < n) {
-      const i = this.hearts.length;
-      this.hearts.push(this.add.image(28 + i * 30, 30, this.heartTexture || 'heart').setScrollFactor(0).setDepth(150));
-    }
-    while (this.hearts.length > n) this.hearts.pop().destroy();
-    this.hearts.forEach((h, i) => h.setAlpha(i < this.lives ? 1 : 0.25));
+    if (!this.hearts || !this.health || !this.hud || this.hud.owner !== this) return;
+    this.hud.set('hearts', { n: this.lives, max: this.maxLives, texture: this.heartTexture || 'heart' });
   }
 
   floatText(x, y, msg, color = '#f2e0a0') {
-    const t = this.add
-      .text(x, y, msg, { fontFamily: 'monospace', fontSize: '14px', color, align: 'center' })
+    const t = uiText(this, x, y, msg, { size: 'body', color, align: 'center' })
       .setOrigin(0.5)
       .setDepth(60);
     this.tweens.add({ targets: t, y: y - 30, alpha: 0, duration: 1800, onComplete: () => t.destroy() });
@@ -661,14 +640,12 @@ export default class BaseLevel extends Phaser.Scene {
     }
     const caption = sub || (first ? 'Saved here. Fall, and you wake at this flag.' : 'saved');
     if (this.cpBanner) this.cpBanner.forEach((o) => o.destroy());
-    const t1 = this.add
-      .text(cam.width / 2, 116, `— ${label} —`, { fontFamily: 'monospace', fontSize: '20px', color: '#f2c078', stroke: '#14101c', strokeThickness: 5 })
+    const t1 = uiText(this, cam.width / 2, 92, `— ${label} —`, { size: 'body', color: '#f2c078', align: 'center' })
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(152)
       .setAlpha(0);
-    const t2 = this.add
-      .text(cam.width / 2, 142, caption, { fontFamily: 'monospace', fontSize: '12px', color: '#c8c0b0', stroke: '#14101c', strokeThickness: 4 })
+    const t2 = uiText(this, cam.width / 2, 118, caption, { size: 'small', color: 'ink-dim', align: 'center' })
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(152)
@@ -760,16 +737,11 @@ export default class BaseLevel extends Phaser.Scene {
   }
 
   // ---- pause menu (Esc) -------------------------------------------------------------
+  // the pause / death modal freezes the world through the ModalManager
+  // (freeze: 'world'); this only keeps the scene's `paused` flag in step
   freezeWorld(on) {
     this.paused = on;
-    if (on) {
-      this.physics.pause();
-      this.tweens.pauseAll();
-      this.time.paused = true;
-    } else {
-      this.time.paused = false;
-      this.tweens.resumeAll();
-      if (!this.cardActive && !this.dialogActive && !this.puzzleActive) this.physics.resume();
+    if (!on) {
       // swallow the key that closed the menu so it does not reopen it
       Phaser.Input.Keyboard.JustDown(this.keyEsc);
       if (this.player && this.player.keys) Phaser.Input.Keyboard.JustDown(this.player.keys.X);
@@ -848,44 +820,46 @@ export default class BaseLevel extends Phaser.Scene {
     musicDirector.setState(this.thrownOut ? 'caught' : hunted ? 'danger' : this._roomState || 'explore');
   }
 
+  // a centred card (ModalManager kind 'card'): X confirms, Q is the alt
   showCard(lines, onConfirm, onAlt = null) {
+    if (this.cardHandle) this.cardHandle.close('replaced');
     this.cardActive = true;
     this.cardShownAt = this.time.now;
-    this.physics.pause();
-    this.tweens.pauseAll();
     const cam = this.cameras.main;
-    this.cardOverlay = this.add
-      .rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x000000, 0.75)
-      .setScrollFactor(0)
-      .setDepth(250);
-    this.cardText = this.add
-      .text(cam.width / 2, cam.height / 2, lines.join('\n'), {
-        fontFamily: 'monospace',
-        fontSize: '18px',
-        color: '#e8dcc8',
-        align: 'center',
-        lineSpacing: 6,
-      })
+    const h = this.modals.open({ kind: 'card', freeze: 'tweens', onClose: () => this.cardHandle === h && this._cardClosed() });
+    this.cardHandle = h;
+    h.add(dim(this, 0.75, 250));
+    const text = uiText(this, cam.width / 2, cam.height / 2, lines.join('\n'), { size: 'body', color: 'ink', align: 'center', wrap: 760, lineSpacing: 6 })
       .setOrigin(0.5)
       .setScrollFactor(0)
-      .setDepth(251);
+      .setDepth(252);
+    const w = Math.min(880, Math.max(360, text.width + 64));
+    const ht = Math.min(500, text.height + 48);
+    h.add(panel(this, cam.width / 2, cam.height / 2, w, ht, { depth: 251 }));
+    this.cardText = h.add(text);
     this.cardConfirm = onConfirm;
     this.cardAlt = onAlt;
   }
 
-  closeCard() {
+  _cardClosed() {
     this.cardActive = false;
-    this.cardOverlay.destroy();
-    this.cardText.destroy();
-    if (!this.dialogActive && !this.puzzleActive) this.physics.resume();
-    this.tweens.resumeAll();
+    this.cardHandle = null;
+    this.cardText = null;
+  }
+
+  closeCard() {
+    const h = this.cardHandle;
+    if (h) h.close();
+    else this._cardClosed();
   }
 
   // returns true when the frame should be swallowed (modal open / pause)
   handleModalUpdate() {
     if (this.paused || this.respawning) return true;
-    if (this.dialogActive || this.puzzleActive) return true;
+    if (this.dialogActive || this.puzzleActive || this.tutorialActive) return true;
     if (this.cardActive) {
+      // a card waiting under another modal is not answered yet
+      if (this.cardHandle && !this.modals.isTop(this.cardHandle)) return true;
       // a card that appears mid-mash must not be confirmed by the mash:
       // swallow X/Q for the first moments so the player reads it first
       if (this.time.now - (this.cardShownAt || 0) < 700) {

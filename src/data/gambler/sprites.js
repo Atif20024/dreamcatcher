@@ -3,6 +3,7 @@ import { createPixelTexture } from '../../utils/pixelart.js';
 import { createPersonTextures } from '../evening/sprites.js';
 import { paintTexture, stamp, grain, rgba, fbm, hex, gradientV } from '../../art/paint.js';
 import { PEOPLE } from './cast.js';
+import { paintGlyphs } from '../../ui/BitmapFonts.js';
 
 // THE LAST HAND — the things: string art like the rest of the game, then the
 // level-art light pass (GamblerScene calls lightThemeProps on 'gm-').
@@ -122,20 +123,19 @@ export function createGamblerTextures(scene) {
     ctx.fillStyle = hex(0x0a0810);
     ctx.fillRect(0, 0, w, h);
     gradientV(ctx, 0, 0, w, h, [[0, 0x1a1020, 0.6], [1, 0x0a0810, 0]]);
+    // neon in the display glyphs: a blurred under-copy for the glow
     const neon = (text, x, y, size, col, glow) => {
-      ctx.font = `bold ${size}px monospace`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+      const scale = Math.max(1, Math.round(size / 14));
+      const o = { size: 'display', scale, align: 'center', baseline: 'middle' };
       if (glow) {
+        ctx.save();
         ctx.shadowColor = rgba(col, 0.9);
         ctx.shadowBlur = 18;
-        ctx.fillStyle = rgba(col, 0.55);
-        ctx.fillText(text, x, y);
-        ctx.shadowBlur = 8;
+        ctx.globalAlpha = 0.6;
+        paintGlyphs(ctx, text, x, y, { ...o, color: col });
+        ctx.restore();
       }
-      ctx.fillStyle = glow ? hex(0xffd8f0) : hex(col);
-      ctx.fillText(text, x, y);
-      ctx.shadowBlur = 0;
+      paintGlyphs(ctx, text, x, y, { ...o, color: glow ? 0xffd8f0 : col });
     };
     neon('THE MERIDIAN', w / 2, 42, 40, 0xff3aa0, true);
     neon('OPEN', w / 2 - 70, 90, 26, 0xff3aa0, true);

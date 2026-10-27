@@ -1,9 +1,10 @@
 // Content validation (plan §2.16). `npm run lint:content [-- --json]`
 // Absorbs lint-rooms.js (every check kept) and adds report-only checks:
 //   - tutorial cards no code ever triggers (dead cards)
-//   - Phaser default text debt (add.text( / monospace) per file
+//   - Phaser default text (add.text( / make.text( / monospace / canvas
+//     fillText): FAILS the run (phase 1.2: every use is the bitmap helper)
 //   - checkpoints: id + readable label on every flag (FAILS the run)
-// New checks are warn-level: they print but do not fail the run yet.
+// Dead cards are warn-level: they print but do not fail the run yet.
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -38,14 +39,14 @@ const others = files.filter((f) => f !== tutorialPath).map((f) => readFileSync(f
 const allIds = parseCardIds(tutorialSrc);
 const dead = deadCards(tutorialSrc, others);
 
-// 3. default-text debt
+// 3. default text: an error now (src/ui/text.js uiText is the only way)
 const debt = [];
 for (const f of files) {
   const c = countDefaultText(readFileSync(f, 'utf8'));
-  if (c.addText || c.mono) debt.push({ file: relative(ROOT, f), ...c });
+  if (c.addText || c.mono || c.canvas) debt.push({ file: relative(ROOT, f), ...c });
 }
 debt.sort((a, b) => b.addText - a.addText);
-const totals = debt.reduce((t, d) => ({ addText: t.addText + d.addText, mono: t.mono + d.mono }), { addText: 0, mono: 0 });
+const totals = debt.reduce((t, d) => ({ addText: t.addText + d.addText, mono: t.mono + d.mono, canvas: t.canvas + d.canvas }), { addText: 0, mono: 0, canvas: 0 });
 
 // 4. checkpoints: labelled, unique ids (fail-level)
 const cps = checkpointIssues(ROOMS_BY_DREAM);
@@ -63,11 +64,11 @@ if (json) {
 } else {
   log(`\n--- tutorials: ${allIds.length} cards, ${dead.length} never triggered (warn) ---`);
   for (const id of dead) log(`  ! card "${id}" is defined but no code triggers it`);
-  log(`\n--- default text debt (warn): ${totals.addText} add.text( calls, ${totals.mono} monospace mentions in ${debt.length} files ---`);
-  for (const d of debt) log(`  ! ${d.file}: add.text x${d.addText}, monospace x${d.mono}`);
+  log(`\n--- default text (error): ${totals.addText} add.text( calls, ${totals.mono} monospace mentions, ${totals.canvas} canvas text calls in ${debt.length} files ---`);
+  for (const d of debt) log(`  ✗ ${d.file}: add.text x${d.addText}, monospace x${d.mono}, canvas text x${d.canvas}`);
   log(`\n--- checkpoints: ${cps.length} failures ---`);
   for (const c of cps) log(`  ✗ ${c}`);
-  log(`\nrooms: ${rooms.failures} failures, ${rooms.warnings} warnings; content warnings: ${dead.length + debt.length}`);
+  log(`\nrooms: ${rooms.failures} failures, ${rooms.warnings} warnings; default text: ${debt.length} files; content warnings: ${dead.length}`);
 }
-// room checks and checkpoint checks fail the run; the rest warn
-process.exit(rooms.failures > 0 || cps.length > 0 ? 1 : 0);
+// room, checkpoint and default-text checks fail the run; the rest warn
+process.exit(rooms.failures > 0 || cps.length > 0 || debt.length > 0 ? 1 : 0);

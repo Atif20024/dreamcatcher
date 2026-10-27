@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { createJoTextures } from '../entities/jo.js';
 import { drawCityBackdrop } from '../utils/backdrop.js';
 import { toggleMusic } from '../systems/audio.js';
+import { uiText } from '../ui/text.js';
 
 // Close-up entry shots: a zoomed street scene, Jo walks to the door, fade in.
 const INTROS = {
@@ -36,13 +37,13 @@ const INTROS = {
       g.fillGradientStyle(0x08060c, 0x08060c, 0x1a0e1e, 0x1a0e1e, 1);
       g.fillRect(0, 0, 960, 540);
       scene.add.rectangle(480, 150, 760, 150, 0x14101c);
-      const t = scene.add.text(480, 130, 'THE MERIDIAN', { fontFamily: 'monospace', fontSize: '52px', color: '#ff3aa0', fontStyle: 'bold' }).setOrigin(0.5);
-      scene.add.text(480, 185, 'OPEN', { fontFamily: 'monospace', fontSize: '28px', color: '#ff3aa0' }).setOrigin(0.5);
-      scene.add.text(620, 188, '24 HRS', { fontFamily: 'monospace', fontSize: '18px', color: '#3a2030' }).setOrigin(0.5);
+      const t = uiText(scene, 480, 130, 'THE MERIDIAN', { fontSize: '52px', color: '#ff3aa0' }).setOrigin(0.5);
+      uiText(scene, 480, 185, 'OPEN', { fontSize: '28px', color: '#ff3aa0' }).setOrigin(0.5);
+      uiText(scene, 620, 188, '24 HRS', { fontSize: '18px', color: '#3a2030' }).setOrigin(0.5);
       scene.tweens.add({ targets: t, alpha: 0.7, duration: 90, yoyo: true, repeat: -1, repeatDelay: 2200 });
       for (let i = 0; i < 4; i++) scene.add.rectangle(480, 290 + i * 45, 900, 8, 0x2a2430);
       scene.add.rectangle(300, 430, 60, 80, 0x3a2a3a);
-      scene.add.text(300, 400, 'VALET', { fontFamily: 'monospace', fontSize: '10px', color: '#c8a0b0' }).setOrigin(0.5);
+      uiText(scene, 300, 400, 'VALET', { fontSize: '10px', color: '#c8a0b0' }).setOrigin(0.5);
       scene.add.rectangle(700, 400, 90, 150, 0x2a1a2a);
       scene.add.rectangle(700, 400, 70, 138, 0xf2c078, 0.25);
       scene.add.rectangle(480, 505, 960, 70, 0x1a1820);
@@ -95,7 +96,7 @@ const INTROS = {
       scene.add.rectangle(660, 232, 420, 8, 0x241a16);
       const win = scene.add.rectangle(560, 340, 130, 110, 0xf2c078, 0.85);
       scene.tweens.add({ targets: win, alpha: 0.6, duration: 1200, yoyo: true, repeat: -1 });
-      scene.add.text(596, 260, 'LE  RÊVE', { fontFamily: 'monospace', fontSize: '28px', color: '#f2d580' });
+      uiText(scene, 596, 260, 'LE  RÊVE', { fontSize: '28px', color: '#f2d580' });
       scene.add.rectangle(700, 395, 70, 160, 0x241a16);
       scene.add.rectangle(700, 395, 58, 148, 0x4a3428);
       scene.add.circle(682, 400, 4, 0xd8b858);
@@ -121,13 +122,13 @@ const INTROS = {
       scene.add.rectangle(480, 505, 960, 70, 0x201014);
       // poster
       scene.add.rectangle(360, 310, 150, 200, 0xe8dcc8).setAngle(-3);
-      scene.add.text(310, 240, 'TONIGHT\n ONLY\n\n  JO', { fontFamily: 'monospace', fontSize: '22px', color: '#2a1218', align: 'center' }).setAngle(-3);
+      uiText(scene, 310, 240, 'TONIGHT\n ONLY\n\n  JO', { fontSize: '22px', color: '#2a1218', align: 'center' }).setAngle(-3);
       // caged stage-door lamp + metal door
       scene.add.rectangle(700, 395, 76, 160, 0x101014);
       scene.add.rectangle(700, 395, 64, 148, 0x2e3440);
       scene.add.circle(700, 290, 12, 0xf2d580);
       scene.add.circle(700, 292, 26, 0xf2c078, 0.15);
-      scene.add.text(646, 428, 'STAGE DOOR', { fontFamily: 'monospace', fontSize: '13px', color: '#8a8aa8' });
+      uiText(scene, 646, 428, 'STAGE DOOR', { fontSize: '13px', color: '#8a8aa8' });
       return { groundY: 470 };
     },
   },
@@ -150,11 +151,11 @@ const INTROS = {
       }
       // the hand-painted sign
       scene.add.rectangle(600, 320, 330, 54, 0x3a3428);
-      scene.add.text(600, 308, "ADAEZE'S", { fontFamily: 'monospace', fontSize: '26px', color: '#f2d580' }).setOrigin(0.5);
-      scene.add.text(600, 334, 'BOXING · POOL · "COME AS YOU ARE."', { fontFamily: 'monospace', fontSize: '11px', color: '#c8c0b0' }).setOrigin(0.5);
+      uiText(scene, 600, 308, "ADAEZE'S", { fontSize: '26px', color: '#f2d580' }).setOrigin(0.5);
+      uiText(scene, 600, 334, 'BOXING · POOL · "COME AS YOU ARE."', { fontSize: '11px', color: '#c8c0b0' }).setOrigin(0.5);
       // the recruitment poster on the fence
       scene.add.rectangle(330, 420, 120, 88, 0x2e3a52).setAngle(-2);
-      scene.add.text(330, 420, 'MERIDIAN\nORBITAL\nPROGRAM', { fontFamily: 'monospace', fontSize: '11px', color: '#88b8d8', align: 'center' }).setOrigin(0.5).setAngle(-2);
+      uiText(scene, 330, 420, 'MERIDIAN\nORBITAL\nPROGRAM', { fontSize: '11px', color: '#88b8d8', align: 'center' }).setOrigin(0.5).setAngle(-2);
       // door
       scene.add.rectangle(700, 400, 70, 150, 0x241a16);
       scene.add.rectangle(700, 400, 58, 138, 0x3a3428);
@@ -189,18 +190,19 @@ export default class IntroScene extends Phaser.Scene {
     this.cameras.main.centerOn(430, 360);
     this.cameras.main.fadeIn(500);
 
-    this.add
-      .text(480, 90, intro.caption, { fontFamily: 'monospace', fontSize: '34px', color: '#f2d580' })
+    // the caption is screen text (UIScene, zoom 1): the street shot is zoomed
+    uiText(this, 480, 60, intro.caption, { size: 'display', scale: 2, color: '#f2d580' })
       .setOrigin(0.5)
-      .setDepth(10);
-    this.add
-      .text(480, 125, intro.sub, { fontFamily: 'monospace', fontSize: '15px', color: '#c8c0b0' })
-      .setOrigin(0.5)
-      .setDepth(10);
-    this.add
-      .text(480, 520, '[X] skip', { fontFamily: 'monospace', fontSize: '12px', color: '#8a8478' })
-      .setOrigin(0.5)
-      .setDepth(10);
+      .setScrollFactor(0)
+      .setDepth(150);
+    uiText(this, 480, 100, intro.sub, { size: 'body', color: '#c8c0b0', align: 'center', wrap: 860 })
+      .setOrigin(0.5, 0)
+      .setScrollFactor(0)
+      .setDepth(150);
+    uiText(this, 944, 524, '[X] skip', { size: 'small', color: 'ink-dim' })
+      .setOrigin(1, 1)
+      .setScrollFactor(0)
+      .setDepth(150);
 
     this.walkTimer = this.time.addEvent({
       delay: 130,

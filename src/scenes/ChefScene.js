@@ -12,6 +12,8 @@ import chefTiles from '../data/chef/tiles.js';
 import { freezerValve, ticketRail, piping } from '../systems/puzzles.js';
 import { completeDream, recordMoment, markMet } from '../utils/save.js';
 import { sfx, music, sting } from '../systems/audio.js';
+import { uiText } from '../ui/text.js';
+import { hud, TOOL_BARS } from '../ui/hud.js';
 
 const T = 32;
 const overlaps = (a, b) => Phaser.Geom.Intersects.RectangleToRectangle(a, b);
@@ -92,11 +94,7 @@ export default class ChefScene extends BaseLevel {
     this.physics.add.overlap(this.player, this.flags, (_p, f) => this.activateCheckpoint(f));
     this.physics.add.overlap(this.player, this.orbs, (_p, o) => this.catchOrb(o));
 
-    this.promptText = this.add
-      .text(0, 0, '[E]', { fontFamily: 'monospace', fontSize: '13px', color: '#f2d580', backgroundColor: '#14101c' })
-      .setOrigin(0.5)
-      .setDepth(80)
-      .setVisible(false);
+    this.promptText = hud.prompt(); // the HUD's interact prompt, pinned over the world point
 
     this.setObjective('find the service entrance');
     music.bass();
@@ -216,14 +214,12 @@ export default class ChefScene extends BaseLevel {
       this.player.controlLockUntil = this.time.now + 5000;
       this.player.body.setVelocity(0, 0);
       const cam = this.cameras.main;
-      const t1 = this.add
-        .text(cam.width / 2, cam.height - 150, m.sub, { fontFamily: 'monospace', fontSize: '14px', color: '#c8c0b0' })
+      const t1 = uiText(this, cam.width / 2, cam.height - 150, m.sub, { fontSize: '14px', color: '#c8c0b0' })
         .setOrigin(0.5)
         .setScrollFactor(0)
         .setDepth(160)
         .setAlpha(0);
-      const t2 = this.add
-        .text(cam.width / 2, cam.height - 120, m.text, { fontFamily: 'monospace', fontSize: '17px', color: '#f2e0a0', fontStyle: 'italic' })
+      const t2 = uiText(this, cam.width / 2, cam.height - 120, m.text, { fontSize: '17px', color: '#f2e0a0' })
         .setOrigin(0.5)
         .setScrollFactor(0)
         .setDepth(160)
@@ -290,9 +286,13 @@ export default class ChefScene extends BaseLevel {
   buildFreezer() {
     this.coldMax = 40 - 4 * this.difficulty;
     this.cold = this.coldMax;
-    this.coldBar = this.add.rectangle(28, 78, 90, 10, 0x88b8d8).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150).setVisible(false);
+    // the cold meter: the tool slot, top-right (HudGrid)
+    const B = TOOL_BARS;
+    const cy0 = this.hud.toolBottom() + 4;
+    this.coldBar = this.add.rectangle(B.right - B.w, cy0, B.w, 10, 0x88b8d8).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150).setVisible(false);
+    this.coldLabel = uiText(this, B.right - B.w - 8, cy0, 'COLD', { size: 'small', color: '#88b8d8' }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(150).setVisible(false);
     this.coldBarBg = this.add
-      .rectangle(28, 78, 90, 10, 0x2a2a34)
+      .rectangle(B.right - B.w, cy0, B.w, 10, 0x2a2a34)
       .setOrigin(0, 0.5)
       .setScrollFactor(0)
       .setDepth(149)
@@ -457,8 +457,9 @@ export default class ChefScene extends BaseLevel {
       }
     }, { once: false, when: () => this.rush && this.rush.active });
     const cam = this.cameras.main;
-    this.rushBarBg = this.add.rectangle(cam.width / 2, 24, 300, 14, 0x2a2a34).setScrollFactor(0).setDepth(150);
-    this.rushBar = this.add.rectangle(cam.width / 2 - 150, 24, 300, 14, 0xe86a6a).setOrigin(0, 0.5).setScrollFactor(0).setDepth(151);
+    // the service clock: top centre, under the goal line
+    this.rushBarBg = this.add.rectangle(cam.width / 2, 66, 300, 12, 0x2a2a34).setScrollFactor(0).setDepth(150);
+    this.rushBar = this.add.rectangle(cam.width / 2 - 150, 66, 300, 12, 0xe86a6a).setOrigin(0, 0.5).setScrollFactor(0).setDepth(151);
     music.trumpet();
     this.setObjective('RUSH: fish · herbs · bread → the pass');
     this.floatText(this.player.x, this.player.y - 60, 'SERVICE!');
@@ -596,8 +597,7 @@ export default class ChefScene extends BaseLevel {
       .setDepth(60)
       .setStrokeStyle(2, 0xf2d580);
     if (this.orderLabel) this.orderLabel.destroy();
-    this.orderLabel = this.add
-      .text(this.passPoint.x, this.passPoint.y - 96, pick.id.toUpperCase(), { fontFamily: 'monospace', fontSize: '13px', color: '#f2d580' })
+    this.orderLabel = uiText(this, this.passPoint.x, this.passPoint.y - 96, pick.id.toUpperCase(), { fontSize: '13px', color: '#f2d580' })
       .setOrigin(0.5)
       .setDepth(60);
     // wave 2+: a decoy station glows — the icon is the truth
@@ -709,8 +709,8 @@ export default class ChefScene extends BaseLevel {
       this.tweens.add({ targets: b, y: px(29), alpha: 0, duration: 3000, repeat: -1, delay: (c % 3) * 700 });
     });
     // neon sign + posters in the alley
-    this.add.text(px(10), px(28), 'HOTEL MERIDIAN — DELIVERIES', { fontFamily: 'monospace', fontSize: '13px', color: '#8a4a4a' });
-    const neon = this.add.text(px(21), px(30), 'OPEN', { fontFamily: 'monospace', fontSize: '15px', color: '#e86a6a' });
+    uiText(this, px(10), px(28), 'HOTEL MERIDIAN — DELIVERIES', { fontSize: '13px', color: '#8a4a4a' });
+    const neon = uiText(this, px(21), px(30), 'OPEN', { fontSize: '15px', color: '#e86a6a' });
     this.tweens.add({ targets: neon, alpha: 0.2, duration: 900, yoyo: true, repeat: -1 });
   }
 
@@ -864,6 +864,7 @@ export default class ChefScene extends BaseLevel {
   updateFreezer(time, dt, pb) {
     const inZone = this.player.x > px(81) && this.player.x < px(131);
     this.coldBar.setVisible(inZone);
+    this.coldLabel.setVisible(inZone);
     this.coldBarBg.setVisible(inZone);
     if (inZone) {
       let drain = dt;
@@ -871,7 +872,7 @@ export default class ChefScene extends BaseLevel {
         drain = -dt * 6;
       }
       this.cold = Phaser.Math.Clamp(this.cold - drain, 0, this.coldMax);
-      this.coldBar.width = (this.cold / this.coldMax) * 90;
+      this.coldBar.width = (this.cold / this.coldMax) * TOOL_BARS.w;
       if (this.cold <= 0) {
         this.cold = this.coldMax * 0.6;
         this.hurt();

@@ -8,6 +8,8 @@ import EveningScene from './scenes/EveningScene.js';
 import WriterScene from './scenes/WriterScene.js';
 import PainterScene from './scenes/PainterScene.js';
 import GamblerScene from './scenes/GamblerScene.js';
+import UIScene from './ui/UIScene.js';
+import { installAdoption } from './ui/ui.js';
 
 import { applyWarpToLocation, firstSceneKey } from './dev/warp.js';
 import { initFlags } from './core/flags.js';
@@ -15,6 +17,8 @@ import { initFlags } from './core/flags.js';
 // ?warp=<dream>:<place> is rewritten onto the legacy per-scene params (dev only)
 if (import.meta.env.DEV) applyWarpToLocation();
 initFlags(window.location.search);
+// screen-space objects at UI depths move onto UIScene (src/ui/ui.js)
+installAdoption();
 const firstKey = firstSceneKey(window.location.search);
 
 window.game = new Phaser.Game({
@@ -43,7 +47,8 @@ window.game = new Phaser.Game({
     // a dev warp puts its scene first so it boots directly
     const BY_KEY = { Hub: HubScene, Chef: ChefScene, Musician: MusicianScene, Astronaut: AstronautScene, Evening: EveningScene, Writer: WriterScene, Painter: PainterScene, Gambler: GamblerScene };
     const first = BY_KEY[firstKey] || null;
-    return first ? [first, ...ALL.filter((S) => S !== first)] : ALL;
+    // UIScene last: it draws over every gameplay scene, at zoom 1
+    return [...(first ? [first, ...ALL.filter((S) => S !== first)] : ALL), UIScene];
   })(),
 });
 

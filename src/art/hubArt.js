@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { hex, rgba, mix, shade, hsl, fbm, stamp, dab, gradientV, grain, wash, paintTexture } from './paint.js';
+import { paintGlyphs } from '../ui/BitmapFonts.js';
 
 // Crossroads Station, painted. The same toolkit as THE LONG EVENING, the
 // station's own palette: cream stone, brass, dark-green ironwork, warm
@@ -128,20 +129,18 @@ export function pane(ctx, x, y, w, h, o = {}) {
 }
 
 // painted lettering: a serif face, a cut shadow under it, as on a sign
+// (string-art glyphs: `display` for big lettering, `small` under 14 px)
 export function letters(ctx, text, x, y, size, color, o = {}) {
-  const { align = 'center', weight = 'bold', shadow = 0.5, spacing = 0, font = 'Georgia, "Times New Roman", serif' } = o;
-  ctx.save();
-  ctx.font = `${weight} ${size}px ${font}`;
-  ctx.textAlign = align;
-  ctx.textBaseline = 'middle';
-  if (spacing && ctx.letterSpacing !== undefined) ctx.letterSpacing = `${spacing}px`;
+  const { align = 'center', shadow = 0.5 } = o;
+  const big = size >= 14;
+  const g = { size: big ? 'display' : 'small', scale: Math.max(1, Math.round(size / (big ? 18 : 10))), align, baseline: 'middle' };
   if (shadow) {
-    ctx.fillStyle = rgba(INK, shadow);
-    ctx.fillText(text, x + 1, y + 1);
+    ctx.save();
+    ctx.globalAlpha = shadow;
+    paintGlyphs(ctx, text, x + 1, y + 1, { ...g, color: INK });
+    ctx.restore();
   }
-  ctx.fillStyle = hex(color);
-  ctx.fillText(text, x, y);
-  ctx.restore();
+  paintGlyphs(ctx, text, x, y, { ...g, color });
 }
 
 // the last pass on everything: a slow wash so no fill is one colour, and grain

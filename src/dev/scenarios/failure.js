@@ -127,8 +127,10 @@ export const checkpointLabel = {
       sc.placePlayer({ x: f.x, y: f.y - 8 });
       dc.step(6); // the overlap lights it
       const lit = f.texture.key === 'flag-lit';
-      const banner = sc.children.list.find((o) => o.name === 'checkpoint-label');
-      const shown = banner ? banner.text : null;
+      // the banner is screen-space, so it lives on UIScene (phase 1.2)
+      const ui = window.game.scene.getScene('UI');
+      const banner = [...sc.children.list, ...(ui ? ui.children.list : [])].find((o) => o.name === 'checkpoint-label' && o.active);
+      const shown = banner ? banner.rawText || banner.text : null;
       dc.press('esc', 2);
       dc.step(2);
       const menu = sc.pauseMenu.state();

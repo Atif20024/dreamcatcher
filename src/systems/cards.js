@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { paintTexture, hex, rgba } from '../art/paint.js';
 import { getSave } from '../utils/save.js';
+import { paintGlyphs } from '../ui/BitmapFonts.js';
 
 // THE LAST HAND §6 — the engine under the six games: a seeded deck, hand
 // evaluation for blackjack and draw poker, a Tell (a frame and the truth it
@@ -158,17 +159,11 @@ export function cardTextureKey(scene, card, faceDown = false) {
     ctx.fillRect(w - 1, 0, 1, h);
     ctx.fillStyle = rgba(0xc8c0b0, 0.5);
     ctx.fillRect(1, h - 3, w - 2, 2);
-    ctx.fillStyle = SUIT_COLOR[card.s];
-    ctx.font = 'bold 11px monospace';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.fillText(rankLabel(card.r), 3, 2);
-    ctx.font = '12px monospace';
-    ctx.fillText(SUIT_GLYPH[card.s], 3, 13);
-    ctx.font = 'bold 15px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(SUIT_GLYPH[card.s], w / 2 + 4, h / 2 + 8);
+    // rank and suits in the string-art glyphs (ui-type skill)
+    const col = SUIT_COLOR[card.s];
+    paintGlyphs(ctx, rankLabel(card.r), 3, 3, { size: 'small', color: col });
+    paintGlyphs(ctx, SUIT_GLYPH[card.s], 3, 12, { size: 'small', color: col });
+    paintGlyphs(ctx, SUIT_GLYPH[card.s], w / 2 + 3, h / 2 + 8, { size: 'body', color: col, align: 'center', baseline: 'middle' });
   }, `${card.r}${card.s}`);
   return key;
 }

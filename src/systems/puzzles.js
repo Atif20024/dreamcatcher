@@ -1,63 +1,51 @@
 import Phaser from 'phaser';
 import { sfx, trumpet } from './audio.js';
+import ModalManager from '../ui/ModalManager.js';
+import { uiText } from '../ui/text.js';
+import { panel, dim } from '../ui/Panel.js';
 
 // Full-screen modal puzzle overlays. Keyboard-driven. Each puzzle resolves
 // true on success; Esc closes (retry later). scene.puzzleActive gates update.
 
+// A puzzle / card-game panel: a ModalManager modal ('encounter'), so a
+// tutorial card opened with it goes on top and keys reach only the top one.
 export class Modal {
   constructor(scene, title, instruction) {
     this.scene = scene;
     const cam = scene.cameras.main;
     this.objs = [];
     scene.puzzleActive = true;
-    scene.physics.pause();
     const depth = 300;
     this.depth = depth;
-    this.add(scene.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x000000, 0.8).setScrollFactor(0).setDepth(depth));
+    this.handle = ModalManager.for(scene).open({
+      kind: 'encounter',
+      name: title,
+      freeze: 'physics',
+      onKey: (e) => this.keyHandler && this.keyHandler(e),
+    });
+    const cx = cam.width / 2;
+    const cy = cam.height / 2;
+    this.add(dim(scene, 0.8, depth));
+    this.add(panel(scene, cx, cy, 880, 500, { depth, accent: 0xd8b858 }));
+    this.add(uiText(scene, cx, cy - 226, title, { size: 'body', color: 'accent', align: 'center' }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(depth + 1)).name = 'modal-title';
     this.add(
-      scene.add
-        .rectangle(cam.width / 2, cam.height / 2, 620, 400, 0x181420, 0.98)
-        .setScrollFactor(0)
-        .setDepth(depth)
-        .setStrokeStyle(2, 0xd8b858)
-    );
-    this.add(
-      scene.add
-        .text(cam.width / 2, cam.height / 2 - 170, title, { fontFamily: 'monospace', fontSize: '22px', color: '#f2d580' })
-        .setOrigin(0.5)
-        .setScrollFactor(0)
-        .setDepth(depth + 1)
-    );
-    this.add(
-      scene.add
-        .text(cam.width / 2, cam.height / 2 - 140, instruction, {
-          fontFamily: 'monospace',
-          fontSize: '13px',
-          color: '#c8c0b0',
-          align: 'center',
-        })
-        .setOrigin(0.5)
+      uiText(scene, cx, cy - 196, instruction, { size: 'small', color: 'ink-dim', align: 'center', wrap: 820, lineSpacing: 2 })
+        .setOrigin(0.5, 0)
         .setScrollFactor(0)
         .setDepth(depth + 1)
     );
-    this.add(
-      scene.add
-        .text(cam.width / 2, cam.height / 2 + 180, '[Esc] step away', { fontFamily: 'monospace', fontSize: '11px', color: '#6a6478' })
-        .setOrigin(0.5)
-        .setScrollFactor(0)
-        .setDepth(depth + 1)
-    );
+    this.add(uiText(scene, cx + 420, cy + 236, '[Esc] step away', { size: 'small', color: 'ink-dim' }).setOrigin(1, 1).setScrollFactor(0).setDepth(depth + 1));
   }
 
   add(o) {
     this.objs.push(o);
+    if (this.handle) this.handle.add(o);
     return o;
   }
 
   text(x, y, str, size = 15, color = '#e8dcc8') {
     return this.add(
-      this.scene.add
-        .text(x, y, str, { fontFamily: 'monospace', fontSize: `${size}px`, color, align: 'center' })
+      uiText(this.scene, x, y, str, { fontSize: size, color, align: 'center', screen: true })
         .setOrigin(0.5)
         .setScrollFactor(0)
         .setDepth(this.depth + 2)
@@ -65,10 +53,12 @@ export class Modal {
   }
 
   close(result, resolve) {
-    this.scene.input.keyboard.off('keydown', this.keyHandler);
+    this.keyHandler = null;
+    const h = this.handle;
+    this.handle = null;
     this.objs.forEach((o) => o.destroy());
-    this.scene.puzzleActive = false;
-    if (!this.scene.cardActive && !this.scene.dialogActive) this.scene.physics.resume();
+    if (h) h.close();
+    this.scene.puzzleActive = !!(this.scene.modals && this.scene.modals.has('encounter'));
     resolve(result);
   }
 
@@ -80,7 +70,6 @@ export class Modal {
       }
       fn(e.code);
     };
-    this.scene.input.keyboard.on('keydown', this.keyHandler);
   }
 }
 

@@ -111,8 +111,10 @@ const dc = {
     if (d.param) url.searchParams.set(d.param, place || d.fallback);
     window.history.replaceState(null, '', url);
     const g = game();
-    g.scene.getScenes(true).forEach((s) => g.scene.stop(s.sys.settings.key));
+    // every gameplay scene stops; UIScene stays up over the next one
+    g.scene.getScenes(true).forEach((s) => s.sys.settings.key !== 'UI' && g.scene.stop(s.sys.settings.key));
     g.scene.start(d.scene);
+    if (!g.scene.isActive('UI')) g.scene.start('UI');
     dc.step(2);
     return dc.state();
   },

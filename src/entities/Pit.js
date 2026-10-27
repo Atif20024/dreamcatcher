@@ -1,5 +1,6 @@
 import { D } from '../builders/depths.js';
 import { frameKeys } from '../utils/pixelart.js';
+import { uiText } from '../ui/text.js';
 
 // THE LAST HAND §2 — The Pit. A pit boss who follows Jo at half his speed
 // once Jo is "up" more than ten chips. Never grabs, never speaks; every
@@ -17,7 +18,7 @@ export default class Pit {
     this.phase = 0;
     this.art = scene.add.image(x, y, 'foe-pit').setOrigin(0.5, 1).setDepth(D.FOE - 0.5).setVisible(false);
     this.shadow = scene.add.image(x, y - 1, 'gm-shadow').setDepth(D.FOE - 1).setAlpha(0.8).setVisible(false);
-    this.label = scene.add.text(x, y - 60, 'THE PIT', { fontFamily: 'monospace', fontSize: '9px', color: '#c8c0b0' }).setOrigin(0.5).setDepth(D.FOE).setVisible(false);
+    this.label = uiText(scene, x, y - 60, 'THE PIT', { fontSize: '9px', color: '#c8c0b0' }).setOrigin(0.5).setDepth(D.FOE).setVisible(false);
   }
 
   start(fromX, y) {

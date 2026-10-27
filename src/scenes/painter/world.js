@@ -7,6 +7,7 @@ import { sfx } from '../../systems/audio.js';
 import { showTutorial } from '../../systems/tutorial.js';
 import { recordMoment } from '../../utils/save.js';
 import { T, px, overlaps, hex } from './util.js';
+import { uiText } from '../../ui/text.js';
 
 // THE YELLOW HOUSE — the world: everything rooms.js places, built. Mixed into
 // PainterScene.prototype.
@@ -196,26 +197,28 @@ export default {
     return new Promise((resolve) => {
       const cam = this.cameras.main;
       this.puzzleActive = true;
-      this.physics.pause();
       const lines = LETTERS[id] || ['—'];
-      const objs = [];
-      objs.push(this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x000000, 0.55).setScrollFactor(0).setDepth(300));
-      objs.push(this.add.rectangle(cam.width / 2, cam.height / 2, 560, 60 + lines.length * 26, 0xf2ece0, 0.98).setScrollFactor(0).setDepth(301).setStrokeStyle(2, 0x1f3a5f).setAngle(-1.5));
-      lines.forEach((l, i) => {
-        const t = this.add.text(cam.width / 2 - 250, cam.height / 2 - (lines.length * 26) / 2 + i * 26, l, { fontFamily: 'monospace', fontSize: '14px', color: '#1f3a5f', fontStyle: 'italic' }).setScrollFactor(0).setDepth(302).setAngle(-1.5);
+      const handle = ModalManager.for(this).open({ kind: 'card', name: `letter:${id}`, freeze: 'physics', guardMs: 300, onKey: () => close() });
+      const LH = 30;
+      handle.add(this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x000000, 0.55).setScrollFactor(0).setDepth(300));
+      const texts = lines.map((l) => uiText(this, 0, 0, l, { size: 'body', color: '#1f3a5f', wrap: 620 }).setScrollFactor(0).setDepth(302).setAngle(-1.5));
+      const W = Math.max(...texts.map((t) => t.width)) + 60;
+      const H = texts.reduce((h, t) => h + Math.max(LH, t.height + 6), 0) + 50;
+      handle.add(this.add.rectangle(cam.width / 2, cam.height / 2, W, H, 0xf2ece0, 0.98).setScrollFactor(0).setDepth(301).setStrokeStyle(2, 0x1f3a5f).setAngle(-1.5));
+      let y = cam.height / 2 - H / 2 + 25;
+      texts.forEach((t, i) => {
+        t.setPosition(Math.round(cam.width / 2 - W / 2 + 30), Math.round(y));
+        y += Math.max(LH, t.height + 6);
         this.tweens.add({ targets: t, y: t.y + 1, duration: 300 + i * 40, yoyo: true, repeat: -1 });
-        objs.push(t);
+        handle.add(t);
       });
-      objs.push(this.add.text(cam.width / 2, cam.height / 2 + (lines.length * 26) / 2 + 36, '[any key]', { fontFamily: 'monospace', fontSize: '11px', color: '#8a8478' }).setOrigin(0.5).setScrollFactor(0).setDepth(302));
+      handle.add(uiText(this, cam.width / 2, cam.height / 2 + H / 2 + 22, '[any key]', { size: 'small', color: 'ink-dim' }).setOrigin(0.5).setScrollFactor(0).setDepth(302));
       sfx('clack');
       const close = () => {
-        this.input.keyboard.off('keydown', close);
-        objs.forEach((o) => o.destroy());
-        this.puzzleActive = false;
-        if (!this.cardActive && !this.dialogActive) this.physics.resume();
+        handle.close();
+        this.puzzleActive = !!this.modals.has('encounter');
         resolve();
       };
-      this.time.delayedCall(300, () => this.input.keyboard.on('keydown', close));
     });
   },
 
@@ -393,7 +396,7 @@ export default {
     const def = SUBJECTS.find((s) => s.id === o.id);
     if (!def) return;
     const y = o.wy - 44;
-    const mark = this.add.text(o.wx, y, `✦ ${def.title}`, { fontFamily: 'monospace', fontSize: '11px', color: '#f2e0a0', backgroundColor: '#14101c' }).setOrigin(0.5).setDepth(21).setAlpha(0.85);
+    const mark = uiText(this, o.wx, y, `✦ ${def.title}`, { fontSize: '11px', color: '#f2e0a0', backgroundColor: '#14101c' }).setOrigin(0.5).setDepth(21).setAlpha(0.85);
     this.tweens.add({ targets: mark, y: y - 5, duration: 1300, yoyo: true, repeat: -1, ease: 'sine.inout' });
     this.subjects[o.id] = { def, mark, done: false, x: o.wx, y: o.wy };
   },
@@ -691,8 +694,8 @@ export default {
       const beam = this.add.rectangle(x - 80, y + 10, 40, 60, 0xfff2a0, 0.18).setDepth(13).setBlendMode(Phaser.BlendModes.ADD);
       this.tweens.add({ targets: beam, x: x + 80, duration: 8000, onComplete: () => beam.destroy() });
       const cam = this.cameras.main;
-      const t1 = this.add.text(cam.width / 2, cam.height - 150, m.sub, { fontFamily: 'monospace', fontSize: '14px', color: '#c8c0b0', align: 'center', wordWrap: { width: 700 } }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
-      const t2 = this.add.text(cam.width / 2, cam.height - 116, m.text, { fontFamily: 'monospace', fontSize: '17px', color: '#f2e0a0', fontStyle: 'italic' }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
+      const t1 = uiText(this, cam.width / 2, cam.height - 150, m.sub, { fontSize: '14px', color: '#c8c0b0', align: 'center', wordWrap: { width: 700 } }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
+      const t2 = uiText(this, cam.width / 2, cam.height - 116, m.text, { fontSize: '17px', color: '#f2e0a0' }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
       this.tweens.add({ targets: [t1, t2], alpha: 1, duration: 900 });
       this.time.delayedCall(8000, () => this.tweens.add({ targets: [t1, t2], alpha: 0, duration: 800, onComplete: () => [t1, t2].forEach((t) => t.destroy()) }));
     }, { when: () => need[id]() });

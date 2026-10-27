@@ -1,4 +1,7 @@
 import { getSave, markSeen } from '../utils/save.js';
+import ModalManager from '../ui/ModalManager.js';
+import { uiText } from '../ui/text.js';
+import { panel, dim } from '../ui/Panel.js';
 
 // D8 — just-in-time tutorials. The first time a save meets a mechanic,
 // freeze for a card; dismiss on the key. Never shown twice.
@@ -52,6 +55,10 @@ const CARDS = {
   currents: { name: 'THE CURRENTS', hint: 'the sky carries you. jump to leave it', key: 'SPACE' },
 };
 
+// The card is a ModalManager modal ('tutorial'): it goes on top of an
+// encounter panel that opened with it (the BET card over the stake
+// selector), waits under a death or pause card, and is cleared by the death
+// card. It sizes itself to its text, so a long hint never spills out.
 export function showTutorial(scene, id) {
   if (!CARDS[id]) return false;
   const save = getSave();
@@ -60,45 +67,34 @@ export function showTutorial(scene, id) {
 
   const c = CARDS[id];
   const cam = scene.cameras.main;
+  const cx = cam.width / 2;
+  const cy = cam.height / 2;
   scene.tutorialActive = true;
-  scene.physics.pause();
-
   const depth = 240;
-  const objs = [
-    scene.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x000000, 0.55).setScrollFactor(0).setDepth(depth),
-    scene.add
-      .rectangle(cam.width / 2, cam.height / 2, 380, 130, 0x14101c, 0.97)
-      .setScrollFactor(0)
-      .setDepth(depth + 1)
-      .setStrokeStyle(2, 0xf2d580),
-    scene.add
-      .text(cam.width / 2, cam.height / 2 - 32, c.name, { fontFamily: 'monospace', fontSize: '20px', color: '#f2d580' })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(depth + 2),
-    scene.add
-      .text(cam.width / 2, cam.height / 2 + 2, c.hint, { fontFamily: 'monospace', fontSize: '15px', color: '#e8dcc8' })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(depth + 2),
-    scene.add
-      .text(cam.width / 2, cam.height / 2 + 38, c.key ? `[ ${c.key} ]` : '[ any key ]', {
-        fontFamily: 'monospace',
-        fontSize: '16px',
-        color: '#88b8d8',
-      })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(depth + 2),
-  ];
-
-  const close = () => {
-    scene.input.keyboard.off('keydown', handler);
-    objs.forEach((o) => o.destroy());
-    scene.tutorialActive = false;
-    if (!scene.cardActive && !scene.dialogActive && !scene.puzzleActive) scene.physics.resume();
-  };
-  const handler = () => close();
-  scene.time.delayedCall(250, () => scene.input.keyboard.on('keydown', handler));
+  const h = ModalManager.for(scene).open({
+    kind: 'tutorial',
+    name: `tutorial:${id}`,
+    freeze: 'physics',
+    guardMs: 250,
+    onKey: () => h.close(),
+    onClose: () => {
+      scene.tutorialActive = !!(scene.modals && scene.modals.has('tutorial'));
+    },
+  });
+  h.cardId = id;
+  const t = (y, str, opts) => h.add(uiText(scene, cx, y, str, { align: 'center', ...opts }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(depth + 2));
+  const name = t(0, c.name, { size: 'display', color: 'accent' });
+  name.name = 'tutorial-name';
+  const hint = t(0, c.hint, { size: 'body', color: 'ink', wrap: 520 });
+  const key = t(0, c.key ? `[ ${c.key} ]` : '[ any key ]', { size: 'small', color: 'calm' });
+  const W = Math.max(360, Math.min(600, Math.max(name.width, hint.width, key.width) + 64));
+  const H = 24 + name.height + 14 + hint.height + 16 + key.height + 22;
+  let y = Math.round(cy - H / 2) + 24;
+  for (const o of [name, hint, key]) {
+    o.setY(y);
+    y += o.height + (o === name ? 14 : 16);
+  }
+  h.add(dim(scene, 0.55, depth));
+  h.add(panel(scene, cx, cy, W, H, { depth: depth + 1, accent: 0xe9b84a }));
   return true;
 }

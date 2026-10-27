@@ -5,6 +5,7 @@ import { showTutorial } from '../systems/tutorial.js';
 import { frameKeys } from '../utils/pixelart.js';
 import { D } from '../builders/depths.js';
 import { resolveSlope } from './slopes.js';
+import { uiText } from '../ui/text.js';
 
 const T = 32;
 
@@ -160,8 +161,7 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
     }
     const alert = this.state === 'alert' || this.state === 'windup';
     if (alert && !this.alertMark) {
-      this.alertMark = this.scene.add
-        .text(this.x, this.y - 34, '!', { fontFamily: 'monospace', fontSize: '18px', color: '#f2d580' })
+      this.alertMark = uiText(this.scene, this.x, this.y - 34, '!', { fontSize: '18px', color: '#f2d580' })
         .setOrigin(0.5)
         .setDepth(D.FOE + 1);
     } else if (!alert && this.alertMark) {
@@ -236,7 +236,7 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
     if (this.asleep || this.def.pushes) {
       this.setVelocityX(0);
       if (this.asleep && !this.zz) {
-        this.zz = this.scene.add.text(this.x + 10, this.y - 30, 'z', { fontFamily: 'monospace', fontSize: '12px', color: '#c8c0b0' }).setDepth(D.FOE + 1);
+        this.zz = uiText(this.scene, this.x + 10, this.y - 30, 'z', { fontSize: '12px', color: '#c8c0b0' }).setDepth(D.FOE + 1);
       } else if (!this.asleep && this.zz) {
         this.zz.destroy();
         this.zz = null;

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { EV } from '../../data/evening/map.js';
 import { isSolidChar, roleOf, slopeSurface } from '../../builders/legend.js';
+import { uiText } from '../../ui/text.js';
 
 // THE LONG EVENING — the world's furniture and the ground queries every
 // walker in it uses. Split out of EveningScene so the scene can be read as
@@ -176,7 +177,7 @@ export function buildWorld(scene, objects) {
         scene.add.rectangle(o.wx, y - 20, 4, 40, 0x6a4a32).setDepth(6);
         const w = o.text.length * 7 + 16;
         scene.add.rectangle(o.wx, y - 40, w, 18, 0xe8dcc0).setDepth(6).setStrokeStyle(2, 0x6a4a32).setAngle(-2);
-        scene.add.text(o.wx, y - 40, o.text, { fontFamily: 'monospace', fontSize: '11px', color: '#3a2a22' }).setOrigin(0.5).setDepth(6.1).setAngle(-2);
+        uiText(scene, o.wx, y - 40, o.text, { fontSize: '11px', color: '#3a2a22' }).setOrigin(0.5).setDepth(6.1).setAngle(-2);
         break;
       }
       case 'bench': {
@@ -265,7 +266,7 @@ export function buildWorld(scene, objects) {
       case 'bakery': {
         const b = stand('ev-bakery', o, -11);
         out.bakery = { x: o.wx, y: b.y };
-        scene.add.text(o.wx - 20, b.y - 52, 'BREAD', { fontFamily: 'monospace', fontSize: '10px', color: '#3a2a22' }).setOrigin(0.5).setDepth(-10.9);
+        uiText(scene, o.wx - 20, b.y - 52, 'BREAD', { fontSize: '10px', color: '#3a2a22' }).setOrigin(0.5).setDepth(-10.9);
         break;
       }
       case 'step': {
@@ -411,7 +412,7 @@ export function buildWorld(scene, objects) {
       }
       case 'board': {
         const b = stand('ev-board', o, -10.4);
-        const txt = scene.add.text(o.wx, b.y - 38, '— — —', { fontFamily: 'monospace', fontSize: '12px', color: '#f2e6cc' }).setOrigin(0.5).setDepth(-10.3);
+        const txt = uiText(scene, o.wx, b.y - 38, '— — —', { fontSize: '12px', color: '#f2e6cc' }).setOrigin(0.5).setDepth(-10.3);
         out.board = { x: o.wx, y: b.y, txt };
         break;
       }
