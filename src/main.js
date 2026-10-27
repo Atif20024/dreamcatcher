@@ -9,12 +9,13 @@ import WriterScene from './scenes/WriterScene.js';
 import PainterScene from './scenes/PainterScene.js';
 import GamblerScene from './scenes/GamblerScene.js';
 
-const params = new URLSearchParams(window.location.search);
-const warpTo = params.get('at');
-const eveningAt = params.get('ev');
-const writerAt = params.get('wr');
-const painterAt = params.get('pt');
-const gamblerAt = params.get('gm');
+import { applyWarpToLocation, firstSceneKey } from './dev/warp.js';
+import { initFlags } from './core/flags.js';
+
+// ?warp=<dream>:<place> is rewritten onto the legacy per-scene params (dev only)
+if (import.meta.env.DEV) applyWarpToLocation();
+initFlags(window.location.search);
+const firstKey = firstSceneKey(window.location.search);
 
 window.game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -40,7 +41,11 @@ window.game = new Phaser.Game({
   scene: (() => {
     const ALL = [HubScene, IntroScene, MusicianScene, ChefScene, AstronautScene, EveningScene, WriterScene, PainterScene, GamblerScene];
     // a dev warp puts its scene first so it boots directly
-    const first = painterAt ? PainterScene : gamblerAt ? GamblerScene : writerAt ? WriterScene : eveningAt ? EveningScene : warpTo ? AstronautScene : null;
+    const BY_KEY = { Hub: HubScene, Chef: ChefScene, Musician: MusicianScene, Astronaut: AstronautScene, Evening: EveningScene, Writer: WriterScene, Painter: PainterScene, Gambler: GamblerScene };
+    const first = BY_KEY[firstKey] || null;
     return first ? [first, ...ALL.filter((S) => S !== first)] : ALL;
   })(),
 });
+
+// dev-only harness (window.__dc); stripped from production builds
+if (import.meta.env.DEV) import('./dev/harness.js');
