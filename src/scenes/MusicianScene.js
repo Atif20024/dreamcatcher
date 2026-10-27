@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import Player from '../entities/Player.js';
 import BaseLevel from './BaseLevel.js';
 import { THEMES } from '../themes/index.js';
+import { lightThemeProps } from '../art/levelArt.js';
 import { M_DIALOGUES, M_MOMENTS, SONGS, noRests, ZONES, GROUND } from '../data/musicianData.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
 import Parallax from '../builders/parallax.js';
@@ -10,7 +11,8 @@ import musicianRooms from '../data/musician/rooms.js';
 import musicianTiles from '../data/musician/tiles.js';
 import Phrases from '../systems/rhythm.js';
 import { tuning, playTheRoom, theMix } from '../systems/puzzles.js';
-import { completeDream } from '../utils/save.js';
+import { completeDream, recordMoment, markMet, updateSave } from '../utils/save.js';
+import { addCoins } from '../systems/wallet.js';
 import { sfx, music, sting, trumpet, bassNote } from '../systems/audio.js';
 
 const T = 32;
@@ -25,6 +27,7 @@ export default class MusicianScene extends BaseLevel {
   create() {
     this.theme = THEMES.musician;
     this.theme.createTextures(this);
+    lightThemeProps(this, ['mus-']);
 
     // D2/D3 — generic RoomBuilder terrain: autotiled, supported, with slopes,
     // stairs, one-ways and the climbable fire-escape wall.
@@ -41,11 +44,14 @@ export default class MusicianScene extends BaseLevel {
     this.solids = built.solids;
     this.oneWays = built.oneWays;
     this.slopeGrid = built.slopeGrid;
+    this.solidGrid = built.solidGrid;
     this.climbGrid = built.climbGrid;
 
     const spawn = { x: px(3), y: px(GROUND - 2) };
     this.player = new Player(this, spawn.x, spawn.y);
     this.player.keys = this.input.keyboard.addKeys('W,A,S,D,SPACE,X,E,Q,F');
+    this.dreamCoinId = 'musician';
+    markMet('musician');
     this.setupCommon({ worldW, worldH, levelName: 'DREAM — THE BIG STAGE', spawn });
 
     this.F = {};
@@ -77,6 +83,7 @@ export default class MusicianScene extends BaseLevel {
     this.initFoes('musician');
     this.spawnRoomFoes(built.objects, (o) => o.human);
     this.addHideSpots(built.objects);
+    this.spawnPickups(built.objects);
 
     this.buildGates();
     this.buildDay0();
@@ -189,6 +196,7 @@ export default class MusicianScene extends BaseLevel {
     this.addInteract(x, y, 'pause', () => {
       const m = M_MOMENTS[id];
       this.moments += 1;
+      recordMoment('musician', id);
       this.setFlag(id);
       sfx('chime');
       this.player.controlLockUntil = this.time.now + 5000;
@@ -455,6 +463,8 @@ export default class MusicianScene extends BaseLevel {
     this.addInteract(px(275), px(35), 'shelter under the bridge', async () => {
       const choice = await this.dialog.show(M_DIALOGUES.d8);
       this.F.marcus_left = choice || 'silent';
+      // the evening needs to know whether Marcus went home to his daughter
+      updateSave((sv) => (sv.cast.marcus_left = this.F.marcus_left));
       await this.dialog.show(M_DIALOGUES[`d8_${this.F.marcus_left}`]);
       this.setFlag('d8_done');
       if (this.F.marcus_left !== 'stay') {
@@ -880,6 +890,7 @@ export default class MusicianScene extends BaseLevel {
     }
 
     this.updateMusicRoom(); // D7 room-driven mix
+    this.updatePickups(time, delta);
     this.updateFoes(time); // D6 people: patrol / alert / grab / stagger
     this.updateBusking(time);
     this.updateHazards(time, pb, dt);
@@ -952,6 +963,12 @@ export default class MusicianScene extends BaseLevel {
             if (passes > 0) {
               const got = 1 + Math.floor(Math.random() * 2);
               this.coins += got;
+              if (got > 0) {
+                addCoins('musician', got); // busking pays the wallet too
+                this.levelCoins += got;
+                this.coinsSinceCP += got;
+                this.updateCoinHud();
+              }
               sfx('pickup');
               this.floatText(this.caseDown ? this.caseDown.x : this.player.x, this.player.y - 40, `+${got}¢`);
             }

@@ -5,6 +5,80 @@ import { toggleMusic } from '../systems/audio.js';
 
 // Close-up entry shots: a zoomed street scene, Jo walks to the door, fade in.
 const INTROS = {
+  painter: {
+    caption: 'THE YELLOW HOUSE',
+    sub: 'The south, at the first hour of light. A house with no curtains.',
+    doorX: 700,
+    draw(scene) {
+      const g = scene.add.graphics();
+      g.fillGradientStyle(0x4a5566, 0x4a5566, 0x6b4e2e, 0x6b4e2e, 1);
+      g.fillRect(0, 0, 960, 540);
+      // underpainting: a square of low houses blocked in umber, one of them yellow
+      for (let x = 20; x < 960; x += 150) {
+        const yellow = x === 620;
+        scene.add.rectangle(x + 65, 360, 130, 220, yellow ? 0xe8b830 : 0x5a4530);
+        scene.add.rectangle(x + 65, 240, 140, 24, yellow ? 0xc03a2a : 0x4a5566);
+        for (let wy = 300; wy < 440; wy += 60) scene.add.rectangle(x + 40, wy, 22, 30, yellow ? 0x2e6a4a : 0x3a4455);
+      }
+      scene.add.circle(140, 120, 50, 0xf2d060, 0.95);
+      scene.add.rectangle(480, 505, 960, 70, 0x6b4e2e);
+      scene.add.rectangle(480, 472, 960, 6, 0x5b3a7a);
+      scene.add.rectangle(700, 410, 60, 120, 0x1f3a5f);
+      return { groundY: 470 };
+    },
+  },
+  gambler: {
+    caption: 'THE LAST HAND',
+    sub: 'Rain on a parking structure. The sign is bigger than the sky.',
+    doorX: 700,
+    draw(scene) {
+      const g = scene.add.graphics();
+      g.fillGradientStyle(0x08060c, 0x08060c, 0x1a0e1e, 0x1a0e1e, 1);
+      g.fillRect(0, 0, 960, 540);
+      scene.add.rectangle(480, 150, 760, 150, 0x14101c);
+      const t = scene.add.text(480, 130, 'THE MERIDIAN', { fontFamily: 'monospace', fontSize: '52px', color: '#ff3aa0', fontStyle: 'bold' }).setOrigin(0.5);
+      scene.add.text(480, 185, 'OPEN', { fontFamily: 'monospace', fontSize: '28px', color: '#ff3aa0' }).setOrigin(0.5);
+      scene.add.text(620, 188, '24 HRS', { fontFamily: 'monospace', fontSize: '18px', color: '#3a2030' }).setOrigin(0.5);
+      scene.tweens.add({ targets: t, alpha: 0.7, duration: 90, yoyo: true, repeat: -1, repeatDelay: 2200 });
+      for (let i = 0; i < 4; i++) scene.add.rectangle(480, 290 + i * 45, 900, 8, 0x2a2430);
+      scene.add.rectangle(300, 430, 60, 80, 0x3a2a3a);
+      scene.add.text(300, 400, 'VALET', { fontFamily: 'monospace', fontSize: '10px', color: '#c8a0b0' }).setOrigin(0.5);
+      scene.add.rectangle(700, 400, 90, 150, 0x2a1a2a);
+      scene.add.rectangle(700, 400, 70, 138, 0xf2c078, 0.25);
+      scene.add.rectangle(480, 505, 960, 70, 0x1a1820);
+      scene.add.rectangle(480, 472, 960, 6, 0x2a2834);
+      return { groundY: 470 };
+    },
+  },
+  writer: {
+    caption: 'THE SECOND DRAFT',
+    sub: 'Five a.m. One attic window lit. The rain has just stopped.',
+    doorX: 700,
+    draw(scene) {
+      const g = scene.add.graphics();
+      g.fillGradientStyle(0x0e1020, 0x0e1020, 0x2a2438, 0x2a2438, 1);
+      g.fillRect(0, 0, 960, 540);
+      // a row of tall thin houses, one window lit
+      const rand = new Phaser.Math.RandomDataGenerator(['attic']);
+      for (let x = 40; x < 960; x += 96) {
+        const h = rand.between(220, 320);
+        scene.add.rectangle(x + 40, 470 - h / 2, 80, h, x === 616 ? 0x2c2430 : 0x201a26);
+        scene.add.rectangle(x + 40, 470 - h - 10, 84, 20, 0x181420);
+        for (let wy = 470 - h + 30; wy < 440; wy += 46) {
+          scene.add.rectangle(x + 40, wy, 22, 26, 0x14121c);
+        }
+      }
+      const lit = scene.add.rectangle(656, 190, 22, 26, 0xf2c078);
+      scene.tweens.add({ targets: lit, alpha: 0.75, duration: 1600, yoyo: true, repeat: -1 });
+      scene.add.rectangle(480, 505, 960, 70, 0x1c1a24);
+      scene.add.rectangle(480, 472, 960, 6, 0x2a2834);
+      // the fire escape
+      for (let y = 210; y < 470; y += 26) scene.add.rectangle(700, y, 40, 3, 0x3a3a44);
+      scene.add.rectangle(682, 340, 3, 260, 0x3a3a44);
+      scene.add.rectangle(718, 340, 3, 260, 0x3a3a44);
+      return { groundY: 470 };
+    },
+  },
   chef: {
     caption: 'FIVE-STAR DREAM',
     sub: 'The kitchen of Le Rêve. Tonight, the critics are in.',
@@ -57,7 +131,40 @@ const INTROS = {
       return { groundY: 470 };
     },
   },
+  astronaut: {
+    caption: 'THE QUIET ABOVE',
+    sub: "A municipal gym at dawn. Selection is in nine weeks.",
+    doorX: 700,
+    draw(scene) {
+      const g = scene.add.graphics();
+      g.fillGradientStyle(0x3a3560, 0x3a3560, 0xe0a074, 0x8a5a52, 1);
+      g.fillRect(0, 0, 960, 540);
+      // the low sun
+      scene.add.circle(180, 400, 46, 0xf2c078, 0.9);
+      scene.add.circle(180, 400, 90, 0xf2c078, 0.2);
+      // the sports centre: brick box, high windows, one lit
+      scene.add.rectangle(620, 340, 560, 280, 0x4a4a3c);
+      scene.add.rectangle(620, 208, 576, 16, 0x34342a);
+      for (let i = 0; i < 5; i++) {
+        scene.add.rectangle(430 + i * 95, 260, 60, 40, i === 3 ? 0xf2d580 : 0x2a2a24, i === 3 ? 0.9 : 1);
+      }
+      // the hand-painted sign
+      scene.add.rectangle(600, 320, 330, 54, 0x3a3428);
+      scene.add.text(600, 308, "ADAEZE'S", { fontFamily: 'monospace', fontSize: '26px', color: '#f2d580' }).setOrigin(0.5);
+      scene.add.text(600, 334, 'BOXING · POOL · "COME AS YOU ARE."', { fontFamily: 'monospace', fontSize: '11px', color: '#c8c0b0' }).setOrigin(0.5);
+      // the recruitment poster on the fence
+      scene.add.rectangle(330, 420, 120, 88, 0x2e3a52).setAngle(-2);
+      scene.add.text(330, 420, 'MERIDIAN\nORBITAL\nPROGRAM', { fontFamily: 'monospace', fontSize: '11px', color: '#88b8d8', align: 'center' }).setOrigin(0.5).setAngle(-2);
+      // door
+      scene.add.rectangle(700, 400, 70, 150, 0x241a16);
+      scene.add.rectangle(700, 400, 58, 138, 0x3a3428);
+      scene.add.rectangle(480, 505, 960, 70, 0x3c3c30);
+      return { groundY: 470 };
+    },
+  },
 };
+
+const LEVEL_SCENES = { chef: 'Chef', musician: 'Musician', astronaut: 'Astronaut', writer: 'Writer', painter: 'Painter', gambler: 'Gambler' };
 
 export default class IntroScene extends Phaser.Scene {
   constructor() {
@@ -121,7 +228,7 @@ export default class IntroScene extends Phaser.Scene {
     this.tweens.add({ targets: this.jo, alpha: 0, duration: 350 });
     this.cameras.main.fadeOut(500);
     this.time.delayedCall(550, () =>
-      this.scene.start(this.levelKey === 'chef' ? 'Chef' : 'Musician', { levelKey: this.levelKey })
+      this.scene.start(LEVEL_SCENES[this.levelKey] || 'Musician', { levelKey: this.levelKey })
     );
   }
 

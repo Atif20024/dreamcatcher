@@ -3,6 +3,7 @@ import { roleOf, isSolidChar, isSlopeChar, SLOPES } from './legend.js';
 import { buildTileset, maskAt, wearAt } from './autotile.js';
 import { buildSupportTextures, addSupports } from './supports.js';
 import { D } from './depths.js';
+import { paintTileset } from '../art/levelArt.js';
 
 const T = 32;
 
@@ -12,6 +13,9 @@ export default class RoomBuilder {
   // rooms: array of room objects (see data/<dream>/rooms.js)
   // theme: { key, tiles, palette, support, hazardTint }
   static build(scene, rooms, theme) {
+    // painted ground first (the Evening paints its own); the gridded set
+    // then only fills keys nobody painted
+    if (!theme.selfPainted) paintTileset(scene, theme);
     buildTileset(scene, theme.key, theme.tiles, theme.palette);
     const sc = theme.supportColors || [0x3a3a44, 0x6a6e7a];
     buildSupportTextures(scene, theme.key, theme.support || 'bracket', sc[0], sc[1]);
@@ -50,6 +54,7 @@ export default class RoomBuilder {
       ladderGrid: {},
       climbGrid: {},
       slopeGrid: {},
+      solidGrid: {},
       surfaceGrid: {},
       looseGrid: {},
       objects: [],
@@ -124,6 +129,7 @@ export default class RoomBuilder {
         img.tileRole = role;
         img.tx = tx;
         img.ty = ty;
+        (out.solidGrid[ty] ||= {})[tx] = true;
 
         if (role === 'climbable') (out.climbGrid[ty] ||= {})[tx] = true;
         if (role === 'ice' || role === 'grease') (out.surfaceGrid[ty] ||= {})[tx] = role;
@@ -149,6 +155,7 @@ export default class RoomBuilder {
         const role = roleOf(ch);
         if (role !== 'solid' && role !== 'oneway') return false;
         if (theme.noSupports) return false;
+        if (theme.supportFilter && !theme.supportFilter(tx, ty)) return false;
         if (solidAt(tx, ty + 1)) return false;
         // a lone floor row at the world's base doesn't need legs
         return ty < height - 2;

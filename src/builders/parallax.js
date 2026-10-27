@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { isSolidChar } from './legend.js';
 import { D } from './depths.js';
+import { paintOverLayer, paintSky } from '../art/levelArt.js';
+import { paintHubLayer, paintHubLandmark } from '../art/hubArt.js';
 
 // D7 — parallax backdrops.
 //
@@ -191,7 +193,8 @@ const LAYERS = {
   // --- the station ---
   hall_vault: ['wall', 0xe8dcc0, 0xc4a25c, 0xd9cbb0, 0xd9cbb0],
   gate_dark: ['wall', 0x2e3a30, 0x1e2a22, 0x1a241c, 0x1a241c],
-  station_facade: ['facade', 0xd8cbb0, 0xc4a25c],
+  station_facade: ['wall', 0xd8cbb0, 0xc4a25c, 0x1c2238, 0x4a4e6a],
+  station_street: ['facade', 0x6a6a72, 0xf2d580],
   ticket_hall: ['facade', 0xcfc0a2, 0x2e6a4a],
   ticket_booths: ['strip', 0x4a3a2a, 0x50c878],
   shed_ribs: ['poles', 0x4a4650, 0x8a8490],
@@ -227,6 +230,108 @@ const LAYERS = {
   lanterns: ['hanging', 0x3a2e28, 0xf2c078],
   banner: ['strip', 0x40243a, 0x8a4a5a],
   loading_dock: ['strip', 0x3a3540, 0x5c5768],
+  // --- the quiet above ---
+  gym_wall: ['wall', 0x4a4a3c, 0x8a8a6a, 0x34342a, 0x34342a],
+  gym_kit: ['strip', 0x4a3c34, 0xc03a2a],
+  ropes: ['railing', 0x3a2a28, 0xc03a2a],
+  pool_tiles: ['wall', 0x2e4a56, 0x6aa0b4, 0x22363e, 0x22363e],
+  lane_ropes: ['railing', 0x2a3a44, 0xe8762a],
+  study_shelves: ['strip', 0x4a3e32, 0xd8c8a0],
+  gate_grey: ['wall', 0x46464e, 0x5c5c66, 0x33333a, 0x33333a],
+  chairs: ['strip', 0x3c3c46, 0x6a6a76],
+  campus: ['skyline', 0x35404e, 0xe8a030, 0x1d2634, 0x4c5a6e],
+  hangars: ['facade', 0x3e4650, 0xe8762a],
+  night_forest: ['wall', 0x1c2820, 0x2e4030, 0x121a14, 0x121a14],
+  pines: ['facade', 0x22301f, 0x38503a],
+  gantry: ['poles', 0x4a4650, 0xe8762a],
+  space: ['glow', 0x08080f, 0x1a1a2c, 0x030308, 0x0a0a16],
+  earth_glow: ['glow', 0x11182a, 0x4a80c0, 0x060810, 0x1a2a4a],
+  module_ribs: ['poles', 0x8a8e9a, 0xd8dce8],
+  hull_plates: ['railing', 0x6a6e7a, 0xb8bcc8],
+  moon_black: ['glow', 0x08080a, 0x141418, 0x040405, 0x0a0a0c],
+  moon_hills: ['skyline', 0x2a2a2e, 0x4a4a50, 0x0a0a0c, 0x1a1a1e],
+  regolith: ['railing', 0x38383e, 0x5a5a62],
+  crater_wall: ['wall', 0x1a1a1e, 0x2c2c32, 0x0c0c0f, 0x0c0c0f],
+  grass_far: ['facade', 0x2e4a30, 0x8ab060],
+  grass_near: ['railing', 0x26401f, 0x6a9a4a],
+  // --- the second draft ---
+  thin_houses: ['skyline', 0x201a2c, 0xf2c078, 0x0e1020, 0x3a3050],
+  dawn_terrace: ['facade', 0x2a2434, 0x5a4a5a],
+  attic_wall: ['wall', 0x4a3e34, 0x6a5a48, 0x2e2620, 0x2e2620],
+  index_cards: ['strip', 0x5a4c3e, 0xe8e4d8],
+  rafters: ['poles', 0x2e241c, 0x4a3a2c],
+  copy_wall: ['wall', 0x8a8e96, 0xb8bcc4, 0x5a5e68, 0x5a5e68],
+  copiers: ['strip', 0x6a6e7a, 0x3a5a80],
+  paper_stacks: ['strip', 0x8a8480, 0xe8e4d8],
+  cafe_wall: ['wall', 0x3a2a1e, 0x5a4230, 0x241a12, 0x241a12],
+  brass: ['hanging', 0x3e2c1e, 0xd8a840],
+  cafe_tables: ['strip', 0x2e2018, 0x6a4a32],
+  oak_stacks: ['wall', 0x2e3a2a, 0x4a4a32, 0x1c2418, 0x1c2418],
+  green_lamps: ['hanging', 0x2a3a2a, 0x7ec87e],
+  book_carts: ['strip', 0x2a2418, 0x8a6a4a],
+  brass_boxes: ['wall', 0x8a7a5a, 0xd8a840, 0x5a4e3a, 0x5a4e3a],
+  post_counters: ['strip', 0x6a5a48, 0xc03a2a],
+  rain_night: ['skyline', 0x1a2030, 0xe8a030, 0x0a0e18, 0x243048],
+  bus_windows: ['facade', 0x2a3040, 0xe8a030],
+  sodium_street: ['facade', 0x262632, 0xe8a030],
+  paper_wall: ['wall', 0xd8d0c0, 0xe8e4d8, 0xb8b0a0, 0xb8b0a0],
+  laundrette: ['strip', 0x8a9aa8, 0xd8dce0],
+  red_pencils: ['railing', 0x6a2a22, 0xc03a2a],
+  glass_city: ['skyline', 0x2a3a50, 0xd8ecf8, 0x101828, 0x3a4a68],
+  office_glass: ['facade', 0x3a4a5a, 0x88b8d8],
+  office_desks: ['strip', 0x2a2a34, 0x6a6e7a],
+  rooftops: ['facade', 0x2a2a32, 0x6a6a76],
+  iron_hall: ['wall', 0x2a2a30, 0x4a4a52, 0x18181c, 0x18181c],
+  press_rollers: ['poles', 0x3a3a44, 0xe8762a],
+  paper_webs: ['railing', 0x8a8480, 0xe8e4d8],
+  bookshop_wall: ['wall', 0x4a3424, 0x6a4a32, 0x2e2018, 0x2e2018],
+  book_shelves: ['strip', 0x3a2a1e, 0xc03a2a],
+  bookshop_tables: ['strip', 0x2e2018, 0x7a5a3a],
+  // --- the yellow house (the sky is painted by the scene; these are the ground) ---
+  south_dawn: ['glow', 0x8a6a52, 0xf2d060, 0x5b3a7a, 0xe8b070],
+  south_noon: ['glow', 0xd8b858, 0xfff2a0, 0x5a9ad8, 0xc8e0f0],
+  south_evening: ['glow', 0xc06a3a, 0xf2d060, 0x5b3a7a, 0xe8762a],
+  south_night: ['glow', 0x1f3a5f, 0x5b3a7a, 0x0e1a3a, 0x2e4a80],
+  south_dusk_grey: ['glow', 0x4a5566, 0x6b4e2e, 0x2a3040, 0x4a5566],
+  south_grey: ['glow', 0x6a7484, 0x8a7458, 0x4a5566, 0x8a8a94],
+  north_winter: ['skyline', 0x3a3a4a, 0xf2d060, 0x2a2a3a, 0x6a6a7a],
+  grey_office: ['wall', 0x5a5a62, 0x6a6a72, 0x3a3a44, 0x3a3a44],
+  station_umber: ['facade', 0x6b4e2e, 0xf2d060],
+  yellow_wall: ['wall', 0xe8c060, 0xf2d880, 0xb8862c, 0xb8862c],
+  square_fronts: ['facade', 0xc8a060, 0x5b3a7a],
+  square_grey: ['facade', 0x6a6a72, 0x4a5566],
+  wheat_far: ['facade', 0xd8b858, 0xf2d060],
+  wheat_grey: ['facade', 0x5a5a62, 0x4a5566],
+  night_fronts: ['facade', 0x2e4a80, 0xf2d060],
+  night_roofs: ['facade', 0x3a3a6a, 0x5b3a7a],
+  garden_wall: ['facade', 0x8a8a7a, 0x6a9a5a],
+  village_night: ['skyline', 0x1a2a4a, 0xf2d060, 0x0e1a3a, 0x2e4a80],
+  isak_wall: ['wall', 0x8a6a4a, 0xa88a68, 0x5a4028, 0x5a4028],
+  plane_trees: ['poles', 0x7a9a4a, 0xc8c0a0],
+  bare_boards: ['strip', 0x8a6a3a, 0xc8a060],
+  cafe_chairs: ['strip', 0x6b4e2e, 0xe8c060],
+  wheat_near: ['railing', 0xb8903a, 0xf2d060],
+  wheat_grey_near: ['railing', 0x4a5566, 0x6a7484],
+  office_rail: ['railing', 0x4a4a52, 0x8a8a94],
+  chimneys: ['strip', 0x2e2e4a, 0x5b3a7a],
+  iris_beds: ['strip', 0x6a6a7a, 0x5b3a7a],
+  village_roofs: ['strip', 0x1a2a4a, 0xf2d060],
+  stacked_canvases: ['strip', 0xb8a888, 0xe8e0d0],
+  // --- the last hand ---
+  parking_structure: ['facade', 0x22202c, 0xff3aa0],
+  casino_wall: ['wall', 0x4a1a2a, 0xe9b84a, 0x2a0e18, 0x2a0e18],
+  slot_banks: ['strip', 0x3a1a2a, 0xff3aa0],
+  brass_rails: ['railing', 0x3a2a14, 0xe9b84a],
+  velvet_wall: ['wall', 0x3a1218, 0x6e1e2c, 0x1e0a10, 0x1e0a10],
+  low_lamps: ['hanging', 0x2e1218, 0xe8a060],
+  curtains: ['strip', 0x2a0c12, 0x5a1a24],
+  concrete_wall: ['wall', 0x3a3a3c, 0x4a4a4c, 0x242426, 0x242426],
+  numberless_doors: ['facade', 0x34343a, 0x5a5a60],
+  bare_bulbs: ['hanging', 0x2a2a2c, 0xfff2c0],
+  dawn_sky: ['glow', 0x4a5a6a, 0x8aa0b4, 0x2e3a4a, 0x8a98a8],
+  car_decks: ['facade', 0x3a4048, 0xf2b060],
+  bollards: ['railing', 0x2e3238, 0x6a7078],
+  staff_wall: ['wall', 0x8a8e92, 0xd8dce0, 0x5a5e62, 0x5a5e62],
 };
 
 function layerDef(name) {
@@ -241,12 +346,16 @@ function ensureLayerTexture(scene, name, as) {
   const kind = as || natural;
   const key = `bg_${name}_${kind}`;
   if (scene.textures.exists(key)) return key;
+  // a place may carry its own painting for a layer (the station does)
+  if (paintHubLayer(scene, name, kind, key, W)) return key;
   const H = KIND_H[kind];
   const g = scene.make.graphics({ x: 0, y: 0 }, false);
   const rand = new Phaser.Math.RandomDataGenerator([name]);
   GENERATORS[kind](g, rand, { main, accent }, H);
   g.generateTexture(key, W, H);
   g.destroy();
+  // then the paint: wash, light from the top-left, weight at the foot, grain
+  paintOverLayer(scene, key, kind, main, accent);
   return key;
 }
 
@@ -254,18 +363,7 @@ function ensureSkyTexture(scene, name) {
   const key = `sky_${name}`;
   if (scene.textures.exists(key)) return key;
   const d = layerDef(name);
-  const top = Phaser.Display.Color.ValueToColor(d[3] ?? 0x1a1f3d);
-  const bot = Phaser.Display.Color.ValueToColor(d[4] ?? d[3] ?? 0x1a1f3d);
-  const g = scene.make.graphics({ x: 0, y: 0 }, false);
-  const bands = 48;
-  for (let i = 0; i < bands; i++) {
-    const c = Phaser.Display.Color.Interpolate.ColorWithColor(top, bot, bands - 1, i);
-    g.fillStyle(Phaser.Display.Color.GetColor(c.r, c.g, c.b), 1);
-    g.fillRect(0, (i * 256) / bands, 8, 256 / bands + 1);
-  }
-  g.generateTexture(key, 8, 256);
-  g.destroy();
-  return key;
+  return paintSky(scene, key, d[3] ?? 0x1a1f3d, d[4] ?? d[3] ?? 0x1a1f3d);
 }
 
 // ---------------------------------------------------------------------------
@@ -435,8 +533,48 @@ const SCENERY = {
   pans: ['pot_rack', 'extractor', 'prep_table'],
   sugar: ['mixer', 'cake_stand', 'shelf_ladder', 'prep_table'],
   dining_room: ['column', 'table_setting', 'cake_stand'],
-  hall_vault: ['column', 'streetlamp', 'bench', 'phone_booth'],
-  gate_dark: ['crate_stack', 'pylon'],
+  // the station paints its own backdrops (src/art/hubArt.js): no primitives behind them
+  hall_vault: [],
+  gate_dark: [],
+  station_facade: [],
+  gym_wall: ['poster_board', 'crate_stack', 'bench', 'shelf_ladder'],
+  gate_grey: ['bench', 'poster_board'],
+  campus: ['water_tower', 'pylon', 'crane', 'radio_mast', 'billboard'],
+  night_forest: ['tree', 'tree', 'hedge'],
+  dawn_pad: ['pylon', 'radio_mast'],
+  space: [],
+  moon_black: [],
+  crater_wall: [],
+  grass_far: ['tree', 'hedge', 'bench'],
+  // the second draft
+  thin_houses: ['water_tower', 'ac_units', 'radio_mast', 'streetlamp', 'phone_booth'],
+  attic_wall: ['poster_board', 'crate_stack', 'shelf_ladder'],
+  copy_wall: ['prep_table', 'shelf_ladder', 'poster_board'],
+  cafe_wall: ['table_setting', 'column', 'poster_board', 'cake_stand'],
+  oak_stacks: ['shelf_ladder', 'column', 'crate_stack', 'shelf_ladder'],
+  brass_boxes: ['column', 'bench', 'poster_board'],
+  rain_night: ['streetlamp', 'phone_booth', 'van', 'streetlamp', 'bridge'],
+  paper_wall: ['poster_board', 'shelf_ladder', 'bench'],
+  glass_city: ['crane', 'billboard', 'radio_mast', 'water_tower', 'ac_units'],
+  iron_hall: ['fan', 'crate_stack', 'pylon'],
+  bookshop_wall: ['shelf_ladder', 'bench', 'column', 'table_setting'],
+  // the yellow house
+  south_dawn: ['tree', 'bench', 'streetlamp', 'phone_booth'],
+  south_noon: ['tree', 'hedge', 'church', 'tree', 'market_stall'],
+  south_evening: ['tree', 'hedge', 'church', 'tree'],
+  south_night: ['church', 'streetlamp', 'tree', 'awning'],
+  south_dusk_grey: ['tree', 'pylon', 'hedge', 'tree'],
+  south_grey: ['hedge', 'bench', 'tree', 'column'],
+  north_winter: ['church', 'streetlamp', 'water_tower', 'ac_units'],
+  grey_office: ['column', 'poster_board'],
+  yellow_wall: ['poster_board', 'shelf_ladder'],
+  isak_wall: ['poster_board', 'crate_stack', 'shelf_ladder'],
+  // the last hand
+  casino_wall: ['column', 'table_setting', 'cake_stand', 'column'],
+  velvet_wall: ['column', 'table_setting', 'poster_board'],
+  concrete_wall: ['crate_stack', 'fan', 'shelf_ladder'],
+  dawn_sky: ['streetlamp', 'van', 'pylon', 'streetlamp'],
+  staff_wall: ['shelf_ladder', 'crate_stack', 'bench'],
 };
 
 function drawPrimitives(g, prims) {
@@ -465,9 +603,106 @@ function drawLandmark(scene, name) {
   const label = (t, col = '#f2d580', size = 14) =>
     add(scene.add.text(0, -70, t, { fontFamily: 'monospace', fontSize: `${size}px`, color: col }).setOrigin(0.5));
   switch (name) {
+    // --- the second draft ---
+    case 'attic_window':
+      add(scene.add.rectangle(0, -150, 30, 36, 0xf2c078, 0.9));
+      add(scene.add.rectangle(0, -150, 38, 44, 0x2a2430).setStrokeStyle(2, 0x3a3440));
+      add(scene.add.rectangle(0, -150, 30, 36, 0xf2c078, 0.9));
+      add(scene.add.rectangle(0, -150, 2, 36, 0x3a3440));
+      add(scene.add.rectangle(0, -150, 30, 2, 0x3a3440));
+      break;
+    case 'skylight':
+      add(scene.add.rectangle(0, -120, 120, 70, 0x2a3450, 0.9).setStrokeStyle(3, 0x4a3a2c));
+      add(scene.add.rectangle(0, -120, 2, 70, 0x4a3a2c));
+      add(scene.add.rectangle(-40, -140, 40, 14, 0xd8dce8, 0.25));
+      break;
+    case 'copy_sign':
+      add(scene.add.rectangle(0, -70, 220, 40, 0xe8e4d8));
+      label('COPIES · 5¢', '#3a5a80', 15);
+      break;
+    case 'espresso_sign':
+      add(scene.add.rectangle(0, -76, 180, 44, 0x3a2a1e).setStrokeStyle(2, 0xd8a840));
+      label('CAFÉ  ORVAL', '#d8a840', 15);
+      add(scene.add.circle(0, -30, 22, 0xd8a840, 0.12));
+      break;
+    case 'reading_lamp':
+      add(scene.add.rectangle(0, -20, 4, 60, 0x2a2a30));
+      add(scene.add.rectangle(0, -52, 60, 16, 0x2e5a3a));
+      add(scene.add.triangle(0, -30, 0, 0, -50, 40, 50, 40, 0x7ec87e, 0.1));
+      break;
+    case 'post_clock':
+      add(scene.add.circle(0, -120, 28, 0xe8e4d8).setStrokeStyle(4, 0x3a2a1e));
+      add(scene.add.rectangle(0, -128, 2, 18, 0x14101c).setOrigin(0.5, 1));
+      add(scene.add.rectangle(6, -118, 12, 2, 0x14101c).setOrigin(0, 0.5));
+      label('LATER', '#c03a2a', 12);
+      break;
+    case 'bus_stop':
+      add(scene.add.rectangle(0, -60, 4, 120, 0x3a3a44));
+      add(scene.add.rectangle(0, -120, 50, 22, 0xe8a030));
+      add(scene.add.text(0, -120, 'N', { fontFamily: 'monospace', fontSize: '14px', color: '#14101c' }).setOrigin(0.5));
+      break;
+    case 'lit_window':
+      add(scene.add.rectangle(0, -150, 30, 36, 0xf2c078, 0.9));
+      add(scene.add.rectangle(0, -150, 2, 36, 0x3a3440));
+      add(scene.add.rectangle(0, -132, 34, 3, 0x3a3440));
+      break;
+    case 'red_pencil':
+      add(scene.add.rectangle(0, -90, 200, 16, 0xc03a2a).setAngle(-8));
+      add(scene.add.triangle(104, -104, 0, 0, 0, 16, 18, 8, 0xe8e4d8).setAngle(-8));
+      break;
+    case 'office_clock':
+      add(scene.add.circle(0, -130, 34, 0xe8e4d8).setStrokeStyle(3, 0x2a2a34));
+      add(scene.add.rectangle(0, -134, 2, 24, 0x14101c).setOrigin(0.5, 1));
+      add(scene.add.rectangle(4, -130, 20, 2, 0xc03a2a).setOrigin(0, 0.5));
+      label('FRIDAY', '#c03a2a', 13);
+      break;
+    case 'water_tower_sign':
+      add(scene.add.rectangle(0, -140, 60, 50, 0x3a3a44));
+      add(scene.add.rectangle(-22, -90, 4, 60, 0x2a2a32));
+      add(scene.add.rectangle(22, -90, 4, 60, 0x2a2a32));
+      add(scene.add.triangle(0, -170, 0, 0, -34, 14, 34, 14, 0x4a4a52));
+      break;
+    case 'press_wheel':
+      add(scene.add.circle(0, -110, 60, 0x2a2a30).setStrokeStyle(8, 0x4a4a52));
+      add(scene.add.circle(0, -110, 12, 0xe8762a));
+      for (let i = 0; i < 4; i++) add(scene.add.rectangle(0, -110, 4, 110, 0x4a4a52).setAngle(i * 45));
+      break;
+    case 'one_lamp':
+      add(scene.add.rectangle(0, -60, 3, 120, 0x2a2a30));
+      add(scene.add.triangle(0, -134, 0, 0, -30, 26, 30, 26, 0xd8a840));
+      add(scene.add.circle(0, -60, 70, 0xf2c078, 0.08));
+      break;
     case 'meridian_sign':
-      add(scene.add.rectangle(0, -60, 260, 46, 0x3a2c28));
-      label('HOTEL MERIDIAN', '#a05a4a', 15);
+      // THE LAST HAND: the sign so big it is a sky (the painted neon sits in
+      // the scene itself; this is the structure it hangs off)
+      add(scene.add.rectangle(0, -120, 420, 170, 0x0a0810, 0.9));
+      add(scene.add.rectangle(-150, -30, 8, 60, 0x2a2230));
+      add(scene.add.rectangle(150, -30, 8, 60, 0x2a2230));
+      if (scene.textures.exists('gm-sign')) add(scene.add.image(0, -120, 'gm-sign'));
+      else label('THE MERIDIAN — OPEN', '#ff3aa0', 22);
+      break;
+    case 'chip_fountain':
+      add(scene.add.rectangle(0, -40, 10, 90, 0x8a5a24));
+      add(scene.add.circle(0, -96, 40, 0xe9b84a, 0.12));
+      for (let i = -3; i <= 3; i++) add(scene.add.circle(i * 14, -88 - Math.abs(i) * 4, 6, 0xe84a5a, 0.9));
+      break;
+    case 'cigar_lamp':
+      add(scene.add.rectangle(0, -110, 2, 80, 0x2a1a1a));
+      add(scene.add.triangle(0, -70, 0, 0, -26, 22, 26, 22, 0x5a1a24));
+      add(scene.add.circle(0, -40, 60, 0xe8a060, 0.09));
+      break;
+    case 'bare_bulb':
+      add(scene.add.rectangle(0, -100, 2, 60, 0x2a2a30));
+      add(scene.add.circle(0, -66, 9, 0xfff2c0));
+      add(scene.add.circle(0, -60, 44, 0xfff2c0, 0.1));
+      break;
+    case 'small_sign':
+      add(scene.add.rectangle(0, -70, 110, 26, 0x0a0810, 0.9));
+      label('THE MERIDIAN', '#ff3aa0', 9);
+      break;
+    case 'fluorescent':
+      add(scene.add.rectangle(0, -140, 200, 8, 0xe8f4ff));
+      add(scene.add.rectangle(0, -100, 220, 70, 0xd8ecf8, 0.1));
       break;
     case 'marquee':
       add(scene.add.rectangle(0, -70, 320, 60, 0x3a1420));
@@ -525,39 +760,166 @@ function drawLandmark(scene, name) {
         add(scene.add.triangle(i * 34, -30, -14, 40, 14, 40, 0, 0, 0xf2d580, 0.06));
       }
       break;
+    // the station's landmarks are paintings (src/art/hubArt.js), hung from
+    // the same ground line as the old shapes
     case 'great_clock':
-      add(scene.add.circle(0, -150, 46, 0xf2e6cc));
-      add(scene.add.circle(0, -150, 42, 0x2a2230).setStrokeStyle(2, 0xc4a25c));
-      add(scene.add.rectangle(0, -162, 3, 24, 0xf2e6cc));
-      add(scene.add.rectangle(10, -150, 20, 2, 0xf2e6cc));
-      for (let i = -3; i <= 3; i++) add(scene.add.rectangle(i * 70, -60, 8, 160, 0xc4a25c, 0.35));
-      break;
     case 'train_shed':
-      add(scene.add.rectangle(0, -170, 420, 10, 0x4a4650));
-      for (let i = -4; i <= 4; i++) add(scene.add.rectangle(i * 50, -120, 6, 100, 0x4a4650, 0.8));
-      add(scene.add.rectangle(0, -60, 420, 4, 0x4a4650, 0.5));
-      label('PLATFORMS  1 — 4', '#f2e6cc', 13);
-      break;
     case 'shed_clock':
-      add(scene.add.rectangle(0, -170, 420, 10, 0x4a4650));
-      for (let i = -4; i <= 4; i++) add(scene.add.rectangle(i * 50, -120, 6, 100, 0x4a4650, 0.8));
-      add(scene.add.circle(0, -120, 22, 0xf2e6cc));
-      add(scene.add.rectangle(0, -128, 2, 14, 0x2a2230));
-      label('PLATFORMS  5 — 8', '#f2e6cc', 13);
-      break;
     case 'no_passengers':
-      add(scene.add.rectangle(0, -100, 140, 220, 0x1e2a22, 0.9));
-      for (let i = 0; i < 40; i++) add(scene.add.rectangle(-50 + (i % 10) * 11, -190 + Math.floor(i / 10) * 30, 1, 10, 0xd8cbb0, 0.5));
+      add(scene.add.image(0, 20, paintHubLandmark(scene, name)).setOrigin(0.5, 1));
       break;
     case 'station_sign':
-      add(scene.add.rectangle(0, -70, 380, 52, 0x2e3a52));
-      add(scene.add.rectangle(0, -70, 372, 44, 0x1e2a3c).setStrokeStyle(2, 0xc4a25c));
-      label('CROSSROADS  STATION', '#f2e6cc', 18);
-      for (let i = -8; i <= 8; i++) add(scene.add.circle(i * 22, -96, 3, 0xf2d580, 0.9));
+      // the steps room's horizon is the street; the sign hangs over the doors
+      add(scene.add.image(0, -140, paintHubLandmark(scene, name)).setOrigin(0.5, 1));
       break;
     case 'folding_chair':
       add(scene.add.rectangle(0, 0, 40, 6, 0x8a8494));
       add(scene.add.rectangle(-16, -20, 6, 40, 0x8a8494));
+      break;
+    // --- the quiet above ---
+    case 'adaeze_sign':
+      add(scene.add.rectangle(0, -76, 300, 60, 0x3a3428));
+      label("ADAEZE'S", '#f2d580', 18);
+      add(scene.add.text(0, -52, 'BOXING · POOL · "COME AS YOU ARE."', { fontFamily: 'monospace', fontSize: '10px', color: '#c8c0b0' }).setOrigin(0.5));
+      break;
+    case 'lv3_poster':
+      add(scene.add.rectangle(0, -90, 130, 170, 0x1e2a4a));
+      add(scene.add.rectangle(0, -100, 18, 90, 0xd8dce8));
+      add(scene.add.triangle(0, -152, -9, 14, 9, 14, 0, -10, 0xd8dce8));
+      add(scene.add.rectangle(0, -78, 22, 3, 0xe8762a));
+      add(scene.add.rectangle(0, -104, 22, 3, 0xe8762a));
+      add(scene.add.text(0, -36, 'MERIDIAN LV-3\nTHREE STAGES', { fontFamily: 'monospace', fontSize: '10px', color: '#88b8d8', align: 'center' }).setOrigin(0.5));
+      break;
+    case 'lane_numbers':
+      add(scene.add.rectangle(0, -60, 260, 40, 0x2e4a56));
+      add(scene.add.text(0, -60, 'LANES  1 · 9 · 7 · 4', { fontFamily: 'monospace', fontSize: '14px', color: '#9ac4dc' }).setOrigin(0.5));
+      break;
+    case 'fight_poster':
+      add(scene.add.rectangle(0, -84, 120, 150, 0x4a2020).setAngle(-2));
+      add(scene.add.text(0, -108, 'ADAEZE', { fontFamily: 'monospace', fontSize: '16px', color: '#f2d580' }).setOrigin(0.5).setAngle(-2));
+      add(scene.add.text(0, -72, '31 — 2', { fontFamily: 'monospace', fontSize: '20px', color: '#e8dcc8' }).setOrigin(0.5).setAngle(-2));
+      break;
+    case 'study_lamp':
+      add(scene.add.rectangle(0, -50, 4, 60, 0x3a3a44));
+      add(scene.add.circle(0, -84, 10, 0xf2e0a0, 0.95));
+      add(scene.add.circle(0, -80, 30, 0xf2e0a0, 0.14));
+      break;
+    case 'board_door':
+      add(scene.add.rectangle(0, -70, 70, 140, 0x3a3228));
+      add(scene.add.circle(0, -148, 7, 0xe83a2a, 0.9));
+      add(scene.add.text(0, -34, 'SELECTION\nBOARD', { fontFamily: 'monospace', fontSize: '10px', color: '#8a8478', align: 'center' }).setOrigin(0.5));
+      break;
+    case 'centrifuge_dome':
+      add(scene.add.arc(0, -20, 110, 180, 360, false, 0x4e565e));
+      add(scene.add.rectangle(0, -14, 210, 8, 0x3a4048));
+      add(scene.add.rectangle(0, -60, 8, 50, 0xe8762a, 0.8));
+      break;
+    case 'nb_sign':
+      add(scene.add.rectangle(0, -70, 260, 44, 0x2e4a56));
+      label('NEUTRAL BUOYANCY FACILITY', '#9ac4dc', 12);
+      break;
+    case 'sim_shed':
+      add(scene.add.rectangle(0, -50, 180, 90, 0x3e4650));
+      add(scene.add.rectangle(0, -84, 190, 8, 0x2c323a));
+      label('SIM  BAY  2', '#e8a030', 12);
+      break;
+    case 'far_pad':
+      add(scene.add.rectangle(60, -46, 10, 60, 0x4a4650, 0.8));
+      add(scene.add.rectangle(74, -60, 6, 74, 0xd8dce8, 0.7));
+      add(scene.add.circle(74, -20, 3, 0xe83a2a, 0.9));
+      break;
+    case 'the_stack':
+      add(scene.add.rectangle(0, -130, 34, 230, 0xd8dce8));
+      add(scene.add.triangle(0, -258, -17, 14, 17, 14, 0, -22, 0xd8dce8));
+      add(scene.add.rectangle(0, -60, 38, 5, 0xe8762a));
+      add(scene.add.rectangle(0, -160, 38, 5, 0xe8762a));
+      add(scene.add.rectangle(-40, -120, 14, 210, 0x4a4650));
+      for (let i = 0; i < 5; i++) add(scene.add.rectangle(-28, -50 - i * 44, 14, 3, 0x4a4650));
+      break;
+    case 'earth_window':
+      add(scene.add.circle(0, -80, 64, 0x2a5a9a));
+      add(scene.add.circle(-18, -96, 26, 0x3a7ac0, 0.9));
+      add(scene.add.circle(20, -66, 20, 0x2e6a4a, 0.8));
+      add(scene.add.circle(-8, -60, 14, 0xd8dce8, 0.5));
+      add(scene.add.circle(26, -100, 12, 0xd8dce8, 0.4));
+      add(scene.add.circle(0, -80, 70, 0x88b8d8, 0.12));
+      break;
+    case 'small_earth':
+      add(scene.add.circle(0, -170, 13, 0x2a5a9a));
+      add(scene.add.circle(-4, -173, 6, 0x3a7ac0, 0.9));
+      add(scene.add.circle(4, -167, 4, 0x2e6a4a, 0.8));
+      add(scene.add.circle(0, -170, 17, 0x88b8d8, 0.14));
+      break;
+    case 'capsule':
+      add(scene.add.rectangle(0, -20, 60, 40, 0xd8dce8));
+      add(scene.add.arc(0, -40, 30, 180, 360, false, 0xb8862c));
+      add(scene.add.rectangle(-50, -60, 3, 60, 0xe8762a, 0.6).setAngle(24));
+      break;
+    // --- the yellow house (nothing tidy: everything leans a degree or two) ---
+    case 'chrome_strip':
+      add(scene.add.rectangle(60, -90, 50, 180, 0xf2d060, 0.55).setAngle(2));
+      add(scene.add.rectangle(-60, -70, 10, 140, 0x6b4e2e).setAngle(-3));
+      break;
+    case 'yellow_house':
+      add(scene.add.rectangle(0, -80, 220, 160, 0xe8c060).setAngle(-1.5).setStrokeStyle(3, 0x1f3a5f));
+      add(scene.add.triangle(0, -200, 0, 0, -120, 50, 120, 50, 0xc03a2a).setAngle(1));
+      for (const x of [-70, 0, 70]) add(scene.add.rectangle(x, -110, 30, 40, 0x2e6a4a).setStrokeStyle(2, 0x1f3a5f).setAngle(2));
+      add(scene.add.rectangle(0, -30, 34, 60, 0x1f3a5f));
+      break;
+    case 'cafe_shutters':
+      add(scene.add.rectangle(0, -70, 200, 100, 0xc8a060).setAngle(1).setStrokeStyle(2, 0x1f3a5f));
+      for (let i = -3; i <= 3; i++) add(scene.add.rectangle(i * 26, -70, 20, 80, 0x4a5566).setAngle(-2));
+      label('CAFÉ', '#1f3a5f', 15);
+      break;
+    case 'the_sun':
+      add(scene.add.circle(0, -230, 40, 0xfff2a0));
+      for (let i = 0; i < 14; i++) add(scene.add.rectangle(0, -230, 4, 150, 0xf2d060, 0.35).setAngle(i * (180 / 14) + 5));
+      break;
+    case 'brass_bell':
+      add(scene.add.rectangle(0, -30, 140, 50, 0x6a6a72));
+      add(scene.add.circle(0, -70, 10, 0xd8a840));
+      add(scene.add.rectangle(0, -60, 4, 12, 0x3a3a44));
+      break;
+    case 'the_lamp':
+      add(scene.add.rectangle(0, -70, 5, 140, 0x1f3a5f).setAngle(-2));
+      add(scene.add.circle(0, -150, 14, 0xf2d060));
+      for (let r = 0; r < 3; r++) add(scene.add.circle(0, -150, 30 + r * 18, r % 2 ? 0x5b3a7a : 0xf2d060, 0.08));
+      break;
+    case 'bell_tower':
+      add(scene.add.rectangle(0, -150, 70, 300, 0x2e2e4a).setAngle(1.5).setStrokeStyle(2, 0x1f3a5f));
+      add(scene.add.triangle(0, -330, 0, 0, -45, 36, 45, 36, 0x5b3a7a));
+      add(scene.add.rectangle(0, -270, 26, 40, 0x0e1a3a));
+      add(scene.add.circle(0, -266, 7, 0xd8a840));
+      break;
+    case 'two_easels':
+      for (const x of [-60, 60]) {
+        add(scene.add.triangle(x, -40, 0, 0, -26, 100, 26, 100, 0x8a6a3a).setAngle(x < 0 ? -3 : 3));
+        add(scene.add.rectangle(x, -80, 44, 36, 0xe8e0d0).setStrokeStyle(2, 0x1f3a5f).setAngle(x < 0 ? -3 : 3));
+      }
+      break;
+    case 'crow_sky':
+      for (let i = 0; i < 9; i++) add(scene.add.rectangle(-120 + i * 30, -200 - (i % 3) * 30, 14, 3, 0x1f3a5f).setAngle(i % 2 ? 20 : -20));
+      break;
+    case 'boarded_door':
+      add(scene.add.rectangle(0, -60, 60, 120, 0x6b4e2e).setAngle(1));
+      for (const y of [-100, -70, -40]) add(scene.add.rectangle(0, y, 90, 10, 0x8a6a3a).setAngle(y === -70 ? 8 : -6));
+      break;
+    case 'the_fountain':
+      add(scene.add.rectangle(0, -14, 140, 28, 0x8a8a94).setStrokeStyle(2, 0x1f3a5f));
+      add(scene.add.rectangle(0, -60, 10, 70, 0xc8c0b0).setAngle(2));
+      add(scene.add.ellipse(0, -90, 40, 14, 0xc8c0b0));
+      break;
+    case 'cypress_flame':
+      add(scene.add.triangle(0, -200, 0, 0, -36, 380, 36, 380, 0x1e4a30).setAngle(-3));
+      add(scene.add.triangle(0, -260, 0, 0, -16, 200, 16, 200, 0x3a6a44).setAngle(2));
+      break;
+    case 'the_moon':
+      add(scene.add.circle(0, -240, 36, 0xe8dca0));
+      for (let r = 0; r < 3; r++) add(scene.add.circle(0, -240, 52 + r * 16, r % 2 ? 0x5b3a7a : 0xf2d060, 0.08));
+      break;
+    case 'one_frame':
+      add(scene.add.rectangle(0, -120, 80, 60, 0x6b4e2e).setStrokeStyle(3, 0xd8a840).setAngle(-2));
+      add(scene.add.rectangle(0, -120, 64, 46, 0xf2d060, 0.5).setAngle(-2));
       break;
     default:
       add(scene.add.circle(0, -40, 30, 0x6a6478, 0.35));
@@ -685,7 +1047,7 @@ export default class Parallax {
     const x1 = x0 + Math.max(...room.grid.map((g) => g.length)) * 32;
     let wx = x0 + rand.between(40, 220);
     let n = 0;
-    while (wx < x1 && n < 14) {
+    while (wx < x1 && n < 14 && kinds.length > 0) {
       const kind = kinds[rand.between(0, kinds.length - 1)];
       const depth = rand.frac(); // 0 = further back and paler, 1 = nearer
       const g = this.scene.add.graphics();

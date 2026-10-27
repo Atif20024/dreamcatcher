@@ -45,6 +45,8 @@ const HEAD_AND_TORSO = [
   '.SSJJJJJJJJJJSS.',
 ];
 
+const BLANK_ROW = '................';
+
 const STAND = [
   ...HEAD_AND_TORSO,
   '....PPPPPPPP....',
@@ -57,17 +59,63 @@ const STAND = [
   '..BBBB....BBBB..',
 ];
 
-const RUN = [
-  ...HEAD_AND_TORSO,
-  '....PPPPPPPP....',
-  '...PPPPPPPPPP...',
-  '...PPP....PPP...',
-  '..PPP......PPP..',
-  '..ppp......ppp..',
-  '.ppp........ppp.',
-  '.BBBB......BBBB.',
-  'BBBB........BBBB',
+// The walk, from the motion tables: contact, recoil, passing, high — then
+// the same four with the legs swapped. The near leg (P) is lit, the far leg
+// (p) in shade; the hips drop a row on recoil and rise a row on high (the
+// Player applies that as a y offset so the feet stay planted); arms swing
+// opposite the legs. Player steps through the eight frames by ground
+// covered, never by the clock, so a foot never slides.
+export const WALK_LEGS = [
+  // 0 contact: front heel down ahead, back toe down behind
+  ['....PPPPPPPP....', '...pppPPPPPP....', '...ppp....PPP...', '..ppp......PPP..', '..ppp......PPP..', '.ppp........PPP.', '.BBBB......BBBB.', 'BBBB........BBBB'],
+  // 1 recoil: front knee takes the weight, back heel lifts
+  ['....PPPPPPPP....', '...pppPPPPPP....', '...ppp....PPP...', '..ppp.....PPPP..', '..ppp......PPP..', '.ppp.......PPP..', '.BBBB......BBBB.', '..BB.......BBBB.'],
+  // 2 passing: legs together under the hips, back leg swinging through bent
+  ['....PPPPPPPP....', '....PPPPPPPP....', '....PPPPpp......', '....PPP.ppp.....', '....PPP..ppp....', '....PPP..BBB....', '...BBBB.........', '...BBBB.........'],
+  // 3 high: support leg straight, free leg reaching, heel about to strike
+  ['....PPPPPPPP....', '....PPPPPPpp....', '....PPP..ppp....', '....PPP...ppp...', '....PPP....ppp..', '....PPP.....ppp.', '...BBBB.....BBB.', '...BBBB.........'],
+  // 4 contact, legs swapped
+  ['....PPPPPPPP....', '...PPPPPPppp....', '...PPP....ppp...', '..PPP......ppp..', '..PPP......ppp..', '.PPP........ppp.', '.BBBB......BBBB.', 'BBBB........BBBB'],
+  // 5 recoil
+  ['....PPPPPPPP....', '...PPPPPPppp....', '...PPP....ppp...', '..PPP.....pppp..', '..PPP......ppp..', '.PPP.......ppp..', '.BBBB......BBBB.', '..BB.......BBBB.'],
+  // 6 passing
+  ['....PPPPPPPP....', '....PPPPPPPP....', '....pppPPPP.....', '....ppp.PPP.....', '....ppp..PPP....', '....ppp..BBB....', '...BBBB.........', '...BBBB.........'],
+  // 7 high
+  ['....PPPPPPPP....', '....ppppppPP....', '....ppp..PPP....', '....ppp...PPP...', '....ppp....PPP..', '....ppp.....PPP.', '...BBBB.....BBB.', '...BBBB.........'],
 ];
+// hips, in screen px: a single pixel down on the recoil, up on the high.
+// Any more than that and a walk reads as a bounce.
+export const WALK_HIPS = [0, -1, 0, 1, 0, -1, 0, 1];
+
+// Moving, Jo is drawn in profile (facing right; flipX for left): the head
+// turned, one lens of the glasses, the nose, a narrower jacket, and the
+// arms swinging past the body instead of out to the sides. Standing still
+// he faces the player, as he always has.
+const HEAD = [
+  BLANK_ROW, BLANK_ROW, BLANK_ROW, BLANK_ROW,
+  '.....SSSSSS.....',
+  '....SSSSSSSS....',
+  '....SSSSGLLG....',
+  '....SSSSSSSSS...',
+  '....sSSSSSSs....',
+  '.....SSSSSS.....',
+];
+// arms: front forward and back back (OUT), front back across the body with
+// the far hand showing in front (CROSS), hanging (passing), raised (a jump)
+const TORSO_OUT = ['.....JJJJJJJ....', '....JJJJJJJJJ...', '....JJjWWWjJJ...', '...JJ.jWWWj.JJ..', '..JJ..jWWWj..JJ.', '..SS..JJJJJ..SS.'];
+const TORSO_CROSS = ['.....JJJJJJJ....', '....JJJJJJJJJ...', '....JJjWWWjJJ...', '....JJJJWWjJS...', '....JJJJJWjJ....', '....SSJJJJJ.....'];
+const TORSO_HANG = ['.....JJJJJJJ....', '....JJJJJJJJJ...', '....JJjWWWjJJ...', '....JJjWWWjJJ...', '....JJjWWWjJJ...', '....SS.JJJ.SS...'];
+const TORSO_UP = ['....J.JJJJJ.J...', '....JJJJJJJJJ...', '....JJjWWWjJJ...', '.....JjWWWjJ....', '......jWWWj.....', '......JJJJJ.....'];
+const WALK_ARMS = [TORSO_CROSS, TORSO_CROSS, TORSO_HANG, TORSO_OUT, TORSO_OUT, TORSO_OUT, TORSO_HANG, TORSO_CROSS];
+export const JO_WALK = WALK_LEGS.map((_, i) => `jo-walk-${i}`);
+const walkFrame = (i) => [...HEAD, ...WALK_ARMS[i], ...WALK_LEGS[i]];
+// in the air: knees tucked and arms up on the rise; legs reaching on the fall
+const JUMP = [...HEAD, ...TORSO_UP, '....PPPPPPPP....', '...PPPPPPPPPP...', '..PPPP....PPPP..', '..ppp......ppp..', '.BBBB......BBBB.', BLANK_ROW, BLANK_ROW, BLANK_ROW];
+const FALL = [...HEAD, ...TORSO_OUT, '....PPPPPPPP....', '....PPPPPPPP....', '...ppp..PPPP....', '...ppp....PPP...', '..ppp.....PPP...', '..ppp......PPP..', '.BBBB......BBBB.', BLANK_ROW];
+// breathing: the chest a row higher for the second half of a breath
+const IDLE_B = [...HEAD.slice(1), ...TORSO_HANG, ...STAND.slice(16)];
+const RUN = walkFrame(0);
+export const JO_POSE_KEYS = () => ['jo-stand', 'jo-idle-b', 'jo-run', 'jo-jump', 'jo-fall', ...JO_WALK];
 
 // the level tool: a ladle in the kitchen, a trumpet on the stage
 const LADLE = ['.mmmmmm.', '........', '..bbbb..', '.bBBBBb.', '.bBBBBb.', '..bbbb..'];
@@ -81,6 +129,10 @@ const RIM = { outline: 0x14141c };
 export function createJoTextures(scene) {
   createPixelTexture(scene, 'jo-stand', STAND, PALETTE, 2, RIM);
   createPixelTexture(scene, 'jo-run', RUN, PALETTE, 2, RIM);
+  createPixelTexture(scene, 'jo-idle-b', IDLE_B, PALETTE, 2, RIM);
+  createPixelTexture(scene, 'jo-jump', JUMP, PALETTE, 2, RIM);
+  createPixelTexture(scene, 'jo-fall', FALL, PALETTE, 2, RIM);
+  WALK_LEGS.forEach((_, i) => createPixelTexture(scene, `jo-walk-${i}`, walkFrame(i), PALETTE, 2, RIM));
   createPixelTexture(scene, 'jo-hat', HAT, PALETTE, 2, RIM);
   createPixelTexture(scene, 'tool-ladle', LADLE, TOOL_PAL, 3, RIM);
   createPixelTexture(scene, 'tool-trumpet', TRUMPET, TOOL_PAL, 3, RIM);
@@ -88,3 +140,43 @@ export function createJoTextures(scene) {
 
 // D5 — dust colours for Jo's own death burst
 export const JO_DUST = [0x3d5a80, 0x8a5a3b, 0xe8e4d8, 0x23233a];
+
+// --- the long evening: the poses a place with nothing to do asks for --------
+// Sitting drops the head four grid rows (8 px), so the scene sets
+// player.poseDy = 8 and the hat/trumpet follow it down.
+const BLANK = '................';
+const FACE = ['.....SSSSSS.....', '....SSSSSSSS....', '..GGLLSSSLLGG...', '....SSSSSSSS....', '....sSSSSSSs....', '.....SSSSSS.....'];
+const FACE_UP = ['.....SSSSSS.....', '..GGLLSSSLLGG...', '....SSSSSSSS....', '....SSSSSSSS....', '....sSSSSSSs....', '.....SSSSSS.....'];
+const FACE_LAUGH = ['.....SSSSSS.....', '....SSSSSSSS....', '..GGGGSSSGGGG...', '....SSSSSSSS....', '....sSSGGSSs....', '.....SSSSSS.....'];
+const FACE_SLEEP = ['.....SSSSSS.....', '....SSSSSSSS....', '....SSSSSSSS....', '..GGGGSSSGGGG...', '....sSSSSSSs....', '.....SSSSSS.....'];
+const TORSO = ['....JJJJJJJJ....', '..JJJJJJJJJJJJ..', '.JJjWWWWWWWWjJJ.', '.JJjWWWWWWWWjJJ.', '.JJjWWWWWWWWjJJ.', '.SSJJJJJJJJJJSS.'];
+const TORSO_SHRUG = ['S...JJJJJJJJ...S', 'SJJJJJJJJJJJJJJS', '...jWWWWWWWWj...', '...jWWWWWWWWj...', '...jWWWWWWWWj...', '....JJJJJJJJ....'];
+const LAP = ['....PPPPPPPPPPP.', '....pppppppPPPP.', '...........PPP..', '...........BBBB.'];
+const CROUCH_LEGS = ['....PPPPPPPP....', '...PPPPPPPPPP...', '..PPP......PPP..', '..ppp......ppp..', '..BBBB....BBBB..', '..BBBB....BBBB..'];
+const STANDING_LEGS = STAND.slice(16);
+const up4 = [BLANK, BLANK, BLANK, BLANK];
+
+const POSES = {
+  'jo-sit': [...up4, ...up4, ...FACE, ...TORSO, ...LAP],
+  'jo-sitdown': [...up4, BLANK, BLANK, ...FACE, ...TORSO, ...CROUCH_LEGS], // head 2 rows down: poseDy 4
+  'jo-sit-up': [...up4, ...up4, ...FACE_UP, ...TORSO, ...LAP],
+  'jo-sleep': [...up4, ...up4, BLANK, ...FACE_SLEEP.slice(0, 5), ...TORSO, ...LAP],
+  'jo-lookup': [...up4, ...FACE_UP, ...TORSO, ...STANDING_LEGS],
+  'jo-laugh': [...up4, ...FACE_LAUGH, ...TORSO, ...STANDING_LEGS],
+  'jo-shrug': [...up4, ...FACE, ...TORSO_SHRUG, ...STANDING_LEGS],
+};
+
+// shoes off (A4.6): the same grids with the soles painted skin
+const BARE = { ...PALETTE, B: 0x8a5a3b };
+
+export function createJoEveningTextures(scene) {
+  createJoTextures(scene);
+  for (const [key, rows] of Object.entries(POSES)) createPixelTexture(scene, key, rows, PALETTE, 2, RIM);
+  createPixelTexture(scene, 'jo-stand-bare', STAND, BARE, 2, RIM);
+  createPixelTexture(scene, 'jo-run-bare', RUN, BARE, 2, RIM);
+  createPixelTexture(scene, 'jo-idle-b-bare', IDLE_B, BARE, 2, RIM);
+  createPixelTexture(scene, 'jo-jump-bare', JUMP, BARE, 2, RIM);
+  createPixelTexture(scene, 'jo-fall-bare', FALL, BARE, 2, RIM);
+  WALK_LEGS.forEach((_, i) => createPixelTexture(scene, `jo-walk-${i}-bare`, walkFrame(i), BARE, 2, RIM));
+  createPixelTexture(scene, 'jo-sit-bare', POSES['jo-sit'], BARE, 2, RIM);
+}

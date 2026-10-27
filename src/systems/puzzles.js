@@ -4,7 +4,7 @@ import { sfx, trumpet } from './audio.js';
 // Full-screen modal puzzle overlays. Keyboard-driven. Each puzzle resolves
 // true on success; Esc closes (retry later). scene.puzzleActive gates update.
 
-class Modal {
+export class Modal {
   constructor(scene, title, instruction) {
     this.scene = scene;
     const cam = scene.cameras.main;
