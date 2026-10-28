@@ -72,9 +72,14 @@ export const DREAMS = [
   },
 ];
 
-// the last stop: the gate past the turnstile, open from the first visit —
-// THE LONG EVENING is a train like any other, no count to clear
-export const LAST_STOP = { id: 'last', platform: 'G', title: 'THE LAST STOP', scene: 'Evening' };
+// the last stop: THE LONG EVENING is a train like any other, open from the
+// first visit, no count to clear. It stands at platform G beside platform 9
+// (the turnstile and the service gate past it still lead there too).
+export const LAST_STOP = {
+  id: 'last', platform: 'G', title: 'THE LAST STOP', scene: 'Evening',
+  livery: { body: 0x3a2a24, trim: 0xf2c078, window: 0xffd890, emblem: 'star' },
+  conductor: 'The Last Stop, sir. No ticket, no count to clear.\nIt is warm on the other side. Are you going through?',
+};
 
 export function dreamById(id) {
   return DREAMS.find((d) => d.id === id);

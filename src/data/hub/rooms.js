@@ -8,12 +8,15 @@ const FULL = buildHubMap();
 const slice = (x0, x1) => FULL.map((row) => row.slice(x0, x1 + 1));
 const L = (worldCol, x0) => worldCol - x0;
 
-// platform bays: [world col of the bay's first tile] per platform 1..9
-// (platform 9, THE STOPPED HOUR, has its own short shed past the luggage ramp)
-export const BAYS = [80, 87, 94, 101, 110, 117, 124, 131, 141];
+// platform bays: [world col of the bay's first tile] per platform 1..9, G
+// (platform 9, THE STOPPED HOUR, and platform G, THE LAST STOP, share a
+// short shed past the luggage ramp)
+export const BAYS = [80, 87, 94, 101, 110, 117, 124, 131, 141, 148];
+// a platform number or letter → its index in BAYS
+export const bayIndex = (platform) => (platform === 'G' ? 9 : platform - 1);
 
 const bay = (x0, p) => {
-  const c = BAYS[p - 1];
+  const c = BAYS[bayIndex(p)];
   return [
     { type: 'platform', platform: p, x: L(c + 3, x0), y: 25, x0: L(c, x0), w: 7 },
     { type: 'board_post', platform: p, x: L(c + 1, x0), y: 24 },
@@ -105,7 +108,7 @@ const ROOMS = [
     section: 'platforms',
     allowNoFoes: true,
     horizon: 832, // the concourse floor: backdrops hang from it, not the undercroft
-    grid: slice(110, 139),
+    grid: slice(110, 156), // platforms 5-8, then 9 and G past the luggage ramp
     music: { section: 'hub', bpm: 104, state: 'hub' },
     bg: { far: 'hall_vault', mid: 'shed_ribs', near: 'shed_lamps', landmark: 'shed_clock' },
     objects: [
@@ -113,34 +116,26 @@ const ROOMS = [
       ...bay(110, 6),
       ...bay(110, 7),
       ...bay(110, 8),
+      ...bay(110, 9),
+      ...bay(110, 'G'),
       { type: 'water_tower', x: L(122, 110), y: 5 },
       { type: 'signal_box', x: L(114, 110), y: 32 },
       { type: 'lost_dreams', x: L(126, 110), y: 32 },
     ],
   },
   {
-    id: 'platforms_c',
-    section: 'platforms',
-    allowNoFoes: true,
-    horizon: 832, // the concourse floor: backdrops hang from it, not the undercroft
-    grid: slice(140, 149),
-    music: { section: 'hub', bpm: 104, state: 'hub' },
-    bg: { far: 'hall_vault', mid: 'shed_ribs', near: 'shed_lamps', landmark: 'train_shed' },
-    objects: [...bay(140, 9)],
-  },
-  {
     id: 'gate',
     section: 'gate',
     allowNoFoes: true,
     horizon: 832, // the concourse floor: backdrops hang from it, not the undercroft
-    grid: slice(150, 159),
+    grid: slice(157, 166),
     music: { section: 'hub', bpm: 104, state: 'hub' },
     bg: { far: 'gate_dark', mid: 'shed_ribs', near: 'railings', landmark: 'no_passengers' },
     objects: [
-      { type: 'turnstile', x: L(153, 150), y: 24 },
-      { type: 'gate', id: 'service_gate', x: L(156, 150), y: 12, h: 14, requires: [], alwaysOpen: true },
-      { type: 'sign', x: L(156, 150), y: 8, text: 'NO PASSENGERS' },
-      { type: 'gate_slot', x: L(156, 150), y: 30 },
+      { type: 'turnstile', x: L(160, 157), y: 24 },
+      { type: 'gate', id: 'service_gate', x: L(163, 157), y: 12, h: 14, requires: [], alwaysOpen: true },
+      { type: 'sign', x: L(163, 157), y: 8, text: 'NO PASSENGERS' },
+      { type: 'gate_slot', x: L(163, 157), y: 30 },
     ],
   },
 ];
@@ -151,7 +146,6 @@ const OBJECTIVES = {
   "hall": "board any train — or the last stop",
   "platforms_a": "board any train — or the last stop",
   "platforms_b": "board any train — or the last stop",
-  "platforms_c": "board any train — or the last stop",
   "gate": "the last stop"
 };
 

@@ -183,7 +183,9 @@ export default class EveningScene extends BaseLevel {
     const p = new Player(this, spawnO.wx, this.groundY(spawnO.wx, spawnO.wy - 40) - 24);
     this.player = p;
     p.speed = 215;
-    p.walkOnly = false; // at 215 px/s he jogs (stride-locked); a walk would be a shuffle
+    p.walkOnly = false; // with Shift held he jogs at 215 px/s (stride-locked)
+    // the Evening is walked (80 px/s); hold Shift / LB to jog (owner, phase 2)
+    p.walkByDefault = true;
     p.upJumps = true; // ↑ jumps, as it does everywhere else in the game
     p.quietSteps = true; // the scene plays steps, crunches and splashes itself
     p.tool.setTexture('tool-trumpet');
@@ -553,6 +555,12 @@ export default class EveningScene extends BaseLevel {
     const jump = k.W.isDown || k.SPACE.isDown;
     const down = p.cursors.down.isDown || k.S.isDown;
     const up = p.cursors.up.isDown;
+
+    // the first steps: the jog is on Shift here, the reverse of the dreams
+    if (!this.runHint && (left || right)) {
+      this.runHint = true;
+      this.time.delayedCall(700, () => this.floatText(p.x, p.y - 70, 'walking. hold SHIFT (LB) to run', '#c8c0b0'));
+    }
 
     // stillness is a verb here: cats come, fireflies gather, someone stands by
     if (left || right || jump || Math.abs(p.body.velocity.x) > 12 || !p.body.onFloor()) this.stillSince = time;

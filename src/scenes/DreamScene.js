@@ -274,6 +274,9 @@ export default class DreamScene extends BaseLevel {
   // coins are global like checkpoints (a continued run removes the taken
   // ones by position): room entities { type: 'coin' } / { type: 'coins', n, dx, dy }
   placeCoinsAll() {
+    // a restarted scene keeps its instance: start the list afresh
+    this.placedCoins = [];
+    this.shardItems = [];
     const objs = [];
     for (const r of this.graph.rooms.values()) {
       for (const e of r.data.entities || []) {

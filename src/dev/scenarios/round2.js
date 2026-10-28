@@ -156,6 +156,9 @@ const slopeSites = SITES.map((site) => ({
     const out = {};
     let pass_ = true;
     const speed0 = p.speed;
+    // the speeds are set explicitly: the hub and the Evening walk by default
+    const wbd0 = p.walkByDefault;
+    p.walkByDefault = false;
     for (const v of site.speeds || SPEEDS) {
       for (const dir of site.upOnly ? ['right'] : ['right', 'left']) {
         let res = null;
@@ -180,6 +183,7 @@ const slopeSites = SITES.map((site) => ({
       }
     }
     p.speed = speed0;
+    p.walkByDefault = wbd0;
     dc.releaseAll();
     return { pass: pass_, detail: out };
   },
