@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { castFrame } from '../../art/baked.js';
+import { Stride } from '../../art/stride.js';
 import { DIALOGUES } from '../../data/painter/cast.js';
 import { SUBJECTS, subjectById } from '../../data/painter/subjects.js';
 import { swatchTexture } from '../../data/painter/sprites.js';
@@ -329,7 +331,7 @@ export default {
       if (Math.abs(d) > 4) P.img.x += Math.sign(d) * Math.min(Math.abs(d), 140 * dt);
       P.img.y = this.groundY(P.img.x, P.img.y - 40);
       P.img.setFlipX(true);
-      this.paulStride(P, dt);
+      this.paulStride(P, dt, true);
       return;
     }
     if (this.tweens.isTweening(P.img)) return;
@@ -353,16 +355,17 @@ export default {
     if (P.img.shadowImg) P.img.shadowImg.setPosition(P.img.x, P.img.y - 1);
   },
 
-  paulStride(P, dt) {
-    const d = Math.abs(P.img.x - P.lastX);
+  // phase 2 motion: his legs follow the ground he covers — a walk when he
+  // strolls, the run frames when he keeps up with Jo (was 14 px a frame on
+  // a 6 px walk: his feet slid)
+  paulStride(P, dt, faceLocked = false) {
+    const d = P.img.x - P.lastX;
     P.lastX = P.img.x;
-    P.walked += d;
-    if (d > 0.5) {
-      P.img.setFlipX(P.img.x < P.lastX + d && P.img.x < P.lastX ? true : P.img.flipX);
-      const stride = (Math.floor(P.walked / 14) % 8) + 1;
-      P.img.setTexture(`pt-p-paul#${stride}`);
-    } else P.img.setTexture('pt-p-paul');
-    void dt;
+    P.gait ||= new Stride(this, 'pt-p-paul');
+    if (!faceLocked && Math.abs(d) > 0.5) P.img.setFlipX(d < 0);
+    const k = P.gait.next(d, dt * 1000, P.img.flipX ? -1 : 1);
+    if (k && castFrame(this, k)) P.img.setTexture(k);
+    else if (!k) P.img.setTexture(P.gait.idle(this.time.now));
   },
 
   // [F] — he paints one stroke of what Jo hasn't got, then you owe him one

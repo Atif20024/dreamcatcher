@@ -39,8 +39,13 @@ export function bakeFromAtlas(scene, key) {
   if (scene.textures.exists(key)) scene.textures.remove(key);
   const w = fr.cutWidth;
   const h = fr.cutHeight;
-  const ct = scene.textures.createCanvas(key, w, h);
-  ct.context.drawImage(fr.source.image, fr.cutX, fr.cutY, w, h, 0, 0, w, h);
+  // a trimmed frame (the rigged cast is packed by its opaque box): restore
+  // the full canvas, so the pivot and every caller's origin still hold
+  const ss = fr.trimmed && fr.data && fr.data.spriteSourceSize;
+  const W = ss ? fr.realWidth : w;
+  const H = ss ? fr.realHeight : h;
+  const ct = scene.textures.createCanvas(key, W, H);
+  ct.context.drawImage(fr.source.image, fr.cutX, fr.cutY, w, h, ss ? ss.x : 0, ss ? ss.y : 0, w, h);
   ct.refresh();
   // the rigged cast carry a foot pivot (scripts/lib/cast-bake.js): keep it, so
   // every image of a person stands on the same floor point whatever its size

@@ -15,6 +15,10 @@ import { hatById } from '../data/hats.js';
 // (run 140 -> 280, jump 300 -> 600, look-ahead 48 -> 96).
 const T = 32;
 const SPEED = 280;
+// Phase 2 motion: hold Shift (gamepad LB) to walk. 80 px/s is 1.8 m/s at
+// 44 px/m, a brisk human walk; the default 280 (6.4 m/s) is, honestly, a
+// run, and every dream's jumps are tuned to it, so it stays the default.
+export const WALK_SPEED = 80;
 const JUMP = 600;
 const COYOTE_MS = 100;
 // Phase 2: Jo is drawn about 82 px tall (a 2× rig, see src/data/rigs/jo.js)
@@ -57,7 +61,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.inputMap = null;
 
     this.cursors = scene.input.keyboard.createCursorKeys();
-    this.keys = scene.input.keyboard.addKeys('W,A,S,D,SPACE,X,E');
+    this.keys = scene.input.keyboard.addKeys('W,A,S,D,SPACE,X,E,SHIFT');
     this.runFrameTimer = 0;
     this.slippery = false; // scene sets: 0 = normal, else lerp factor
     this.slipFactor = 0.06;
@@ -330,7 +334,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       carrying: !!this.carrying,
       floating: !!this.floating,
       pockets: !!this.pockets,
-      walkOnly: !!this.walkOnly,
+      walkOnly: !!this.walkOnly || !!this.walking,
       tool: this.paintingStroke ? 'brush' : null,
       dead: !!this.dead,
       ev: o.ev || {},
@@ -375,6 +379,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       : (upJ && Phaser.Input.Keyboard.JustDown(this.cursors.up)) || Phaser.Input.Keyboard.JustDown(this.keys.W) || Phaser.Input.Keyboard.JustDown(this.keys.SPACE);
     const crouch = this.inDown();
     const locked = time < this.controlLockUntil;
+    // a held walk (Shift / LB): the true walk cycle at a walking pace
+    this.walking = I ? I.isDown('walk') : !!(this.keys.SHIFT && this.keys.SHIFT.isDown);
 
     // Round 2 §10.2 — the continuous ground solver: Jo's feet are laid on
     // the surface under their centre (slopes, stairs, crests, valleys) and
@@ -456,7 +462,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
     // horizontal
     if (!locked) {
-      const target = left ? -this.speed : right ? this.speed : 0;
+      const v = this.walking ? Math.min(this.speed, WALK_SPEED) : this.speed;
+      const target = left ? -v : right ? v : 0;
       if (this.slippery && grounded) {
         body.setVelocityX(Phaser.Math.Linear(body.velocity.x, target, this.slipFactor));
       } else {

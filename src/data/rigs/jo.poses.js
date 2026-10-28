@@ -2,6 +2,7 @@
 // Every frame is a pose for the human skeleton (src/art/rig/human.js):
 // numbers, not drawings. Feet: [x from hip, height above ground, boot].
 // Arms: [shoulder angle from straight down, + forward; elbow bend].
+import { walkCycle, swing } from '../../art/rig/gaits.js';
 
 const STAND = { fF: [1, 0, 'flat'], fB: [-1, 0, 'flat'], aF: [-4, 10], aB: [6, 12] };
 const P = (o = {}) => ({ ...STAND, ...o });
@@ -9,14 +10,12 @@ const mirrorLegs = (f) => ({ ...f, fF: f.fB, fB: f.fF, aF: f.aB, aB: f.aF });
 // head lags the hips by one frame (skill §3)
 const withHeadLag = (frames) => frames.map((f, i) => ({ ...f, headDy: frames[(i + frames.length - 1) % frames.length].hips || 0 }));
 
-// ---- walk: N=8, the planted foot moves 3 px a frame (step 3 → S=12) -------
-const WALK_HALF = [
-  { hips: 0, fF: [6, 0, 'heel'], fB: [-6, 0, 'toe'], aF: [-26, 14], aB: [24, 24] }, // contact
-  { hips: -1, fF: [3, 0, 'flat'], fB: [-5, 2, 'toe'], aF: [-16, 14], aB: [16, 20] }, // recoil
-  { hips: 0, fF: [0, 0, 'flat'], fB: [-1, 4, 'lift'], aF: [-3, 14], aB: [3, 16] }, // passing
-  { hips: 1, fF: [-3, 0, 'flat'], fB: [4, 2, 'heel'], aF: [12, 20], aB: [-12, 14] }, // high
-];
-const WALK = withHeadLag([...WALK_HALF, ...WALK_HALF.map(mirrorLegs)].map((f) => P({ head: 'base', ...f })));
+// ---- walk: N=8, the planted foot moves 4 px a frame (step 4 → S=16) -------
+// Phase 2 motion: a true walk, not a slow run — torso upright (no lean), a
+// heel-to-toe step one leg-length long, arms hanging low and nearly straight
+// (they swing from the shoulder, the elbow barely bends), a gentle ±1 bob
+// with the head a frame behind. Contacts move exactly 4 px a frame.
+const WALK = walkCycle({ n: 8, step: 4, lift: 3, hips: [0, -1, 0, 1], head: 'base', arms: swing(22, 6, 10) });
 
 // ---- run: N=8, contact frames move 7 px a frame (step 7); two airborne ----
 const RUN_HALF = (k = 1) => [
@@ -45,23 +44,32 @@ const IDLE_FIDGET = [
 const POCKETS = [0, 0, 1, 1, 1, 0].map((c) => P({ chest: c, aF: [-2, 30], aB: [2, 30], handF: 'none', handB: 'none' }));
 
 // ---- starts, stops, turns --------------------------------------------------
+// run_start (stride-locked, step 4): the weight drops and tips forward, the
+// back leg drives, the arms throw — the planted foot moves 4 px a frame, so
+// the push-off never slides while he accelerates into the run
 const RUN_START = [
-  P({ hips: -1, lean: 3, fF: [2, 0, 'flat'], fB: [-6, 0, 'toe'], aF: [-30, 60], aB: [30, 70], handF: 'fist', handB: 'fist' }),
-  P({ hips: 0, lean: 3, fF: [5, 3, 'lift'], fB: [-7, 1, 'toe'], aF: [20, 80], aB: [-30, 70], handF: 'fist', handB: 'fist' }),
-  P({ hips: 1, lean: 2, fF: [7, 2, 'heel'], fB: [-7, 4, 'point'], aF: [-30, 80], aB: [30, 80], handF: 'fist', handB: 'fist' }),
+  P({ hips: -2, lean: 3, fF: [4, 0, 'flat'], fB: [-4, 0, 'toe'], aF: [-35, 60], aB: [30, 70], handF: 'fist', handB: 'fist' }),
+  P({ hips: -1, lean: 4, fF: [0, 0, 'flat'], fB: [-5, 2, 'toe'], aF: [-10, 80], aB: [10, 75], handF: 'fist', handB: 'fist' }),
+  P({ hips: 0, lean: 4, fF: [-4, 0, 'toe'], fB: [3, 4, 'lift'], aF: [25, 85], aB: [-35, 75], handF: 'fist', handB: 'fist' }),
+  P({ hips: 1, lean: 3, fF: [-7, 3, 'lift'], fB: [7, 1, 'heel'], aF: [35, 85], aB: [-40, 80], handF: 'fist', handB: 'fist' }),
 ];
+// run_stop (skid): the front heel digs in, the body sits back against the
+// momentum, arms fly forward, then he straightens
 const SKID = [
-  P({ hips: -1, lean: -2, fF: [7, 0, 'heel'], fB: [-4, 0, 'toe'], aF: [40, 30], aB: [-30, 30] }),
-  P({ hips: -2, lean: -3, fF: [8, 0, 'heel'], fB: [-3, 0, 'flat'], aF: [55, 30], aB: [-40, 30] }),
-  P({ hips: -2, lean: -2, fF: [7, 0, 'heel'], fB: [-3, 0, 'flat'], aF: [45, 30], aB: [-30, 30] }),
-  P({ hips: -1, lean: 0, fF: [4, 0, 'flat'], fB: [-3, 0, 'flat'], aF: [15, 20], aB: [-5, 20] }),
+  P({ hips: -1, lean: -2, fF: [7, 0, 'heel'], fB: [-4, 0, 'toe'], aF: [40, 30], aB: [-30, 30], handF: 'open', handB: 'open' }),
+  P({ hips: -3, lean: -4, fF: [9, 0, 'heel'], fB: [-3, 0, 'flat'], aF: [70, 30], aB: [-10, 40], handF: 'flat', handB: 'open' }),
+  P({ hips: -3, lean: -3, fF: [8, 0, 'heel'], fB: [-3, 0, 'flat'], aF: [55, 30], aB: [-20, 30], handF: 'flat' }),
+  P({ hips: -2, lean: -1, fF: [6, 0, 'flat'], fB: [-3, 0, 'flat'], aF: [30, 25], aB: [-10, 20] }),
+  P({ hips: -1, lean: 0, fF: [3, 0, 'flat'], fB: [-2, 0, 'flat'], aF: [12, 20], aB: [0, 15], chest: 1 }),
 ];
-// turn, drawn in the NEW facing (the sprite flips with the input): momentum
-// still carries back, the feet cross, then he pushes off the other way
+// turn, drawn in the NEW facing (the sprite flips with the input): the old
+// momentum still carries him back onto the planted foot, the feet cross under
+// him as the head comes round first, then he drives off the other way
 const TURN = [
-  P({ hips: -1, lean: -2, fF: [-3, 0, 'flat'], fB: [-6, 0, 'toe'], aF: [-30, 30], aB: [30, 30], head: 'base' }),
-  P({ hips: -1, lean: 0, fF: [-1, 0, 'flat'], fB: [1, 0, 'flat'], aF: [-10, 30], aB: [10, 30] }),
-  P({ hips: 0, lean: 2, fF: [4, 2, 'lift'], fB: [-4, 0, 'toe'], aF: [20, 60], aB: [-20, 60], handF: 'fist', handB: 'fist' }),
+  P({ hips: -2, lean: -3, fF: [-2, 0, 'flat'], fB: [-7, 0, 'heel'], aF: [-35, 40], aB: [35, 30], head: 'base', headFlip: true }),
+  P({ hips: -2, lean: -1, fF: [-3, 0, 'flat'], fB: [-1, 1, 'toe'], aF: [-15, 40], aB: [20, 30] }),
+  P({ hips: -1, lean: 1, fF: [-1, 0, 'flat'], fB: [2, 0, 'flat'], aF: [5, 50], aB: [-5, 50], handF: 'fist', handB: 'fist' }),
+  P({ hips: 0, lean: 3, fF: [4, 2, 'lift'], fB: [-4, 0, 'toe'], aF: [25, 70], aB: [-25, 70], handF: 'fist', handB: 'fist' }),
 ];
 
 // ---- jump ------------------------------------------------------------------

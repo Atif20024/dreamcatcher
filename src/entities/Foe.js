@@ -4,6 +4,7 @@ import { dreamDust, hitStop } from '../systems/effects.js';
 import { showTutorial } from '../systems/tutorial.js';
 import { frameKeys } from '../utils/pixelart.js';
 import { castFrame } from '../art/baked.js';
+import { Stride } from '../art/stride.js';
 import { D } from '../builders/depths.js';
 import { solveGround } from './ground.js';
 import { uiText } from '../ui/text.js';
@@ -30,12 +31,24 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
     // Round 2 WP2: people are rigs at Jo's scale (an 8-frame walk stepping 6 px
     // a frame, plus alert / windup / grab / throw / search poses); the big ones
     // are drawn big, not scaled up.
-    this.rigged = !!castFrame(scene, `${texture}#8`);
+    this.rigged = !!castFrame(scene, `${texture}#1`) && !!castFrame(scene, `${texture}-windup#1`);
     if (this.rigged) {
-      this.walkFrames = [1, 2, 3, 4, 5, 6, 7, 8].map((i) => castFrame(scene, `${texture}#${i}`) || texture);
+      // phase 2 motion: a second look for every other foe of a kind, so a
+      // line of them never reads as clones (same palette, other face/hair)
+      const seen = (scene._foeLooks ||= {});
+      const nth = (seen[texture] = (seen[texture] || 0) + 1);
+      if (nth % 2 === 0 && castFrame(scene, `${texture}~b`) && castFrame(scene, `${texture}~b#1`)) {
+        texture = `${texture}~b`;
+        this.setTexture(texture);
+      }
+      this.look = texture;
+      // legs from the ground covered, in this foe's own gait (src/art/stride.js)
+      this.stride = new Stride(scene, texture);
+      this.walkFrames = [texture, `${texture}#1`];
       this.idleFrame = texture;
+      this.lastX = def.wx;
       this.poseFrames = {};
-      for (const [a, n] of [['alert', 2], ['windup', 3], ['grab', 2], ['throw', 3], ['search', 2]]) {
+      for (const [a, n] of [['alert', 3], ['windup', 3], ['grab', 2], ['throw', 3], ['search', 4], ['stagger', 2]]) {
         this.poseFrames[a] = [];
         for (let i = 1; i <= n; i++) if (castFrame(scene, `${texture}-${a}#${i}`)) this.poseFrames[a].push(`${texture}-${a}#${i}`);
       }
@@ -171,22 +184,37 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
   // called first thing each update: walk cycle, shadow, alert mark
   animate(time) {
     const vx = this.body.velocity.x;
-    if (this.walkFrames.length > 1) {
-      this.walkPhase += Math.abs(vx) * 0.016;
+    const dt = this.scene.game.loop.delta || 16.7;
+    if (this.stride) {
+      // phase 2 motion: the legs follow the ground actually covered (a
+      // velocity, a tween, a shove), in this foe's gait; standing still he
+      // plays his signature idle, never a walk frame
+      const dx = this.x - this.lastX;
+      this.lastX = this.x;
+      const pf = this.poseFrames;
+      const into = (ms) => Math.max(0, ms - (this.stateUntil - time));
+      const pick = (arr, t) => (arr.length ? arr[Math.max(0, Math.min(arr.length - 1, Math.floor(t * arr.length)))] : null);
+      if (this.state === 'alert' && this._lastState !== 'alert') this.alertAt = time;
+      this._lastState = this.state;
+      const walkKey = this.stride.next(dx, dt, this.flipX ? -1 : 1);
+      let key;
+      if (time < (this.throwUntil || 0)) key = pick(pf.throw, 1 - (this.throwUntil - time) / 700);
+      else if (this.state === 'windup') key = pick(pf.windup, into(400) / 400);
+      else if (this.state === 'grabbing') key = pick(pf.grab, into(250) / 250);
+      else if (this.state === 'staggered') key = pick(pf.stagger, Math.min(0.99, (time - (this.stateUntil - 1500)) / 500));
+      else if (this.state === 'alert' && time - (this.alertAt || 0) < 400) key = pick(pf.alert, (time - this.alertAt) / 400); // the notice: 0.4 s
+      else if (walkKey) key = walkKey;
+      else if (this.state === 'alert') key = pf.alert[pf.alert.length - 1];
+      else if (this.state === 'distracted') key = pf.search[Math.floor(time / 450) % pf.search.length];
+      else key = this.stride.idle(time + (this.idlePhase ??= Math.random() * 4000));
+      key = key || walkKey || this.idleFrame;
+      if (this.texture.key !== key && castFrame(this.scene, key)) this.setTexture(key);
+    } else if (this.walkFrames.length > 1) {
+      // creatures and things: two or three frames stepped by real distance
+      this.walkPhase += Math.abs(vx) * (dt / 1000);
       if (Math.abs(vx) < 4) this.walkPhase = 0;
       const f = Math.floor(this.walkPhase / this.frameStep) % this.walkFrames.length;
-      let key = Math.abs(vx) < 4 ? this.idleFrame : this.walkFrames[f];
-      const pf = this.poseFrames;
-      if (pf) {
-        // the tell, the lunge, the heave: poses, not tints
-        const into = (ms) => Math.max(0, ms - (this.stateUntil - time));
-        const pick = (arr, t) => (arr.length ? arr[Math.min(arr.length - 1, Math.floor(t * arr.length))] : null);
-        if (time < (this.throwUntil || 0)) key = pick(pf.throw, 1 - (this.throwUntil - time) / 700) || key;
-        else if (this.state === 'windup') key = pick(pf.windup, into(400) / 400) || key;
-        else if (this.state === 'grabbing') key = pick(pf.grab, into(250) / 250) || key;
-        else if (this.state === 'alert' && Math.abs(vx) < 4) key = pf.alert[Math.floor(time / 220) % pf.alert.length] || key;
-        else if (this.state === 'distracted' && Math.abs(vx) < 4) key = pf.search[Math.floor(time / 600) % pf.search.length] || key;
-      }
+      const key = Math.abs(vx) < 4 ? this.idleFrame : this.walkFrames[f];
       if (this.texture.key !== key) this.setTexture(key);
     }
     // the grab telegraph leans in (a rig leans in its own windup pose). A
@@ -325,9 +353,16 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
         sfx('click');
         return;
       }
-      if (this.state !== 'alert') showTutorial(this.scene, 'shove'); // first notice: how to get past a person
+      if (this.state !== 'alert') {
+        showTutorial(this.scene, 'shove'); // first notice: how to get past a person
+        this.alertAt = time;
+      }
       this.enter('alert', 0);
-      this.setVelocityX(Math.sign(dx) * this.speedBase * 0.9);
+      this._lastState = 'alert';
+      // the notice (skill §6): he stops for 0.4 s — head snaps, red glint,
+      // a point — then comes for Jo
+      const noticing = this.stride && time - (this.alertAt || 0) < 400;
+      this.setVelocityX(noticing ? 0 : Math.sign(dx) * this.speedBase * 0.9);
       this.setFlipX(dx < 0);
       return;
     }

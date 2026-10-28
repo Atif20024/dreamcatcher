@@ -143,10 +143,14 @@ export const CAST_BODIES = {
   'npc-osei': { sex: 'm', hat: 'none', hair: 'crop' },
   'mus-critic': { sex: 'm', body: 'elderly', hair: 'grey', hat: 'none', sit: true },
   // foes (human): one silhouette each, big bodies for the bouncers
-  'foe-bouncer': { body: 'big', hair: 'crop' },
-  'foe-lounge-bouncer': { body: 'big', hair: 'crop' },
+  // (phase 2 motion: silhouettes — the bouncers shaved with an earpiece, the
+  // gendarme in a kepi, station security in a helmet, the guard in a peaked cap)
+  'foe-bouncer': { body: 'big', hair: 'bald', hat: 'earpiece' },
+  'foe-lounge-bouncer': { body: 'big', hair: 'crop', hat: 'earpiece' },
   'foe-floor-security': { body: 'big' },
-  'foe-security': { body: 'big' },
+  'foe-security': { body: 'big', hat: 'helmet' },
+  'foe-gendarme': { hat: 'kepi' },
+  'foe-guard': { hat: 'peaked' },
   'foe-roadie': { body: 'big' },
   'foe-landlady': { sex: 'f', dress: true },
   'foe-proofreader': { sex: 'f', hair: 'bun' },

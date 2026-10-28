@@ -6,9 +6,9 @@
 // they already had. Pure JS: the atlas build (scripts/build-atlas.js) runs it
 // in Node and bakes every frame under the texture keys the scenes already use.
 import jo from '../../data/rigs/jo.js';
-import { POSES as JP } from '../../data/rigs/jo.poses.js';
 import { composeHuman } from './human.js';
 import { stamp, outline } from './compose.js';
+import { gaitPoses, gaitName as gaitNameOf, signatureIdle, taskLoop } from './gaits.js';
 
 
 // ---- colour ---------------------------------------------------------------------
@@ -101,30 +101,37 @@ export const BODIES = {
   child: { metrics: metrics({ thigh: 5, shin: 4, upper: 4, fore: 4, thighR: 1.7, shinR: 1.4, armR: 1.3, foreR: 1.2 }), torso: TORSO_CHILD, dress: TORSO_CHILD_DRESS, anchor: [3, 7], neck: [4, -1], sF: [4, 1], sB: [3, 1], skirt: SKIRT_CHILD, k: 9 / 16 },
 };
 
-// ---- heads (8×8, profile facing right, anchor = the neck at (3, 7)) -----------------
-// a hair, N hair light, S/R/s/t skin, i eye white, e pupil, m mouth, X the
-// foe's red glint (alert)
+// ---- heads (9×9, profile facing right, anchor = the neck at (3, 8)) -----------------
+// Phase 2 motion: a row and a column bigger than WP2's 8×8 so the face reads
+// at game zoom: a brow (hair colour) over a 2×2 eye (white + pupil), a nose
+// that sticks out, a 2 px mouth, an ear. a hair, N hair light, R/S/s/t skin,
+// i eye white, e pupil, m mouth, X the foe's red glint (alert)
 const HAIR = {
-  short: ['..aaaaa.', '.aNaaaRR', '.aaaSaaS', '.aasSieS', '.aasSSSR', '..sSSSm.', '..tsSSS.', '...ss...'],
-  crop: ['...aaa..', '..aaaSRR', '.aaSSaaS', '.asSSieS', '.asSSSSR', '..sSSSm.', '..tsSSS.', '...ss...'],
-  long: ['..aaaaa.', 'aaNaaSRR', 'aaaSaaSS', 'aaasSieS', '.aasSSSR', '.a.sSSm.', '..tsSSS.', '...ss...'],
-  bob: ['.aaaaaa.', 'aaNaaaRR', 'aaaaSaaS', 'aaasSieS', 'aaasSSSR', '.a.sSSm.', '..tsSSS.', '...ss...'],
-  bun: ['aa.aaaa.', 'aaaNaSRR', '.aaSSaaS', '.aasSieS', '.aasSSSR', '..sSSSm.', '..tsSSS.', '...ss...'],
-  tuft: ['...a.a..', '..aaaaR.', '.aNaSSRR', '.asSSieS', '.asSSSSR', '..sSSSm.', '..tsSSS.', '...ss...'],
-  bald: ['..RRRR..', '.RSSSSRR', '.aSSSaaS', '.asSSieS', '.asSSSSR', '..sSSSm.', '..tsSSS.', '...ss...'],
+  short: ['..aaaaa..', '.aNNaaaa.', '.aaaaSSRR', '.aasSaaS.', '.aasSieSS', '.aasSieSS', '..sSSSmm.', '..tsSSSs.', '...ss....'],
+  crop: ['...aaa...', '..aNaaa..', '.aaaaSSRR', '.asSSaaS.', '.asSSieSS', '.asSSieSS', '..sSSSmm.', '..tsSSSs.', '...ss....'],
+  long: ['..aaaaa..', '.aNNaaaa.', 'aaaaaSSRR', 'aaaSSaaS.', 'aaasSieSS', 'aaasSieSS', '.aasSSmm.', '.aatsSSs.', '...ss....'],
+  bob: ['.aaaaaa..', 'aaNNaaaa.', 'aaaaaSSRR', 'aaaSSaaS.', 'aaasSieSS', 'aaasSieSS', '.a.sSSmm.', '..tsSSSs.', '...ss....'],
+  bun: ['aa.aaaa..', 'aaaNaaaa.', '.aaaaSSRR', '.aasSaaS.', '.aasSieSS', '.aasSieSS', '..sSSSmm.', '..tsSSSs.', '...ss....'],
+  tuft: ['...a.a...', '..aaaaa..', '.aNaaSSRR', '.asSSaaS.', '.asSSieSS', '.asSSieSS', '..sSSSmm.', '..tsSSSs.', '...ss....'],
+  bald: ['...RRR...', '..RSSSRR.', '.RSSSSSRR', '.sSSSaaS.', '.ssSSieSS', '.ssSSieSS', '..sSSSmm.', '..tsSSSs.', '...ss....'],
 };
 HAIR.grey = HAIR.short;
-const swapRow = (rows, r, s) => rows.map((x, i) => (i === r ? s : x));
-function headSet(base, beard) {
+const setAt = (rows, r, c, ch) => rows.map((x, i) => (i === r ? x.slice(0, c) + ch + x.slice(c + ch.length) : x));
+export function headSet(base, beard) {
   let b = base;
-  if (beard) b = swapRow(swapRow(b, 5, '..aSSaa.'), 6, '..taaaa.');
-  const eyeRow = b[3];
-  const blink = swapRow(b, 3, eyeRow.replace('ie', 'ss'));
-  const talk = swapRow(b, 5, beard ? '..aSaam.' : '..sSSmm.');
-  const laugh = swapRow(swapRow(blink, 5, beard ? '..aSmm..' : '..sSmm..'), 6, beard ? '..taam..' : '..tsSm..');
-  const alert = swapRow(b, 3, eyeRow.replace('ie', 'iX'));
-  const shout = swapRow(alert, 5, beard ? '..aSamm.' : '..sSmmm.');
-  return { base: b, blink, talk, laugh, wince: blink, sleep: blink, down: b, up: b, blow: b, alert, shout };
+  if (beard === 'moustache') b = setAt(b, 6, 5, 'aaa');
+  else if (beard) b = setAt(setAt(setAt(b, 6, 2, 'aSaaa'), 7, 2, 'taaaa'), 8, 3, 'aa');
+  const eyes = (r, a, c) => setAt(setAt(r, 4, 5, a), 5, 5, c);
+  const mouth = (r, a, c) => setAt(setAt(r, 6, 6, a), 7, 6, c);
+  const blink = eyes(b, 'SS', 'ee');
+  const talk = beard ? setAt(b, 7, 6, 'm') : mouth(b, 'mm', 'mS');
+  const laugh = beard ? setAt(blink, 7, 6, 'mm') : mouth(blink, 'mm', 'mm');
+  // the foe's notice: the brow drops toward the nose, the pupil goes red
+  const alert = setAt(setAt(eyes(b, 'iX', 'iX'), 3, 5, 'Sa'), 3, 7, 'a');
+  const shout = beard ? setAt(alert, 7, 6, 'mm') : mouth(alert, 'mm', 'mm');
+  // puzzled: the brow up, the pupil glancing back
+  const search = setAt(setAt(eyes(b, 'ei', 'ei'), 3, 5, 'SS'), 2, 5, 'aa');
+  return { base: b, blink, talk, laugh, wince: blink, sleep: blink, down: b, up: b, blow: b, alert, shout, search };
 }
 
 // ---- hats (anchor at the neck like Jo's porkpie: rows sit above the head) --------
@@ -143,7 +150,13 @@ const HATS = {
   scarf: { rows: ['..UHHHH...', '.UHHHHHH..', 'UHHHHh....', 'HHHHh.....', 'HHHh......', 'HHHh......', '.Hh.......'], ox: 4, oy: 8 },
   wrap: { rows: ['..UHHHH...', '.UHHHHHH..', '.HhHHhHHh.', '.hhhhhhhh.'], ox: 4, oy: 9 },
   veil: { rows: ['..UHHHH...', '.UHHHHHH..', 'UHHHHh....', 'HHHHh.....', 'HHHh......', 'HHHh......', 'HHh.......', 'Hh........'], ox: 4, oy: 8 },
+  // Phase 2 motion: silhouettes a line of foes can be told apart by
+  kepi: { rows: ['..UHHHH...', '..UHHHHh..', '..UHHHHh..', '..yyyyyr..', '..hhhhhhhh'], ox: 4, oy: 10 },
+  helmet: { rows: ['...UUHH...', '.UUHHHHHh.', 'UHHHHHHHHh', 'UHHHHHHHhh', 'yyyyyyyyyr', 'h........h'], ox: 5, oy: 9 },
+  earpiece: { rows: ['.i', '.i', 'i.', 'i.'], ox: 1, oy: 3 },
 };
+// heads grew a row (phase 2 motion): every hat sits one row higher
+for (const h of Object.values(HATS)) h.oy += 1;
 // look hats that are really hair
 const HAIR_HATS = { none: null, tuft: 'tuft', bob: 'bob', bun: 'bun', crop: 'crop' };
 
@@ -226,6 +239,13 @@ export function castRig(look, spec = {}) {
     wood: ['F', 'F', 'f', 'f'],
   };
   const torso = spec.dress ? B.dress : B.torso;
+  // variant 'b' (a second foe of the same kind): facial hair toggled and, if
+  // the hair shows, a different cut — same palette, never a clone
+  const alt = spec.variant === 'b';
+  const SWAP = { short: 'crop', crop: 'short', long: 'bob', bob: 'long', bun: 'bob', bald: 'crop', tuft: 'short', grey: 'bald' };
+  const hairShows = hairIsHat || hatName === 'none' || hatName === 'earpiece' || hatName === 'headset';
+  const variantHair = alt && hairShows ? SWAP[hairStyle] || hairStyle : hairStyle;
+  const variantBeard = alt ? (spec.beard ? null : 'moustache') : spec.beard || null;
   const parts = {
     ...jo.parts,
     torso: { base: torso, hunch: torso },
@@ -233,7 +253,8 @@ export function castRig(look, spec = {}) {
     neckAt: B.neck,
     shoulderF: B.sF,
     shoulderB: B.sB,
-    head: headSet(HAIR[hairStyle] || HAIR.short, !!spec.beard),
+    head: headSet(HAIR[variantHair] || HAIR.short, variantBeard),
+    headAnchor: [3, 8],
     hat: HATS[hatName] || { rows: [], ox: 0, oy: 0, flipShift: 0 },
     over: spec.dress ? B.skirt : spec.apron ? APRON : null,
   };
@@ -259,14 +280,20 @@ const TALK = [
 const IDLE = [0, 1, 1, 0].map((c, i) => P({ chest: c, head: i === 3 ? 'blink' : 'base' }));
 const WAVE = [0, 1, 2, 1].map((i) => P({ aF: [150, -20 + i * 25], handF: 'up', head: 'talk' }));
 const SEATED = { hips: -7, fF: [6, 0, 'flat'], fB: [5, 0, 'flat'], aF: [30, 50], aB: [25, 50] };
-// foes: notice (head snaps, the red glint), the tell (0.4 s, arms back then
-// up), the grab (lunge, both hands out), the throw (lift and heave)
+// foes: the notice (3 frames: the head snaps round, the brow drops, the red
+// glint, then a point), the tell (0.4 s, weight back, arms back then up), the
+// grab (lunge, both hands out), the throw (lift and heave), the search
+// (scratch the head, look both ways) and a stagger when Jo shoves him
 const FOE = {
-  alert: [P({ head: 'alert', lean: -1, aF: [20, 40], aB: [15, 40], chest: 1 }), P({ head: 'shout', lean: -1, aF: [30, 60], aB: [20, 50], chest: 1 })],
+  alert: [
+    P({ head: 'alert', hips: 1, lean: -2, aF: [30, 50], aB: [25, 50], chest: 1, headDy: 2, handF: 'open', handB: 'open' }),
+    P({ head: 'shout', hips: 0, lean: -1, fF: [3, 0, 'flat'], fB: [-2, 0, 'flat'], aF: [40, 70], aB: [20, 60], chest: 1 }),
+    P({ head: 'alert', hips: 0, lean: 1, fF: [3, 0, 'flat'], fB: [-2, 0, 'flat'], aF: [85, 5], aB: [10, 30], handF: 'flat' }),
+  ],
   windup: [
     P({ head: 'alert', hips: -1, lean: -1, fF: [4, 0, 'flat'], fB: [-4, 0, 'flat'], aF: [-30, 40], aB: [-40, 40] }),
-    P({ head: 'shout', hips: -2, lean: -2, fF: [5, 0, 'flat'], fB: [-5, 0, 'toe'], aF: [-50, 60], aB: [-55, 60] }),
-    P({ head: 'shout', hips: -2, lean: 0, fF: [5, 0, 'flat'], fB: [-5, 0, 'toe'], aF: [60, 40], aB: [50, 40], handF: 'flat', handB: 'flat' }),
+    P({ head: 'shout', hips: -2, lean: -2, fF: [5, 0, 'flat'], fB: [-5, 0, 'toe'], aF: [-60, 60], aB: [-65, 60] }),
+    P({ head: 'shout', hips: -3, lean: -2, fF: [5, 0, 'flat'], fB: [-5, 0, 'toe'], aF: [120, 40], aB: [110, 40], handF: 'open', handB: 'open' }),
   ],
   grab: [
     P({ head: 'shout', hips: -1, lean: 3, fF: [7, 0, 'flat'], fB: [-6, 0, 'toe'], aF: [85, 0], aB: [80, 5], handF: 'flat', handB: 'flat' }),
@@ -277,29 +304,63 @@ const FOE = {
     P({ head: 'shout', hips: 0, lean: 2, fF: [5, 0, 'flat'], fB: [-4, 0, 'toe'], aF: [160, -10], aB: [150, -10], handF: 'open', handB: 'open' }),
     P({ head: 'base', hips: 0, lean: 1, aF: [40, 20], aB: [30, 20] }),
   ],
-  search: [P({ head: 'base', aF: [140, 60], aB: [6, 12] }), P({ head: 'blink', aF: [150, 70], aB: [6, 12], headFlip: true })],
+  search: [
+    P({ head: 'search', aF: [140, 70], aB: [6, 12], handF: 'fist' }),
+    P({ head: 'search', aF: [150, 80], aB: [6, 12], handF: 'fist' }),
+    P({ head: 'search', headFlip: true, aF: [10, 30], aB: [10, 30] }),
+    P({ head: 'blink', aF: [10, 30], aB: [10, 30] }),
+  ],
+  stagger: [
+    P({ head: 'blink', hips: 0, lean: -3, fF: [3, 2, 'point'], fB: [-4, 0, 'toe'], aF: [70, 40], aB: [50, 30] }),
+    P({ head: 'shout', hips: -1, lean: -2, fF: [4, 0, 'flat'], fB: [-4, 0, 'flat'], aF: [40, 30], aB: [30, 30] }),
+  ],
 };
 
-export function castPoses(rig, held) {
+// opts: { key, gait }. Walks and runs come from the gait generator
+// (src/art/rig/gaits.js) per body: exact integer steps, never scaled, so the
+// planted foot moves one step a frame.
+export function castPoses(rig, held, opts = {}) {
   const k = rig.k;
   const lean = rig.lean;
   const H = HELD[held] || null;
-  const hold = (pose) => {
-    let out = { ...pose, lean: (pose.lean || 0) + lean };
-    if (H) out = { ...out, aF: H.arm, handF: H.hand || 'fist', ...(H.back ? { aB: H.back } : {}) };
-    return scalePose(out, k);
+  const withHeld = (pose) => {
+    if (!H) return pose;
+    const out = { ...pose, aF: pose.heldArm || H.arm, handF: H.hand || 'fist' };
+    if (H.back) out.aB = pose.heldArmB || H.back;
+    return out;
   };
+  const hold = (pose) => scalePose(withHeld({ ...pose, lean: (pose.lean || 0) + lean }), k);
   const plain = (pose) => scalePose({ ...pose, lean: (pose.lean || 0) + lean }, k);
+  const gait = opts.gait || gaitNameOf(opts.key, rig.body);
+  const G = gaitPoses(gait, rig.body);
+  // a guard walks with both hands behind his back: the clipboard is tucked away
+  const tucked = G.handsBehind;
+  const gaitHold = (pose) => {
+    const p = { ...pose, lean: (pose.lean || 0) + lean };
+    return tucked ? { ...p, noHeld: true } : withHeld(p);
+  };
+  // the signature gesture wins: a held thing follows the gesturing hand
+  const sigHold = (pose) => (tucked ? scalePose({ ...pose, noHeld: true, lean: (pose.lean || 0) + lean }, k) : hold({ ...pose, heldArm: pose.aF }));
+  const gaitPlain = (pose) => ({ ...pose, lean: (pose.lean || 0) + lean });
   return {
+    gait,
+    walkStep: G.walkStep,
+    runStep: G.runStep,
+    runAbove: G.runAbove,
+    run: G.run.map(gaitHold),
+    sig: signatureIdle(gait).map(sigHold),
+    task: taskLoop(held).map(hold),
+    freetask: taskLoop(null).map(plain),
+    stagger: FOE.stagger.map(plain),
     idle: IDLE.map(hold),
-    walk: JP.walk.map(hold),
+    walk: G.walk.map(gaitHold),
     talk: TALK.map((p) => (H ? hold({ ...p, aB: p.aF, aF: undefined }) : plain(p))),
     wave: WAVE.map(plain),
     laugh: [P({ head: 'laugh', lean: -1, chest: 1 }), P({ head: 'laugh' })].map(hold),
     sit: [P(SEATED), P({ ...SEATED, chest: 1 })].map(hold),
     sitlaugh: [P({ ...SEATED, head: 'laugh', lean: -1 })].map(hold),
     free: IDLE.map(plain),
-    freewalk: JP.walk.map(plain),
+    freewalk: G.walk.map(gaitPlain),
     alert: FOE.alert.map(plain),
     windup: FOE.windup.map(plain),
     grab: FOE.grab.map(plain),

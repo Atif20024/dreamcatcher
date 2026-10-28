@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { castFrame } from '../art/baked.js';
+import { Stride } from '../art/stride.js';
 import Player from '../entities/Player.js';
 import BaseLevel from './BaseLevel.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
@@ -238,15 +240,18 @@ export default class WriterScene extends BaseLevel {
     const dist = Math.abs(toX - from);
     img.setFlipX(toX < from);
     const state = { d: 0 };
+    // legs from the ground covered, in this person's own gait (phase 2 motion)
+    const gait = new Stride(this, `wr-p-${id}`);
+    let lastX = from;
     this.tweens.add({
       targets: state,
       d: dist,
       duration: (dist / 70) * 1000,
       onUpdate: () => {
         img.x = from + Math.sign(toX - from) * state.d;
-        const stride = (Math.floor(state.d / 6) % 8) + 1;
-        const k = `wr-p-${id}#${stride}`;
-        if (this.textures.exists(k)) img.setTexture(k);
+        const k = gait.next(img.x - lastX, this.game.loop.delta);
+        lastX = img.x;
+        if (k && castFrame(this, k)) img.setTexture(k);
       },
       onComplete: () => {
         img.setTexture(`wr-p-${id}`);

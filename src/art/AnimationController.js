@@ -238,6 +238,19 @@ export class AnimationController {
         this.plantLog.push({ seq: this.plantSeq, anim: this.name, frame: Math.floor(this.phase) % n, x: bx, facing: s.facing || 1 });
         if (this.plantLog.length > 400) this.plantLog.shift();
       }
+      // a one-shot stride (run_start): ends when the ground is covered, or
+      // after maxMs if he is not getting anywhere (pushing a wall)
+      this.t += dt / 1000;
+      if (!m.loop && (this.phase >= n || (m.maxMs && this.t * 1000 >= m.maxMs))) {
+        this.frame = n - 1;
+        if (this.done) return;
+        this.done = true;
+        const o = this.oneShot;
+        if (o && o.name === this.name) this.endOneShot(true);
+        if (m.next) this.set(m.next, { force: true });
+        else if (s) this.set(resolveState(s), { force: true });
+        return;
+      }
       this.frame = Math.floor(this.phase) % n;
     } else {
       this.t += (dt / 1000) * m.fps;
