@@ -9,6 +9,7 @@ import EveningScene from './scenes/EveningScene.js';
 import WriterScene from './scenes/WriterScene.js';
 import PainterScene from './scenes/PainterScene.js';
 import GamblerScene from './scenes/GamblerScene.js';
+import DreamScene from './scenes/DreamScene.js';
 import UIScene from './ui/UIScene.js';
 import BootScene from './scenes/BootScene.js';
 import { installAdoption } from './ui/ui.js';
@@ -47,7 +48,7 @@ window.game = new Phaser.Game({
   // painter and the gambler. Without any, nothing about the boot changes.
   scene: (() => {
     // no warp: Boot → Title (Continue / New game / Settings) → the station
-    const ALL = [TitleScene, HubScene, IntroScene, MusicianScene, ChefScene, AstronautScene, EveningScene, WriterScene, PainterScene, GamblerScene];
+    const ALL = [TitleScene, HubScene, IntroScene, MusicianScene, ChefScene, AstronautScene, EveningScene, WriterScene, PainterScene, GamblerScene, DreamScene];
     // Boot first: it loads the atlases, then starts the title or the warp's scene
     return [BootScene, ...ALL, UIScene];
   })(),

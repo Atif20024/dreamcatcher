@@ -1,0 +1,47 @@
+// THE BELL YARD: past the gate the ground climbs to the old bell frame; the
+// tower stands in the backdrop with its belfry lit. The dream waits at the
+// top of the hill.
+export default {
+  id: 'yard',
+  origin: { tx: 100, ty: 0 },
+  grid: [
+    '..................................',
+    '..................................',
+    '..................................',
+    '..................................',
+    '..................................',
+    '..................................',
+    '..................................',
+    '..................................',
+    '..................................',
+    '..................................',
+    '..................................',
+    '..................................',
+    '..................../#############',
+    '................./################',
+    '............./####################',
+    '........./########################',
+    '##################################',
+    '##################################',
+    '##################################',
+    '##################################',
+  ],
+  material: 'meadow',
+  decor: ['tufts_front'],
+  props: [
+    { prop: 'fence', x: 3, y: 16 },
+    { prop: 'bell_frame', x: 28, y: 12 },
+    { prop: 'lamp_post', x: 22, y: 12, dx: -10 },
+    { prop: 'bush', x: 12, y: 15, scale: 0.9 },
+  ],
+  enclosure: { fgFoliage: [{ x: -1, w: 4 }] },
+  backdrop: { set: 'night_yard', horizon: 14 },
+  ambience: 'bell_yard',
+  music: { state: 'setpiece' },
+  objective: 'catch_dream',
+  titleCard: 'THE BELL YARD',
+  entities: [
+    { type: 'portal', id: 'yard<green', kind: 'seam', x: 0, y: 15, to: { room: 'green', portal: 'green>yard' }, seam: { prop: 'fence', width: 260 } },
+    { type: 'orb', id: 'orb', x: 24, y: 9 },
+  ],
+};

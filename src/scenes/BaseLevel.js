@@ -26,6 +26,7 @@ import ModalManager from '../ui/ModalManager.js';
 import { hud } from '../ui/hud.js';
 import { uiText } from '../ui/text.js';
 import { panel, dim } from '../ui/Panel.js';
+import { ambience } from '../audio/Ambience.js';
 
 const T = 32;
 // scene key → dream id (Hub and the Evening have no in-dream run)
@@ -164,6 +165,13 @@ export default class BaseLevel extends Phaser.Scene {
     this.satchelHud = this.hud.line('context');
     this.coinsSinceCP = 0;
 
+    // the dream's ambient loop (data/dreams.js `ambientLoop`), finally heard:
+    // synthesised on the ambience bus (src/audio/). DreamScene runs its own
+    // per-room ambience and replaces this.
+    if (this.dream && this.dream.ambientLoop && this.scene.key !== 'Dream') {
+      ambience.blend(this.dream.ambientLoop, null, 0);
+      this.events.once('shutdown', () => ambience.stop());
+    }
     // D7 — the director drives the mix and the beat clock for this level
     musicDirector.attach(this);
     this.beatNum = 0;

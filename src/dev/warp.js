@@ -11,6 +11,8 @@ export const DREAM_WARP = {
   painter: { scene: 'Painter', param: 'pt', fallback: 'arrival' },
   gambler: { scene: 'Gambler', param: 'gm', fallback: 'arrival' },
   evening: { scene: 'Evening', param: 'ev', fallback: 'arch' },
+  // framework dreams (DreamScene reads ?warp= itself: dream:room[:spawn])
+  proof: { scene: 'Dream', param: null, framework: true },
 };
 
 // returns { dream, place, scene, legacy: {param: value} } or null

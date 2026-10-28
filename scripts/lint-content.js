@@ -8,6 +8,7 @@
 // and each needs a trigger that can fire; every room has an objective;
 // every gate a hint; no foe near a dream's spawn; landmarks stay in their dream.
 import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { register } from 'node:module';
 import { join, relative, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runRoomChecks, DREAMS as ROOMS_BY_DREAM } from './lib/rooms-check.js';
@@ -15,6 +16,12 @@ import { countDefaultText, checkpointIssues, teachIssues, objectiveIssues, gateI
 import { CARDS } from '../src/data/teach.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+// framework dreams import the painters, which import phaser: stub it (as the atlas build does)
+register('./lib/stub-loader.js', import.meta.url);
+const { FRAMEWORK_DREAMS } = await import('../src/dreams/index.js');
+const { dreamIssues } = await import('./lib/dream-checks.js');
+const { SHARED_MATERIALS, SHARED_DECOR_RULES } = await import('../src/world/MaterialLibrary.js');
+const { PROP_IDS } = await import('../src/art/props.js');
 const SRC = join(ROOT, 'src');
 const json = process.argv.includes('--json');
 
@@ -58,7 +65,11 @@ const objectives = objectiveIssues(ROOMS_BY_DREAM);
 const gates = gateIssues(ROOMS_BY_DREAM);
 const spawn = spawnSafetyIssues(ROOMS_BY_DREAM);
 const landmarks = landmarkIssues(ROOMS_BY_DREAM);
-const content = [...teach, ...objectives, ...gates, ...spawn, ...landmarks];
+// 6. framework dreams (phase 3): graph, reachability, headroom, refs, perf
+const sharedProps = Object.fromEntries(PROP_IDS.map((k) => [k, { id: k }]));
+const framework = [];
+for (const def of Object.values(FRAMEWORK_DREAMS)) framework.push(...dreamIssues(def, { materials: SHARED_MATERIALS, props: sharedProps, decorRules: SHARED_DECOR_RULES }));
+const content = [...teach, ...objectives, ...gates, ...spawn, ...landmarks, ...framework];
 
 console.log = realLog;
 const report = {
@@ -70,6 +81,7 @@ const report = {
   landmarks: { failures: landmarks },
   defaultText: { files: debt.length, ...totals, perFile: debt },
   checkpoints: { failures: cps },
+  framework: { dreams: Object.keys(FRAMEWORK_DREAMS), failures: framework },
 };
 
 if (json) {
@@ -83,6 +95,8 @@ if (json) {
   for (const d of debt) log(`  ✗ ${d.file}: add.text x${d.addText}, monospace x${d.mono}, canvas text x${d.canvas}`);
   log(`\n--- checkpoints: ${cps.length} failures ---`);
   for (const c of cps) log(`  ✗ ${c}`);
+  log(`\n--- framework dreams (${Object.keys(FRAMEWORK_DREAMS).join(', ')}): ${framework.length} failures ---`);
+  for (const f of framework) log(`  ✗ ${f}`);
   log(`\nrooms: ${rooms.failures} failures, ${rooms.warnings} warnings; default text: ${debt.length} files; content failures: ${content.length}`);
 }
 // every check above fails the run

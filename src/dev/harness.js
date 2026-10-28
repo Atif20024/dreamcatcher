@@ -3,7 +3,19 @@
 // the rAF loop is put to sleep and game.step(t, dt) is driven from a synthetic
 // clock. Keys are real KeyboardEvents on window (keyCode defined), so Phaser's
 // KeyboardPlugin and the modal `e.code` handlers both see them.
+import Phaser from 'phaser';
 import { DREAM_WARP } from './warp.js';
+
+// Phaser's TweenManager runs on the wall clock (Date.now, lag-smoothed), so
+// under the synthetic step clock tweens barely moved and anything awaiting a
+// tween's onComplete stalled. While __dc.step drives the game, tweens advance
+// by the step's dt like everything else.
+let stepDt = 0;
+const TM = Phaser.Tweens.TweenManager.prototype;
+const wallDelta = TM.getDelta;
+TM.getDelta = function (tick) {
+  return stepDt > 0 ? stepDt : wallDelta.call(this, tick);
+};
 
 const KEYCODES = {
   left: ['ArrowLeft', 37], right: ['ArrowRight', 39], up: ['ArrowUp', 38], down: ['ArrowDown', 40],
@@ -47,9 +59,23 @@ const dc = {
   step(n = 1, dtMs = 16.67) {
     dc.pause();
     const g = game();
+    stepDt = dtMs;
+    try {
+      for (let i = 0; i < n; i++) {
+        clock += dtMs;
+        g.step(clock, dtMs);
+      }
+    } finally {
+      stepDt = 0;
+    }
+    return clock;
+  },
+  // step n frames letting promise chains (beats, conversations, endings)
+  // settle between frames: a synchronous step loop never runs microtasks
+  async run(n = 1, dtMs = 16.67) {
     for (let i = 0; i < n; i++) {
-      clock += dtMs;
-      g.step(clock, dtMs);
+      dc.step(1, dtMs);
+      for (let k = 0; k < 8; k++) await null;
     }
     return clock;
   },
@@ -112,6 +138,8 @@ const dc = {
     window.history.replaceState(null, '', url);
     const g = game();
     // still loading the atlases: Boot will start this scene when it is done
+    if (d.framework) url.searchParams.set('warp', place ? `${dream}:${place}` : dream);
+    window.history.replaceState(null, '', url);
     if (!g.registry.get('booted')) {
       g.registry.set('firstScene', d.scene);
       return null;
@@ -121,7 +149,8 @@ const dc = {
       const k = s.sys.settings.key;
       if (k !== 'UI' && k !== 'Boot' && s.sys.settings.status >= 1 && s.sys.settings.status <= 7) g.scene.stop(k);
     });
-    g.scene.start(d.scene);
+    // a framework dream gets its id and place as data (DreamScene)
+    g.scene.start(d.scene, d.framework ? { dreamId: dream, warp: place || null } : undefined);
     if (!g.scene.isActive('UI')) g.scene.start('UI');
     dc.step(2);
     return dc.state();

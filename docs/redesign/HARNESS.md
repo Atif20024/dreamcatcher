@@ -48,3 +48,10 @@ Phase 1.4 (`src/dev/scenarios/phase14.js`): `chef-chimney-walljump` (ribbed shaf
 - Boot loads the atlases first: `await __dc.ready()` resolves once they are loaded and the first scene is past its loader (`runScenarios()` awaits it). A `__dc.warp()` issued before boot is queued for Boot to start.
 - `src/dev/scenarios/phase2.js`: `jo-walk`, `jo-skid`, `jo-turn`, `jo-jump-arc`, `jo-land-soft-hard`, `jo-float`, `jo-foot-slide` (planted-foot drift < 2 px at stride boundaries, from `player.anim.plantLog`), `jo-route-<dream>` for all eight places (keeps moving; never stands with the drawn head in a ceiling). Each returns its frame strip in `detail`.
 - In a session: `__dc.scene().player.anim` is the AnimationController (`name`, `frame`, `frameName()`, `playOnce()`, `hold()`); `player.pose('celebrate')` plays a verb.
+
+## Phase 3a (framework, proof dream)
+- `?warp=proof:start` (or `proof:<room>[:<spawnId>]`) starts the framework proof dream in `DreamScene`; `__dc.warp('proof', 'green')` passes `{ dreamId, warp }` as scene data.
+- `await __dc.run(n)` steps n frames and lets promise chains settle between them (beats, conversations, encounters and the ending are async; a synchronous `step` loop never runs their continuations).
+- Tweens now follow the step clock while `__dc.step` drives the game (Phaser's TweenManager otherwise reads the wall clock), so tween `onComplete` callbacks fire in scenarios.
+- `src/dev/scenarios/phase3.js`: `proof-playthrough` (real inputs, lane → ending → station), `proof-seam-no-snap`, `proof-door`, `proof-talk-on-e`, `proof-perf`. In a session: `__dc.scene().streamer.stats()`, `.perf.sample()`, `.backdrop.probe()`, `.sceneBox.state()`, `.caption.state()`, `.F` (flags).
+- Lint: `npm run lint:content` runs `scripts/lib/dream-checks.js` over every framework dream (see `FRAMEWORK.md` §16).

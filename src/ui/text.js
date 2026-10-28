@@ -209,6 +209,12 @@ export class DCText extends Phaser.GameObjects.BitmapText {
   _syncBg() {
     const bg = this._bg;
     if (!bg || !bg.active) return;
+    // Phaser caches the global bounds until the text changes: a plate under
+    // a moving text (the interact prompt) went stale at the old position
+    if (this._bgAt !== `${this.x},${this.y}`) {
+      this._bgAt = `${this.x},${this.y}`;
+      this._dirty = true;
+    }
     const b = this.getTextBounds(false).global;
     const pad = this.dc.padding;
     bg.setPosition(Math.round(b.x - pad.x), Math.round(b.y - pad.y));

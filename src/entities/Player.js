@@ -22,6 +22,14 @@ const COYOTE_MS = 100;
 // (crouch art) instead of clipping into it. See PHASE2_REPORT.md.
 export const JO_ART_HEIGHT = 82;
 const LEGACY_BODY = [24, 44];
+// Body profiles: [w, h, offsetX, offsetY] standing and crouched. Both keep
+// the soles at y + 22, so feet(), ladders and slopes read the same. 'legacy'
+// is the phase-2 body every old dream was built for; 'dream' matches the
+// 82 px drawing (DreamScene rooms have 3 tiles of headroom).
+export const BODY_PROFILES = Object.freeze({
+  legacy: { stand: [24, 44, 4, 2], crouch: [24, 32, 4, 14] },
+  dream: { stand: [28, 72, 2, -26], crouch: [28, 48, 2, -2] },
+});
 const BUFFER_MS = 120;
 
 // no atlas at all: one idle frame, so the controller still runs
@@ -42,6 +50,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     this.body.setSize(LEGACY_BODY[0], LEGACY_BODY[1]).setOffset(4, 2);
     this.setCollideWorldBounds(true);
+    this.bodyProfile = BODY_PROFILES.legacy;
+    // an InputMap (src/input/InputMap.js) when the scene uses actions;
+    // without one Jo reads the keyboard directly (legacy scenes)
+    this.inputMap = null;
 
     this.cursors = scene.input.keyboard.createCursorKeys();
     this.keys = scene.input.keyboard.addKeys('W,A,S,D,SPACE,X,E');
@@ -172,7 +184,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     if (hand) this.tool.setPosition(lf.x + dir * hand[0] * sx, lf.y + hand[1] * sy);
     else this.tool.setPosition(lf.x + dir * 14 * sx, lf.y - 30 * sy);
     this.tool.setFlipX(this.flipX).setAngle(this.anim.name === 'float' ? this.art.angle : 0).setDepth(using ? 13 : this.art.depth - 0.1);
-    this.tool.setVisible(this.shown && !this.anim.name.startsWith('sit') && this.anim.name !== 'sleep' && this.anim.name !== 'death' && this.anim.name !== 'pockets').setAlpha(this.alpha * 0.95);
+    this.tool.setVisible(this.shown && !this.noTool && !this.anim.name.startsWith('sit') && this.anim.name !== 'sleep' && this.anim.name !== 'death' && this.anim.name !== 'pockets').setAlpha(this.alpha * 0.95);
     this.lastFeet = { x: f.x, y: f.y };
     this.lastPos = { x: this.x, y: this.y };
   }
@@ -322,19 +334,42 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     if (!this.hasAtlas) this.art.setTexture(o.grounded || o.climbing ? 'jo-stand' : body.velocity.y < -40 ? 'jo-jump' : 'jo-fall');
   }
 
+  // the 82 px body (framework rooms) or the legacy one
+  setBodyProfile(name) {
+    this.bodyProfile = BODY_PROFILES[name] || BODY_PROFILES.legacy;
+    const [w, h, ox, oy] = this.bodyProfile.stand;
+    this.body.setSize(w, h, false).setOffset(ox, oy);
+    this.crouching = false;
+    return this;
+  }
+
+  // input reads: the InputMap's actions, or the raw keys (legacy)
+  inLeft() {
+    return this.inputMap ? this.inputMap.isDown('left') : this.cursors.left.isDown || this.keys.A.isDown;
+  }
+  inRight() {
+    return this.inputMap ? this.inputMap.isDown('right') : this.cursors.right.isDown || this.keys.D.isDown;
+  }
+  inUp() {
+    return this.inputMap ? this.inputMap.isDown('up') : this.cursors.up.isDown || this.keys.W.isDown;
+  }
+  inDown() {
+    return this.inputMap ? this.inputMap.isDown('down') : this.cursors.down.isDown || this.keys.S.isDown;
+  }
+
   update(time, delta) {
     const body = this.body;
     const rev = time < this.reversedUntil;
-    let left = this.cursors.left.isDown || this.keys.A.isDown;
-    let right = this.cursors.right.isDown || this.keys.D.isDown;
+    const I = this.inputMap;
+    let left = this.inLeft();
+    let right = this.inRight();
     if (rev) [left, right] = [right, left];
     const upJ = this.upJumps;
-    const jumpDown = (upJ && this.cursors.up.isDown) || this.keys.W.isDown || this.keys.SPACE.isDown;
-    const jumpJust =
-      (upJ && Phaser.Input.Keyboard.JustDown(this.cursors.up)) ||
-      Phaser.Input.Keyboard.JustDown(this.keys.W) ||
-      Phaser.Input.Keyboard.JustDown(this.keys.SPACE);
-    const crouch = this.cursors.down.isDown || this.keys.S.isDown;
+    const jumpDown = I ? I.isDown('jump') || (upJ && I.isDown('up')) : (upJ && this.cursors.up.isDown) || this.keys.W.isDown || this.keys.SPACE.isDown;
+    const jumpJust = I
+      ? I.justDown('jump') || (upJ && I.justDown('up'))
+      : (upJ && Phaser.Input.Keyboard.JustDown(this.cursors.up)) || Phaser.Input.Keyboard.JustDown(this.keys.W) || Phaser.Input.Keyboard.JustDown(this.keys.SPACE);
+    const crouch = this.inDown();
     const locked = time < this.controlLockUntil;
 
     // D3 — slopes: Arcade has none, so resolve the surface by hand and treat
@@ -349,7 +384,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       const ty = Math.floor((this.y + dy) / T);
       return !!(lg[ty] && lg[ty][tx]);
     };
-    const wantsClimb = this.cursors.up.isDown || this.keys.W.isDown || crouch;
+    const wantsClimb = this.inUp() || crouch;
     // (+40 = the tile under the one Jo stands on: pressing DOWN on a floor
     // tile that has a ladder beneath it climbs down through the floor)
     if (!this.climbing && wantsClimb && !locked && (onLadderTile(0) || onLadderTile(20) || (crouch && (onLadderTile(40) || onLadderTile(56))))) {
@@ -359,8 +394,9 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     }
     if (this.climbing) {
       const stillOn = onLadderTile(0) || onLadderTile(20) || onLadderTile(-20) || onLadderTile(40) || onLadderTile(56);
-      const up = this.cursors.up.isDown || this.keys.W.isDown;
-      if (!stillOn || (Phaser.Input.Keyboard.JustDown(this.keys.SPACE) && !up)) {
+      const up = this.inUp();
+      const jumpOff = I ? I.justDown('jump') && !I.isDown('up') : Phaser.Input.Keyboard.JustDown(this.keys.SPACE);
+      if (!stillOn || (jumpOff && !up)) {
         this.climbing = false;
         body.setAllowGravity(true);
       } else {
@@ -487,7 +523,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
     // E reaches for whatever is there (edge-detected by hand: JustDown here
     // would eat the press the scene's own interaction reads)
-    const eDown = this.keys.E.isDown;
+    const eDown = I ? I.isDown('act1') : this.keys.E.isDown;
     if (eDown && !this._eWas && grounded && !locked && Math.abs(body.velocity.x) < 40) this.pose('interact');
     this._eWas = eDown;
     // animation: the controller reads physics + input (never the clock alone)
@@ -504,8 +540,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     const wantCrouch = crouch && grounded;
     if (wantCrouch !== this.crouching) {
       this.crouching = wantCrouch;
-      if (wantCrouch) body.setSize(24, 32, false).setOffset(4, 14);
-      else body.setSize(24, 44, false).setOffset(4, 2);
+      const [w, h, ox, oy] = wantCrouch ? this.bodyProfile.crouch : this.bodyProfile.stand;
+      body.setSize(w, h, false).setOffset(ox, oy);
     }
   }
 }

@@ -17,7 +17,7 @@ import { CARDS } from '../data/teach.js';
 import { events } from '../core/events.js';
 
 const SCENE_DREAM = { Hub: 'hub', Chef: 'chef', Musician: 'musician', Astronaut: 'astronaut', Writer: 'writer', Painter: 'painter', Gambler: 'gambler', Evening: 'evening' };
-export const dreamOfScene = (scene) => SCENE_DREAM[scene.scene.key] || scene.scene.key;
+export const dreamOfScene = (scene) => (scene.dreamDef && scene.dreamDef.id) || SCENE_DREAM[scene.scene.key] || scene.scene.key;
 
 const appliesTo = (card, dream) => (card.triggers || []).some((t) => t.dream === '*' || t.dream === dream);
 
