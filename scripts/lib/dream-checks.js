@@ -169,7 +169,7 @@ export function dreamIssues(def, { materials = {}, props = {}, decorRules = {}, 
         else if (e.hint.length > GATE_HINT_MAX) out.push(`${at}: hint over ${GATE_HINT_MAX} chars`);
       }
       if (e.type === 'npc') {
-        if (!e.rig) out.push(`${at}: no rig`);
+        if (!e.rig && !e.cast) out.push(`${at}: no rig (or cast key)`);
         for (const t of e.talk || []) if (!convs[t.conv]) out.push(`${at}: conversation "${t.conv}" does not exist`);
       }
       if (e.type === 'encounter' && !(def.encounters || {})[e.id]) out.push(`${at}: encounter "${e.id}" is not defined`);

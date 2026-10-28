@@ -51,6 +51,8 @@ import { uiText } from '../ui/text.js';
 import { boardTitle } from '../ui/BoardTitle.js';
 import { trainWipe } from '../ui/TrainWipe.js';
 import { placeOf } from '../ui/theme.js';
+import { markMet, updateSave } from '../utils/save.js';
+import { WATCHED, watch, spawnFoe, foeContact, spawnKeyItem, updateKeyItems, spawnAudience, spawnResonant, updateResonants, ringAt, spawnMoment, castPortrait } from '../play/dreamAdapters.js';
 
 const T = 32;
 
@@ -70,8 +72,15 @@ export default class DreamScene extends BaseLevel {
         warp = rest.join(':') || null;
       }
     }
+    // started with no dream to play (a boot-time first scene arriving after a
+    // dev warp moved on, with the ?warp= already gone): stand down quietly
+    // instead of throwing on every step until something warps here again
+    this.idle = !frameworkDream(id);
+    if (this.idle) {
+      console.warn(`DreamScene: no framework dream "${id}": standing down`);
+      return;
+    }
     this.def = frameworkDream(id);
-    if (!this.def) throw new Error(`DreamScene: no framework dream "${id}"`);
     this.dreamDef = this.def;
     this.dreamId = this.def.id;
     this.warpTo = warp;
@@ -99,8 +108,15 @@ export default class DreamScene extends BaseLevel {
   }
 
   create() {
+    if (this.idle) {
+      this.time.delayedCall(0, () => this.scene.stop());
+      return;
+    }
     const def = this.def;
     this.F = {};
+    // Phaser reuses the scene instance: nothing modal carries over a restart
+    this.encounterActive = false;
+    this.puzzleActive = false;
     this.npcs = new Map();
     this.gates = [];
     this.encAnchors = {};
@@ -119,6 +135,19 @@ export default class DreamScene extends BaseLevel {
     this.player.inputMap = this.inputs;
     this.player.quietSteps = true;
     this.player.noTool = !def.tool;
+    // the dream's tool (the Musician's trumpet; the ladle is the default art)
+    if (def.tool && this.textures.exists(`tool-${def.tool}`)) this.player.tool.setTexture(`tool-${def.tool}`);
+    // phase 3b adapters: foes, key items, the audience, resonant things,
+    // small moments, and entities that come and go with a flag
+    this.watchers = new Set();
+    this.keyItems = new Set();
+    this.resonants = new Set();
+    this.audience = [];
+    this.initFoes(def.id);
+    if (def.markMet) markMet(def.id);
+    this._persisted = {};
+    // dialogue faces cut from the cast's own rigs (cast[who].face)
+    for (const c of Object.values(def.cast || {})) if (c.face && c.portrait) castPortrait(this, c.portrait, c.face);
     // collision grids the Player reads (every room's, from data)
     this.streamer = new RoomStreamer(this, {
       graph: this.graph,
@@ -151,6 +180,7 @@ export default class DreamScene extends BaseLevel {
     this.placeCheckpointsAll();
     this.placeCoinsAll();
     this.physics.add.overlap(this.player, this.flags, (p, f) => this.activateCheckpoint(f));
+    this.physics.add.overlap(this.player, this.foeGroup, (p, f) => foeContact(this, f));
 
     // narrative, interaction, encounters, beats
     this.caption = new CaptionBar(this, { cast: def.cast || {} });
@@ -283,11 +313,17 @@ export default class DreamScene extends BaseLevel {
     const objs = [];
     for (const r of this.graph.rooms.values()) {
       for (const e of r.data.entities || []) {
-        if (e.type !== 'coin' && e.type !== 'coins') continue;
+        if (e.type !== 'coin' && e.type !== 'coins' && e.type !== 'shard') continue;
         objs.push({ ...e, wx: (r.tx + e.x) * T + T / 2, wy: (r.ty + e.y) * T + T / 2 });
       }
     }
     if (objs.length) this.spawnPickups(objs);
+    // each placed coin's room: coins in rooms that are not live are hidden
+    // (a dream that pays in small change has a hundred-odd of them)
+    for (const c of this.placedCoins) {
+      const r = this.graph.roomAt(c.img.x, c.img.y);
+      c.room = r ? r.id : null;
+    }
   }
 
   onCheckpointLit(cp) {
@@ -345,13 +381,53 @@ export default class DreamScene extends BaseLevel {
   // a room entity → live things (destroyed with the room)
   spawnEntity(e, room) {
     const at = this.feetOf(room, e);
+    // an entity with when/unless lives only while its flags hold
+    if ((e.when || e.unless) && !e._watched && WATCHED.has(e.type)) return watch(this, e, room, (x, r) => this.spawnEntity(x, r));
     switch (e.type) {
       case 'portal': {
         if (e.kind !== 'door') return null;
-        return this.interaction.register({ id: `door:${e.id}`, x: at.x, y: at.y, radius: 44, prompt: (e.door && e.door.prompt) || 'enter', onUse: () => this.transitions.go(e.id), enabled: () => !this.transitions.busy });
+        // a door may be locked until flags are set (door.requires); [E] then
+        // says why instead of opening
+        const req = (e.door && e.door.requires) || [];
+        const locked = () => req.some((f) => !this.F[f]);
+        const prompt = (e.door && e.door.prompt) || 'enter';
+        const reg = this.interaction.register({
+          id: `door:${e.id}`,
+          x: at.x,
+          y: at.y,
+          radius: 44,
+          prompt,
+          onUse: () => {
+            if (!locked()) return this.transitions.go(e.id);
+            sfx('knock');
+            if (e.door.lockedLine) this.caption.say('jo', e.door.lockedLine, { ms: 2600 });
+            return null;
+          },
+          enabled: () => !this.transitions.busy,
+        });
+        if (!req.length) return reg;
+        const sync = () => (reg.item.prompt = locked() ? e.door.locked || 'locked' : prompt);
+        this.watchers.add(sync);
+        sync();
+        return {
+          destroy: () => {
+            this.watchers.delete(sync);
+            reg.destroy();
+          },
+        };
       }
+      case 'foe':
+        return spawnFoe(this, e, room);
+      case 'keyitem':
+        return spawnKeyItem(this, e, room);
+      case 'audience':
+        return spawnAudience(this, e, room);
+      case 'resonant':
+        return spawnResonant(this, e, room);
+      case 'moment':
+        return spawnMoment(this, e, room);
       case 'npc': {
-        const npc = new Npc(this, { id: e.id, x: at.x, y: at.y, rig: e.rig, facing: e.facing || -1, task: e.task || 'idle_fidget' });
+        const npc = new Npc(this, { id: e.id, x: at.x + (e.dx || 0), y: at.y, rig: e.rig, cast: e.cast, pose: e.pose, facing: e.facing || -1, task: e.task || 'idle_fidget', turns: e.turns !== false, ...(e.depth === 'behind' ? { depth: LAYER_DEPTH.mid - 0.5 } : {}) });
         this.npcs.set(e.id, npc);
         const reg = this.interaction.register({ id: `npc:${e.id}`, at: () => ({ x: npc.x, y: npc.y }), radius: 72, prompt: 'talk', onUse: () => this.talkTo(e, npc) });
         return {
@@ -384,7 +460,7 @@ export default class DreamScene extends BaseLevel {
           y: at.y,
           radius: 64,
           prompt: e.prompt || 'play',
-          enabled: () => !this.encounters.busy && !(e.unless && this.F[e.unless]),
+          enabled: () => !this.encounters.busy && !(e.unless && this.F[e.unless]) && !(e.when && !this.F[e.when]),
           onUse: () => this.startEncounter(e.id, anchor),
         });
       }
@@ -461,7 +537,45 @@ export default class DreamScene extends BaseLevel {
   // ---- encounters ----------------------------------------------------------------
   startEncounter(id, anchor = null) {
     const a = anchor || this.encAnchors[id] || null;
-    return this.encounters.start(id, { anchor: a }).catch((e) => console.warn('[dream] encounter', e));
+    return this.encounters.start(id, { anchor: a, flags: this.F }).catch((e) => console.warn('[dream] encounter', e));
+  }
+
+  // Jo's verb rings what is near (the Musician's trumpet): resonant things,
+  // people who stop to listen, feedback that falls silent
+  ringAt(x, y, radius = 140) {
+    return ringAt(this, x, y, radius);
+  }
+
+  // coins well outside the view (or in rooms that are not live) are not drawn
+  cullCoins() {
+    const live = this.streamer.live;
+    const v = this.cameras.main.worldView;
+    const m = 320;
+    for (const c of this.placedCoins || []) {
+      if (!c.img.active) continue;
+      const near = c.img.x > v.x - m && c.img.x < v.right + m && c.img.y > v.y - m && c.img.y < v.bottom + m;
+      c.img.setVisible(near && (!c.room || live.has(c.room)));
+    }
+  }
+
+  // per-frame: flag watchers, key items, resonant glows, foes, saved flags
+  updateAdapters(time) {
+    for (const w of [...this.watchers]) w();
+    updateKeyItems(this);
+    updateResonants(this, time);
+    if (this.foes.length) this.updateFoes(time);
+    const persist = this.def.persist || {};
+    for (const [flag, path] of Object.entries(persist)) {
+      if (this.F[flag] === undefined || this.F[flag] === this._persisted[flag]) continue;
+      this._persisted[flag] = this.F[flag];
+      const [a, b] = path.split('.');
+      updateSave((s) => ((s[a] ||= {})[b] = this.F[flag]));
+    }
+  }
+
+  // anything modal (a conversation, an encounter, the ending): people stop
+  holdFoes() {
+    for (const f of this.foes) if (f.active && f.body) f.body.setVelocityX(0);
   }
 
   encounterEnter(def, ctx) {
@@ -592,6 +706,7 @@ export default class DreamScene extends BaseLevel {
   }
 
   update(time, delta) {
+    if (this.idle) return;
     const dt = Math.min(delta, 50);
     this.inputs.poll();
     // the caption bar waits (hidden) while a scene box has the floor
@@ -612,22 +727,27 @@ export default class DreamScene extends BaseLevel {
       if (blend) ambience.blend(amb(blend.a), amb(blend.b), blend.t);
       else ambience.blend(amb(this.roomId), null, 0);
       this.streamer.update(time);
+      for (const w of [...this.watchers]) w();
       for (const n of this.npcs.values()) n.update(dt, this.player);
       if (this.look) this.look.update(time, dt, null);
+      if ((this._cullTick = (this._cullTick || 0) + 1) % 15 === 1) this.cullCoins();
       this.perf.update();
     };
     if (this.sceneBox.active) {
       this.sceneBox.update(dt);
       this.interaction.hide();
+      this.holdFoes();
       visuals();
       return;
     }
     if (this.ending.active) {
       this.ending.update();
+      this.holdFoes();
       visuals();
       return;
     }
     if (this.handleModalUpdate()) {
+      this.holdFoes();
       visuals();
       return;
     }
@@ -635,11 +755,13 @@ export default class DreamScene extends BaseLevel {
       this.encounters.update(dt, this.inputs);
       this.player.body.setVelocityX(0);
       this.interaction.hide();
+      this.holdFoes();
       visuals();
       return;
     }
     this.player.update(time, delta);
     this.updatePickups(time, delta);
+    this.updateAdapters(time);
     for (const v of this.verbs) if (v.mod.update) v.mod.update(v.ctx, dt);
     this.interaction.update(!this.transitions.busy);
     this.barks.update(time);
