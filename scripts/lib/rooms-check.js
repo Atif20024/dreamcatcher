@@ -10,6 +10,15 @@ import gamblerRooms from '../../src/data/gambler/rooms.js';
 import { roleOf, isSolidChar, isSlopeChar } from '../../src/builders/legend.js';
 import { maskAt, wearAt } from '../../src/builders/autotile.js';
 
+// Headroom (phase 2): Jo is drawn about 82 px tall now (a 2× rig), so a
+// standable spot needs 3 clear tiles (96 px) above the floor. The dreams
+// were built for the ~44 px Jo, and he still has the legacy 44 px body, so a
+// 2-tile gap stays passable (he ducks under it) — those spans are reported
+// as the phase 3/5 work list, not failures. A 1-tile gap is a crawl space
+// nobody could stand in, before or after, and is not counted.
+export const JO_HEADROOM_TILES = 3;
+export const headroomReport = [];
+
 // collectibles budgets (references/dream-items.md); the hub keeps no coins
 const BUDGETS = { chef: [60, 80], musician: [120, 150], astronaut: [45, 55], writer: [100, 120], painter: [100, 120], gambler: [40, 50] };
 
@@ -118,6 +127,34 @@ export function runRoomChecks() {
           }
         }
       }
+    });
+
+    // (8) headroom for the 82 px Jo: spans of floor with exactly 2 clear tiles
+    rooms.forEach((room) => {
+      const grid = room.grid;
+      const h = grid.length;
+      const w = Math.max(...grid.map((g) => g.length));
+      const at = (x, y) => (grid[y] && grid[y][x]) || '.';
+      const floorAt = (x, y) => isSolidChar(at(x, y)) || roleOf(at(x, y)) === 'oneway';
+      const low = [];
+      for (let x = 0; x < w; x++)
+        for (let y = 1; y < h - 1; y++) {
+          if (isSolidChar(at(x, y)) || !floorAt(x, y + 1)) continue;
+          let clear = 0;
+          while (y - clear >= 0 && !isSolidChar(at(x, y - clear))) clear += 1;
+          if (y - clear < 0) continue; // open sky above
+          if (clear === JO_HEADROOM_TILES - 1) low.push([x, y]);
+        }
+      if (!low.length) return;
+      // contiguous columns on one row → spans
+      const spans = [];
+      for (const [x, y] of low.sort((a, b) => a[1] - b[1] || a[0] - b[0])) {
+        const last = spans[spans.length - 1];
+        if (last && last.y === y && last.x1 === x - 1) last.x1 = x;
+        else spans.push({ y, x0: x, x1: x });
+      }
+      headroomReport.push({ dream, room: room.id, spans });
+      warn(dream, room.id, `headroom: ${spans.length} span(s) with 2 clear tiles (Jo ducks; needs ${JO_HEADROOM_TILES}): ${spans.slice(0, 4).map((s) => `row ${s.y} cols ${s.x0}-${s.x1}`).join(', ')}${spans.length > 4 ? ', …' : ''}`);
     });
 
     // (3) slope/stair coverage

@@ -13,6 +13,9 @@ import { paintEveningArt, lightProps } from '../art/eveningArt.js';
 import { setupLook } from '../art/look.js';
 import { loadArtOverrides } from '../art/overrides.js';
 import { createJoEveningTextures } from '../entities/jo.js';
+
+// the old pose keys → Jo's animations (src/art/characters/jo/manifest.js)
+const EVENING_POSES = { 'jo-sit-up': 'sit_up', 'jo-sit': 'sit', 'jo-sitdown': 'sit_down', 'jo-sleep': 'sleep', 'jo-lookup': 'look_up', 'jo-laugh': 'laugh', 'jo-shrug': 'shrug' };
 import { createPixelTexture } from '../utils/pixelart.js';
 import Townsfolk from '../entities/Townsfolk.js';
 import Companion from '../entities/Companion.js';
@@ -140,7 +143,7 @@ export default class EveningScene extends BaseLevel {
     paintEveningArt(this);
     createEveningTextures(this);
     lightProps(this, PROP_KEYS.filter((k) => !['ev-tree', 'ev-pine', 'ev-arch', 'ev-hedge', 'ev-leaf-1', 'ev-leaf-2'].includes(k)));
-    createJoEveningTextures(this);
+    if (!this.textures.exists('jo')) createJoEveningTextures(this); // fallback only
     createPixelTexture(this, 'heart', HEART.rows, HEART.pal, 3);
 
     const built = RoomBuilder.build(this, eveningRooms, eveningTiles);
@@ -161,12 +164,13 @@ export default class EveningScene extends BaseLevel {
     const p = new Player(this, spawnO.wx, this.groundY(spawnO.wx, spawnO.wy - 40) - 24);
     this.player = p;
     p.speed = 215;
+    p.walkOnly = false; // at 215 px/s he jogs (stride-locked); a walk would be a shuffle
     p.upJumps = true; // ↑ jumps, as it does everywhere else in the game
     p.quietSteps = true; // the scene plays steps, crunches and splashes itself
     p.tool.setTexture('tool-trumpet');
     this.hatBase = p.hat.tintTopLeft; // whatever Bilal sold him, under the evening's light
     this.joShadow = this.add.image(p.x, p.y, 'ev-shadow').setOrigin(0.05, 0.5).setDepth(9).setAlpha(0.3);
-    this.joRim = this.add.image(p.x, p.y, 'jo-stand').setDepth(11.9).setTintFill(0xffd890).setAlpha(0.5);
+    this.joRim = this.add.image(p.x, p.y, p.art.texture.key, p.art.frame.name).setDepth(11.9).setTintFill(0xffd890).setAlpha(0.5);
     this.hatSnow = this.add.rectangle(0, 0, 18, 3, 0xf4f8ff).setDepth(13.2).setVisible(false);
 
     this.setupEvening(built);
@@ -516,8 +520,6 @@ export default class EveningScene extends BaseLevel {
     const p = this.player;
     const dt = delta / 1000;
     const k = p.keys;
-    const ak = p.art.texture.key;
-    if (ak.endsWith('-bare')) p.art.setTexture(ak.replace('-bare', ''));
     this._pressed = {
       E: Phaser.Input.Keyboard.JustDown(k.E),
       Q: Phaser.Input.Keyboard.JustDown(this.keyQ),
@@ -689,20 +691,23 @@ export default class EveningScene extends BaseLevel {
     if (!p || !p.art || !this.lightCache) return;
     const L = this.lightCache;
     const now = this.time.now;
-    // pose overrides (a laugh, a shrug, sitting, sleeping, looking up)
-    let key = null;
-    if (this.napping) key = 'jo-sleep';
-    else if (this.joSitting) key = this.lookingUp || (now < this.poseUntil && this.poseKey === 'jo-sit-up') ? 'jo-sit-up' : this.barefoot ? 'jo-sit-bare' : this.sitAnim || 'jo-sit';
-    else if (this.lookingUp) key = 'jo-lookup';
-    else if (now < this.poseUntil && this.poseKey) key = this.poseKey;
-    else if (this.barefoot) key = /^jo-(run|stand|idle-b|jump|fall|walk-\d)$/.test(p.art.texture.key) ? `${p.art.texture.key}-bare` : null;
-    if (key && p.art.texture.key !== key) p.art.setTexture(key);
+    // pose overrides (a laugh, a shrug, sitting, sleeping, looking up): held
+    // animations on Jo's controller; shoes off is the 'bare' outfit
+    let anim = null;
+    if (this.napping) anim = 'sleep';
+    else if (this.joSitting) anim = this.lookingUp || (now < this.poseUntil && this.poseKey === 'jo-sit-up') ? 'sit_up' : this.sitAnim === 'jo-sitdown' ? 'sit_down' : this.sitBench ? 'sit' : 'sit_ground';
+    else if (this.lookingUp) anim = 'look_up';
+    else if (now < this.poseUntil && this.poseKey) anim = EVENING_POSES[this.poseKey] || null;
+    p.anim.outfit = this.barefoot ? 'bare' : 'street';
+    if (anim) p.anim.hold(anim);
+    else if (p.anim.held) p.anim.release();
+    p.carrying = !!this.carrying;
     const wet = now < this.wetUntil || this.weather.rain > 0.2;
     const tint = mulC(wet ? 0xb4bccc : 0xffffff, L.ambient);
     p.art.setTint(tint);
     p.hat.setTint(mulC(this.hatBase === undefined ? 0xffffff : this.hatBase, tint));
-    this.joRim.setTexture(p.art.texture.key).setPosition(p.art.x - 1.5, p.art.y).setFlipX(p.art.flipX).setScale(p.art.scaleX, p.art.scaleY).setAngle(p.art.angle).setVisible(p.shown).setTintFill(L.rim).setAlpha(L.rimAlpha);
-    const feet = this.joSitting && this.sitBench ? this.sitBench.y : p.y + 24;
+    this.joRim.setTexture(p.art.texture.key, p.art.frame.name).setPosition(p.art.x - 1.5, p.art.y).setFlipX(p.art.flipX).setScale(p.art.scaleX, p.art.scaleY).setAngle(p.art.angle).setVisible(p.shown).setTintFill(L.rim).setAlpha(L.rimAlpha);
+    const feet = this.joSitting && this.sitBench ? this.sitBench.y : p.feet().y;
     this.joShadow.setPosition(p.x - 6, feet - 1).setTint(L.shadow).setAlpha(p.shown ? L.shadowAlpha : 0).setScale(L.shadowLen * (this.joSitting ? 0.7 : 1), 1);
     // snow settles on his hat and shoulders too
     const cover = this.weather.cover;
@@ -712,8 +717,9 @@ export default class EveningScene extends BaseLevel {
       this.tweens.add({ targets: d, y: d.y + 18, alpha: 0, duration: 400, onComplete: () => d.destroy() });
     }
     // things he's holding ride in his hands
-    if (this.holdImg) this.holdImg.setPosition(p.art.x + (p.flipX ? -12 : 12), p.art.y + 2).setFlipX(p.flipX).setVisible(p.shown);
-    if (this.carrying) this.carrying.img.setPosition(p.art.x + (p.flipX ? -14 : 14), p.art.y - 2).setVisible(p.shown);
+    const hand = p.handPos();
+    if (this.holdImg) this.holdImg.setPosition(hand.x, hand.y).setFlipX(p.flipX).setVisible(p.shown);
+    if (this.carrying) this.carrying.img.setPosition(hand.x + (p.flipX ? -4 : 4), hand.y - 6).setVisible(p.shown);
     if (this.leafOnHat) this.leafOnHat.setPosition(p.hat.x + 4, p.hat.y - 6);
   }
 
@@ -835,7 +841,7 @@ export default class EveningScene extends BaseLevel {
   // the swing and the rowboat: Jo is drawn by the seat, not by physics
   joSeat(kind) {
     const p = this.player;
-    this.joSeated = { kind, t: 0, img: this.add.image(p.x, p.y, 'jo-sit').setDepth(12), hat: this.add.image(p.x, p.y, 'jo-hat').setDepth(13) };
+    this.joSeated = { kind, t: 0, img: this.add.image(p.x, p.y, 'jo', 'jo/street/side/sit/00').setDepth(12), hat: this.add.image(p.x, p.y, 'jo', 'jo/street/side/sit/00/hat').setDepth(13) };
     p.shown = false;
     p.body.setVelocity(0, 0);
     p.body.setAllowGravity(false);
@@ -862,8 +868,8 @@ export default class EveningScene extends BaseLevel {
       const sy = sw.pivot.y + Math.cos(sw.angle) * r;
       sw.rope.clear().lineStyle(1, 0x6a4a32, 1).lineBetween(sw.pivot.x - 9, sw.pivot.y, sx - 9, sy).lineBetween(sw.pivot.x + 9, sw.pivot.y, sx + 9, sy);
       sw.seat.setPosition(sx, sy).setAngle(Phaser.Math.RadToDeg(-sw.angle) * 0.4);
-      s.img.setPosition(sx, sy - 20).setAngle(Phaser.Math.RadToDeg(-sw.angle) * 0.4).setTint(this.lightCache ? this.lightCache.ambient : 0xffffff);
-      s.hat.setPosition(sx, sy - 34).setAngle(Phaser.Math.RadToDeg(-sw.angle) * 0.4);
+      s.img.setPosition(sx, sy + 18).setAngle(Phaser.Math.RadToDeg(-sw.angle) * 0.4).setTint(this.lightCache ? this.lightCache.ambient : 0xffffff);
+      s.hat.setPosition(sx, sy + 18).setAngle(Phaser.Math.RadToDeg(-sw.angle) * 0.4);
       p.setPosition(sx, sy - 20);
       p.body.reset(sx, sy - 20);
       if (jump || this.pressed('E')) this.leaveSeat(sx);
@@ -874,8 +880,8 @@ export default class EveningScene extends BaseLevel {
       s.bx += s.dir * 14 * dt;
       if (s.bx > lg.x1 - 40 || s.bx < lg.x0 + 40) s.dir *= -1;
       b.img.setPosition(s.bx, b.y + Math.sin(time / 900) * 1.5).setFlipX(s.dir < 0);
-      s.img.setPosition(s.bx, b.y - 22).setFlipX(s.dir < 0).setTint(this.lightCache ? this.lightCache.ambient : 0xffffff);
-      s.hat.setPosition(s.bx, b.y - 36).setFlipX(s.dir < 0);
+      s.img.setPosition(s.bx, b.y + 2).setFlipX(s.dir < 0).setTint(this.lightCache ? this.lightCache.ambient : 0xffffff);
+      s.hat.setPosition(s.bx, b.y + 2).setFlipX(s.dir < 0);
       p.setPosition(s.bx, b.y - 30);
       p.body.reset(s.bx, b.y - 30);
       if (left || right || jump || this.pressed('E')) this.leaveSeat(s.bx, true);

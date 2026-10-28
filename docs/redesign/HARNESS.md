@@ -43,3 +43,8 @@ Phase 1.4 (`src/dev/scenarios/phase14.js`): `chef-chimney-walljump` (ribbed shaf
 - `npm run lint:rooms` is unchanged in output (logic lives in `scripts/lib/rooms-check.js`).
 - `npm run lint:content [-- --json]` = room checks + tutorial cards without a firing trigger, rooms without an objective, gates without a hint, foes near spawn, cross-dream landmarks (all ERRORS) + default text (ERROR: any `add.text(`, `make.text(`, `monospace`, canvas `fillText`/`ctx.font`; a line may opt out with `lint-allow default-text: <reason>`; there are none).
 - `npm test` runs Vitest (`tests/`).
+
+## Phase 2 (characters)
+- Boot loads the atlases first: `await __dc.ready()` resolves once they are loaded and the first scene is past its loader (`runScenarios()` awaits it). A `__dc.warp()` issued before boot is queued for Boot to start.
+- `src/dev/scenarios/phase2.js`: `jo-walk`, `jo-skid`, `jo-turn`, `jo-jump-arc`, `jo-land-soft-hard`, `jo-float`, `jo-foot-slide` (planted-foot drift < 2 px at stride boundaries, from `player.anim.plantLog`), `jo-route-<dream>` for all eight places (keeps moving; never stands with the drawn head in a ceiling). Each returns its frame strip in `detail`.
+- In a session: `__dc.scene().player.anim` is the AnimationController (`name`, `frame`, `frameName()`, `playOnce()`, `hold()`); `player.pose('celebrate')` plays a verb.

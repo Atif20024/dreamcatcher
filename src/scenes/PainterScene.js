@@ -98,6 +98,7 @@ export default class PainterScene extends BaseLevel {
 
     const spawn = { x: px(3), y: px(33) - 10 };
     this.player = new Player(this, spawn.x, spawn.y);
+    this.player.toolPose = 'brush'; // the verb pose a swing plays here
     this.player.tool.setTexture('tool-brush');
     this.dreamCoinId = 'painter';
     markMet('painter');
@@ -599,6 +600,7 @@ export default class PainterScene extends BaseLevel {
   updateBrush(time, dt, grounded, strokeUnder) {
     const p = this.player;
     const held = p.keys.X.isDown;
+    p.paintingStroke = !!this.stroke; // the brush held out while a ribbon is laid
     if (Phaser.Input.Keyboard.JustDown(p.keys.X)) {
       this.strokeHeld = 0;
       const hit = p.swingLadle();

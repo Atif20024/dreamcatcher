@@ -111,14 +111,31 @@ const dc = {
     if (d.param) url.searchParams.set(d.param, place || d.fallback);
     window.history.replaceState(null, '', url);
     const g = game();
-    // every gameplay scene stops; UIScene stays up over the next one
-    g.scene.getScenes(true).forEach((s) => s.sys.settings.key !== 'UI' && g.scene.stop(s.sys.settings.key));
+    // still loading the atlases: Boot will start this scene when it is done
+    if (!g.registry.get('booted')) {
+      g.registry.set('firstScene', d.scene);
+      return null;
+    }
+    // every gameplay scene stops (running or about to start); UIScene stays
+    g.scene.scenes.forEach((s) => {
+      const k = s.sys.settings.key;
+      if (k !== 'UI' && k !== 'Boot' && s.sys.settings.status >= 1 && s.sys.settings.status <= 7) g.scene.stop(k);
+    });
     g.scene.start(d.scene);
     if (!g.scene.isActive('UI')) g.scene.start('UI');
     dc.step(2);
     return dc.state();
   },
+  // resolves once BootScene has loaded the atlases (real time, not steps)
+  async ready() {
+    // booted, and the first scene past its loader (a warp mid-load would
+    // stop a scene whose preload is still running)
+    const settled = () => game().registry.get('booted') && game().scene.scenes.some((s) => !['UI', 'Boot'].includes(s.sys.settings.key) && s.sys.settings.status === 5);
+    for (let i = 0; i < 400 && !settled(); i++) await new Promise((r) => setTimeout(r, 25));
+    return !!game().registry.get('booted');
+  },
   async runScenarios(only) {
+    await dc.ready();
     const { SCENARIOS } = await import('./scenarios/index.js');
     const out = [];
     for (const sc of SCENARIOS) {

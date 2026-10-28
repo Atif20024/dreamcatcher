@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { bakeFromAtlas } from '../art/baked.js';
 import { WALK_LEGS } from './jo.js';
 import { mix, hsl } from '../art/paint.js';
 import { HUB_PROPS, paintTrainTexture } from '../art/hubArt.js';
@@ -93,6 +94,7 @@ export function paintRig(scene, key, rows, pal, size = 2, o = {}) {
   const { soft = false, alpha = 1 } = o;
   const h = rows.length;
   const w = Math.max(...rows.map((r) => r.length));
+  if (bakeFromAtlas(scene, key)) return key;
   if (scene.textures.exists(key)) {
     const src = scene.textures.get(key).getSourceImage();
     if (src && src.tagName === 'IMG') return key;
@@ -162,6 +164,7 @@ const SIL = { H: 0x262a34, h: 0x262a34, S: 0x2e2a34, s: 0x2e2a34, w: 0x2e2a34, m
 function paintSilhouette(scene, key, rows) {
   const w = 16 * 2;
   const h = 24 * 2;
+  if (bakeFromAtlas(scene, key)) return key;
   if (scene.textures.exists(key)) scene.textures.remove(key);
   const tmp = `${key}-tmp`;
   paintRig(scene, tmp, rows, SIL, 2, { soft: true });

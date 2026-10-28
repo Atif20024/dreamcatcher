@@ -1,9 +1,11 @@
 import Phaser from 'phaser';
 import { createJoTextures } from './jo.js';
+import { AnimationController } from '../art/AnimationController.js';
+import { characterManifest, bakeFromAtlas } from '../art/baked.js';
 import { sfx } from '../systems/audio.js';
 import { resolveSlope } from './slopes.js';
 import { showTutorial } from '../play/Teach.js';
-import { JO_DUST, WALK_HIPS } from './jo.js';
+import { JO_DUST } from './jo.js';
 import { dreamDust } from '../systems/effects.js';
 import { getSave } from '../utils/save.js';
 import { hatById } from '../data/hats.js';
@@ -14,15 +16,31 @@ const T = 32;
 const SPEED = 280;
 const JUMP = 600;
 const COYOTE_MS = 100;
+// Phase 2: Jo is drawn about 82 px tall (a 2× rig, see src/data/rigs/jo.js)
+// but keeps the legacy 24×44 body, so every dream built for the old ~44 px
+// Jo stays completable. Under a ceiling lower than the drawing he ducks
+// (crouch art) instead of clipping into it. See PHASE2_REPORT.md.
+export const JO_ART_HEIGHT = 82;
+const LEGACY_BODY = [24, 44];
 const BUFFER_MS = 120;
+
+// no atlas at all: one idle frame, so the controller still runs
+const FALLBACK_MANIFEST = { id: 'jo', scale: 2, animations: { idle: { fps: 1, loop: true, frames: 1 } } };
 
 export default class Player extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y) {
-    createJoTextures(scene);
-    super(scene, x, y, 'jo-stand');
+    // the hitbox's carrier: a blank 32×48 (the old frame) — Jo is drawn by `art`
+    if (!scene.textures.exists('jo-body')) {
+      const g = scene.make.graphics({ x: 0, y: 0 }, false);
+      g.generateTexture('jo-body', 32, 48);
+      g.destroy();
+    }
+    // his tools come from the atlas; the string-art set is only the fallback
+    if (!bakeFromAtlas(scene, 'tool-ladle') || !bakeFromAtlas(scene, 'tool-trumpet')) createJoTextures(scene);
+    super(scene, x, y, 'jo-body');
     scene.add.existing(this);
     scene.physics.add.existing(this);
-    this.body.setSize(24, 44).setOffset(4, 2);
+    this.body.setSize(LEGACY_BODY[0], LEGACY_BODY[1]).setOffset(4, 2);
     this.setCollideWorldBounds(true);
 
     this.cursors = scene.input.keyboard.createCursorKeys();
@@ -53,20 +71,31 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.hatKnock = { y: 0, angle: 0 };
     // the walk: phase in frames, advanced by ground covered (§2 of the
     // motion rules: fps = v·N / 2S, here a frame every STRIDE/4 px)
-    this.walkPhase = 0;
-    this.walkFrame = 0;
-    this.hipDy = 0; // px, this frame
-    this.lastHipDy = 0; // the head and hat follow one frame late
     this.stepEvent = 0; // counts contacts; scenes listen for footsteps
     this.quietSteps = false; // a scene that does its own footstep sounds
     // above the terrain (depth 4) and the backdrop, below the HUD
     this.setDepth(12);
-    this.art = scene.add.image(x, y, 'jo-stand').setDepth(12);
+    // the AnimationController (plan §2.5): physics + input → animation,
+    // stride-locked walk/run, fallbacks, footstep events
+    const manifest = characterManifest('jo');
+    this.hasAtlas = !!manifest && scene.textures.exists('jo');
+    if (!this.hasAtlas) createJoTextures(scene);
+    this.anim = new AnimationController(manifest || FALLBACK_MANIFEST, { outfit: 'street' });
+    this.anim.onEvent = (ev) => this.onAnimEvent(ev);
+    this.floating = false; // zero-g (the astronaut sets it)
+    this.carrying = false; // a carried thing (scenes set it)
+    this.pockets = false; // empty hands (the gambler, horn pawned)
+    this.walkOnly = false; // a stroll: never break into a run
+    this.dead = false;
+    this.toolPose = 'swing'; // what a swing looks like in this dream
+    this.art = this.hasAtlas
+      ? scene.add.image(x, y, 'jo', this.anim.frameName()).setDepth(12)
+      : scene.add.image(x, y, 'jo-stand').setDepth(12);
 
     // D5 — hat and tool are separate sprites that trail the body by one
     // frame, so Jo bobbles instead of moving like a decal. The hat wears
     // whatever Bilal sold last (data/hats.js).
-    this.hat = scene.add.image(x, y, 'jo-hat').setDepth(13);
+    this.hat = this.hasAtlas ? scene.add.image(x, y, 'jo', this.anim.hatFrame()).setDepth(13) : scene.add.image(x, y, 'jo-hat').setDepth(13);
     try {
       const worn = hatById(getSave().shop.hat);
       if (worn) this.hat.setTint(worn.tint);
@@ -78,6 +107,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       .setDepth(13)
       .setAlpha(0.95);
     this.lastPos = { x, y };
+    this.lastHat = null; // the hat frame shown one frame late
+    this.lastFeet = { x, y: y + 22 };
 
     // Physics writes the sprite's position after scene update, so the drawing
     // is synced on post-update or it would trail the hitbox by a frame.
@@ -93,7 +124,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
   // the cosmetic squish: crouch and land-squash multiplied together
   visualScale() {
-    return { x: this.squashScale.x, y: this.squashScale.y * (this.crouching ? 0.7 : 1) };
+    return { x: this.squashScale.x, y: this.squashScale.y * (this.crouching && !this.hasAtlas ? 0.7 : 1) };
   }
 
   // D5 — land squash, on the drawing only. Feet stay planted (see below).
@@ -110,31 +141,98 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     });
   }
 
+  // where his soles are: the body's bottom (unchanged by a crouch)
+  feet() {
+    return { x: this.x, y: this.y + 22 + this.artDy };
+  }
+
   syncAttachments() {
     const { x: sx, y: sy } = this.visualScale();
-    // The grids are 48 tall with a centred origin, so any vertical squish has
-    // to be paid back in y or Jo's feet leave the ground he is standing on.
-    this.art
-      .setPosition(this.x, this.y + 24 * (1 - sy) + this.artDy + this.hipDy)
-      .setScale(sx, sy)
-      .setFlipX(this.flipX)
-      .setVisible(this.shown)
-      .setAlpha(this.alpha);
-
-    // one-frame lag
-    const lx = this.lastPos.x;
-    const ly = this.lastPos.y;
-    const feet = ly + 24 + this.artDy;
-    this.hat
-      .setPosition(lx, feet - 42 * sy + this.hatKnock.y + this.poseDy + this.lastHipDy)
-      .setScale(sx, sy)
-      .setAngle(this.hatKnock.angle)
-      .setFlipX(this.flipX);
-    this.hat.setVisible(this.shown).setAlpha(this.alpha);
+    const f = this.feet();
+    if (!this.hasAtlas) return this.syncLegacy(sx, sy);
     const dir = this.flipX ? -1 : 1;
-    this.tool.setPosition(lx + dir * 14 * sx, feet - 18 * sy + this.poseDy * 0.5 - this.lastHipDy * 0.5).setFlipX(this.flipX);
-    this.tool.setVisible(this.shown).setAlpha(this.alpha * 0.95);
+    // the frame's pivot is the foot anchor, so squash keeps the feet planted
+    const frame = this.anim.frameName();
+    if (this.art.frame.name !== frame && this.art.texture.key === 'jo') this.art.setFrame(frame);
+    this.art.setPosition(f.x, f.y).setScale(sx, sy).setFlipX(this.flipX).setVisible(this.shown).setAlpha(this.alpha);
+    // the hat: last frame's hat at last frame's feet (one-frame lag, D5)
+    const lag = this.lastHat;
+    const hatName = this.anim.hatFrame();
+    const hatOn = lag && this.scene.textures.get('jo').has(lag.frame);
+    if (hatOn) {
+      this.hat.setFrame(lag.frame).setPosition(lag.x, lag.y + this.hatKnock.y).setScale(sx, sy).setAngle(this.hatKnock.angle).setFlipX(lag.flip);
+    }
+    this.hat.setVisible(this.shown && !!hatOn).setAlpha(this.alpha);
+    this.lastHat = { frame: hatName, x: f.x, y: f.y, flip: this.flipX };
+    // the tool rides a hand (attach points from the rig), a frame late: the
+    // far hand, behind him, while carried; the near hand while he uses it
+    const using = /^(swing|pen|brush|brush_hold|play_trumpet|interact|type)$/.test(this.anim.name);
+    const d = this.anim.data();
+    const hand = d && d.attach && (using ? d.attach.hand_f : d.attach.hand_b);
+    const lf = this.lastFeet;
+    if (hand) this.tool.setPosition(lf.x + dir * hand[0] * sx, lf.y + hand[1] * sy);
+    else this.tool.setPosition(lf.x + dir * 14 * sx, lf.y - 30 * sy);
+    this.tool.setFlipX(this.flipX).setAngle(this.anim.name === 'float' ? this.art.angle : 0).setDepth(using ? 13 : this.art.depth - 0.1);
+    this.tool.setVisible(this.shown && !this.anim.name.startsWith('sit') && this.anim.name !== 'sleep' && this.anim.name !== 'death' && this.anim.name !== 'pockets').setAlpha(this.alpha * 0.95);
+    this.lastFeet = { x: f.x, y: f.y };
     this.lastPos = { x: this.x, y: this.y };
+  }
+
+  // no atlas (a broken build): the old string-art Jo, 48 px, centred
+  syncLegacy(sx, sy) {
+    this.art.setPosition(this.x, this.y + 24 * (1 - sy) + this.artDy).setScale(sx, sy).setFlipX(this.flipX).setVisible(this.shown).setAlpha(this.alpha);
+    const lx = this.lastPos.x;
+    const feet = this.lastPos.y + 24 + this.artDy;
+    this.hat.setPosition(lx, feet - 42 * sy + this.hatKnock.y + this.poseDy).setScale(sx, sy).setAngle(this.hatKnock.angle).setFlipX(this.flipX).setVisible(this.shown).setAlpha(this.alpha);
+    const dir = this.flipX ? -1 : 1;
+    this.tool.setPosition(lx + dir * 14 * sx, feet - 18 * sy + this.poseDy * 0.5).setFlipX(this.flipX).setVisible(this.shown).setAlpha(this.alpha * 0.95);
+    this.lastPos = { x: this.x, y: this.y };
+  }
+
+  // the front hand in world px (the rig's attach point), for held things
+  handPos() {
+    const f = this.feet();
+    const d = this.anim.data();
+    const h = d && d.attach && d.attach.hand_f;
+    const dir = this.flipX ? -1 : 1;
+    return h ? { x: f.x + dir * h[0], y: f.y + h[1] } : { x: f.x + dir * 12, y: f.y - 40 };
+  }
+
+  // a scene that drives Jo's physics itself (zero-g, swimming, a current)
+  // names the animation each frame; the controller still advances it
+  showAnim(name, delta = 16.7) {
+    const a = this.anim;
+    if (a.oneShot && a.oneShot.forced && a.name !== name) {
+      a.advance(delta, 0, 0, null);
+      return;
+    }
+    a.oneShot = null;
+    a.held = null;
+    a.set(name);
+    const dx = a.lastX == null ? 0 : this.x - a.lastX;
+    const dy = a.lastY == null ? 0 : this.y - a.lastY;
+    a.lastX = this.x;
+    a.lastY = this.y;
+    a.advance(delta, dx, dy, null);
+  }
+
+  // a verb pose (swing, trumpet, interact…): plays once over the controller
+  pose(name, opts = {}) {
+    const pr = this.anim.playOnce(name, opts);
+    // a looping pose given a length ends itself
+    if (opts.ms) {
+      const o = this.anim.oneShot;
+      this.scene.time.delayedCall(opts.ms, () => this.anim.oneShot === o && this.anim.endOneShot(true));
+    }
+    return pr;
+  }
+
+  onAnimEvent(ev) {
+    if (ev === 'footstep') {
+      this.stepEvent += 1;
+      if (!this.quietSteps) sfx('step');
+      if (Math.abs(this.body.velocity.x) > 200) this.dust(1);
+    } else if (ev === 'skid') this.dust(3);
   }
 
   knockHat() {
@@ -175,12 +273,54 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     if (now < this.ladleCooldown) return null;
     this.ladleCooldown = now + 400;
     sfx('swing');
+    this.pose(this.toolPose || 'swing');
     const dir = this.flipX ? -1 : 1;
     const arc = this.scene.add
       .rectangle(this.x + dir * 26, this.y - 4, 36, 30, 0xd8d8e0, 0.35)
       .setDepth(30);
     this.scene.tweens.add({ targets: arc, alpha: 0, angle: dir * 60, duration: 180, onComplete: () => arc.destroy() });
     return new Phaser.Geom.Rectangle(dir < 0 ? this.x - 48 : this.x + 8, this.y - 20, 40, 40);
+  }
+
+  // the drawing is taller than the legacy body: under a ceiling lower than
+  // the drawing he ducks instead of poking his head through it
+  lowCeiling() {
+    const solidAt = this.scene.built && this.scene.built.solidAt;
+    if (!solidAt) return false;
+    const fy = this.y + 22;
+    const top = Math.floor((fy - JO_ART_HEIGHT + 6) / T);
+    const row = Math.floor((fy - 1) / T);
+    for (const dx of [-8, 8]) {
+      const tx = Math.floor((this.x + dx) / T);
+      for (let ty = top; ty < row; ty++) if (solidAt(tx, ty)) return true;
+    }
+    return false;
+  }
+
+  driveAnim(time, delta, o) {
+    const body = this.body;
+    const duck = o.grounded && !o.climbing && this.lowCeiling();
+    this.anim.update(delta, {
+      x: this.x,
+      y: this.y,
+      facing: this.flipX ? -1 : 1,
+      grounded: !!o.grounded,
+      vx: body.velocity.x,
+      vy: body.velocity.y,
+      inputX: o.inputX || 0,
+      crouch: !!o.crouch || duck,
+      climbing: !!o.climbing,
+      wallSlide: !!o.wallSlide,
+      pushing: !!o.pushing,
+      carrying: !!this.carrying,
+      floating: !!this.floating,
+      pockets: !!this.pockets,
+      walkOnly: !!this.walkOnly,
+      tool: this.paintingStroke ? 'brush' : null,
+      dead: !!this.dead,
+      ev: o.ev || {},
+    });
+    if (!this.hasAtlas) this.art.setTexture(o.grounded || o.climbing ? 'jo-stand' : body.velocity.y < -40 ? 'jo-jump' : 'jo-fall');
   }
 
   update(time, delta) {
@@ -248,21 +388,28 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
           this.climbing = false;
           body.setAllowGravity(true);
         }
-        this.art && this.art.setTexture('jo-run');
+        this.driveAnim(time, delta, { climbing: true });
         return;
       }
     }
     const grounded = body.onFloor() || this.onSlope;
 
+    const ev = {};
     if (grounded) {
       this.lastGrounded = time;
       if (this.wasAirborne) {
-        this.dust(4);
+        // a long drop (more than five tiles; a full jump is about 4.7) lands hard: knees, hands, hat
+        const drop = this.y - (this.airTopY ?? this.y);
+        ev.landed = { hard: drop > 5 * T || this.fallSpeed > 900 };
+        this.dust(ev.landed.hard ? 7 : 4);
         this.landSquash();
         this.wasAirborne = false;
       }
+      this.airTopY = null;
     } else {
       this.wasAirborne = true;
+      this.airTopY = Math.min(this.airTopY ?? this.y, this.y);
+      this.fallSpeed = body.velocity.y;
     }
     if (jumpJust && !locked) this.lastJumpPressed = time;
 
@@ -317,6 +464,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         this.controlLockUntil = time + 160;
         this.dust(3);
         sfx('jump');
+        ev.wallJumped = true;
       }
     }
 
@@ -324,6 +472,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     const canJump = grounded || time - this.lastGrounded < COYOTE_MS;
     if (canJump && time - this.lastJumpPressed < BUFFER_MS) {
       body.setVelocityY(-JUMP);
+      ev.jumped = true;
       this.lastJumpPressed = -9999;
       this.lastGrounded = -9999;
       sfx('jump');
@@ -337,41 +486,19 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       body.setVelocityY(Math.max(body.velocity.y, 420));
     }
 
-    // animation frames
-    const moving = left || right;
-    const vx = Math.abs(body.velocity.x);
-    this.lastHipDy = this.hipDy;
-    if (grounded && vx > 12) {
-      // eight frames per stride pair; a frame every 20 px of ground: about
-      // three steps a second at full speed, a stroll in the evening. (A
-      // frame per 6 px was tried: twelve steps a second reads as a jitter.)
-      const STEP_PX = 20;
-      const before = this.walkFrame;
-      this.walkPhase = (this.walkPhase + (vx * (delta / 1000)) / STEP_PX) % 8;
-      this.walkFrame = Math.floor(this.walkPhase);
-      if (this.walkFrame !== before && this.walkFrame % 4 === 0) {
-        this.stepEvent += 1;
-        if (!this.quietSteps) sfx('step');
-        if (vx > 200) this.dust(1);
-      }
-      this.art.setTexture(`jo-walk-${this.walkFrame}`);
-      this.hipDy = -WALK_HIPS[this.walkFrame];
-    } else if (!grounded) {
-      this.art.setTexture(body.velocity.y < -40 ? 'jo-jump' : 'jo-fall');
-      this.walkPhase = 0;
-      this.walkFrame = 0;
-      this.hipDy = 0;
-    } else {
-      // idle: a breath every 2.4 s, the chest a row higher on the in-breath
-      this.art.setTexture(time % 2400 > 1500 ? 'jo-idle-b' : 'jo-stand');
-      this.walkPhase = 0;
-      this.walkFrame = 0;
-      this.hipDy = 0;
-    }
+    // E reaches for whatever is there (edge-detected by hand: JustDown here
+    // would eat the press the scene's own interaction reads)
+    const eDown = this.keys.E.isDown;
+    if (eDown && !this._eWas && grounded && !locked && Math.abs(body.velocity.x) < 40) this.pose('interact');
+    this._eWas = eDown;
+    // animation: the controller reads physics + input (never the clock alone)
+    const pushing = grounded && !locked && ((left && body.blocked.left) || (right && body.blocked.right)) && !pressingWall;
+    this.driveAnim(time, delta, { grounded, inputX: locked ? 0 : (right ? 1 : 0) - (left ? 1 : 0), crouch: crouch && grounded, wallSlide: sliding, pushing, ev });
     // `bodyTint` is what Jo is wearing (the astronaut's flight suit, say);
     // the pepper-cloud green is a temporary override on top of it. Resetting
     // to white here unconditionally used to wipe the suit every frame.
     this.art.setTint(rev ? 0xd8f0a0 : this.bodyTint);
+    this.reversed = rev;
 
     // Crouch hitbox. Both bodies keep their bottom at y+22, so ducking never
     // moves Jo's feet — only the drawing shrinks (see syncAttachments).

@@ -92,6 +92,7 @@ export default class GamblerScene extends BaseLevel {
 
     const spawn = { x: px(3), y: px(33) - 10 };
     this.player = new Player(this, spawn.x, spawn.y);
+    this.player.toolPose = 'swing'; // the verb pose a swing plays here
     this.player.tool.setTexture('tool-trumpet');
     this.dreamCoinId = 'gambler';
     markMet('gambler');
@@ -138,8 +139,8 @@ export default class GamblerScene extends BaseLevel {
       .setAlpha(0);
     // the mirror ceiling over the floor, and the second Jo in it
     this.mirror = this.add.tileSprite(px(100), px(10), 120 * T, 48, 'gm-mirror').setDepth(D.BEHIND).setAlpha(0.9);
-    this.mirrorJo = this.add.image(0, 0, 'jo-stand').setDepth(D.BEHIND + 0.5).setFlipY(true).setAlpha(0.45).setTint(0x9a7aa0).setVisible(false);
-    this.mirrorLast = { x: 0, y: 0, key: 'jo-stand', flip: false };
+    this.mirrorJo = this.add.image(0, 0, this.player.art.texture.key, this.player.art.frame.name).setDepth(D.BEHIND + 0.5).setFlipY(true).setAlpha(0.45).setTint(0x9a7aa0).setVisible(false);
+    this.mirrorLast = { x: 0, y: 0, key: this.player.art.texture.key, frame: this.player.art.frame.name, flip: false };
 
     this.pit = new Pit(this, { x: 0, y: 0, speed: this.pitSpeed, onReach: (x, y) => this.pitReaches(x, y) });
 
@@ -1625,8 +1626,8 @@ export default class GamblerScene extends BaseLevel {
     p.slippery = surface === 'grease';
     p.slipFactor = 0.06;
     p.update(time, delta);
-    // hands in pockets: the carry-idle after the pawn
-    if (!this.hasTrumpet && p.body.blocked.down && (p.art.texture.key === 'jo-stand' || p.art.texture.key === 'jo-idle-b')) p.art.setTexture('jo-pockets');
+    // hands in pockets: the empty-hand idle after the pawn
+    p.pockets = !this.hasTrumpet;
 
     // the trumpet: X shoves, Q plays. Neither without it.
     if (Phaser.Input.Keyboard.JustDown(p.keys.X)) {
@@ -1646,7 +1647,10 @@ export default class GamblerScene extends BaseLevel {
     }
     if (Phaser.Input.Keyboard.JustDown(this.keyQ) && time > this.qCool) {
       this.qCool = time + 900;
-      if (this.hasTrumpet) this.noiseBurst();
+      if (this.hasTrumpet) {
+        this.noiseBurst();
+        p.pose('play_trumpet', { ms: 700 });
+      }
       else this.floatText(p.x, p.y - 60, 'no horn.', '#8a8478');
     }
 
@@ -1780,8 +1784,9 @@ export default class GamblerScene extends BaseLevel {
     if (on) {
       const L = this.mirrorLast;
       const mirrorY = px(10) + 24;
-      this.mirrorJo.setPosition(L.x, mirrorY * 2 - L.y).setTexture(L.key).setFlipX(L.flip);
-      this.mirrorLast = { x: p.art.x, y: p.art.y, key: p.art.texture.key, flip: p.flipX };
+      // the frame pivot is the feet: flipY hangs him head-down from them
+      this.mirrorJo.setTexture(L.key, L.frame).setPosition(L.x, mirrorY * 2 - L.y).setFlipX(L.flip);
+      this.mirrorLast = { x: p.art.x, y: p.art.y, key: p.art.texture.key, frame: p.art.frame.name, flip: p.flipX };
     }
   }
 

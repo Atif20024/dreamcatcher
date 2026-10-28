@@ -546,7 +546,7 @@ export default {
     const q = this.pointOnCurrent(r.cur, r.d);
     p.setPosition(q.x, q.y);
     p.body.setVelocity(Math.cos(q.angle) * speed, Math.sin(q.angle) * speed);
-    p.art.setTexture('jo-jump');
+    p.showAnim('apex', dt * 1000);
     p.setFlipX(Math.cos(q.angle) < 0);
     const jump = Phaser.Input.Keyboard.JustDown(p.keys.SPACE) || Phaser.Input.Keyboard.JustDown(p.keys.W) || Phaser.Input.Keyboard.JustDown(p.cursors.up);
     if (jump || r.d >= r.cur.length) {

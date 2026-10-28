@@ -105,6 +105,7 @@ export default class AstronautScene extends BaseLevel {
     const spawnO = built.objects.find((o) => o.type === 'spawn');
     const spawn = { x: spawnO.wx, y: spawnO.wy };
     this.player = new Player(this, spawn.x, spawn.y);
+    this.player.toolPose = 'swing'; // the verb pose a swing plays here
     this.dreamCoinId = 'astronaut';
     markMet('astronaut');
     this.setupCommon({ worldW: built.worldW, worldH: built.worldH, levelName: 'DREAM — THE QUIET ABOVE', spawn });
@@ -1446,7 +1447,7 @@ export default class AstronautScene extends BaseLevel {
     }
     if (left) p.setFlipX(true);
     if (right) p.setFlipX(false);
-    p.art.setTexture('jo-run');
+    p.showAnim('float', dt * 1000);
     // breath
     if (this.headAboveWater()) this.breath = Math.min(100, this.breath + 60 * dt);
     else this.breath = Math.max(0, this.breath - (100 / (14 + 5 * this.stats.lungs)) * dt);
@@ -1580,7 +1581,7 @@ export default class AstronautScene extends BaseLevel {
         }
       }
     }
-    p.art.setTexture('jo-run');
+    p.showAnim(this.railHold ? 'climb_idle' : 'float', delta);
     p.art.setAngle(this.railHold || touching ? 0 : Math.sin(time / 900) * 14);
 
     // the tether: [F] clips to the nearest hook in range; holding F reels

@@ -2,6 +2,7 @@ import { sfx } from './audio.js';
 import { convKey } from '../play/RunState.js';
 import ModalManager from '../ui/ModalManager.js';
 import { uiText } from '../ui/text.js';
+import { resolveArt } from '../art/baked.js';
 import { panel, drawPanel } from '../ui/Panel.js';
 
 // Bottom-screen dialogue with letterbox bars, portrait, name tag and
@@ -137,8 +138,16 @@ export default class DialogueBox {
     const e = this.entries[this.idx];
     this.layoutFor(e);
     this.nameText.setText(e.name || '');
-    if (e.portrait && this.scene.textures.exists(e.portrait)) {
-      this.portrait.setTexture(e.portrait).setVisible(true);
+    // Jo speaks with his own face (an atlas portrait; `mood` picks the
+    // expression: smile, doubt, tired); everyone else by texture key
+    const isJo = !e.portrait && /^jo$/i.test(e.name || '');
+    const ref = isJo ? `portrait-jo${e.mood ? `-${e.mood}` : ''}` : e.portrait === 'portrait-jo' && e.mood ? `portrait-jo-${e.mood}` : e.portrait;
+    const art = resolveArt(this.scene, ref) || (isJo ? resolveArt(this.scene, 'portrait-jo') : null);
+    if (art) {
+      this.portrait.setTexture(art[0], art[1]).setVisible(true);
+      // big faces (the 96 px atlas portraits) are fitted to the box's left column
+      const fit = Math.min(1, 104 / Math.max(this.portrait.frame.realWidth, this.portrait.frame.realHeight));
+      this.portrait.setScale(fit).setOrigin(0.5);
     } else {
       this.portrait.setVisible(false);
     }

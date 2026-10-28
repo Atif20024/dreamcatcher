@@ -182,10 +182,12 @@ export default class IntroScene extends Phaser.Scene {
       this.scene.start('Level', { levelKey: this.levelKey });
       return;
     }
-    createJoTextures(this);
     const { groundY } = intro.draw(this);
 
-    this.jo = this.add.image(120, groundY - 24, 'jo-stand');
+    // Jo from the atlas (pivot = his feet), the walk stepped by ground covered
+    const atlas = this.textures.exists('jo');
+    if (!atlas) createJoTextures(this);
+    this.jo = atlas ? this.add.image(120, groundY, 'jo', 'jo/street/side/idle/00') : this.add.image(120, groundY - 24, 'jo-stand');
     this.cameras.main.setZoom(1.5);
     this.cameras.main.centerOn(430, 360);
     this.cameras.main.fadeIn(500);
@@ -205,9 +207,10 @@ export default class IntroScene extends Phaser.Scene {
       .setDepth(150);
 
     this.walkTimer = this.time.addEvent({
-      delay: 130,
+      delay: 30,
       loop: true,
-      callback: () => this.jo.setTexture(this.jo.texture.key === 'jo-run' ? 'jo-stand' : 'jo-run'),
+      // the walk advances a frame per 6 px (step 3 at 2×): the feet stay put
+      callback: () => (atlas ? this.jo.setFrame(`jo/street/side/walk/${String(Math.floor((this.jo.x - 120) / 6) % 8).padStart(2, '0')}`) : this.jo.setTexture(this.jo.texture.key === 'jo-run' ? 'jo-stand' : 'jo-run')),
     });
     this.tweens.add({
       targets: this.jo,
@@ -226,7 +229,8 @@ export default class IntroScene extends Phaser.Scene {
     if (this.started) return;
     this.started = true;
     this.walkTimer.remove();
-    this.jo.setTexture('jo-stand');
+    if (this.textures.exists('jo')) this.jo.setFrame('jo/street/side/idle/00');
+    else this.jo.setTexture('jo-stand');
     this.tweens.add({ targets: this.jo, alpha: 0, duration: 350 });
     this.cameras.main.fadeOut(500);
     this.time.delayedCall(550, () =>

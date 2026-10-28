@@ -766,6 +766,9 @@ export default class MusicianScene extends BaseLevel {
 
     const qJust = Phaser.Input.Keyboard.JustDown(p.keys.Q);
     const qDown = p.keys.Q.isDown;
+    // the horn to his mouth while Q is held, or for the length of a gig
+    if ((qDown || this.gig) && p.body.blocked.down && Math.abs(p.body.velocity.x) < 20) p.anim.hold('play_trumpet');
+    else if (p.anim.held === 'play_trumpet') p.anim.release();
 
     // breath
     const drainRate = this.sustain ? 23 : this.inZone(231, 291) ? 55 : 28;

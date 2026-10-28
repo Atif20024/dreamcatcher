@@ -483,6 +483,7 @@ export default class BaseLevel extends Phaser.Scene {
     else this.knockback(sourceX);
     this.flashInvulnerable();
     if (r.zero) this.onZeroHearts();
+    else if (this.player.pose) this.player.pose('hurt');
     return true;
   }
 
@@ -573,6 +574,7 @@ export default class BaseLevel extends Phaser.Scene {
     if (this.respawning) return;
     if (this.tryReturnTicket()) return;
     this.respawning = true;
+    if (this.player) this.player.dead = true; // the death animation (crumple)
     sting.death();
     // let the hit land (hit-stop, shake) before the card
     this.time.delayedCall(450, () => this.openDeathCard());
@@ -603,6 +605,8 @@ export default class BaseLevel extends Phaser.Scene {
     this.onRespawn();
     this.placePlayer(this.checkpoint);
     this.player.setAlpha(1);
+    this.player.dead = false;
+    if (this.player.pose) this.player.pose('wake');
     this.player.controlLockUntil = 0;
     this.safeGround = null;
     this.health.refill();
@@ -629,6 +633,7 @@ export default class BaseLevel extends Phaser.Scene {
   onCheckpointLit(cp) {
     this.coinsSinceCP = 0; // banked: death can no longer scatter these
     if (cp.silent) return;
+    if (this.player && this.player.pose && this.player.body.blocked.down) this.player.pose('celebrate');
     sting.checkpoint();
     this.showCheckpointLabel(cp.label);
     this.saveRun();

@@ -97,6 +97,7 @@ export default class WriterScene extends BaseLevel {
 
     const spawn = { x: px(3), y: px(33) - 10 };
     this.player = new Player(this, spawn.x, spawn.y);
+    this.player.toolPose = 'pen'; // the verb pose a swing plays here
     this.player.tool.setTexture('tool-pen');
     this.player.typing = false;
     this.dreamCoinId = 'writer';
@@ -1408,7 +1409,7 @@ export default class WriterScene extends BaseLevel {
       this.pageThreeChoice = choice;
       updateSave((s) => (s.flags.wr = { ...(s.flags.wr || {}), page_three: choice }));
       if (choice === 'cut') {
-        this.player.art.setTexture('jo-idle-b');
+        this.player.showAnim('idle');
         this.cutParagraph(para);
         this.dialog.show(DIALOGUES.d4_cut);
       } else {

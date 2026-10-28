@@ -1,3 +1,5 @@
+import { bakeFromAtlas } from '../art/baked.js';
+
 // Build pixel-art textures from string maps, so the whole game ships without
 // binary assets until the real art pass (M6).
 //
@@ -8,6 +10,8 @@
 // hitboxes measured against them) never change.
 export function createPixelTexture(scene, key, rows, palette, pixelSize = 1, opts = {}) {
   if (scene.textures.exists(key)) return key;
+  // the build baked this key into an atlas (scripts/build-atlas.js): use it
+  if (bakeFromAtlas(scene, key)) return key;
   const g = scene.make.graphics({ x: 0, y: 0 }, false);
   const w = rows[0].length;
   const h = rows.length;
