@@ -1,4 +1,4 @@
-// THE LANE: the proof dream opens here, outdoors at dusk. Cobbles, a low
+// THE LANE: THE STOPPED HOUR opens here, outdoors at dusk. Cobbles, a low
 // stone wall to hop, a raised pavement with ramps, a puddle in a dip, and
 // the hedge arch into the green at its right edge (a seam: no cut).
 export default {
@@ -49,6 +49,13 @@ export default {
   titleCard: 'THE LANE, AFTER SIX',
   entities: [
     { type: 'spawn', id: 'start', x: 3, y: 15 },
+    { type: 'checkpoint', id: 'cp_lane', label: 'THE LANE', x: 8, y: 15 },
+    // coins (brass cogs, worth 3): on top of the low wall (a hop) and in an
+    // arc over the puddle dip; the cobbles under them pay nothing
+    { type: 'coins', id: 'c_wall', x: 12, y: 12, n: 4 },
+    { type: 'coin', id: 'c_dip1', x: 37, y: 13 },
+    { type: 'coins', id: 'c_dip2', x: 38, y: 12, n: 3 },
+    { type: 'coin', id: 'c_dip3', x: 41, y: 13 },
     { type: 'portal', id: 'lane>green', kind: 'seam', x: 43, y: 15, to: { room: 'green', portal: 'green<lane' }, seam: { prop: 'arch_hedge', width: 300 } },
   ],
 };

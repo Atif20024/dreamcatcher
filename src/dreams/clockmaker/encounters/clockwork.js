@@ -1,4 +1,4 @@
-// The clock (proof encounter): the engine is src/engines/clockwork.js (pure
+// The clock (THE STOPPED HOUR's encounter): the engine is src/engines/clockwork.js (pure
 // logic); the 'world' presenter stages the dial over the wall clock in the
 // clock house (src/play/encounterPresenters.js). Jo stands on the
 // mezzanine; the camera closes in; the HUD's tool slot counts the gears.

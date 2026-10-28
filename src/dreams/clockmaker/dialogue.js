@@ -1,9 +1,9 @@
-// The proof dream's lines (plan 4.8). Scene conversations (channel 'scene')
-// open only by [E] on Wren or from a beat; barks (channel 'caption') ride
+// THE STOPPED HOUR's lines (plan 4.8). Scene conversations (channel 'scene')
+// open only by [E] on Nell or from a beat; barks (channel 'caption') ride
 // the caption bar and never take control.
 export const CAST = {
   jo: { name: 'JO', portrait: 'portrait-jo', voicePitch: 1 },
-  wren: { name: 'WREN', portrait: 'portrait-wren', voicePitch: 1.3 },
+  wren: { name: 'NELL', portrait: 'portrait-wren', voicePitch: 1.3 },
 };
 
 export const CONVERSATIONS = {

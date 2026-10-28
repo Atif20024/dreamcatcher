@@ -73,6 +73,7 @@ const MARKS = {
   cross: ['..EEE...', '..EEE...', 'EEEEEEE.', 'EEEEEEE.', 'EEEEEEE.', '..EEE...', '..EEE...', '........'],
   palette: ['.EEEE...', 'EEeEEE..', 'EEEEeE..', 'EeEEEE..', 'EEEE.E..', '.EEEEE..', '........', '........'],
   chart: ['.......E', '......EE', '.E...EE.', 'EEE.EE..', 'E.EEE...', '...E....', 'eeeeeeee', '........'],
+  clock: ['..EEEE..', '.EE.eEE.', 'EE..e.EE', 'EE..e.EE', 'EE...eEE', 'EE....EE', '.EE..EE.', '..EEEE..'],
   star: ['...E....', '...E....', 'EEEEEEE.', '.EEEEE..', '..EEE...', '.EE.EE..', 'E.....E.', '........'],
 };
 export function mark(ctx, cx, cy, d, livery, o = {}) {

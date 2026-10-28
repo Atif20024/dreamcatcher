@@ -1,6 +1,6 @@
 # The dream framework (phase 3a): how to author a dream
 
-This is the manual for building a dream on the phase-3 framework. It is written for Part B (the Musician rebuild) and for every dream after it. The plan behind it is `03_architecture_plan.md` §2.1–2.4, §2.6, §2.10, §2.12, §2.13, §2.15, §2.19 and §4. The reference implementation is the proof dream in `src/dreams/_proof/`. Read it alongside this file: it uses every feature described here, in about 400 lines of data.
+This is the manual for building a dream on the phase-3 framework. It is written for Part B (the Musician rebuild) and for every dream after it. The plan behind it is `03_architecture_plan.md` §2.1–2.4, §2.6, §2.10, §2.12, §2.13, §2.15, §2.19 and §4. The reference implementation is THE STOPPED HOUR (once the proof dream) in `src/dreams/clockmaker/`. Read it alongside this file: it uses every feature described here, in about 400 lines of data.
 
 ```
 ?warp=proof:start          the proof dream from its start (dev only; it is not on the hub board)

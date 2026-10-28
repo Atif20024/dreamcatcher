@@ -19,3 +19,6 @@ export const SCENARIOS = [...backgroundSnap, evaTether, betCard, ...failure, hud
 // round 2 WP4: backdrops at the depth rule, trees at real height, the Evening's budget
 import backdrops from './backdrops.js';
 SCENARIOS.push(...backdrops);
+// THE STOPPED HOUR on platform 9 (the proof dream, made a train)
+import proofTrain from './proofTrain.js';
+SCENARIOS.push(...proofTrain);

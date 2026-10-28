@@ -57,6 +57,12 @@ export default {
   entities: [
     { type: 'portal', id: 'clock>green', kind: 'door', x: 4, y: 12, to: { room: 'green', portal: 'green>clock' }, door: { prompt: 'go out', fade: 250 } },
     { type: 'checkpoint', id: 'cp_clock', label: 'THE CLOCK HOUSE', x: 7, y: 12 },
+    // coins: one breadcrumb on the shelf (the way up), three over the table
+    // for a jump from the floor, and both ends of the mezzanine
+    { type: 'coin', id: 'c_shelf', x: 16, y: 9 },
+    { type: 'coins', id: 'c_table', x: 10, y: 9, n: 3 },
+    { type: 'coin', id: 'c_mezz1', x: 21, y: 6 },
+    { type: 'coin', id: 'c_mezz2', x: 28, y: 6 },
     { type: 'encounter', id: 'clockwork', x: 24, y: 7, anchor: { x: 24, y: 4 }, prompt: 'wind the clock', unless: 'clock_wound' },
   ],
 };

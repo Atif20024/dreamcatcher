@@ -137,7 +137,7 @@ const SITES = [
   { id: 'gambler-carpark', dream: 'gambler', place: 'carpark', c0: 348, c1: 362, row: 22 },
   { id: 'evening-arch', dream: 'evening', place: 'arch', c0: 62, c1: 78, row: 27 },
   { id: 'evening-hill', dream: 'evening', place: 'hill', c0: 338, c1: 360, row: 26, row1: 13 },
-  { id: 'proof-yard', dream: 'proof', place: 'yard', room: 'yard', c0: 4, c1: 22, row: 8 },
+  { id: 'clockmaker-yard', dream: 'clockmaker', place: 'yard', room: 'yard', c0: 4, c1: 22, row: 8 },
 ];
 const SPEEDS = [120, 215, 280];
 
@@ -156,6 +156,9 @@ const slopeSites = SITES.map((site) => ({
     const out = {};
     let pass_ = true;
     const speed0 = p.speed;
+    // the speeds are set explicitly: the hub and the Evening walk by default
+    const wbd0 = p.walkByDefault;
+    p.walkByDefault = false;
     for (const v of site.speeds || SPEEDS) {
       for (const dir of site.upOnly ? ['right'] : ['right', 'left']) {
         let res = null;
@@ -180,6 +183,7 @@ const slopeSites = SITES.map((site) => ({
       }
     }
     p.speed = speed0;
+    p.walkByDefault = wbd0;
     dc.releaseAll();
     return { pass: pass_, detail: out };
   },
@@ -279,7 +283,7 @@ const shadowSlope = {
 };
 
 const PLACES = [
-  ['hub', null], ['chef', null], ['musician', null], ['astronaut', 'gym'], ['writer', 'attic'], ['painter', 'arrival'], ['gambler', 'arrival'], ['evening', 'arch'], ['proof', 'start'],
+  ['hub', null], ['chef', null], ['musician', null], ['astronaut', 'gym'], ['writer', 'attic'], ['painter', 'arrival'], ['gambler', 'arrival'], ['evening', 'arch'], ['clockmaker', 'start'],
 ];
 const shadowPlaces = {
   id: 'shadow-places',

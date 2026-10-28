@@ -103,6 +103,9 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.carrying = false; // a carried thing (scenes set it)
     this.pockets = false; // empty hands (the gambler, horn pawned)
     this.walkOnly = false; // a stroll: never break into a run
+    // per scene: calm places (the station, the Evening) walk by default and
+    // run while Shift / LB is held — the reverse of the dreams
+    this.walkByDefault = false;
     this.dead = false;
     this.toolPose = 'swing'; // what a swing looks like in this dream
     this.art = this.hasAtlas
@@ -380,7 +383,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     const crouch = this.inDown();
     const locked = time < this.controlLockUntil;
     // a held walk (Shift / LB): the true walk cycle at a walking pace
-    this.walking = I ? I.isDown('walk') : !!(this.keys.SHIFT && this.keys.SHIFT.isDown);
+    const shiftHeld = I ? I.isDown('walk') : !!(this.keys.SHIFT && this.keys.SHIFT.isDown);
+    this.walking = this.walkByDefault ? !shiftHeld : shiftHeld;
 
     // Round 2 §10.2 — the continuous ground solver: Jo's feet are laid on
     // the surface under their centre (slopes, stairs, crests, valleys) and

@@ -12,7 +12,8 @@ export const DREAM_WARP = {
   gambler: { scene: 'Gambler', param: 'gm', fallback: 'arrival' },
   evening: { scene: 'Evening', param: 'ev', fallback: 'arch' },
   // framework dreams (DreamScene reads ?warp= itself: dream:room[:spawn])
-  proof: { scene: 'Dream', param: null, framework: true },
+  clockmaker: { scene: 'Dream', param: null, framework: true },
+  proof: { scene: 'Dream', param: null, framework: true }, // alias: THE STOPPED HOUR's old id
 };
 
 // returns { dream, place, scene, legacy: {param: value} } or null

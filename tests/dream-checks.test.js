@@ -6,7 +6,7 @@ vi.mock('phaser', () => ({ default: { Math: { RandomDataGenerator: class {} }, D
 const { dreamIssues, reachableTiles } = await import('../scripts/lib/dream-checks.js');
 const { SHARED_MATERIALS, SHARED_DECOR_RULES } = await import('../src/world/MaterialLibrary.js');
 const { PROP_IDS } = await import('../src/art/props.js');
-const { default: proof } = await import('../src/dreams/_proof/dream.js');
+const { default: proof } = await import('../src/dreams/clockmaker/dream.js');
 
 const opts = { materials: SHARED_MATERIALS, decorRules: SHARED_DECOR_RULES, props: Object.fromEntries(PROP_IDS.map((k) => [k, {}])) };
 const clone = (d) => ({ ...d, rooms: d.rooms.map((r) => ({ ...r, grid: [...r.grid], entities: (r.entities || []).map((e) => ({ ...e })) })) });

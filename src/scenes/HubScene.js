@@ -4,13 +4,14 @@ import BaseLevel from './BaseLevel.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
 import Parallax from '../builders/parallax.js';
 import { D } from '../builders/depths.js';
-import hubRooms, { BAYS } from '../data/hub/rooms.js';
+import hubRooms, { BAYS, bayIndex } from '../data/hub/rooms.js';
 import hubTiles from '../data/hub/tiles.js';
 import { HUB_ROWS } from '../data/hub/map.js';
 import { DREAMS, LAST_STOP, dreamById } from '../data/dreams.js';
 import { createHubTextures, HUB_PROP_KEYS } from '../entities/hubArt.js';
 import { stationTex, pigeonTex, doorWingTex } from '../art/trainArt.js';
 import { hubTex } from '../art/hubArt.js';
+import { attachStride } from '../art/stride.js';
 import SplitFlapBoard from '../systems/SplitFlapBoard.js';
 import Train from '../entities/Train.js';
 import Silhouettes from '../entities/Silhouette.js';
@@ -30,7 +31,7 @@ const FLOOR = line(HUB_ROWS.FLOOR - 1); // 832: hall floor / concourse
 const ROOF = line(HUB_ROWS.ROOF - 1); // 256
 const UNDER = line(HUB_ROWS.UNDER - 1); // 1056
 const DOORS_X = px(22);
-const SHED_END_X = px(139);
+const SHED_END_X = px(156);
 
 // --- the people of the station: what they say, per dreamsCaught -----------
 const PEMBERTON_RETURN = [
@@ -65,6 +66,10 @@ export default class HubScene extends BaseLevel {
 
   init(data) {
     this.returnedFrom = data && data.returnedFrom ? data.returnedFrom : null;
+    // one-shot: Phaser reuses a scene's last data when it is started again
+    // without any (the Evening's end, a dev warp), which replayed an old
+    // return — the train backing out, Jo locked for 7.5 s
+    if (data) data.returnedFrom = null;
   }
 
   create() {
@@ -95,12 +100,14 @@ export default class HubScene extends BaseLevel {
     let spawn = { x: px(3), y: line(29) - 24 };
     if (this.returnedFrom) {
       const d = dreamById(this.returnedFrom);
-      if (d) spawn = { x: BAYS[d.platform - 1] * T + 176, y: FLOOR - 24 }; // at the bay's gate (WP3)
+      if (d) spawn = { x: BAYS[bayIndex(d.platform)] * T + 176, y: FLOOR - 24 }; // at the bay's gate (WP3)
     } else if (!this.firstVisit) {
       spawn = { x: px(26), y: FLOOR - 24 };
     }
     this.player = new Player(this, spawn.x, spawn.y);
     this.player.noTool = true; // the ladle belongs to the Chef's dream, not the station
+    // the station is walked (80 px/s); hold Shift / LB to run (owner, phase 2)
+    this.player.walkByDefault = true;
     // the same long shadow east as everyone else, on the ground under him
     this.player.shadow.set({ texture: hubTex(this, 'shadow', 64, 8), originX: 0.05, offsetX: -4, tint: 0x2a3050, alpha: 0.42 });
     this.dreamCoinId = 'musician'; // the station pays in busker change
@@ -187,6 +194,10 @@ export default class HubScene extends BaseLevel {
     // the sun is low in the west: a warm rim on that side, a shadow east
     s.shadow = this.add.image(o.wx - 4, floor - 1, hubTex(this, 'shadow', 64, 8)).setOrigin(0.05, 0.5).setTint(0x2a3050).setAlpha(0.3).setDepth(D.INTERACT - 3);
     s.rim = this.add.image(o.wx - 1.5, floor - 24, `hub-${who}`).setTintFill(0xffd890).setAlpha(0.5).setDepth(D.INTERACT + 0.5);
+    // legs from the ground actually covered, the task loop while standing
+    // (phase 2 motion: src/art/stride.js); Bilal's walk to the dumbwaiter
+    // and the sweeper's rounds step with them, never slide
+    s.stride = attachStride(this, s, `hub-${who}`);
     this.npcs[who] = s;
     return s;
   }
@@ -450,10 +461,12 @@ export default class HubScene extends BaseLevel {
   // ---- screens 3-4: the platforms ----------------------------------------
 
   buildPlatforms() {
-    for (const d of DREAMS) {
-      const caught = !!this.save.dreams[d.id];
+    // THE LAST STOP is a train like any other (platform G): never caught,
+    // always running, boarded through the same gate and door
+    for (const d of [...DREAMS, LAST_STOP]) {
+      const caught = d !== LAST_STOP && !!this.save.dreams[d.id];
       const running = !!d.scene;
-      const bayX0 = BAYS[d.platform - 1] * T;
+      const bayX0 = BAYS[bayIndex(d.platform)] * T;
       const bayMid = bayX0 + 3.5 * T;
 
       // the bay at full scale (round 2 WP3): the buffer end of the last
@@ -867,7 +880,7 @@ export default class HubScene extends BaseLevel {
   // ---- boarding --------------------------------------------------------------
 
   async board_(d) {
-    if (this.save.dreams[d.id]) {
+    if (d !== LAST_STOP && this.save.dreams[d.id]) {
       await this.dialog.show([{ name: 'Conductor', text: 'No return service on this line, sir. Never was.' }]);
       return;
     }
@@ -876,7 +889,7 @@ export default class HubScene extends BaseLevel {
       return;
     }
     // a dream in progress (plan §2.8): continue it from its last flag
-    const run = getRun(d.id);
+    const run = d === LAST_STOP ? null : getRun(d.id);
     const where = run && run.checkpointLabel ? ` — ${run.checkpointLabel}` : '';
     // a question about the journey ahead, and a real choice
     const answer = await this.dialog.show([
@@ -915,7 +928,8 @@ export default class HubScene extends BaseLevel {
         this.time.delayedCall(650, () => {
           music.stop();
           // a continued run skips the intro card and wakes at its flag
-          if (answer === 'continue') this.scene.start(d.scene, { levelKey: d.id, resume: true });
+          if (d === LAST_STOP) this.scene.start('Evening', { fromDoor: true });
+          else if (answer === 'continue') this.scene.start(d.scene, { levelKey: d.id, resume: true });
           else this.scene.start('Intro', { levelKey: d.id });
         });
       });
@@ -1092,15 +1106,27 @@ export default class HubScene extends BaseLevel {
   handleModalUpdate() {
     if (this.dialogActive || this.puzzleActive) return true;
     if (this.cardActive) {
-      if (Phaser.Input.Keyboard.JustDown(this.player.keys.X)) {
+      // the cards say "[E] Go through  [Q] Not yet": E (or X) answers yes,
+      // Q no. (This read only X before, so the last stop's card could
+      // neither be taken nor dismissed with the keys it named.) The press
+      // that opened the card is swallowed for a moment.
+      const E = Phaser.Input.Keyboard.JustDown(this.player.keys.E);
+      const X = Phaser.Input.Keyboard.JustDown(this.player.keys.X);
+      const Q = Phaser.Input.Keyboard.JustDown(this.keyQ);
+      if (this.time.now - (this.cardShownAt || 0) < 250) return true;
+      if (E || X) {
         const fn = this.cardConfirm;
+        this.closeCard();
+        if (fn) fn();
+      } else if (Q || Phaser.Input.Keyboard.JustDown(this.keyEsc)) {
+        const fn = this.cardAlt;
         this.closeCard();
         if (fn) fn();
       }
       return true;
     }
     if (Phaser.Input.Keyboard.JustDown(this.keyEsc)) {
-      this.showCard(['Paused', '', 'The station keeps the time.', '', '[E] Back'], null);
+      this.showCard(['Paused', '', 'The station keeps the time.', '', '← → walk    hold SHIFT (LB) to run', '', '[E] Back'], null);
       return true;
     }
     this.cameras.main.followOffset.x = this.player.flipX ? 48 : -48;
@@ -1138,6 +1164,12 @@ export default class HubScene extends BaseLevel {
       }
     } else {
       this.promptText.setVisible(false);
+    }
+
+    // the first steps: the run is on Shift here, the reverse of the dreams
+    if (!this.runHint && (!this.firstVisit || this.openingDone) && Math.abs(p.body.velocity.x) > 20 && time > p.controlLockUntil) {
+      this.runHint = true;
+      this.time.delayedCall(700, () => this.floatText(p.x, p.y - 70, 'walking. hold SHIFT (LB) to run', '#c8c0b0'));
     }
 
     // the opening: crossing the door on the first visit
@@ -1192,10 +1224,9 @@ export default class HubScene extends BaseLevel {
     const sw = this.sweeper;
     if (sw) {
       sw.x += sw.dir * 18 * dt;
-      if (sw.x > px(138)) sw.dir = -1;
+      if (sw.x > px(155)) sw.dir = -1;
       if (sw.x < px(28)) sw.dir = 1;
-      sw.setFlipX(sw.dir < 0);
-      sw.setTexture(`hub-sweeper#${(Math.floor(sw.x / 6) % 8) + 1}`);
+      if (!sw.stride) sw.setTexture(`hub-sweeper#${(Math.floor(sw.x / 6) % 8) + 1}`);
       sw.lamp.setPosition(sw.x, sw.y - 6);
       if (Math.floor(time / 2400) !== sw.lastHum && Math.abs(p.x - sw.x) < 300) {
         sw.lastHum = Math.floor(time / 2400);

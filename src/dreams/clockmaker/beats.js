@@ -1,4 +1,4 @@
-// The proof dream's beats (plan 2.1 BeatRunner): data, run on events.
+// THE STOPPED HOUR's beats (plan 2.1 BeatRunner): data, run on events.
 export default {
   // the dream opens on action: a line on the caption bar, no box
   start: [{ wait: 400 }, { music: 'quiet' }],
