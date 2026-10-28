@@ -155,15 +155,14 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     const frame = this.anim.frameName();
     if (this.art.frame.name !== frame && this.art.texture.key === 'jo') this.art.setFrame(frame);
     this.art.setPosition(f.x, f.y).setScale(sx, sy).setFlipX(this.flipX).setVisible(this.shown).setAlpha(this.alpha);
-    // the hat: last frame's hat at last frame's feet (one-frame lag, D5)
-    const lag = this.lastHat;
+    // the hat: this frame's hat at this frame's feet, so it always sits on
+    // the head (the old one-frame lag left it trailing behind at 80 px)
     const hatName = this.anim.hatFrame();
-    const hatOn = lag && this.scene.textures.get('jo').has(lag.frame);
+    const hatOn = this.scene.textures.get('jo').has(hatName);
     if (hatOn) {
-      this.hat.setFrame(lag.frame).setPosition(lag.x, lag.y + this.hatKnock.y).setScale(sx, sy).setAngle(this.hatKnock.angle).setFlipX(lag.flip);
+      this.hat.setFrame(hatName).setPosition(f.x, f.y + this.hatKnock.y).setScale(sx, sy).setAngle(this.hatKnock.angle).setFlipX(this.flipX);
     }
-    this.hat.setVisible(this.shown && !!hatOn).setAlpha(this.alpha);
-    this.lastHat = { frame: hatName, x: f.x, y: f.y, flip: this.flipX };
+    this.hat.setDepth(this.art.depth + 1).setVisible(this.shown && !!hatOn).setAlpha(this.alpha);
     // the tool rides a hand (attach points from the rig), a frame late: the
     // far hand, behind him, while carried; the near hand while he uses it
     const using = /^(swing|pen|brush|brush_hold|play_trumpet|interact|type)$/.test(this.anim.name);
