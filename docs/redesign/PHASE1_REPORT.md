@@ -145,3 +145,12 @@ Branch `redesign`, commits 1.1 (27f4e23), 1.2 (7cd2d8d), 1.3 (c6e86db) and 1.4 (
    - Minigames: fewer and in-world (decision 8).
    - Save slots: 3, as built.
    - Update the three project skills (character-motion, ui-type, collectibles) at the end of phase 1 (§8.2 #8).
+
+## Owner decisions for phase 2 (answered 2026-10-28)
+
+| Question | Decision |
+|---|---|
+| Character art source | Code-drawn rigs baked to atlases for every animated character; portraits and large static pieces may come from AI or free CC0 sources if code-drawn faces fall short (plan §3, the recommended hybrid) |
+| Jo's on-screen size | About 80 px tall (larger than the recommended 64 px). Levels need more vertical space; the headroom rule changes accordingly |
+| Dreams that ship | All six: Chef, Musician, Writer, Painter, Astronaut, Gambler, each cut to 6–10 minutes in phase 5. The Painter is kept but must be rewritten with no real names or events (critique F#13) |
+| The last stop | Open at any time, no locks (decided earlier) |
