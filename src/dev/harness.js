@@ -5,6 +5,7 @@
 // KeyboardPlugin and the modal `e.code` handlers both see them.
 import Phaser from 'phaser';
 import { DREAM_WARP } from './warp.js';
+import { auditText } from './readability.js';
 
 // Phaser's TweenManager runs on the wall clock (Date.now, lag-smoothed), so
 // under the synthetic step clock tweens barely moved and anything awaiting a
@@ -121,6 +122,10 @@ const dc = {
     };
   },
   // PNG data URL of the canvas (rendered by one extra step so it is current)
+  // round 2 WP5: every readability rule the current screen breaks
+  readability() {
+    return auditText(dc.scene());
+  },
   snap() {
     return new Promise((resolve) => {
       game().renderer.snapshot((img) => resolve(img.src));

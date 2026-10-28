@@ -32,7 +32,7 @@ import { getSave, updateSave, momentsFound, MOMENT_TOTAL } from '../utils/save.j
 import { sfx, music, laughSfx, toggleMusic, playFx, audioOut } from '../systems/audio.js';
 import DialogueBox from '../systems/DialogueBox.js';
 import { buildWorld, buildArchitecture, makeGround, bucketTerrain, mulC } from './evening/world.js';
-import { uiText } from '../ui/text.js';
+import { uiText, PLATE } from '../ui/text.js';
 
 // THE LONG EVENING — the last place in the game, and the only fully
 // beautiful one (docs/finale_long_evening.md).
@@ -456,16 +456,19 @@ export default class EveningScene extends BaseLevel {
     // the same slots as the HudGrid (src/ui/HudGrid.js), so the ritual takes
     // away the HUD the player knows, piece by piece
     const hearts = [0, 1, 2].map((i) => this.add.image(16 + i * 28, 12, 'heart').setOrigin(0, 0).setScrollFactor(0).setDepth(150));
-    const coinText = uiText(this, cam.width - 16, 12, `${this.save.wallet.total ? '0  $' + this.save.wallet.total : '0'}`, { size: 'small', color: 'accent' }).setOrigin(1, 0).setScrollFactor(0).setDepth(150);
-    const coin = [this.add.circle(coinText.x - coinText.width - 12, 19, 6, 0xc08a50).setScrollFactor(0).setDepth(150), coinText];
-    const objective = [uiText(this, cam.width / 2, 12, '—', { size: 'small', color: 'accent' }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(150)];
+    const coinText = uiText(this, cam.width - 16, 12, `${this.save.wallet.total ? '0  $' + this.save.wallet.total : '0'}`, { size: 'small', color: 'accent', bg: PLATE.dark }).setOrigin(1, 0).setScrollFactor(0).setDepth(150);
+    const coin = [this.add.circle(coinText.x - coinText.width - 18, 19, 6, 0xc08a50).setScrollFactor(0).setDepth(150), coinText];
+    const objective = [uiText(this, cam.width / 2, 12, '—', { size: 'small', color: 'accent', bg: PLATE.dark }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(150)];
+    // the ritual's stand-in meter, gone in six seconds
     const meters = [
-      this.add.rectangle(cam.width - 136, 46, 120, 8, 0x2a2a34).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150),
-      this.add.rectangle(cam.width - 136, 46, 92, 8, 0x88b8d8).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150),
+      // lint-allow readability: (the stand-in meter's track)
+      this.add.rectangle(cam.width - 136, 46, 120, 10, 0x2a2a34).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150),
+      // lint-allow readability: (the same stand-in meter)
+      this.add.rectangle(cam.width - 136, 46, 92, 10, 0x88b8d8).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150),
     ];
     const rest = [
-      uiText(this, 16, 44, 'THE LONG EVENING', { size: 'small', color: 'ink-dim' }).setScrollFactor(0).setDepth(150),
-      uiText(this, cam.width - 16, cam.height - 16, '[Esc] pause', { size: 'small', color: 'ink-dim' }).setOrigin(1, 1).setScrollFactor(0).setDepth(150),
+      uiText(this, 16, 44, 'THE LONG EVENING', { size: 'small', color: 'ink-dim', bg: PLATE.dark }).setScrollFactor(0).setDepth(150),
+      uiText(this, cam.width - 16, cam.height - 16, '[Esc] pause', { size: 'small', color: 'ink-dim', bg: PLATE.dark }).setOrigin(1, 1).setScrollFactor(0).setDepth(150),
     ];
     hud.push(hearts, coin, objective, meters, rest);
     hud.forEach((group, i) => {
@@ -2165,7 +2168,7 @@ export default class EveningScene extends BaseLevel {
     }
     this.time.delayedCall(times * 110, () => {
       txt.setAlpha(1).setText(final);
-      if (big) txt.setFontSize(15).setColor('#e9b84a').setLetterSpacing(3).setShadow(2, 2, '#6b4a1f', 0, false, true);
+      if (big) txt.setColor('#e9b84a');
     });
   }
 
@@ -2215,6 +2218,9 @@ export default class EveningScene extends BaseLevel {
       .setScrollFactor(0)
       .setDepth(200)
       .setAlpha(0);
+    // §8: a card on the sky gets a scrim (the station's last card was cream
+    // on a cream-gold sky): the dusk ink, soft-edged, behind the line
+    t.setScrim(0x1a1420);
     this.pinUI(t);
     this.tweens.add({ targets: t, alpha: 1, duration: 900 });
     this.time.delayedCall(ms, () => this.tweens.add({ targets: t, alpha: 0, duration: 900, onComplete: () => t.destroy() }));
@@ -2463,6 +2469,9 @@ export default class EveningScene extends BaseLevel {
   async endingRidge() {
     this.ridgeEnded = true;
     this.ending = true;
+    // §8: nobody chatters over the ridge cards
+    this.quietBarks = true;
+    for (const b of this.__barks || []) b.setVisible(false);
     this.prompt.setVisible(false);
     const cam = this.cameras.main;
     const p = this.player;

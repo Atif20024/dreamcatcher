@@ -175,9 +175,9 @@ export function buildWorld(scene, objects) {
       case 'sign': {
         const y = scene.groundY(o.wx, o.wy - 64);
         scene.add.rectangle(o.wx, y - 20, 4, 40, 0x6a4a32).setDepth(6);
-        const w = o.text.length * 7 + 16;
+        const w = o.text.length * 8 + 16;
         scene.add.rectangle(o.wx, y - 40, w, 18, 0xe8dcc0).setDepth(6).setStrokeStyle(2, 0x6a4a32).setAngle(-2);
-        uiText(scene, o.wx, y - 40, o.text, { fontSize: '11px', color: '#3a2a22' }).setOrigin(0.5).setDepth(6.1).setAngle(-2);
+        uiText(scene, o.wx, y - 40, o.text, { fontSize: '11px', color: '#3a2a22', backing: 0xe8dcc0 }).setOrigin(0.5).setDepth(6.1).setAngle(-2);
         break;
       }
       case 'bench': {
@@ -411,8 +411,10 @@ export function buildWorld(scene, objects) {
         break;
       }
       case 'board': {
-        const b = stand('ev-board', o, -10.4);
-        const txt = uiText(scene, o.wx, b.y - 38, '— — —', { fontSize: '12px', color: '#f2e6cc' }).setOrigin(0.5).setDepth(-10.3);
+        // §8 / §5.9: a board at scale (216 px), mounted high, its flaps in
+        // display type (cap 14) on its own dark face
+        const b = stand('ev-board', o, -10.4).setScale(3);
+        const txt = uiText(scene, o.wx, b.y - 114, '— — —', { size: 'display', color: '#f2e6cc', backing: 0x14141c }).setOrigin(0.5).setDepth(-10.3);
         out.board = { x: o.wx, y: b.y, txt };
         break;
       }

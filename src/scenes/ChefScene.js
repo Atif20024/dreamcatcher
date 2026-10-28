@@ -13,7 +13,7 @@ import { freezerValve, ticketRail, piping } from '../systems/puzzles.js';
 import { completeDream, recordMoment, markMet } from '../utils/save.js';
 import { sfx, music, sting } from '../systems/audio.js';
 import { uiText } from '../ui/text.js';
-import { hud, TOOL_BARS } from '../ui/hud.js';
+import { hud } from '../ui/hud.js';
 
 const T = 32;
 const overlaps = (a, b) => Phaser.Geom.Intersects.RectangleToRectangle(a, b);
@@ -288,17 +288,8 @@ export default class ChefScene extends BaseLevel {
   buildFreezer() {
     this.coldMax = 40 - 4 * this.difficulty;
     this.cold = this.coldMax;
-    // the cold meter: the tool slot, top-right (HudGrid)
-    const B = TOOL_BARS;
-    const cy0 = this.hud.toolBottom() + 4;
-    this.coldBar = this.add.rectangle(B.right - B.w, cy0, B.w, 10, 0x88b8d8).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150).setVisible(false);
-    this.coldLabel = uiText(this, B.right - B.w - 8, cy0, 'COLD', { size: 'small', color: '#88b8d8' }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(150).setVisible(false);
-    this.coldBarBg = this.add
-      .rectangle(B.right - B.w, cy0, B.w, 10, 0x2a2a34)
-      .setOrigin(0, 0.5)
-      .setScrollFactor(0)
-      .setDepth(149)
-      .setVisible(false);
+    // the cold meter: a row of the HUD grid's meter stack (§8)
+    this.coldMeter = hud.meter('cold', { label: 'COLD', color: '#88b8d8', visible: false });
 
     if (this.difficulty < 3) {
       this.heatLamp = { x: px(105), y: px(30) };
@@ -451,17 +442,15 @@ export default class ChefScene extends BaseLevel {
         if (this.rush.done.size >= 3) {
           this.rush.active = false;
           this.setFlag('rush_done');
-          this.rushBar && this.rushBar.destroy();
-          this.rushBarBg && this.rushBarBg.destroy();
+          this.rushMeter && this.rushMeter.destroy();
+          this.rushMeter = null;
           music.trumpet(false);
           this.setObjective('take the dumbwaiter up');
         }
       }
     }, { once: false, when: () => this.rush && this.rush.active });
-    const cam = this.cameras.main;
-    // the service clock: top centre, under the goal line
-    this.rushBarBg = this.add.rectangle(cam.width / 2, 66, 300, 12, 0x2a2a34).setScrollFactor(0).setDepth(150);
-    this.rushBar = this.add.rectangle(cam.width / 2 - 150, 66, 300, 12, 0xe86a6a).setOrigin(0, 0.5).setScrollFactor(0).setDepth(151);
+    // the service clock: a row of the HUD grid's meter stack (§8)
+    this.rushMeter = hud.meter('rush', { label: 'SERVICE', color: '#e86a6a', order: -1 });
     music.trumpet();
     this.setObjective('RUSH: fish · herbs · bread → the pass');
     this.floatText(this.player.x, this.player.y - 60, 'SERVICE!');
@@ -865,16 +854,14 @@ export default class ChefScene extends BaseLevel {
 
   updateFreezer(time, dt, pb) {
     const inZone = this.player.x > px(81) && this.player.x < px(131);
-    this.coldBar.setVisible(inZone);
-    this.coldLabel.setVisible(inZone);
-    this.coldBarBg.setVisible(inZone);
+    this.coldMeter.setVisible(inZone);
     if (inZone) {
       let drain = dt;
       if (this.heatLamp && Phaser.Math.Distance.Between(this.player.x, this.player.y, this.heatLamp.x, this.heatLamp.y) < 70) {
         drain = -dt * 6;
       }
       this.cold = Phaser.Math.Clamp(this.cold - drain, 0, this.coldMax);
-      this.coldBar.width = (this.cold / this.coldMax) * TOOL_BARS.w;
+      this.coldMeter.set(this.cold / this.coldMax);
       if (this.cold <= 0) {
         this.cold = this.coldMax * 0.6;
         this.hurt();
@@ -989,7 +976,7 @@ export default class ChefScene extends BaseLevel {
 
     if (this.rush && this.rush.active) {
       this.rush.left -= 0.016;
-      this.rushBar.width = Math.max(0, (this.rush.left / this.rush.total) * 300);
+      if (this.rushMeter) this.rushMeter.set(this.rush.left / this.rush.total);
       if (this.rush.left <= 0) {
         this.rush.left = this.rush.total;
         sfx('fail');

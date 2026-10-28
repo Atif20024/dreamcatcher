@@ -14,7 +14,7 @@ import { completeDream, recordMoment, markMet } from '../utils/save.js';
 import { sfx, music, sting } from '../systems/audio.js';
 import { showTutorial } from '../systems/tutorial.js';
 import { uiText } from '../ui/text.js';
-import { hud, TOOL_BARS } from '../ui/hud.js';
+import { hud } from '../ui/hud.js';
 
 const T = 32;
 const px = (t) => t * T + T / 2;
@@ -344,18 +344,10 @@ export default class AstronautScene extends BaseLevel {
     // the tool slot, top-right (HudGrid): the clipboard while the gym is
     // the world, the radio once docked; the suit meters under the coins
     this.statHud = this.hud.toolLine(0, '#e8dcc8');
-    const B = TOOL_BARS;
-    const y0 = this.hud.toolBottom() + 44; // under the radio line (the stats are gone by then)
-    const bx = B.right - B.w;
-    this.o2BarBg = this.add.rectangle(bx, y0, B.w, B.h, 0x2a2a34).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150).setVisible(false);
-    this.o2Bar = this.add.rectangle(bx, y0, B.w, B.h, 0x88b8d8).setOrigin(0, 0.5).setScrollFactor(0).setDepth(151).setVisible(false);
-    this.o2Label = uiText(this, bx - 8, y0, 'O₂', { size: 'small', color: '#88b8d8' }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(150).setVisible(false);
-    this.pwrBarBg = this.add.rectangle(bx, y0 + B.gap + 4, B.w, B.h, 0x2a2a34).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150).setVisible(false);
-    this.pwrBar = this.add.rectangle(bx, y0 + B.gap + 4, B.w, B.h, 0xe8a030).setOrigin(0, 0.5).setScrollFactor(0).setDepth(151).setVisible(false);
-    this.pwrLabel = uiText(this, bx - 8, y0 + B.gap + 4, 'PWR', { size: 'small', color: '#e8a030' }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(150).setVisible(false);
-    // pool breath (phase 1/3)
-    this.breathBar = this.add.rectangle(bx, y0, B.w, B.h, 0x9ac4dc).setOrigin(0, 0.5).setScrollFactor(0).setDepth(151).setVisible(false);
-    this.barW = B.w;
+    // O₂, PWR and pool breath are rows of the HUD grid's meter stack (§8)
+    this.o2Meter = hud.meter('o2', { label: 'O₂', color: '#88b8d8', order: 0, visible: false });
+    this.pwrMeter = hud.meter('pwr', { label: 'PWR', color: '#e8a030', order: 1, visible: false });
+    this.breathMeter = hud.meter('breath', { label: 'BREATH', color: '#9ac4dc', order: 2, visible: false });
     // §3.4 — the radio
     this.signalHud = this.hud.toolLine(1, '#7ec87e').setVisible(false);
     // the visor: a translucent overlay the player must learn to read
@@ -1789,14 +1781,9 @@ export default class AstronautScene extends BaseLevel {
 
     // suit meters run wherever the suit is the only air
     const suited = phys === 'zero' || phys === 'moon';
-    this.o2Bar.setVisible(suited).width = (this.o2 / this.o2Max) * this.barW;
-    this.o2BarBg.setVisible(suited);
-    this.o2Label.setVisible(suited);
-    this.pwrBar.setVisible(suited).width = (this.power / 100) * this.barW;
-    this.pwrBarBg.setVisible(suited);
-    this.pwrLabel.setVisible(suited);
-    this.breathBar.setVisible(swimming && !suited).width = (this.breath / 100) * this.barW;
-    if (swimming && !suited) this.o2BarBg.setVisible(true);
+    this.o2Meter.setVisible(suited).set(this.o2 / this.o2Max);
+    this.pwrMeter.setVisible(suited).set(this.power / 100);
+    this.breathMeter.setVisible(swimming && !suited).set(this.breath / 100);
     if (suited) {
       const leak = this.puncturedAt ? 3 : 1;
       this.o2 = Math.max(0, this.o2 - leak * dt);
@@ -1810,7 +1797,7 @@ export default class AstronautScene extends BaseLevel {
         this.floatText(p.x, p.y - 50, 'the suit wins. it costs you a heart.', '#e86a6a');
         this.hurt();
       }
-      this.o2Bar.fillColor = this.o2 < 10 ? 0xe83a2a : 0x88b8d8;
+      this.o2Meter.setColor(this.o2 < 10 ? '#e83a2a' : '#88b8d8');
     }
 
     // stat clipboard only while the gym is the story

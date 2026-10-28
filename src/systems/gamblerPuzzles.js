@@ -51,7 +51,7 @@ export function stakeSelector(scene, { chips, hearts, odds = 'even money', name 
       return;
     }
     let cur = 0;
-    const labels = opts.map((o, i) => m.text(cx - ((opts.length - 1) * 70) / 2 + i * 140, cy, o.label, 16));
+    const labels = opts.map((o, i) => m.text(cx - ((opts.length - 1) * 150) / 2 + i * 150, cy, o.label, 16));
     const note = m.text(cx, cy + 50, '', 12, DIM);
     const render = () => {
       labels.forEach((t, i) => t.setColor(i === cur ? GOLD : DIM));
@@ -91,9 +91,9 @@ export function higherLower(scene) {
     const curImg = cardAt(m, scene, cx - 50, cy - 40, cur);
     const nextImg = cardAt(m, scene, cx + 50, cy - 40, null, true);
     const pips = [0, 1, 2].map((i) => rect(m, scene, cx - 30 + i * 30, cy + 40, 18, 18, 0x2a2a34));
-    const status = m.text(cx, cy + 72, 'call it.', 13, INK);
+    const status = m.text(cx, cy + 68, 'call it.', 13, INK);
     // the counter: what is left, by rank, as a row of small cards
-    const spreadY = cy + 120;
+    const spreadY = cy + 126;
     m.text(cx, spreadY - 30, 'ON THE COUNTER', 10, DIM);
     const spread = [];
     const renderSpread = () => {
@@ -577,28 +577,30 @@ export function threeCups(scene, stake, { chips, difficulty = 0 }) {
 export function fiveCardDraw(scene, { chips, difficulty = 0, trumpetHolder = 'pot' }) {
   return new Promise((resolve) => {
     const cam = scene.cameras.main;
-    const m = new Modal(scene, 'FIVE-CARD DRAW', 'Ante 1. Five cards, one draw of up to three, one round of betting, showdown. Eight hands.\n←/→ + [Enter] mark discards · [D] draw · [C] check/call · [B] bet/raise · [F] fold · hold [↓] for a poker face');
+    // §8: the rules fit in three lines above the felt, and every label on
+    // the felt has its own row (names, stacks, cards and calls never overlap)
+    const m = new Modal(scene, 'FIVE-CARD DRAW', 'Ante 1 · five cards · draw up to three · bet · showdown · 8 hands\n←/→ + [Enter] mark discards · [D] draw · [C] check/call · [B] bet/raise · [F] fold · hold [↓] for a poker face');
     const cx = cam.width / 2;
-    const cy = cam.height / 2 + 24;
+    const cy = cam.height / 2 + 46;
     const rng = seededRng('p5');
-    felt(m, scene, cx, cy - 6, 640, 290);
+    felt(m, scene, cx, cy - 12, 640, 296);
     const OPP = [
       { id: 'widow', name: 'THE WIDOW', x: cx - 200 },
       { id: 'kid', name: 'THE KID', x: cx },
       { id: 'accountant', name: 'THE ACCOUNTANT', x: cx + 200 },
     ];
     const ps = OPP.map((o) => {
-      const img = portrait(m, scene, o.x, cy - 118, `portrait-${o.id}`, 0.8);
-      const label = m.text(o.x, cy - 80, o.name, 9, GOLD);
-      const stack = m.text(o.x, cy - 68, '', 9, INK);
-      return { ...o, img, label, stack, chips: 12, cards: [], in: true, cardImgs: [], action: m.text(o.x, cy - 32, '', 10, INK) };
+      const img = portrait(m, scene, o.x, cy - 136, `portrait-${o.id}`, 0.8);
+      const label = m.text(o.x, cy - 106, o.name, 9, GOLD);
+      const stack = m.text(o.x, cy - 86, '', 9, INK);
+      return { ...o, img, label, stack, chips: 12, cards: [], in: true, cardImgs: [], action: m.text(o.x, cy - 14, '', 10, INK) };
     });
     const accTell = new Tell(scene, ps[2].img, { base: 'portrait-accountant', tell: 'portrait-accountant-tell', condition: (c) => c.bluffing, difficulty, falsePositive: difficulty >= 3 ? 0.2 : 0 });
     const joImg = portrait(m, scene, cx - 290, cy + 70, 'portrait-jo', 0.9);
-    m.text(cx - 290, cy + 118, 'JO', 10, GOLD);
-    const joStack = m.text(cx - 290, cy + 132, '', 10, INK);
-    const potText = m.text(cx, cy + 4, '', 12, GOLD);
-    const horn = m.add(scene.add.image(cx + 60, cy + 4, 'tool-trumpet').setScale(1.6).setScrollFactor(0).setDepth(m.depth + 3));
+    m.text(cx - 290, cy + 108, 'JO', 10, GOLD);
+    const joStack = m.text(cx - 290, cy + 128, '', 10, INK);
+    const potText = m.text(cx, cy + 14, '', 12, GOLD);
+    const horn = m.add(scene.add.image(cx + 60, cy + 14, 'tool-trumpet').setScale(1.6).setScrollFactor(0).setDepth(m.depth + 3));
     const status = m.text(cx, cy + 150, '', 12, INK);
     const tally = m.text(cx + 290, cy + 120, '', 10, DIM);
     const downKey = scene.input.keyboard.addKey('DOWN');
@@ -637,7 +639,7 @@ export function fiveCardDraw(scene, { chips, difficulty = 0, trumpetHolder = 'po
     };
     const showOppCards = (p, up) => {
       p.cardImgs.forEach((i) => i.destroy());
-      p.cardImgs = p.cards.map((c, i) => cardAt(m, scene, p.x - 44 + i * 22, cy - 50, c, !up, 0.9));
+      p.cardImgs = p.cards.map((c, i) => cardAt(m, scene, p.x - 44 + i * 22, cy - 48, c, !up, 1));
       if (!p.in) p.cardImgs.forEach((i) => i.setAlpha(0.35));
     };
     const strengthOf = (p) => pokerStrength(p.cards);
@@ -857,9 +859,10 @@ export function faceUp(scene, { marker, chips }) {
     const m = new Modal(scene, 'FACE UP', 'One hand. For everything.');
     const cx = cam.width / 2;
     const cy = cam.height / 2 + 10;
-    felt(m, scene, cx, cy - 20, 520, 220);
-    const favour = portrait(m, scene, cx - 290, cy - 60, 'portrait-favour');
-    m.text(cx - 290, cy - 10, 'MR. FAVOUR', 10, GOLD);
+    // §8: both hands and both readings on the felt; the name clear of it
+    felt(m, scene, cx, cy - 14, 520, 240);
+    const favour = portrait(m, scene, cx - 335, cy - 60, 'portrait-favour');
+    m.text(cx - 335, cy - 10, 'MR. FAVOUR', 10, GOLD);
     const joCards = [{ r: 2, s: 'C' }, { r: 5, s: 'D' }, { r: 7, s: 'H' }, { r: 9, s: 'S' }, { r: 11, s: 'D' }];
     const favCards = [{ r: 13, s: 'S' }, { r: 13, s: 'H' }, { r: 13, s: 'D' }, { r: 8, s: 'C' }, { r: 8, s: 'S' }];
     const fImgs = favCards.map((c, i) => cardAt(m, scene, cx - 100 + i * 50, cy - 70, c, false, 1.6));

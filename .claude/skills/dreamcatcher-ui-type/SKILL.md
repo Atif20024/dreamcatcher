@@ -71,6 +71,15 @@ Panels are 9-slice string-art at 2×: corners 6×6, edges 6 px, with a 1 px `pan
 ## Icons
 One 9×9 icon set (`src/ui/icons.js`), string-art, used everywhere: `key, lock, ribbon, plate, lever, valve, pull, panel, hand, sword-crossed (shove), eye, note, rest, heart, shard, coin, clock, up, down, esc`. Icons are never drawn ad hoc; add to the set if missing.
 
+## Readability (round 2 §8, enforced)
+- **Minimum cap height on screen** (camera zoom included): 14 px for anything on screen (HUD, prompts, cards, menus, dialogue: small ×2, body ×2, display ×1); 9 px for information text in the world (signs, labels, barks: body ×1). World text that would be small ×1 is set in body ×1 automatically (`uiText`); pass `decor: true` only for decoration (posters, far signs, single symbols).
+- **Plates:** world information text gets the §8 plate automatically (ink-dark 0x14122a at 88 %, 1 px brass line, padding 6/4; cream 0xf2e6cc for dark text). Text painted onto its own board passes `backing: <board colour>` instead (no plate; the board is checked). Glyph colour is lifted to 4.5:1 against its plate/board/panel automatically.
+- **Scrim:** a line straight on sky or art (ending cards) calls `.setScrim(darkestColour)`.
+- **Zoom:** below the text's minimum at the camera zoom, free world text is counter-scaled; text on a board or in a container hides under zoom 0.9; a board container that should scale as one sets `container.dcReadable = true`.
+- **HUD:** every HUD element is a HudGrid slot. Dream bars are `hud.meter(id, { label, color })` rows (`.set(frac)`, `.setVisible`); a widget a dream draws itself claims `hud.region(id, rect)`. HUD rects keep 8 px apart.
+- **Barks:** `claimBark(scene, obj)` (`src/ui/barks.js`): one bubble within 300 px, none off screen, body ×1 on a plate, 0.9 s + 60 ms a character.
+- Check: `__dc.readability()` lists every rule the current screen breaks; scenarios `readability-<place>`, `bark-one-at-a-time`; lint `text-min-size`, `hud-slot`.
+
 ## Checklist before committing any UI change
 1. Zero Phaser `Text` objects; everything through `BitmapText`.
 2. Every x/y an integer at 1× before the 2× scale.

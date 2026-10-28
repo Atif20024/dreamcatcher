@@ -24,7 +24,8 @@ import { RunState } from '../play/RunState.js';
 import PauseMenu from '../ui/PauseMenu.js';
 import ModalManager from '../ui/ModalManager.js';
 import { hud } from '../ui/hud.js';
-import { uiText } from '../ui/text.js';
+import { uiText, PLATE } from '../ui/text.js';
+import { barkMs, claimBark } from '../ui/barks.js';
 import { panel, dim } from '../ui/Panel.js';
 import { ambience } from '../audio/Ambience.js';
 
@@ -465,7 +466,8 @@ export default class BaseLevel extends Phaser.Scene {
     const t = uiText(this, x, y, msg, { size: 'body', color, align: 'center' })
       .setOrigin(0.5)
       .setDepth(60);
-    this.tweens.add({ targets: t, y: y - 30, alpha: 0, duration: 1800, onComplete: () => t.destroy() });
+    claimBark(this, t); // §8: one line in reach at a time
+    this.tweens.add({ targets: t, y: y - 30, alpha: 0, duration: Math.max(1800, barkMs(msg)), onComplete: () => t.destroy() });
   }
 
   onHurtExtra() {}
@@ -662,19 +664,20 @@ export default class BaseLevel extends Phaser.Scene {
     }
     const caption = sub || (first ? 'Saved here. Fall, and you wake at this flag.' : 'saved');
     if (this.cpBanner) this.cpBanner.forEach((o) => o.destroy());
-    const t1 = uiText(this, cam.width / 2, 92, `— ${label} —`, { size: 'body', color: '#f2c078', align: 'center' })
+    // §8 banner: top third, on the plate, 2.5 s the first time and 1.5 s after
+    const t1 = uiText(this, cam.width / 2, 92, `— ${label} —`, { size: 'body', color: '#f2c078', align: 'center', bg: PLATE.dark })
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(152)
       .setAlpha(0);
-    const t2 = uiText(this, cam.width / 2, 118, caption, { size: 'small', color: 'ink-dim', align: 'center' })
+    const t2 = uiText(this, cam.width / 2, 120, caption, { size: 'small', color: 'ink-dim', align: 'center', bg: PLATE.dark })
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(152)
       .setAlpha(0);
     t1.name = 'checkpoint-label';
     this.cpBanner = [t1, t2];
-    this.tweens.add({ targets: this.cpBanner, alpha: 1, duration: 250, hold: first ? 3200 : 1800, yoyo: true, onComplete: () => [t1, t2].forEach((o) => o.destroy()) });
+    this.tweens.add({ targets: this.cpBanner, alpha: 1, duration: 250, hold: first ? 2500 : 1500, yoyo: true, onComplete: () => [t1, t2].forEach((o) => o.destroy()) });
   }
 
   // ---- the run: save / resume (plan §2.8 RunState) --------------------------------

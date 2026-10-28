@@ -18,7 +18,7 @@ import { showTutorial } from '../systems/tutorial.js';
 import world from './painter/world.js';
 import beats from './painter/beats.js';
 import { T, px, overlaps } from './painter/util.js';
-import { uiText } from '../ui/text.js';
+import { uiText, PLATE } from '../ui/text.js';
 import { hud } from '../ui/hud.js';
 
 const NIGHT_ROOMS = new Set(['cafe', 'roofs', 'cypress', 'sky']);
@@ -888,20 +888,26 @@ export default class PainterScene extends BaseLevel {
   buildHud() {
     const cam = this.cameras.main;
     this.lightWash = this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0xfff2a0, 0.04).setScrollFactor(0).setDepth(86).setBlendMode(Phaser.BlendModes.MULTIPLY);
-    const mk = (x, y, color = '#c8c0b0', size = 12) => uiText(this, x, y, '', { fontSize: `${size}px`, color }).setScrollFactor(0).setDepth(150);
+    const mk = (x, y, color = '#c8c0b0', size = 12) => uiText(this, x, y, '', { fontSize: `${size}px`, color, backing: PLATE.dark }).setScrollFactor(0).setDepth(150);
     // §3.2 the palette, bottom-left: three wells as smears (a widget above
     // the satchel line); the light clock and crates are the tool slot
+    // §8: the palette is a HUD grid region (bottom-left, clear of the
+    // satchel line's two rows), so the grid's overlap rule covers it
     this.wellHud = [];
+    const wy = cam.height - 92;
+    const reg = { x: 5, y: cam.height - 150, w: Math.max(170, this.palette.max * 58), h: 76 };
+    this.hud.region('palette', reg);
+    this.add.rectangle(reg.x, reg.y, reg.w, reg.h, PLATE.dark, PLATE.alpha).setOrigin(0, 0).setStrokeStyle(1, PLATE.edge).setScrollFactor(0).setDepth(147);
     for (let i = 0; i < this.palette.max; i++) {
       const x = 30 + i * 58;
-      const y = cam.height - 66;
+      const y = wy;
       const frame = this.add.rectangle(x, y, 50, 30, 0x14101c, 0.7).setScrollFactor(0).setDepth(148).setStrokeStyle(2, 0x4a3f5c);
       const smear = this.add.image(x, y, 'pt-well-yellow').setScrollFactor(0).setDepth(149).setVisible(false);
       const n = mk(x + 14, y - 6, '#e8dcc8', 11).setOrigin(0.5).setScale(1);
       const key = mk(x - 18, y - 24, '#8a8478', 10).setText(`${i + 1}`);
       this.wellHud.push({ frame, smear, n, key });
     }
-    this.brushHud = mk(16, cam.height - 112, '#f2e0a0');
+    this.brushHud = mk(16, cam.height - 142, '#f2e0a0');
     this.clockHud = this.hud.toolLine(0, '#e8c060');
     this.crateHud = this.hud.toolLine(1, '#c8c0b0');
     this.updateHud();

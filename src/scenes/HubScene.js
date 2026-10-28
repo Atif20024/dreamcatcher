@@ -208,7 +208,7 @@ export default class HubScene extends BaseLevel {
     // newspaper kiosk with headlines that change with the count
     const k = this.obj('kiosk');
     this.add.image(k.wx, street - 16, 'hub-kiosk').setDepth(D.INTERACT - 2);
-    uiText(this, k.wx, street - 44, HEADLINES[this.N], { fontSize: '8px', color: '#f2e6cc', wordWrap: { width: 90 }, align: 'center' })
+    uiText(this, k.wx, street - 52, HEADLINES[this.N], { size: 'body', color: '#f2e6cc', wordWrap: { width: 120 }, align: 'center' })
       .setOrigin(0.5)
       .setDepth(D.INTERACT - 1);
     this.addInteract(k.wx, street - 20, 'paper', () => this.floatText(k.wx, street - 70, `"${HEADLINES[this.N]}"`, '#c8c0b0'));
@@ -315,7 +315,7 @@ export default class HubScene extends BaseLevel {
     [-14, 14].forEach((dx) => this.add.image(phones.wx + dx, FLOOR - 16, 'hub-phone').setDepth(D.INTERACT - 3));
     const lf = this.obj('lostfound');
     this.add.image(lf.wx, lf.wy, hubTex(this, 'lostfound', 90, 40)).setDepth(D.INTERACT - 3);
-    uiText(this, lf.wx, lf.wy, 'LOST & FOUND', { fontSize: '9px', color: '#c4a25c' }).setOrigin(0.5).setDepth(D.INTERACT - 2);
+    uiText(this, lf.wx, lf.wy - 8, 'LOST & FOUND', { fontSize: '9px', color: '#c4a25c', backing: 0x2a2230 }).setOrigin(0.5).setDepth(D.INTERACT - 2);
 
     // the bench and the man who sleeps on it under a coat
     const bench = this.obj('bench', (o) => o.sleeper);
@@ -372,8 +372,8 @@ export default class HubScene extends BaseLevel {
     const hatchX = px(77);
     this.add.image(hatchX, FLOOR + 3, hubTex(this, 'grate', 38, 12)).setDepth(D.TERRAIN + 1);
     this.add.image(hatchX + 36, FLOOR - 30, hubTex(this, 'signpost', 4, 60)).setDepth(D.INTERACT - 3);
-    this.add.image(hatchX + 36, FLOOR - 58, hubTex(this, 'signboard', 96, 24)).setDepth(D.INTERACT - 3);
-    uiText(this, hatchX + 36, FLOOR - 58, '\u2193 LEFT LUGGAGE', { fontSize: '9px', color: '#f2e6cc' })
+    this.add.image(hatchX + 36, FLOOR - 58, hubTex(this, 'signboard', 120, 24)).setDepth(D.INTERACT - 3);
+    uiText(this, hatchX + 36, FLOOR - 59, '\u2193 LEFT LUGGAGE', { fontSize: '9px', color: '#f2e6cc', backing: 0x2e3a52 })
       .setOrigin(0.5)
       .setDepth(D.INTERACT - 2);
     this.hatchPrompt = uiText(this, hatchX, FLOOR - 40, '[\u2193] down', { fontSize: '12px', color: '#88b8d8', backgroundColor: '#14101c' })
@@ -489,10 +489,10 @@ export default class HubScene extends BaseLevel {
     const text = caught ? '#8a8478' : running ? '#f2e6cc' : '#8a8a90';
     this.add.image(x, y - 34, hubTex(this, 'signpost', 3, 40)).setDepth(D.INTERACT - 3);
     this.add.image(x, y + 1, hubTex(this, 'signboard', w, 42, { body, trim })).setDepth(D.INTERACT - 2);
-    uiText(this, x, y - 9, `PLATFORM ${d.platform}`, { fontSize: '10px', color: text })
+    uiText(this, x, y - 9, `PLATFORM ${d.platform}`, { fontSize: '10px', color: text, backing: body })
       .setOrigin(0.5)
       .setDepth(D.INTERACT - 1);
-    uiText(this, x, y + 8, d.title, { fontSize: '13px', color: text })
+    uiText(this, x, y + 7, d.title, { fontSize: '13px', color: text, backing: body })
       .setOrigin(0.5)
       .setDepth(D.INTERACT - 1);
     if (caught) {
@@ -500,7 +500,7 @@ export default class HubScene extends BaseLevel {
     } else if (!running) {
       // the bar across the sign is what you read from far away
       this.add.image(x, y + 30, hubTex(this, 'redbar', w, 16)).setDepth(D.INTERACT - 1);
-      uiText(this, x, y + 30, 'NOT IN SERVICE', { fontSize: '10px', color: '#f2e6cc' }).setOrigin(0.5).setDepth(D.INTERACT);
+      uiText(this, x, y + 30, 'NOT IN SERVICE', { fontSize: '10px', color: '#f2e6cc', backing: 0xc03a2a }).setOrigin(0.5).setDepth(D.INTERACT);
     } else {
       const tag = uiText(this, x, y + 30, '● BOARDING', { fontSize: '10px', color: '#7ec87e' }).setOrigin(0.5).setDepth(D.INTERACT - 1);
       this.tweens.add({ targets: tag, alpha: 0.35, duration: 900, yoyo: true, repeat: -1, ease: 'sine.inout' });
@@ -542,7 +542,7 @@ export default class HubScene extends BaseLevel {
     this.drawTally(this.state.tally);
     const sign = this.obj('sign');
     this.add.image(sign.wx + 16, sign.wy, hubTex(this, 'creamsign', 120, 28)).setDepth(D.INTERACT - 2).setAngle(-2);
-    uiText(this, sign.wx + 16, sign.wy, sign.text, { fontSize: '11px', color: '#2a2230' }).setOrigin(0.5).setDepth(D.INTERACT - 1).setAngle(-2);
+    uiText(this, sign.wx + 16, sign.wy - 1, sign.text, { fontSize: '11px', color: '#2a2230', backing: 0xf2e6cc }).setOrigin(0.5).setDepth(D.INTERACT - 1).setAngle(-2);
 
     // a bar of cold blue light between the leaves once it is ajar
     this.gateLight = this.add.image(gx, (top + bottom) / 2, hubTex(this, 'lightbar', 10, 8)).setDisplaySize(10, bottom - top).setAlpha(0).setDepth(D.INTERACT + 2);
@@ -556,7 +556,7 @@ export default class HubScene extends BaseLevel {
     const t = this.obj('turnstile');
     this.add.image(t.wx, FLOOR - 14, 'hub-turnstile').setDepth(D.INTERACT - 2);
     this.add.image(t.wx, FLOOR - 52, 'hub-counter').setDepth(D.INTERACT - 2);
-    uiText(this, t.wx, FLOOR - 52, String(this.save.dreamsCaught).padStart(3, '0'), { fontSize: '11px', color: '#f2e6cc' })
+    uiText(this, t.wx, FLOOR - 52, String(this.save.dreamsCaught).padStart(3, '0'), { fontSize: '11px', color: '#f2e6cc', backing: 0x2a2a30 })
       .setOrigin(0.5)
       .setDepth(D.INTERACT - 1);
 
@@ -620,8 +620,7 @@ export default class HubScene extends BaseLevel {
     this.add.image(tk.wx, UNDER - 30, hubTex(this, 'teakitchen', 120, 60)).setDepth(D.INTERACT - 3);
     this.add.image(tk.wx - 30, UNDER - 10, 'hub-teapot').setDepth(D.INTERACT - 2);
     this.add.image(tk.wx + 20, UNDER - 10, 'hub-teapot').setDepth(D.INTERACT - 2);
-    uiText(this, tk.wx, UNDER - 52, "BILAL'S", { fontSize: '9px', color: '#f2d580' }).setOrigin(0.5).setDepth(D.INTERACT - 2);
-    uiText(this, tk.wx, UNDER - 66, 'THE EXPRESS', { fontSize: '8px', color: '#c8a25c' })
+    uiText(this, tk.wx, UNDER - 66, "THE EXPRESS · BILAL'S", { fontSize: '9px', color: '#f2d580' })
       .setOrigin(0.5)
       .setDepth(D.INTERACT - 2);
     this.addInteract(tk.wx, UNDER - 20, 'shop', () => this.shop());
@@ -744,10 +743,14 @@ export default class HubScene extends BaseLevel {
     sfx('click');
     const cam = this.cameras.main;
     const timers = [];
+    // §8: the HUD steps aside for the vista
+    const profile = this.hud.get('profile');
+    this.hud.set('profile', 'none');
     // Any key (E, Esc, anything) skips straight back to Jo with control.
     const finish = () => {
       if (!this.openingActive) return;
       this.openingActive = false;
+      this.hud.set('profile', profile);
       this.input.keyboard.off('keydown', finish);
       timers.forEach((t) => t.remove(false));
       this.tweens.killTweensOf(cam);

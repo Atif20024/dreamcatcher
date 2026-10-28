@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { laughSfx } from '../systems/audio.js';
 import { uiText } from '../ui/text.js';
+import { barkMs, claimBark, onCamera } from '../ui/barks.js';
 
 // A person in the long evening. Not physics: they walk the ground by
 // querying the scene's surface (scene.groundY), step their legs by distance
@@ -107,20 +108,21 @@ export default class Townsfolk {
       this.laugh();
       return 900;
     }
-    const dur = (ms || Math.min(5200, 1400 + text.length * 55)) * slow;
+    const plain = text.replace(/\*/g, '');
+    const dur = (ms || barkMs(plain)) * slow;
     const s = this.scene;
     if (this.bubble) this.bubble.destroy();
-    const plain = text.replace(/\*/g, '');
-    this.bubble = uiText(s, this.x, this.y - 58 * this.scale, plain, {
-        fontSize: '12px',
-        color: '#f2e9d8',
-        backgroundColor: '#1b1725e0',
-        padding: { x: 6, y: 3 },
-        align: 'center',
-        wordWrap: { width: 230 },
-      })
+    this.bubble = null;
+    this.bubbleUntil = s.time.now + dur;
+    this.lastLineAt = s.time.now;
+    // §8: an off-screen line is not drawn, and nothing talks over the ending
+    const by = this.y - 58 * this.scale;
+    if (!onCamera(s, this.x, by) || s.quietBarks) return dur;
+    // body type in sentence case on the §8 plate, one bubble in reach at a time
+    this.bubble = uiText(s, this.x, by, plain, { size: 'body', color: '#f2e9d8', align: 'center', wordWrap: { width: 230 } })
       .setOrigin(0.5, 1)
       .setDepth(62);
+    claimBark(s, this.bubble);
     this.bubbleUntil = s.time.now + dur;
     this.lastLineAt = s.time.now;
     return dur;

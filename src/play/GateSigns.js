@@ -19,16 +19,23 @@ export default class GateSigns {
     const x = g.wx + side * 2.5 * T;
     const floor = (g.ty + (g.h || 5)) * T;
     const post = s.add.rectangle(x, floor - 22, 4, 44, 0x4a3a2a).setOrigin(0.5).setDepth(D.INTERACT - 1);
-    const text = uiText(s, x, floor - 74, g.hint, { size: 'small', color: '#2a2018', align: 'center', wrap: 150 }).setOrigin(0.5).setDepth(D.INTERACT + 1);
-    const marks = uiText(s, x, 0, '', { size: 'small', color: '#7a2a1a', align: 'center' }).setOrigin(0.5).setDepth(D.INTERACT + 1);
+    // §8: body ×1 (cap 9) on the sign's own cream board
+    const text = uiText(s, x, floor - 74, g.hint, { size: 'body', color: '#2a2018', align: 'center', wrap: 150, backing: 0xe8dcc0 }).setOrigin(0.5).setDepth(D.INTERACT + 1);
+    const marks = uiText(s, x, 0, '', { size: 'body', color: '#7a2a1a', align: 'center', backing: 0xe8dcc0 }).setOrigin(0.5).setDepth(D.INTERACT + 1);
     const w = Math.max(84, text.width + 18);
     const h = text.height + 26;
+    // §8: two gates side by side: the later sign is raised over the other
+    let base = floor - 44;
+    for (const o of this.signs.values()) {
+      if (Math.abs(o.x - x) < (o.w + w) / 2 + 8 && base > o.top - 10 && base - h < o.base + 10) base = o.top - 10;
+    }
+    if (base !== floor - 44) post.setSize(4, floor - base).setY((floor + base) / 2);
     const board = s.add.graphics().setDepth(D.INTERACT);
-    board.fillStyle(0x2a2018, 1).fillRect(x - w / 2 - 2, floor - 44 - h - 2, w + 4, h + 4);
-    board.fillStyle(0xe8dcc0, 1).fillRect(x - w / 2, floor - 44 - h, w, h);
-    text.setY(floor - 44 - h + 6 + text.height / 2);
-    marks.setY(floor - 44 - 10);
-    const sign = { g, x, post, board, text, marks, last: null, objs: [post, board, text, marks] };
+    board.fillStyle(0x2a2018, 1).fillRect(x - w / 2 - 2, base - h - 2, w + 4, h + 4);
+    board.fillStyle(0xe8dcc0, 1).fillRect(x - w / 2, base - h, w, h);
+    text.setY(base - h + 6 + text.height / 2);
+    marks.setY(base - 10);
+    const sign = { g, x, w, base, top: base - h - 2, post, board, text, marks, last: null, objs: [post, board, text, marks] };
     sign.text.name = `gate-sign:${g.id}`;
     this.signs.set(g.id, sign);
     return sign;

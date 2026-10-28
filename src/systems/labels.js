@@ -8,7 +8,8 @@ import { panel } from '../ui/Panel.js';
 // A label is a typewriter word over a thing: `adj noun`. The pen strikes the
 // adjective and writes one Jo has collected. Bound words are underlined and
 // cannot be changed; nouns never can. Each edit costs one ink.
-const FONT = { size: 'body', scale: 1, color: '#e8e4d8' };
+// body ×1 on the label's own ink strip (§8: the strip is its plate)
+const FONT = { size: 'body', scale: 1, color: '#e8e4d8', backing: 0x14101c };
 const NONSENSE = 'qzxjvkwyfbgh';
 
 export default class Labels {
@@ -21,12 +22,20 @@ export default class Labels {
 
   add({ id, x, y, noun, adj, bound = false, to = null, follow = null }) {
     const s = this.scene;
-    const strip = s.add.rectangle(x, y, 10, 16, 0x14101c, 0.72).setDepth(40).setOrigin(0.5);
+    const strip = s.add.rectangle(x, y, 10, 18, 0x14101c, 0.88).setStrokeStyle(1, 0xc8a24a, 0.8).setDepth(40).setOrigin(0.5);
     const adjText = uiText(s, x, y, adj, { ...FONT, color: bound ? '#c8c0b0' : '#f2e0a0' }).setOrigin(0, 0.5).setDepth(41);
     const nounText = uiText(s, x, y, noun, FONT).setOrigin(0, 0.5).setDepth(41);
     const line = s.add.rectangle(x, y + 7, 10, 1, 0xc8c0b0).setOrigin(0, 0.5).setDepth(41).setVisible(bound);
     const label = { id, x, y, noun, adj, orig: adj, bound, to, follow, strip, adjText, nounText, line, changed: false, hidden: false };
     this.layout(label);
+    // §8: two labels never print over each other; a later one steps up
+    const box = (l) => l.strip.getBounds();
+    for (let k = 0; k < 4 && !follow; k++) {
+      const hit = this.list.find((o) => !o.follow && Phaser.Geom.Intersects.RectangleToRectangle(box(o), box(label)));
+      if (!hit) break;
+      label.y = hit.y - 22;
+      this.layout(label);
+    }
     this.list.push(label);
     return label;
   }
@@ -34,7 +43,7 @@ export default class Labels {
   layout(l) {
     const gap = 5;
     const w = l.adjText.width + gap + l.nounText.width;
-    l.strip.setSize(w + 10, 16).setPosition(l.x, l.y);
+    l.strip.setSize(w + 12, 18).setPosition(l.x, l.y);
     l.adjText.setPosition(l.x - w / 2, l.y);
     l.nounText.setPosition(l.x - w / 2 + l.adjText.width + gap, l.y);
     l.line.setSize(l.adjText.width, 1).setPosition(l.x - w / 2, l.y + 7);

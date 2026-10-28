@@ -4,6 +4,7 @@
 //   - Phaser default text (add.text( / make.text( / monospace / canvas
 //     fillText): FAILS the run (phase 1.2: every use is the bitmap helper)
 //   - checkpoints: id + readable label on every flag (FAILS the run)
+//   - readability (round 2 §8): text-min-size, hud-slot (FAILS the run)
 // Phase 1.4 (all FAIL the run): tutorial cards are data (src/data/teach.js)
 // and each needs a trigger that can fire; every room has an objective;
 // every gate a hint; no foe near a dream's spawn; landmarks stay in their dream.
@@ -12,7 +13,7 @@ import { register } from 'node:module';
 import { join, relative, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runRoomChecks, DREAMS as ROOMS_BY_DREAM } from './lib/rooms-check.js';
-import { countDefaultText, checkpointIssues, teachIssues, objectiveIssues, gateIssues, spawnSafetyIssues, landmarkIssues } from './lib/content-checks.js';
+import { countDefaultText, readabilityIssues, checkpointIssues, teachIssues, objectiveIssues, gateIssues, spawnSafetyIssues, landmarkIssues } from './lib/content-checks.js';
 import { CARDS } from '../src/data/teach.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -57,6 +58,14 @@ for (const f of files) {
 debt.sort((a, b) => b.addText - a.addText);
 const totals = debt.reduce((t, d) => ({ addText: t.addText + d.addText, mono: t.mono + d.mono, canvas: t.canvas + d.canvas }), { addText: 0, mono: 0, canvas: 0 });
 
+// 3b. readability (round 2 §8): text-min-size, hud-slot (fail-level)
+const readability = [];
+for (const f of files) {
+  const rel = relative(ROOT, f);
+  if (rel.startsWith('src/dev/') || rel.startsWith('src/ui/')) continue;
+  readability.push(...readabilityIssues(readFileSync(f, 'utf8'), rel));
+}
+
 // 4. checkpoints: labelled, unique ids (fail-level)
 const cps = checkpointIssues(ROOMS_BY_DREAM);
 
@@ -69,7 +78,7 @@ const landmarks = landmarkIssues(ROOMS_BY_DREAM);
 const sharedProps = Object.fromEntries(PROP_IDS.map((k) => [k, { id: k }]));
 const framework = [];
 for (const def of Object.values(FRAMEWORK_DREAMS)) framework.push(...dreamIssues(def, { materials: SHARED_MATERIALS, props: sharedProps, decorRules: SHARED_DECOR_RULES }));
-const content = [...teach, ...objectives, ...gates, ...spawn, ...landmarks, ...framework];
+const content = [...teach, ...objectives, ...gates, ...spawn, ...landmarks, ...framework, ...readability];
 
 console.log = realLog;
 const report = {
@@ -80,6 +89,7 @@ const report = {
   spawn: { failures: spawn },
   landmarks: { failures: landmarks },
   defaultText: { files: debt.length, ...totals, perFile: debt },
+  readability: { failures: readability },
   checkpoints: { failures: cps },
   framework: { dreams: Object.keys(FRAMEWORK_DREAMS), failures: framework },
 };
@@ -93,6 +103,8 @@ if (json) {
   for (const t of [...objectives, ...gates, ...spawn, ...landmarks]) log(`  ✗ ${t}`);
   log(`\n--- default text (error): ${totals.addText} add.text( calls, ${totals.mono} monospace mentions, ${totals.canvas} canvas text calls in ${debt.length} files ---`);
   for (const d of debt) log(`  ✗ ${d.file}: add.text x${d.addText}, monospace x${d.mono}, canvas text x${d.canvas}`);
+  log(`\n--- readability (text-min-size, hud-slot): ${readability.length} failures ---`);
+  for (const r of readability) log(`  ✗ ${r}`);
   log(`\n--- checkpoints: ${cps.length} failures ---`);
   for (const c of cps) log(`  ✗ ${c}`);
   log(`\n--- framework dreams (${Object.keys(FRAMEWORK_DREAMS).join(', ')}): ${framework.length} failures ---`);

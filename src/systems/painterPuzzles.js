@@ -257,7 +257,8 @@ export function sameChair(scene, available) {
     m.text(cx + 160, cy - 100, "PAUL'S", 14, '#e86a6a');
     const joCells = grid(-160, 'jo');
     const paulCells = grid(160, 'paul');
-    const wellText = m.text(cx, cy - 100, wells.map((w, i) => `[${i + 1}] ${w}`).join('   '), 12, '#c8c0b0');
+    // §8: the wells get their own row under the easels (not across the names)
+    const wellText = m.text(cx, cy + 56, wells.map((w, i) => `[${i + 1}] ${w}`).join('   '), 12, '#c8c0b0');
     const agree = m.text(cx - 90, cy + 90, 'AGREE', 18, '#6a6478');
     const disagree = m.text(cx + 90, cy + 90, 'DISAGREE', 18, '#6a6478');
     const status = m.text(cx, cy + 130, '', 12, '#c8c0b0');

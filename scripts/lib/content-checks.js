@@ -162,3 +162,25 @@ export function landmarkIssues(roomsByDream) {
   }
   return out;
 }
+
+// Readability (round 2 WP5, critique §8). Static half of the rule; the
+// runtime half is the `readability-<place>` scenarios (src/dev/readability.js).
+//   text-min-size  screen-space text pinned to scale 1 (cap 7 or 9 on
+//                  screen; the minimum there is 14), or a world text forced
+//                  to small ×1 with `decor` missing
+//   hud-slot       a screen-space bar a dream draws at HUD depth (149-151)
+//                  instead of a HudGrid meter (hud.meter) or region
+// A line opts out with `lint-allow readability: <reason>`.
+const ALLOW_READ = /lint-allow readability:/;
+export function readabilityIssues(src, file) {
+  const out = [];
+  const lines = src.split('\n');
+  lines.forEach((l, i) => {
+    if (ALLOW_READ.test(l) || ALLOW_READ.test(lines[i - 1] || '')) return;
+    const at = `${file}:${i + 1}`;
+    if (/uiText\(/.test(l) && /scale:\s*1\b/.test(l) && /setScrollFactor\(0\)/.test(l)) out.push(`${at}: text-min-size: screen text at scale 1 (cap < 14)`);
+    if (/uiText\(/.test(l) && /size:\s*'small'/.test(l) && /scale:\s*1\b/.test(l) && !/decor:\s*true/.test(l) && !/setScrollFactor\(0\)/.test(l)) out.push(`${at}: text-min-size: world small ×1 (cap 7) without decor: true`);
+    if (/add\.rectangle\(/.test(l) && /setScrollFactor\(0\)/.test(l) && /setDepth\(1(49|50|51)\)/.test(l)) out.push(`${at}: hud-slot: a HUD bar outside the HudGrid (use hud.meter / hud.region)`);
+  });
+  return out;
+}

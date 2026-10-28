@@ -17,7 +17,8 @@ import { completeDream, recordMoment, markMet, updateSave } from '../utils/save.
 import { sfx, music, sting, musicDirector } from '../systems/audio.js';
 import { showTutorial } from '../systems/tutorial.js';
 import { uiText } from '../ui/text.js';
-import { TOOL_BARS, hud } from '../ui/hud.js';
+import { hud } from '../ui/hud.js';
+import { barkMs, barkNear, claimBark, onCamera } from '../ui/barks.js';
 
 const T = 32;
 const px = (tile) => tile * T + T / 2;
@@ -1283,9 +1284,8 @@ export default class WriterScene extends BaseLevel {
     this.draftHud = hud.toolLine(1, '#f2e0a0');
     this.deadlineHud = hud.toolLine(2, '#e86a6a');
     this.noiseLabel = hud.toolLine(3, '#8a8478');
-    const B = TOOL_BARS;
-    this.noiseBg = this.add.rectangle(B.right - B.w, 0, B.w, B.h, 0x2a2a34).setOrigin(0, 0.5).setScrollFactor(0).setDepth(149).setVisible(false);
-    this.noiseBar = this.add.rectangle(B.right - B.w, 0, 0, B.h, 0xe8a030).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150).setVisible(false);
+    // the noise meter: a row of the HUD grid's meter stack (§8)
+    this.noiseMeter = hud.meter('noise', { label: 'NOISE', color: '#e8a030', visible: false });
     this.updateHud();
   }
 
@@ -1516,10 +1516,7 @@ export default class WriterScene extends BaseLevel {
       this.noise = Math.max(0, this.noise - dt * 0.5);
       this.loudNow = false;
     }
-    const by = this.hud.toolBottom() + 4;
-    this.noiseBg.setVisible(noisy).setY(by);
-    this.noiseBar.setVisible(noisy).setSize(TOOL_BARS.w * this.noise, TOOL_BARS.h).setY(by);
-    this.noiseBar.setFillStyle(this.noise > this.noiseThreshold ? 0xe86a6a : 0xe8a030);
+    this.noiseMeter.setVisible(noisy).set(this.noise).setColor(this.noise > this.noiseThreshold ? '#e86a6a' : '#e8a030');
     this.noiseLabel.setText(noisy ? (this.noise > this.noiseThreshold ? (id === 'library' ? 'they can hear you' : "can't hear himself think") : id === 'library' ? 'quiet' : 'noise') : '');
 
     // rain, and the dark
@@ -1741,9 +1738,13 @@ export default class WriterScene extends BaseLevel {
         }
         // the bubble, with its one good word
         if (f.word && !f.wordTaken) {
+          // §8: one bubble in reach at a time, and none off screen
           if (!f.bubble && time > f.bubbleAt) {
-            f.bubble = this.makeBubble(f);
-            f.bubbleUntil = time + 4200;
+            if (barkNear(this, f.x, f.y - 66) || !onCamera(this, f.x, f.y - 66)) f.bubbleAt = time + 600;
+            else {
+              f.bubble = this.makeBubble(f);
+              f.bubbleUntil = time + Math.max(4200, barkMs(f.line));
+            }
           }
           if (f.bubble) {
             f.bubble.c.setPosition(f.x, f.y - 66);
@@ -1795,16 +1796,19 @@ export default class WriterScene extends BaseLevel {
   makeBubble(f) {
     const parts = f.line.split('*');
     const c = this.add.container(f.x, f.y - 66).setDepth(41);
-    const bg = this.add.rectangle(0, 0, 10, 20, 0xe8e4d8, 0.95).setStrokeStyle(1, 0x14101c);
-    const before = uiText(this, 0, 0, parts[0], { fontSize: '10px', color: '#2a2230' }).setOrigin(0, 0.5);
-    const word = uiText(this, 0, 0, parts[1], { fontSize: '10px', color: '#c03a2a' }).setOrigin(0, 0.5);
-    const after = uiText(this, 0, 0, parts[2] || '', { fontSize: '10px', color: '#2a2230' }).setOrigin(0, 0.5);
+    const bg = this.add.rectangle(0, 0, 10, 20, 0xf2e6cc, 1).setStrokeStyle(1, 0x14101c);
+    // body ×1 on the light §8 plate
+    const T = { size: 'body', backing: 0xf2e6cc };
+    const before = uiText(this, 0, 0, parts[0], { ...T, color: '#2a2230' }).setOrigin(0, 0.5);
+    const word = uiText(this, 0, 0, parts[1], { ...T, color: '#a82a1a' }).setOrigin(0, 0.5);
+    const after = uiText(this, 0, 0, parts[2] || '', { ...T, color: '#2a2230' }).setOrigin(0, 0.5);
     const w = before.width + word.width + after.width;
     before.x = -w / 2;
     word.x = before.x + before.width;
     after.x = word.x + word.width;
     bg.setSize(w + 12, 20);
     c.add([bg, before, word, after]);
+    claimBark(this, c);
     c.setAlpha(0);
     this.tweens.add({ targets: c, alpha: 1, duration: 200 });
     return { c };

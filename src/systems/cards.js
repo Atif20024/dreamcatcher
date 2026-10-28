@@ -161,9 +161,12 @@ export function cardTextureKey(scene, card, faceDown = false) {
     ctx.fillRect(1, h - 3, w - 2, 2);
     // rank and suits in the string-art glyphs (ui-type skill)
     const col = SUIT_COLOR[card.s];
-    paintGlyphs(ctx, rankLabel(card.r), 3, 3, { size: 'small', color: col });
-    paintGlyphs(ctx, SUIT_GLYPH[card.s], 3, 12, { size: 'small', color: col });
-    paintGlyphs(ctx, SUIT_GLYPH[card.s], w / 2 + 3, h / 2 + 8, { size: 'body', color: col, align: 'center', baseline: 'middle' });
+    // §8: the rank is what a player reads to play, so it is painted at 2×
+    // (cap 14 on the card; every table shows cards at ≥ 1× of that)
+    const rank = rankLabel(card.r);
+    paintGlyphs(ctx, rank, rank.length > 1 ? 2 : 3, 3, { size: 'small', scale: 2, color: col });
+    paintGlyphs(ctx, SUIT_GLYPH[card.s], 3, 20, { size: 'small', color: col });
+    paintGlyphs(ctx, SUIT_GLYPH[card.s], w / 2 + 4, h / 2 + 10, { size: 'body', color: col, align: 'center', baseline: 'middle' });
   }, `${card.r}${card.s}`);
   return key;
 }

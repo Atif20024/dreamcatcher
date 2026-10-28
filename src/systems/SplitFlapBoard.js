@@ -19,14 +19,16 @@ export default class SplitFlapBoard {
     this.width = 56 * CELL_W + 24;
     this.height = (rows.length + 1) * ROW_H + 30;
     this.container = scene.add.container(x, y).setDepth(D.INTERACT - 1);
+    this.container.dcReadable = true; // counter-scaled as one under a low camera zoom (§8)
     this.container.add(
       scene.add.rectangle(0, 0, this.width, this.height, 0x141418).setStrokeStyle(3, 0xc4a25c)
     );
-    const header = uiText(scene, -this.width / 2 + 12, -this.height / 2 + 6, 'PLATFORM   DESTINATION            DEPARTS   STATUS', {
-      fontSize: '11px',
-      color: '#c4a25c',
-    });
-    this.container.add(header);
+    // the column heads sit over their columns (body ×1, cap 9: §8)
+    const heads = { platform: 'PLAT', title: 'DESTINATION', departs: 'DEPARTS', status: 'STATUS' };
+    for (const [k, label] of Object.entries(heads)) {
+      const header = uiText(scene, -this.width / 2 + 12 + COLS[k] * CELL_W + 2, -this.height / 2 + 6, label, { size: 'body', scale: 1, color: '#c4a25c', backing: 0x141418 });
+      this.container.add(header);
+    }
     this.clackAt = 0;
     rows.forEach((r, i) => this.buildRow(i));
     rows.forEach((r, i) => this.setRow(i, r, true));
@@ -37,7 +39,7 @@ export default class SplitFlapBoard {
     const x0 = -this.width / 2 + 12;
     const cells = [];
     for (let c = 0; c < 56; c++) {
-      const t = uiText(this.scene, x0 + c * CELL_W + 2, y, ' ', { size: 'body', scale: 1, color: '#f2e6cc' })
+      const t = uiText(this.scene, x0 + c * CELL_W + 2, y, ' ', { size: 'body', scale: 1, color: '#f2e6cc', backing: 0x141418 })
         .setOrigin(0, 0.5);
       cells.push(t);
       this.container.add(t);

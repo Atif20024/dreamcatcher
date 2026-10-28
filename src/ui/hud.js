@@ -15,19 +15,24 @@ import { events } from '../core/events.js';
 
 export const SLOTS = Object.freeze({
   hearts: { x: 16, y: 12, maxW: 300, lines: 1 },
-  level: { x: 16, y: 44, maxW: 300, lines: 1, font: 'small', color: 'ink-dim' },
-  shards: { x: 16, y: 62, maxW: 300, lines: 1, font: 'small', color: 'calm' },
-  objective: { x: 480, y: 12, maxW: 440, lines: 2, font: 'small', color: 'accent', align: 'center' },
+  level: { x: 16, y: 48, maxW: 300, lines: 1, font: 'small', color: 'ink-dim' },
+  shards: { x: 16, y: 84, maxW: 300, lines: 1, font: 'small', color: 'calm' },
+  objective: { x: 480, y: 12, maxW: 400, lines: 2, font: 'small', color: 'accent', align: 'center' },
   coins: { x: 944, y: 12, maxW: 260, lines: 1, font: 'small', color: 'accent', align: 'right' },
-  tool: { x: 944, y: 36, maxW: 300, lines: 4, font: 'small', color: 'ink', align: 'right' },
+  // under the goal line's second row, so a two-line goal never meets it
+  tool: { x: 944, y: 64, maxW: 300, lines: 4, font: 'small', color: 'ink', align: 'right' },
   context: { x: 16, y: 524, maxW: 560, lines: 2, font: 'small', color: 'ink-dim', align: 'left' },
-  caption: { x: 480, y: 500, maxW: 900, lines: 2, font: 'small', color: 'ink-dim', align: 'center' },
+  caption: { x: 480, y: 464, maxW: 900, lines: 2, font: 'small', color: 'ink-dim', align: 'center' },
   footer: { x: 944, y: 524, maxW: 340, lines: 1, font: 'small', color: 'ink-dim', align: 'right' },
   prompt: { maxW: 420, lines: 1, font: 'small', color: 'accent', align: 'center' },
 });
 
-// the meter area inside the tool slot (bars a dream draws itself)
-export const TOOL_BARS = Object.freeze({ right: 944, y: 40, w: 120, h: 8, gap: 14 });
+// Every text slot sits on the §8 plate (line height + 4 px a side), and
+// the slots keep 8 px between plates: a two-line goal pushes the level line
+// down (HudGrid); the tool lines start under a two-line goal.
+// the meter stack (§8): one right-aligned row per dream meter (COLD, BREATH,
+// O₂, PWR, NOISE …) under the tool lines, each a label and a bar on one plate
+export const TOOL_BARS = Object.freeze({ right: 944, y: 64, w: 120, h: 10, gap: 30 });
 
 const defaults = () => ({
   profile: 'default',
@@ -41,6 +46,8 @@ const defaults = () => ({
   caption: '',
   footer: '',
   prompt: { text: '[E]', x: 0, y: 0, visible: false },
+  meters: [],
+  regions: {},
 });
 
 class HudModel {
@@ -152,10 +159,70 @@ class HudModel {
     return h;
   }
 
-  // the y (1×) just under the tool slot's text lines: for a dream's bars
+  // the y (1×) just under the tool slot's text lines
   toolBottom() {
     const n = (this.s.tool || []).length;
     return (this.s.coins ? SLOTS.tool.y : SLOTS.coins.y) + n * 20 + 6;
+  }
+
+  // a widget a dream draws itself (the Painter's palette) claims a HUD grid
+  // region, so the grid's overlap rule covers it: { x, y, w, h } or null
+  region(id, rect) {
+    const prev = this.s.regions[id];
+    if (JSON.stringify(prev || null) === JSON.stringify(rect || null)) return this;
+    this.s.regions = { ...this.s.regions, [id]: rect || undefined };
+    if (!rect) delete this.s.regions[id];
+    this.v++;
+    return this;
+  }
+
+  // a dream meter in the HUD grid's meter stack (§8): HudGrid draws it.
+  //   const cold = hud.meter('cold', { label: 'COLD', color: '#88b8d8' });
+  //   cold.set(0.4).setVisible(true)
+  // The fill changes every frame without bumping the HUD version.
+  meter(id, { label = '', color = '#88b8d8', order = 0, visible = true } = {}) {
+    const self = this;
+    let m = self.s.meters.find((x) => x.id === id);
+    if (!m) {
+      m = { id, label, color, order, visible, frac: 1 };
+      self.s.meters = [...self.s.meters, m].sort((a, b) => a.order - b.order);
+      self.v++;
+    }
+    const h = {
+      get frac() {
+        return m.frac;
+      },
+      set(f) {
+        m.frac = Math.max(0, Math.min(1, Number(f) || 0));
+        return h;
+      },
+      setLabel(t) {
+        if (m.label !== t) {
+          m.label = t;
+          self.v++;
+        }
+        return h;
+      },
+      setColor(c) {
+        m.color = c;
+        return h;
+      },
+      setVisible(v) {
+        if (m.visible !== !!v) {
+          m.visible = !!v;
+          self.v++;
+        }
+        return h;
+      },
+      get visible() {
+        return m.visible;
+      },
+      destroy() {
+        self.s.meters = self.s.meters.filter((x) => x !== m);
+        self.v++;
+      },
+    };
+    return h;
   }
 
   // a Text-like handle on a text slot (old code calls `.setText` on HUD lines)

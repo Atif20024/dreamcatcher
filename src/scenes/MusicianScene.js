@@ -15,7 +15,7 @@ import { completeDream, recordMoment, markMet, updateSave } from '../utils/save.
 import { addCoins } from '../systems/wallet.js';
 import { sfx, music, sting, trumpet, bassNote } from '../systems/audio.js';
 import { uiText } from '../ui/text.js';
-import { hud, TOOL_BARS } from '../ui/hud.js';
+import { hud } from '../ui/hud.js';
 import { showTutorial } from '../play/Teach.js';
 
 const T = 32;
@@ -114,14 +114,9 @@ export default class MusicianScene extends BaseLevel {
 
     // HUD: breath + nerve + coins
     // the tool slot, top-right (HudGrid): breath, and nerve during a gig
-    const B = TOOL_BARS;
-    const y0 = this.hud.toolBottom() + 24;
-    const bx = B.right - B.w;
-    this.barW = B.w;
-    this.breathBarBg = this.add.rectangle(bx, y0, B.w, B.h, 0x2a2a34).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150);
-    this.breathBar = this.add.rectangle(bx, y0, B.w, B.h, 0x88b8d8).setOrigin(0, 0.5).setScrollFactor(0).setDepth(151);
-    uiText(this, bx - 8, y0, 'BREATH', { size: 'small', color: '#88b8d8' }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(150);
-    this.nerveBar = this.add.rectangle(bx, y0 + B.gap + 4, B.w, B.h, 0xe86a6a).setOrigin(0, 0.5).setScrollFactor(0).setDepth(151).setVisible(false);
+    // breath and nerve are rows of the HUD grid's meter stack (§8)
+    this.breathMeter = hud.meter('breath', { label: 'BREATH', color: '#88b8d8', order: 0 });
+    this.nerveMeter = hud.meter('nerve', { label: 'NERVE', color: '#e86a6a', order: 1, visible: false });
     this.coinText = this.hud.toolLine(0, '#f2d580');
     this.promptText = hud.prompt(); // the HUD's interact prompt, pinned over the world point
     this.hintText = { setText: (t) => this.hud.set('caption', t) };
@@ -774,9 +769,8 @@ export default class MusicianScene extends BaseLevel {
     const drainRate = this.sustain ? 23 : this.inZone(231, 291) ? 55 : 28;
     if (qDown) this.breath = Math.max(0, this.breath - drainRate * dt);
     else this.breath = Math.min(100, this.breath + 50 * dt);
-    this.breathBar.width = (this.breath / 100) * this.barW;
-    this.nerveBar.setVisible(!!this.gig);
-    this.nerveBar.width = (this.nerve / 100) * this.barW;
+    this.breathMeter.set(this.breath / 100);
+    this.nerveMeter.setVisible(!!this.gig).set(this.nerve / 100);
     this.coinText.setText(this.inZone(86, 106) ? `¢ ${this.coins}/12` : '');
 
     if (qJust) {

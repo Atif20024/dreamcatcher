@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { sfx, trumpet } from './audio.js';
 import ModalManager from '../ui/ModalManager.js';
 import { uiText } from '../ui/text.js';
+import { THEME } from '../ui/theme.js';
 import { panel, dim } from '../ui/Panel.js';
 
 // Full-screen modal puzzle overlays. Keyboard-driven. Each puzzle resolves
@@ -27,14 +28,14 @@ export class Modal {
     const cy = cam.height / 2;
     this.add(dim(scene, 0.8, depth));
     this.add(panel(scene, cx, cy, 880, 500, { depth, accent: 0xd8b858 }));
-    this.add(uiText(scene, cx, cy - 226, title, { size: 'body', color: 'accent', align: 'center' }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(depth + 1)).name = 'modal-title';
+    this.add(uiText(scene, cx, cy - 226, title, { size: 'body', color: 'accent', align: 'center', backing: THEME.panel }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(depth + 1)).name = 'modal-title';
     this.add(
-      uiText(scene, cx, cy - 196, instruction, { size: 'small', color: 'ink-dim', align: 'center', wrap: 820, lineSpacing: 2 })
+      uiText(scene, cx, cy - 196, instruction, { size: 'small', color: 'ink-dim', align: 'center', wrap: 820, lineSpacing: 2, backing: THEME.panel })
         .setOrigin(0.5, 0)
         .setScrollFactor(0)
         .setDepth(depth + 1)
     );
-    this.add(uiText(scene, cx + 420, cy + 236, '[Esc] step away', { size: 'small', color: 'ink-dim' }).setOrigin(1, 1).setScrollFactor(0).setDepth(depth + 1));
+    this.add(uiText(scene, cx + 420, cy + 236, '[Esc] step away', { size: 'small', color: 'ink-dim', backing: THEME.panel }).setOrigin(1, 1).setScrollFactor(0).setDepth(depth + 1));
   }
 
   add(o) {
@@ -45,7 +46,8 @@ export class Modal {
 
   text(x, y, str, size = 15, color = '#e8dcc8') {
     return this.add(
-      uiText(this.scene, x, y, str, { fontSize: size, color, align: 'center', screen: true })
+      // §8: every panel line reads at 4.5:1 on the panel (dim greys are lifted)
+      uiText(this.scene, x, y, str, { fontSize: size, color, align: 'center', screen: true, backing: THEME.panel })
         .setOrigin(0.5)
         .setScrollFactor(0)
         .setDepth(this.depth + 2)

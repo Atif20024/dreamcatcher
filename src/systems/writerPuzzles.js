@@ -91,30 +91,31 @@ function lineBox(scene, { title, instruction, hand, fixed = [], minPlaced = 12, 
     let hi = 0;
     let li = 0;
     let carried = null;
-    // hand: two rows of 7
+    // §8: every name is set at small ×2 (cap 14) and fits its card. The
+    // hand is four rows of four; the line is two rows of six (read left to
+    // right, row one then row two), each slot with its tension bar inside
     const handObjs = [];
     for (let i = 0; i < 14; i++) {
-      const x = cx - 270 + (i % 7) * 90;
-      const y = cy - 105 + Math.floor(i / 7) * 34;
+      const x = cx - 309 + (i % 4) * 206;
+      const y = cy - 116 + Math.floor(i / 4) * 30;
       handObjs.push({
-        box: m.add(scene.add.rectangle(x, y, 84, 28, 0x24202e).setScrollFactor(0).setDepth(m.depth + 1)),
+        box: m.add(scene.add.rectangle(x, y, 196, 26, 0x24202e).setScrollFactor(0).setDepth(m.depth + 1)),
         t: m.text(x, y, '', 10),
       });
     }
-    // the line: 12 slots with a tension bar under each
     const slotObjs = [];
     for (let i = 0; i < 12; i++) {
-      const x = cx - 275 + i * 50;
-      const y = cy + 20;
-      m.text(x, y - 22, i < 4 ? 'I' : i < 8 ? 'II' : 'III', 9, '#6a6478');
+      const x = cx - 355 + (i % 6) * 142;
+      const y = cy + 28 + Math.floor(i / 6) * 92;
+      m.text(x, y - 30, `${i + 1} · ${i < 4 ? 'I' : i < 8 ? 'II' : 'III'}`, 9, '#6a6478');
       slotObjs.push({
-        box: m.add(scene.add.rectangle(x, y, 46, 30, 0x1e1a28).setScrollFactor(0).setDepth(m.depth + 1).setStrokeStyle(1, 0x4a4458)),
-        t: m.text(x, y, '', 8),
-        bar: m.add(scene.add.rectangle(x, y + 60, 30, 2, 0xf2d580).setScrollFactor(0).setDepth(m.depth + 1).setOrigin(0.5, 1)),
+        box: m.add(scene.add.rectangle(x, y, 134, 42, 0x1e1a28).setScrollFactor(0).setDepth(m.depth + 1).setStrokeStyle(1, 0x4a4458)),
+        t: m.text(x - 5, y, '', 8),
+        bar: m.add(scene.add.rectangle(x + 58, y + 19, 6, 2, 0xf2d580).setScrollFactor(0).setDepth(m.depth + 2).setOrigin(0.5, 1)),
       });
     }
-    const status = m.text(cx, cy + 135, '', 12, '#c8c0b0');
-    const help = m.text(cx, cy + 158, '↑/↓ hand / line · ←/→ move · [Enter] pick up / put down · [C] check the shape', 10, '#6a6478');
+    const status = m.text(cx, cy + 154, '', 12, '#c8c0b0');
+    const help = m.text(cx, cy + 174, '↑/↓ hand/line · ←/→ move · [Enter] pick up/put down · [C] check', 10, '#6a6478');
     void help;
     const render = () => {
       handObjs.forEach((o, i) => {
@@ -129,7 +130,7 @@ function lineBox(scene, { title, instruction, hand, fixed = [], minPlaced = 12, 
         o.t.setText(c ? c.name.split(' ').slice(-2).join('\n') : '');
         o.t.setColor(c && c.fixed ? '#8ab0c0' : '#e8dcc8');
         o.box.setStrokeStyle(2, row === 'line' && i === li ? 0xf2d580 : c && c.fixed ? 0x3a5a6a : 0x4a4458);
-        o.bar.setSize(30, c ? 6 + c.t * 8 : 2);
+        o.bar.setSize(6, c ? 4 + c.t * 7 : 2);
         o.bar.setFillStyle(c ? 0xf2d580 : 0x4a4458);
       });
       const placed = line.filter(Boolean).length;

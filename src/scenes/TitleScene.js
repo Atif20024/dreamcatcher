@@ -38,16 +38,16 @@ export default class TitleScene extends Phaser.Scene {
     ];
     this.idx = 0;
     const back = this.add.graphics().setDepth(19);
-    back.fillStyle(0x14101c, 0.78).fillRoundedRect(W / 2 - 170, 244, 340, 54 + this.items.length * 26, 8);
+    back.fillStyle(0x14101c, 0.85).fillRoundedRect(W / 2 - 170, 244, 340, 54 + this.items.length * 26, 8);
     back.lineStyle(1, 0xc4a25c, 0.5).strokeRoundedRect(W / 2 - 170, 244, 340, 54 + this.items.length * 26, 8);
     this.itemTexts = this.items.map((it, i) =>
-      uiText(this, W / 2, 298 + i * 26, it.label, { size: 'body', color: 'ink-dim', align: 'center' }).setOrigin(0.5).setDepth(20)
+      uiText(this, W / 2, 298 + i * 26, it.label, { size: 'display', color: 'ink-dim', align: 'center', backing: 0x14101c }).setOrigin(0.5).setDepth(20)
     );
     const sub = this.canContinue
       ? `${s.dreamsCaught} caught${runs.length ? ' · a dream is waiting where you left it' : ''}`
       : 'nine o\'clock. every train leaves now.';
-    this.subText = uiText(this, W / 2, 262, sub, { size: 'small', color: 'ink-dim', align: 'center' }).setOrigin(0.5).setDepth(20);
-    uiText(this, W / 2, H - 22, '[↑↓] choose   [Enter] / [E] go   [M] music', { size: 'small', color: 'ink-dim', align: 'center' }).setOrigin(0.5).setDepth(20);
+    this.subText = uiText(this, W / 2, 264, sub, { size: 'body', color: 'ink-dim', align: 'center', backing: 0x14101c }).setOrigin(0.5).setDepth(20);
+    uiText(this, W / 2, H - 22, '[↑↓] choose   [Enter] / [E] go   [M] music', { size: 'body', color: 'ink', align: 'center' }).setOrigin(0.5).setDepth(20);
     this.render();
     this.input.keyboard.on('keydown', (e) => this.onKey(e));
     this.cameras.main.fadeIn(500);
@@ -201,6 +201,6 @@ export default class TitleScene extends Phaser.Scene {
       g.fillStyle(0xf2e6cc, 0.9).fillEllipse(x, cy + r + 38 + (i === 1 ? 10 : 0), 8, 26);
     });
     this.hoop = g;
-    uiText(this, W / 2, 214, 'DREAMCATCHER', { size: 'display', scale: 2, color: 'accent', align: 'center' }).setOrigin(0.5).setDepth(20);
+    uiText(this, W / 2, 214, 'DREAMCATCHER', { size: 'display', scale: 2, color: 'accent', align: 'center', plate: false }).setOrigin(0.5).setDepth(20);
   }
 }

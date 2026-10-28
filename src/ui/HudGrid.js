@@ -11,8 +11,8 @@
 //
 // Everything is at zoom 1 on the UI camera, so nothing here scales with the
 // world camera. Profiles: 'default', 'hub' (no hearts), 'none' (hidden).
-import { hud, SLOTS, fitToBudget } from './hud.js';
-import { uiText } from './text.js';
+import { hud, SLOTS, TOOL_BARS, fitToBudget } from './hud.js';
+import { uiText, PLATE } from './text.js';
 import { measure } from './BitmapFonts.js';
 import { THEME, toColor } from './theme.js';
 
@@ -32,9 +32,12 @@ export default class HudGrid {
       else if (s.align === 'right') t.setOrigin(1, 0);
       if (key === 'context' || key === 'footer' || key === 'caption') t.setOrigin(t.originX, 1);
       if (key === 'objective') t.setMaxWidth(s.maxW);
+      // §8: every HUD line sits on the ink plate (it is drawn over art)
+      t.setBackgroundColor(PLATE.dark);
       this.texts[key] = t;
     }
-    this.texts.prompt.setOrigin(0.5, 1).setBackgroundColor('#14101ce0').setPadding({ x: 6, y: 4 });
+    this.texts.prompt.setOrigin(0.5, 1);
+    this.meterRows = new Map();
     this.coinIcon = ui.add.image(0, 0, '__WHITE').setVisible(false).setDepth(DEPTH).setOrigin(1, 0.5);
     this.coinIcon.name = 'hud-coin-icon';
     // the footer doubles as the music button
@@ -51,7 +54,75 @@ export default class HudGrid {
 
   // all HUD objects (scenarios read their on-screen size)
   objects() {
-    return [...this.hearts, ...Object.values(this.texts), this.coinIcon];
+    return [...this.hearts, ...Object.values(this.texts), this.coinIcon, ...[...this.meterRows.values()].map((r) => r.plate), ...this.regionZones()];
+  }
+
+  // regions claimed by widgets a dream draws itself (hud.region)
+  regionZones() {
+    this.zones = this.zones || new Map();
+    const want = (hud.owner && hud.s.profile !== 'none' && hud.s.regions) || {};
+    for (const [id, z] of this.zones) {
+      if (!want[id]) {
+        z.destroy();
+        this.zones.delete(id);
+      }
+    }
+    for (const [id, r] of Object.entries(want)) {
+      let z = this.zones.get(id);
+      if (!z) {
+        z = this.ui.add.zone(0, 0, 1, 1).setOrigin(0, 0);
+        z.name = `hud-region-${id}`;
+        this.zones.set(id, z);
+      }
+      z.setPosition(r.x, r.y).setSize(r.w, r.h);
+    }
+    return [...this.zones.values()];
+  }
+
+  // the meter stack (§8): label + bar on one plate per row, right-aligned
+  // under the tool lines (or the coins). Drawn every frame: fills move.
+  updateMeters(show) {
+    const list = show ? (hud.s.meters || []).filter((m) => m.visible) : [];
+    const keep = new Set(list.map((m) => m.id));
+    for (const [id, r] of this.meterRows) {
+      if (!keep.has(id)) {
+        r.plate.destroy();
+        r.label.destroy();
+        r.back.destroy();
+        r.bar.destroy();
+        this.meterRows.delete(id);
+      }
+    }
+    if (!list.length) return;
+    const tool = this.texts.tool;
+    const coins = this.texts.coins;
+    const above = tool.visible && tool._text ? tool : coins.visible ? coins : null;
+    const ab = above && above._bg ? above._bg.getBounds() : null;
+    let y = ab ? ab.bottom + 8 : SLOTS.coins.y - PLATE.padY;
+    const B = TOOL_BARS;
+    for (const m of list) {
+      let r = this.meterRows.get(m.id);
+      if (!r) {
+        const plate = this.ui.add.rectangle(0, 0, 10, 10, PLATE.dark, PLATE.alpha).setOrigin(0, 0).setStrokeStyle(1, PLATE.edge, 1).setDepth(DEPTH - 0.01);
+        plate.name = `hud-meter-${m.id}`;
+        const label = uiText(this.ui, 0, 0, '', { size: 'small', scale: 2, align: 'right' }).setOrigin(1, 0).setDepth(DEPTH);
+        label.name = `hud-meter-label-${m.id}`;
+        const back = this.ui.add.rectangle(0, 0, B.w, B.h, 0x2a2a34).setOrigin(0, 0.5).setDepth(DEPTH);
+        const bar = this.ui.add.rectangle(0, 0, B.w, B.h, 0xffffff).setOrigin(0, 0.5).setDepth(DEPTH + 0.01);
+        r = { plate, label, back, bar };
+        this.meterRows.set(m.id, r);
+      }
+      const h = 14 + PLATE.padY * 2;
+      const cy = y + h / 2;
+      if (r.label.rawText !== m.label) r.label.setText(m.label);
+      r.label.setColor(m.color).setPosition(B.right - B.w - 8, y + PLATE.padY);
+      r.back.setPosition(B.right - B.w, cy);
+      r.bar.setPosition(B.right - B.w, cy).setFillStyle(toColor(m.color)).setSize(Math.round(B.w * m.frac), B.h);
+      const x0 = B.right - B.w - 8 - (m.label ? r.label.width : -8) - PLATE.padX;
+      r.plate.setPosition(Math.round(x0), Math.round(y)).setSize(Math.round(B.right + PLATE.padX - x0), h);
+      r.plate.setDisplaySize(r.plate.width, r.plate.height);
+      y += h + 8;
+    }
   }
 
   update() {
@@ -63,6 +134,7 @@ export default class HudGrid {
     // footer, caption, satchel line and prompt step aside while one is up
     const modal = !!(owner && owner.modals && owner.modals.active);
     this.updatePrompt(owner, show && !modal);
+    this.updateMeters(show);
     if (modal !== this.modalUp) {
       this.modalUp = modal;
       this.v = -1;
@@ -105,7 +177,7 @@ export default class HudGrid {
         drawn.forEach((ln, i) => {
           const c = list[i] && list[i].color;
           if (c && ln.length) t.setCharacterTint(at, ln.length, false, toColor(c));
-          at += ln.length + 1;
+          at += ln.length; // BitmapText tint indices skip the newline
         });
       }
     };
@@ -139,6 +211,12 @@ export default class HudGrid {
       this.ui.tweens.add({ targets: obj, alpha: 0.2, duration: 120, yoyo: true, repeat: 2 });
     }
     this.lastObjective = show ? s.objective : this.lastObjective;
+    // §8: no two HUD rects within 8 px. A two-line goal reaches down past the
+    // level line's row, so the level line (and the shards under it) drop
+    const objLines = show && s.objective ? (obj.getTextBounds(false).lines.lengths || []).length : 0;
+    const levelY = objLines > 1 ? 64 : SLOTS.level.y;
+    this.texts.level.setY(levelY);
+    this.texts.shards.setY(this.texts.level.visible ? levelY + 36 : levelY);
 
     // coins: icon + count, right-aligned; the tool slot sits under it
     const c = show ? s.coins : null;
@@ -146,7 +224,7 @@ export default class HudGrid {
     if (c) {
       coins.setText(c.text).setVisible(true);
       const tex = c.icon && this.ui.textures.exists(c.icon) ? c.icon : null;
-      if (tex) this.coinIcon.setTexture(tex).setScale(0.8).setVisible(true).setPosition(SLOTS.coins.x - coins.width - 6, SLOTS.coins.y + 7);
+      if (tex) this.coinIcon.setTexture(tex).setScale(0.8).setVisible(true).setPosition(SLOTS.coins.x - coins.width - PLATE.padX - 4, SLOTS.coins.y + 7);
       else this.coinIcon.setVisible(false);
     } else {
       coins.setVisible(false);
