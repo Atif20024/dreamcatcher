@@ -42,6 +42,14 @@ export function bakeFromAtlas(scene, key) {
   const ct = scene.textures.createCanvas(key, w, h);
   ct.context.drawImage(fr.source.image, fr.cutX, fr.cutY, w, h, 0, 0, w, h);
   ct.refresh();
+  // the rigged cast carry a foot pivot (scripts/lib/cast-bake.js): keep it, so
+  // every image of a person stands on the same floor point whatever its size
+  if (fr.customPivot) {
+    const f0 = ct.get();
+    f0.customPivot = true;
+    f0.pivotX = fr.pivotX;
+    f0.pivotY = fr.pivotY;
+  }
   ct.customData.baked = true;
   stats.baked += 1;
   return true;
@@ -56,4 +64,19 @@ export function resolveArt(scene, ref) {
   if (scene.textures.exists(ref)) return [ref, undefined];
   if (bakeFromAtlas(scene, ref)) return [ref, undefined];
   return null;
+}
+
+// a person frame by key: the texture, baked from the atlas on first use (new
+// animation frames — talk, idle, foe windup — have no runtime painter)
+export function castFrame(scene, key) {
+  return scene.textures.exists(key) || bakeFromAtlas(scene, key) ? key : null;
+}
+
+// a physics image of a rigged person: Jo's body size at the feet (the frame
+// is taller than the old 48 px sprite; the body must not be)
+export function personBody(img, w = 24, h = 46) {
+  if (!img || !img.body || !img.frame || !img.frame.customPivot) return img;
+  img.body.setSize(w, h, false);
+  img.body.setOffset((img.width - w) / 2, img.height - h);
+  return img;
 }

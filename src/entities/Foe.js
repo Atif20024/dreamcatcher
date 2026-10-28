@@ -3,6 +3,7 @@ import { sfx } from '../systems/audio.js';
 import { dreamDust, hitStop } from '../systems/effects.js';
 import { showTutorial } from '../systems/tutorial.js';
 import { frameKeys } from '../utils/pixelart.js';
+import { castFrame } from '../art/baked.js';
 import { D } from '../builders/depths.js';
 import { solveGround } from './ground.js';
 import { uiText } from '../ui/text.js';
@@ -24,13 +25,34 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(D.FOE);
-    if (def.big) this.setScale(1.2);
-
     // C1.2 — frames are stepped by distance travelled, never by a timer, so a
     // foe's legs always match the speed it is actually moving at.
-    this.walkFrames = frameKeys(scene, texture, 3);
+    // Round 2 WP2: people are rigs at Jo's scale (an 8-frame walk stepping 6 px
+    // a frame, plus alert / windup / grab / throw / search poses); the big ones
+    // are drawn big, not scaled up.
+    this.rigged = !!castFrame(scene, `${texture}#8`);
+    if (this.rigged) {
+      this.walkFrames = [1, 2, 3, 4, 5, 6, 7, 8].map((i) => castFrame(scene, `${texture}#${i}`) || texture);
+      this.idleFrame = texture;
+      this.poseFrames = {};
+      for (const [a, n] of [['alert', 2], ['windup', 3], ['grab', 2], ['throw', 3], ['search', 2]]) {
+        this.poseFrames[a] = [];
+        for (let i = 1; i <= n; i++) if (castFrame(scene, `${texture}-${a}#${i}`)) this.poseFrames[a].push(`${texture}-${a}#${i}`);
+      }
+      // the body: Jo's size at the feet (a big one is broader and taller),
+      // so rooms, grabs and shoves play exactly as before
+      // (exactly the old sprite's box: 32 × 48, a big one's ×1.2)
+      const bw = def.big ? 38 : 32;
+      const bh = def.big ? 58 : 48;
+      this.body.setSize(bw, bh, false);
+      this.body.setOffset((this.width - bw) / 2, this.height - bh);
+    } else {
+      if (def.big) this.setScale(1.2);
+      this.walkFrames = frameKeys(scene, texture, 3);
+      this.idleFrame = this.walkFrames[0];
+    }
     this.walkPhase = 0;
-    this.frameStep = def.human ? 26 : 18;
+    this.frameStep = this.rigged ? (def.big ? 7 : 6) : def.human ? 26 : 18;
     // a contact shadow: without one, a foe reads as pasted onto the backdrop
     this.shadow = scene.add.ellipse(this.x, this.y, 26, 8, 0x000000, 0.35).setDepth(D.FOE - 1);
     this.alertMark = null;
@@ -141,6 +163,11 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
     return Math.sign(dx) === (this.flipX ? -1 : 1) || Math.abs(dx) < 40;
   }
 
+  // just above the head, whatever the figure's height
+  markY() {
+    return this.y + (1 - this.originY) * this.displayHeight - (this.rigged ? this.displayHeight - 4 : 58);
+  }
+
   // called first thing each update: walk cycle, shadow, alert mark
   animate(time) {
     const vx = this.body.velocity.x;
@@ -148,27 +175,38 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
       this.walkPhase += Math.abs(vx) * 0.016;
       if (Math.abs(vx) < 4) this.walkPhase = 0;
       const f = Math.floor(this.walkPhase / this.frameStep) % this.walkFrames.length;
-      const key = Math.abs(vx) < 4 ? this.walkFrames[0] : this.walkFrames[f];
+      let key = Math.abs(vx) < 4 ? this.idleFrame : this.walkFrames[f];
+      const pf = this.poseFrames;
+      if (pf) {
+        // the tell, the lunge, the heave: poses, not tints
+        const into = (ms) => Math.max(0, ms - (this.stateUntil - time));
+        const pick = (arr, t) => (arr.length ? arr[Math.min(arr.length - 1, Math.floor(t * arr.length))] : null);
+        if (time < (this.throwUntil || 0)) key = pick(pf.throw, 1 - (this.throwUntil - time) / 700) || key;
+        else if (this.state === 'windup') key = pick(pf.windup, into(400) / 400) || key;
+        else if (this.state === 'grabbing') key = pick(pf.grab, into(250) / 250) || key;
+        else if (this.state === 'alert' && Math.abs(vx) < 4) key = pf.alert[Math.floor(time / 220) % pf.alert.length] || key;
+        else if (this.state === 'distracted' && Math.abs(vx) < 4) key = pf.search[Math.floor(time / 600) % pf.search.length] || key;
+      }
       if (this.texture.key !== key) this.setTexture(key);
     }
-    // the grab telegraph leans in. (A stagger has its own tween on `angle`,
-    // so don't write to it here or the shove wobble gets flattened.)
-    if (this.state === 'windup') this.setAngle(this.flipX ? -9 : 9);
+    // the grab telegraph leans in (a rig leans in its own windup pose). A
+    // stagger has its own tween on `angle`, so don't write to it here.
+    if (this.state === 'windup' && !this.rigged) this.setAngle(this.flipX ? -9 : 9);
     else if (this.state !== 'staggered' && this.angle !== 0 && !this.scene.tweens.isTweening(this)) this.setAngle(0);
     if (this.shadow) {
-      this.shadow.setPosition(this.x, this.y + this.displayHeight / 2 - 1);
+      this.shadow.setPosition(this.x, this.y + (1 - this.originY) * this.displayHeight - 1);
       this.shadow.setVisible(this.visible);
     }
     const alert = this.state === 'alert' || this.state === 'windup';
     if (alert && !this.alertMark) {
-      this.alertMark = uiText(this.scene, this.x, this.y - 34, '!', { fontSize: '18px', color: '#f2d580' })
+      this.alertMark = uiText(this.scene, this.x, this.markY(), '!', { fontSize: '18px', color: '#f2d580' })
         .setOrigin(0.5)
         .setDepth(D.FOE + 1);
     } else if (!alert && this.alertMark) {
       this.alertMark.destroy();
       this.alertMark = null;
     }
-    if (this.alertMark) this.alertMark.setPosition(this.x, this.y - 34 - Math.sin(time / 120) * 3);
+    if (this.alertMark) this.alertMark.setPosition(this.x, this.markY() - Math.sin(time / 120) * 3);
   }
 
   destroy(fromScene) {
@@ -269,6 +307,7 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
       const reach = Math.abs(player.x - this.x) < 42 && Math.abs(player.y - this.y) < 50;
       const ducking = player.crouching; // slipping under the grab
       if (reach && !ducking) {
+        this.throwUntil = time + 700;
         this.scene.throwOut(this);
         this.enter('staggered', 900);
         return;

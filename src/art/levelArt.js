@@ -352,11 +352,17 @@ export function lightTextures(scene, keys) {
         out[k + 2] = Math.max(0, Math.min(255, d[k + 2] * (m - 0.02)));
       }
     }
+    const f0 = tex.get();
+    const pivot = f0.customPivot ? [f0.pivotX, f0.pivotY] : null;
+    const data = tex.customData;
     scene.textures.remove(key);
     const ct = scene.textures.createCanvas(key, w, h);
     ct.getContext().putImageData(new ImageData(out, w, h), 0, 0);
     ct.refresh();
     ct.lit = true;
+    // a pivot (the rigged cast, the prop kit) survives the relight
+    if (pivot) Object.assign(ct.get(), { customPivot: true, pivotX: pivot[0], pivotY: pivot[1] });
+    if (data) ct.customData = { ...data };
   }
 }
 

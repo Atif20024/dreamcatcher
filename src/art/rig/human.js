@@ -75,6 +75,8 @@ export function composeHuman(rig, pose) {
   stamp(g, torsoRows, hipX, hipY, tOx, tOy, 'torso', { shearTop: lean });
   if (chest) stamp(g, torsoRows.slice(0, tH - 3), hipX, hipY - chest, tOx, tOy, 'torso', { shearTop: lean, shearRows: tH });
   drawLeg(legF, 'f');
+  // an optional layer over the legs (a skirt, an apron): rigs without one are unchanged
+  if (P.over && !pose.rot) stamp(g, P.over.rows, hipX, hipY, P.over.ox, P.over.oy, 'over', { shearTop: 0 });
   const headRows = P.head[pose.head || 'base'] || P.head.base;
   const hDy = pose.headDy != null ? pose.headDy : pose.hips || 0;
   const headX = neck[0] + (pose.headDx || 0);

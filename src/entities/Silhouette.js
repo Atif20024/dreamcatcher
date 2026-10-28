@@ -46,7 +46,7 @@ export default class Silhouettes {
       const frame = (Math.floor(s.phase / 6) % 8) + 1;
       if (frame !== s.stride) {
         s.stride = frame;
-        s.setTexture(`hub-traveler#${frame}`);
+        s.setTexture(`hub-traveler#${frame}`).setOrigin(0.5, 1);
         s.y = this.y - [0, 0, -1, 0, 1, 0, -1, 0, 1][frame] * s.scaleY;
       }
       if (s.x > this.x1) s.x = this.spawnX - Phaser.Math.Between(0, 200);

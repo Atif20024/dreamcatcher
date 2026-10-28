@@ -32,7 +32,7 @@ const PERSON = [
 
 // Priya in a flight suit; Adaeze with the skipping rope over the shoulder;
 // Halvorsen in the white coat; a board silhouette.
-const NPCS = {
+export const NPCS = {
   'npc-priya': { H: 0x1a1a20, h: 0x1a1a20, S: 0x8a5a3b, b: 0x14141c, T: 0x3a5a80, t: 0xf2c078, P: 0x2e4668, p: 0x22334c },
   'npc-adaeze': { H: 0xd8d4c8, h: 0xb8b4a8, S: 0x6a4630, b: 0x14141c, T: 0xc03a2a, t: 0xf2d580, P: 0x2a2a34, p: 0x1e1e26 },
   'npc-halvorsen': { H: 0x9a9aa8, h: 0x8a8a98, S: 0xc09070, b: 0x14141c, T: 0xf0ede4, t: 0x88b8d8, P: 0x4a4c54, p: 0x3a3c44 },

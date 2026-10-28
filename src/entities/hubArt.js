@@ -3,6 +3,7 @@ import { bakeFromAtlas } from '../art/baked.js';
 import { WALK_LEGS } from './jo.js';
 import { mix, hsl } from '../art/paint.js';
 import { HUB_PROPS, paintTrainTexture } from '../art/hubArt.js';
+import { REDRAW, redrawProp, usePainter } from '../art/propKit.js';
 
 // The people and furniture of Crossroads Station.
 //
@@ -139,6 +140,8 @@ export function paintRig(scene, key, rows, pal, size = 2, o = {}) {
   return key;
 }
 
+usePainter(paintRig); // the prop kit shades with the same pass
+
 function createPerson(scene, key, def) {
   const legs = def.sit ? LEGS_SIT : LEGS_STAND;
   paintRig(scene, key, person(def.hat, legs, def.held), def.pal);
@@ -223,6 +226,7 @@ export function createHubTextures(scene) {
   paintSilhouette(scene, 'hub-traveler', traveller(LEGS_STAND, true));
   WALK_LEGS.forEach((l, i) => paintSilhouette(scene, `hub-traveler#${i + 1}`, traveller(l, true)));
   for (const [key, [w, h, painter]] of Object.entries(HUB_PROPS)) {
+    if (REDRAW[key] && redrawProp(scene, key, w, h, paintRig)) continue; // §7 scale (round 2 WP2)
     if (scene.textures.exists(key) && scene.textures.get(key).getSourceImage().tagName === 'IMG') continue;
     if (scene.textures.exists(key)) scene.textures.remove(key);
     const ct = scene.textures.createCanvas(key, w, h);

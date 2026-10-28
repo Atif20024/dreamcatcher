@@ -1,0 +1,252 @@
+// The scale system as data (round 2 critique §7). One rule for the whole
+// game: 1 m = 44 px on the play plane (scroll factor 1). Jo is 1.73 m, so
+// 76 px of body and 82 px with his hat. A tile (32 px) is 0.727 m.
+//
+// Read by: the cast rig bake (scripts/build-atlas.js via src/art/rig/cast.js),
+// `npm run lint:scale` (scripts/lib/scale-check.js), the `scale-<place>`
+// harness scenarios, and (framework) MaterialLibrary / PropLibrary /
+// BackdropDirector. Heights are the drawn, opaque height in screen px at
+// scale 1 (outline included); a class's range is [min, max] and `TOL` is the
+// fractional slack the lint allows outside it.
+
+export const PX_PER_M = 44;
+export const TILE = 32;
+export const TOL = 0.04;
+
+// metres → px on a layer with scroll factor s (the depth rule, §7.1.2)
+export const px = (m, s = 1) => Math.round(m * PX_PER_M * s);
+export const metres = (p, s = 1) => p / (PX_PER_M * s);
+
+export const JO = { m: 1.73, body: 76, withHat: 82 };
+
+// ---- characters (§7.2) --------------------------------------------------------
+// h: drawn height range (px, hat or hair included). The rig bodies in
+// src/art/rig/cast.js are built to land inside these.
+export const CLASSES = {
+  jo: { h: [76, 84], m: 1.73 },
+  adult: { h: [70, 86], m: [1.6, 1.9] },
+  big: { h: [82, 90], m: [1.9, 2.0], w: [30, 48] },
+  elderly: { h: [66, 76], m: [1.55, 1.7] },
+  teen: { h: [66, 78], m: [1.5, 1.75] },
+  child: { h: [48, 62], m: [1.15, 1.4] },
+  toddler: { h: [38, 44], m: [0.85, 1.0] },
+  // creatures: real size up to ×1.5 for readability, never above 0.4 × Jo
+  rat: { h: [9, 16], w: [22, 34] },
+  roach: { h: [8, 14], w: [14, 24] },
+  pigeon: { h: [11, 16], w: [14, 22] },
+  crow: { h: [13, 20], w: [18, 34] },
+  smallbird: { h: [4, 10], w: [6, 14] },
+  cat: { h: [12, 22], w: [18, 32] },
+  dog: { h: [20, 30], w: [32, 44] },
+  heron: { h: [36, 48] },
+  // dream things (a slip of paper, a wisp, a grease blob): any size up to 0.4 × Jo
+  thing: { h: [8, 33] },
+  trolley: { h: [34, 44], w: [40, 52] },
+};
+
+// every person texture prefix and its default class; per-id body overrides
+// (sex/hair/age) live in CAST_BODIES below
+export const PERSON_PREFIXES = ['hub-', 'ev-p-', 'ev-x-', 'wr-p-', 'pt-p-', 'gm-p-', 'npc-', 'foe-'];
+
+// body: adult (m/f), big, elderly, teen, child. hair: short, long, bun, bob,
+// bald, crop, tuft, grey. Anything not listed is an adult with short hair
+// (or a kid if its look says kid).
+export const CAST_BODIES = {
+  // hub
+  'hub-pemberton': { body: 'elderly', sex: 'm', hair: 'grey', beard: true },
+  'hub-ro': { sex: 'f', hair: 'long' },
+  'hub-bilal': { sex: 'm', beard: true },
+  'hub-busker': { sex: 'm' },
+  'hub-sleeper': { body: 'elderly', sex: 'm', hair: 'bald' },
+  'hub-kite': { body: 'child', hair: 'tuft' },
+  'hub-sweeper': { sex: 'm', body: 'elderly' },
+  'hub-flower': { sex: 'f', body: 'elderly', hair: 'bun' },
+  'hub-traveler': { sex: 'm' },
+  // the long evening
+  'ev-p-fereshteh': { sex: 'f', dress: true },
+  'ev-p-bo': { sex: 'm', beard: true },
+  'ev-p-adaeze': { sex: 'f', hair: 'grey' },
+  'ev-p-marcus': { sex: 'm', body: 'big' },
+  'ev-p-marcus_kid': { body: 'child', sex: 'f', hair: 'bun', dress: true },
+  'ev-p-fisherman': { body: 'elderly', sex: 'm', beard: true },
+  'ev-p-hamid': { sex: 'm', beard: true },
+  'ev-p-wren': { sex: 'f', hair: 'bob' },
+  'ev-p-baker': { sex: 'm', apron: true },
+  'ev-p-kite': { body: 'child', hair: 'tuft' },
+  'ev-p-bilal': { sex: 'm', beard: true },
+  'ev-p-waiting_kid': { body: 'child', sex: 'f', hair: 'bun', dress: true },
+  'ev-p-mother': { sex: 'f', dress: true },
+  'ev-p-sweeper': { body: 'elderly', sex: 'm' },
+  'ev-p-stones_kid': { body: 'child', hair: 'tuft' },
+  'ev-p-gardener': { sex: 'm', body: 'elderly' },
+  'ev-p-sleeper': { body: 'elderly', sex: 'm', hair: 'bald' },
+  'ev-p-bike_man': { sex: 'm' },
+  'ev-p-priya': { sex: 'f', hair: 'long' },
+  'ev-p-nia': { sex: 'f', hair: 'crop' },
+  'ev-p-delphine': { sex: 'f', body: 'elderly', hair: 'bun', dress: true },
+  'ev-p-ray': { sex: 'm', body: 'elderly', beard: true },
+  'ev-p-marguerite': { sex: 'f', body: 'elderly', hair: 'bun', apron: true },
+  'ev-p-bastien': { sex: 'm', body: 'teen' },
+  'ev-x-0': { sex: 'm' },
+  'ev-x-1': { sex: 'f', dress: true },
+  'ev-x-2': { sex: 'm' },
+  'ev-x-3': { sex: 'f', hair: 'long' },
+  'ev-x-4': { sex: 'm', body: 'elderly' },
+  // the writer
+  'wr-p-wren': { sex: 'f', hair: 'bob' },
+  'wr-p-emmerich': { body: 'elderly', sex: 'm', hair: 'grey', beard: true },
+  'wr-p-tomasz': { sex: 'm', body: 'big' },
+  'wr-p-isolde': { sex: 'f', hair: 'bob', dress: true },
+  'wr-p-hat': { sex: 'm' },
+  'wr-p-landlady': { sex: 'f', dress: true },
+  'wr-p-reader1': { sex: 'f', hair: 'bun' },
+  'wr-p-reader2': { sex: 'm' },
+  'wr-p-reader3': { sex: 'f', hair: 'long' },
+  'wr-p-reader4': { sex: 'm', body: 'teen' },
+  // the painter
+  'pt-p-clerk': { sex: 'm' },
+  'pt-p-sleeper': { sex: 'm', body: 'elderly' },
+  'pt-p-roulin': { sex: 'm', body: 'big', beard: true },
+  'pt-p-paul': { sex: 'm', beard: true, hair: 'crop' },
+  'pt-p-rey': { sex: 'm', body: 'teen' },
+  'pt-p-ginoux': { sex: 'f', hair: 'bun', dress: true },
+  'pt-p-vautrin': { sex: 'm' },
+  'pt-p-visitor': { sex: 'f', dress: true },
+  'pt-p-isak': { sex: 'm', body: 'teen' },
+  'pt-p-gardener': { sex: 'm', body: 'elderly' },
+  // the gambler
+  'gm-p-favour': { sex: 'f', hair: 'long', dress: true },
+  'gm-p-lou': { sex: 'm', body: 'elderly', hair: 'grey' },
+  'gm-p-dede': { sex: 'f', hair: 'bun', dress: true },
+  'gm-p-sal': { sex: 'm', body: 'elderly', hair: 'bald' },
+  'gm-p-security': { sex: 'm', body: 'big', hair: 'crop' },
+  'gm-p-waiter': { sex: 'm' },
+  'gm-p-pianist': { sex: 'm' },
+  'gm-p-dealer': { sex: 'f', hair: 'bun' },
+  'gm-p-collector': { sex: 'm' },
+  'gm-p-widow': { sex: 'f', body: 'elderly', dress: true },
+  'gm-p-kid': { body: 'teen', sex: 'm' },
+  'gm-p-accountant': { sex: 'm', hair: 'bald' },
+  // musician / astronaut NPCs (string-art keys; looks below)
+  'npc-delphine': { sex: 'f', body: 'elderly', hair: 'bun', dress: true, hat: 'none' },
+  'npc-nia': { sex: 'f', hair: 'crop', hat: 'none', held: 'bass' },
+  'npc-marcus': { sex: 'm', body: 'big', hat: 'cap' },
+  'npc-ray': { sex: 'm', body: 'elderly', beard: true, hat: 'fedora' },
+  'npc-tally': { sex: 'm', hat: 'peaked' },
+  'npc-sol': { sex: 'm', body: 'elderly', hair: 'grey', hat: 'none' },
+  'npc-scalper': { sex: 'm', hat: 'fedora', held: 'tickets' },
+  'npc-roadie': { sex: 'm', body: 'big', hat: 'beanie', held: 'coil' },
+  'npc-kid': { body: 'child', hair: 'tuft', hat: 'cap' },
+  'npc-priya': { sex: 'f', hair: 'long', hat: 'none' },
+  'npc-adaeze': { sex: 'f', hair: 'grey', hat: 'none' },
+  'npc-halvorsen': { sex: 'm', body: 'elderly', hair: 'grey', hat: 'none', beard: true },
+  'npc-osei': { sex: 'm', hat: 'none', hair: 'crop' },
+  'mus-critic': { sex: 'm', body: 'elderly', hair: 'grey', hat: 'none', sit: true },
+  // foes (human): one silhouette each, big bodies for the bouncers
+  'foe-bouncer': { body: 'big', hair: 'crop' },
+  'foe-lounge-bouncer': { body: 'big', hair: 'crop' },
+  'foe-floor-security': { body: 'big' },
+  'foe-security': { body: 'big' },
+  'foe-roadie': { body: 'big' },
+  'foe-landlady': { sex: 'f', dress: true },
+  'foe-proofreader': { sex: 'f', hair: 'bun' },
+  'foe-pit': { body: 'elderly', hair: 'bald' },
+  'foe-gardener': { body: 'elderly' },
+  'foe-sous-chef': { apron: true },
+  'foe-runner': { body: 'teen' },
+};
+
+// ---- props and interactables on the play plane (§7.2) ------------------------
+// h/w: drawn size range at the scale the game shows them (texture px ×
+// `scale`). `scale` defaults to 1. Hero allowance: an interactable may be up
+// to 1.5 × real; pickups are icons (16–24) and exempt from real size.
+export const PROP_CLASSES = {
+  door: { h: [88, 120], m: 2.1 },
+  doubleDoor: { h: [100, 120], m: 2.6 },
+  lampStreet: { h: [180, 210], m: 4.5 },
+  lampPlatform: { h: [140, 170], m: 3.5 },
+  bench: { h: [30, 44], w: [70, 96], m: 0.85 },
+  desk: { h: [30, 40], w: [56, 90], m: 0.75 },
+  table: { h: [30, 40], m: 0.75 },
+  counter: { h: [40, 54], m: 1.05 },
+  chair: { h: [36, 46], m: 0.9 },
+  typewriter: { h: [12, 22], w: [24, 36] },
+  crateKitchen: { h: [18, 26] },
+  cratePush: { h: [44, 54] },
+  crateStack: { h: [48, 58] },
+  postbox: { h: [62, 72] },
+  phoneBooth: { h: [94, 110] },
+  fountainTown: { h: [80, 100], w: [150, 200] },
+  fountainDrink: { h: [40, 48] },
+  clock: { h: [48, 58] },
+  lever: { h: [30, 48] },
+  plate: { h: [4, 10], w: [26, 44] },
+  gatePost: { h: [88, 140] },
+  sign: { h: [20, 60] },
+  car: { h: [58, 72], w: [170, 210] },
+  van: { h: [80, 96], w: [200, 240] },
+  bicycle: { h: [40, 50], w: [66, 84] },
+  tractor: { h: [96, 120] },
+  rowboat: { h: [20, 32] },
+  shrub: { h: [26, 60] },
+  hedge: { h: [50, 90] },
+  treeYoung: { h: [260, 360] },
+  treePlay: { h: [260, 9999] }, // any tree on the play plane: never shorter than 260
+  machine: { h: [56, 180] },
+  window: { h: [56, 76] },
+  pickup: { h: [12, 28] },
+  coin: { h: [12, 22] },
+  keyItem: { h: [14, 40] },
+  held: { h: [6, 26] },
+};
+
+// texture key → class, for every prop the kit redraws (src/art/propKit.js)
+// and the creatures. The lint measures each against its class range.
+export const PROP_TABLE = {
+  'ev-bench': 'bench', 'wr-bench': 'bench', 'pt-bench': 'bench', 'hub-bench': 'bench',
+  'ev-postbox': 'postbox',
+  'ev-fountain': 'fountainTown', 'pt-fountain': 'fountainTown', 'gm-fountain': 'fountainTown',
+  'hub-fountain': 'fountainDrink',
+  'ev-chess': 'table', 'wr-table': 'table', 'pt-table': 'table',
+  'wr-desk': 'desk', 'wr-desk-big': 'desk', 'pt-desk': 'desk', 'astro-desk': 'desk', 'hub-desk': 'counter',
+  'ev-chair': 'chair', 'wr-chair': 'chair', 'pt-chair': 'chair', 'mus-chair': 'chair',
+  'wr-lamp-post': 'lampStreet', 'pt-lamp': 'lampStreet', 'gm-lamp-post': 'lampStreet',
+  'wr-shop-door': 'door', 'wr-fire-door': 'door', 'gm-staffdoor': 'door', 'gm-firedoor': 'door', 'gm-door': 'doubleDoor',
+  'wr-machine': 'furnitureTall', 'wr-cabinet': 'table', 'wr-piano': 'furnitureTall', 'gm-piano': 'furnitureTall', 'gm-videopoker': 'machine', 'wr-washer': 'appliance',
+  'wr-lectern': 'furnitureTall', 'gm-valet': 'furnitureTall',
+  'ev-cart': 'cart', 'pt-cart': 'cart', 'hub-cart': 'trolleyLuggage',
+  'ev-charpoy': 'bed', 'pt-bed': 'bed', 'pt-cot': 'bed',
+  'pt-easel': 'easel', 'pt-stove': 'stove', 'pt-stove_north': 'stove',
+  'gm-car': 'car',
+  'hub-suitcase': 'luggage',
+};
+Object.assign(PROP_CLASSES, {
+  cart: { h: [34, 46] },
+  furnitureTall: { h: [48, 60], m: [1.1, 1.3] },
+  appliance: { h: [34, 44], m: 0.85 },
+  trolleyLuggage: { h: [38, 50] },
+  bed: { h: [18, 28] },
+  easel: { h: [62, 76] },
+  stove: { h: [34, 46] },
+  luggage: { h: [18, 30] },
+});
+
+// creatures and dream things (texture key or prefix → CLASSES entry)
+export const CREATURE_TABLE = {
+  'foe-rat': 'rat', 'foe-crawler': 'roach', 'foe-pigeon': 'pigeon', 'foe-crow': 'crow', 'ev-pigeon': 'pigeon',
+  'chef-cat': 'cat', 'ev-cat': 'cat', 'ev-dog': 'dog', 'ev-heron': 'heron', 'ev-swallow': 'smallbird',
+  'foe-slip': 'thing', 'foe-wisp': 'thing', 'foe-grease': 'thing', 'foe-mill': 'thing', 'foe-meringue': 'thing', 'foe-walker': 'thing',
+};
+
+// known out-of-scale things this pass does not own, with the package that
+// does: the lint lists them (WARN) instead of failing
+export const SCALE_EXCEPTIONS = {
+  'gm-van': 'WP2 room rebuild: a moving platform Jo rides (27 px); a 2 m van is out of jump reach until the carpark is rebuilt',
+  'foe-cart': 'framework: the kitchen trolley foe becomes trolley + cook (a two-part foe)',
+  'chef-crate': 'framework room rebuild: 1-tile crates are puzzle geometry (push/stack); 22 / 48 px crates need the chef rooms rebuilt',
+  'hub-door': 'WP3 (hub presentation)', 'hub-booth': 'WP3', 'hub-kiosk': 'WP3', 'hub-lamp': 'WP3 (platform lamps with the head-on terminus)', 'hub-pigeon': 'WP3 (hub painter)',
+  'pt-plane_tree': 'WP4 (trees: cropped on the play plane or whole on a parallax layer)', 'pt-cypress': 'WP4', 'pt-tree_grey': 'WP4',
+  'ev-tree': 'WP4', 'ev-tree-apple': 'WP4', 'ev-pine': 'WP4', 'ev-hilltree': 'WP4',
+  'ev-door': 'WP4 (house rows: doors scale with their buildings)', 'ev-lamp': 'WP4 (house rows)', 'ev-bakery': 'WP4',
+  'pt-house_front': 'WP4', 'pt-cafe_front': 'WP4', 'pt-train': 'WP3', 'hub-train': 'WP3',
+};

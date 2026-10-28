@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { personBody } from '../art/baked.js';
 import Player from '../entities/Player.js';
 import BaseLevel from './BaseLevel.js';
 import { THEMES } from '../themes/index.js';
@@ -332,7 +333,8 @@ export default class AstronautScene extends BaseLevel {
     const tx = Math.floor(img.x / T);
     let ty = Math.floor(img.y / T);
     while (ty < 62 && !this.built.solidAt(tx, ty)) ty++;
-    img.y = ty * T - img.displayHeight / 2;
+    // the bottom edge on the floor, whatever the origin (rigged people carry a foot pivot)
+    img.y = ty * T - (1 - img.originY) * img.displayHeight;
     return img;
   }
 
@@ -544,7 +546,8 @@ export default class AstronautScene extends BaseLevel {
       state: 'circle',
       stateUntil: 0,
     };
-    this.bout.opp.body.setSize(20, 40);
+    if (this.bout.opp.frame.customPivot) personBody(this.bout.opp, 20, 40);
+    else this.bout.opp.body.setSize(20, 40);
     this.physics.add.collider(this.bout.opp, this.solids);
     this.floatText(ring.wx, px(29), vsPriya ? 'ROUND 4 — PRIYA.\nshe parries everything. wait her out.' : `ROUND ${round} — land 5, eat none you can duck.`, '#f2d580');
     sfx('bell');
@@ -2014,7 +2017,7 @@ export default class AstronautScene extends BaseLevel {
     const want = this.F.selected && !this.F.docked && this.player.x > px(153) && this.player.x < px(241) && !this.carryingPriya && !this.F.survival;
     if (want && !this.priyaFollow) {
       this.priyaFollow = this.physics.add.image(this.player.x - 50, this.player.y - 10, 'npc-priya').setDepth(D.FOE - 1);
-      this.priyaFollow.body.setSize(18, 40);
+      personBody(this.priyaFollow, 18, 40);
       this.physics.add.collider(this.priyaFollow, this.solids);
     }
     if (this.priyaFollow) {

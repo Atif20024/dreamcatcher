@@ -244,7 +244,7 @@ export default class WriterScene extends BaseLevel {
       duration: (dist / 70) * 1000,
       onUpdate: () => {
         img.x = from + Math.sign(toX - from) * state.d;
-        const stride = (Math.floor(state.d / 14) % 8) + 1;
+        const stride = (Math.floor(state.d / 6) % 8) + 1;
         const k = `wr-p-${id}#${stride}`;
         if (this.textures.exists(k)) img.setTexture(k);
       },
@@ -590,7 +590,7 @@ export default class WriterScene extends BaseLevel {
       if (o.kind === 'cart') img.setDepth(9).setTint(0xd8d0c0);
     } else if (o.kind === 'lamp_post') {
       img = this.add.image(o.wx, floor, key).setOrigin(0.5, 1).setDepth(6);
-      this.add.image(o.wx, floor - 40, 'wr-glow').setDepth(7).setScale(2.2).setAlpha(0.35).setBlendMode(Phaser.BlendModes.ADD);
+      this.add.image(o.wx, floor - 188, 'wr-glow').setDepth(7).setScale(2.2).setAlpha(0.35).setBlendMode(Phaser.BlendModes.ADD);
     } else {
       img = this.add.image(o.wx, floor, key).setOrigin(0.5, 1).setDepth(o.kind === 'mattress' || o.kind === 'table' || o.kind === 'bench' ? 7 : 9);
       if (o.id) this.props[o.id] = img;

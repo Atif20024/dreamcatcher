@@ -302,7 +302,7 @@ export default class HubScene extends BaseLevel {
 
     // the information desk and Mr. Pemberton
     const desk = this.obj('desk');
-    this.add.image(desk.wx, FLOOR - 14, 'hub-desk').setDepth(D.INTERACT - 1);
+    this.add.image(desk.wx, FLOOR - 14, 'hub-desk').setDepth(D.INTERACT + 2) // in front of Pemberton: he stands behind it;
     const pem = this.npc('pemberton', this.obj('npc', (o) => o.who === 'pemberton'));
     pem.y = FLOOR - 40;
     pem.setDepth(D.INTERACT - 2); // behind the counter
@@ -343,7 +343,7 @@ export default class HubScene extends BaseLevel {
     // shoved into a corner must not become a wall between him and a train
     this.carts = this.objs('cart').slice(0, 1).map((o) => {
       const c = this.physics.add.image(o.wx, FLOOR - 8, 'hub-cart').setDepth(D.INTERACT - 2);
-      c.body.setSize(40, 12).setOffset(0, 4);
+      c.body.setSize(40, 12).setOffset((c.width - 40) / 2, c.height - 12);
       c.setDrag(500, 0).setMaxVelocity(140, 600).setCollideWorldBounds(true);
       this.physics.add.collider(c, this.solids);
       this.physics.add.overlap(this.player, c, (pl, cart) => {

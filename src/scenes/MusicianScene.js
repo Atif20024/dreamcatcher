@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { personBody } from '../art/baked.js';
 import Player from '../entities/Player.js';
 import BaseLevel from './BaseLevel.js';
 import { THEMES } from '../themes/index.js';
@@ -300,7 +301,7 @@ export default class MusicianScene extends BaseLevel {
   }
 
   spawnScalper(x) {
-    this.scalper = this.physics.add.image(x, px(34), 'npc-scalper').setDepth(12);
+    this.scalper = personBody(this.physics.add.image(x, px(34), 'npc-scalper').setDepth(12));
     this.scalper.state = 'lurk';
     this.physics.add.collider(this.scalper, this.solids);
   }
@@ -1122,7 +1123,7 @@ export default class MusicianScene extends BaseLevel {
     const present =
       (this.F.met_nia && this.inZone(151, 291)) || (this.F.choice === 'nia' && this.inZone(326, 400) && this.F.set_done !== undefined);
     if (present && !this.nia) {
-      this.nia = this.physics.add.image(this.player.x - 40, this.player.y - 10, 'npc-nia').setDepth(11);
+      this.nia = personBody(this.physics.add.image(this.player.x - 40, this.player.y - 10, 'npc-nia').setDepth(11));
       this.physics.add.collider(this.nia, this.solids);
     } else if (!present && this.nia) {
       this.nia.destroy();

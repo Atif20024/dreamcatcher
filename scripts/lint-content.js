@@ -111,5 +111,10 @@ if (json) {
   for (const f of framework) log(`  ✗ ${f}`);
   log(`\nrooms: ${rooms.failures} failures, ${rooms.warnings} warnings; default text: ${debt.length} files; content failures: ${content.length}`);
 }
+// round 2 WP2: the scale lint (also `npm run lint:scale`)
+const { scaleIssues } = await import('./lib/scale-check.js');
+const scale = await scaleIssues(ROOT);
+log(`\n--- scale (§7, 1 m = 44 px): ${scale.measured.length} measured, ${scale.errors.length} failures, ${scale.exceptions.length} owned elsewhere ---`);
+for (const e of scale.errors) log(`  ✗ ${e.kind} ${e.key}: ${e.h} px, ${e.cls} wants ${e.range.join('–')}`);
 // every check above fails the run
-process.exit(rooms.failures > 0 || cps.length > 0 || debt.length > 0 || content.length > 0 ? 1 : 0);
+process.exit(rooms.failures > 0 || cps.length > 0 || debt.length > 0 || content.length > 0 || scale.errors.length > 0 ? 1 : 0);

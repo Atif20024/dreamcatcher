@@ -292,14 +292,44 @@ for (const [key, rec] of scene.store) {
   }
   (isFoe ? foeFrames : castFrames).push({ name: key, img: rec.img });
 }
-const castPack = writePack('cast', castFrames);
-const foePack = writePack('foes', foeFrames);
-index.packs.push({ ...castPack, kind: 'placeholder', explode: true }, { ...foePack, kind: 'placeholder', explode: true });
-index.placeholders = { cast: castFrames.length, foes: foeFrames.length, total: castFrames.length + foeFrames.length, runtimeOnly };
+// the people: rebuilt as rigs at Jo's scale (round 2 WP2), same keys + new frames
+const { bakeCast } = await import('./lib/cast-bake.js');
+const rigged = await bakeCast(ROOT, scene.store);
+const riggedNames = new Set(rigged.frames.map((f) => f.name));
+const keepPlain = (arr) => arr.filter((f) => !riggedNames.has(f.name));
+const castPlain = keepPlain(castFrames);
+const foePlain = keepPlain(foeFrames);
+const castRig = rigged.frames.filter((f) => !f.foe);
+const foeRig = rigged.frames.filter((f) => f.foe);
+// packs stay within 2048×2048: chunk by area
+function writePacks(base, frames, kind) {
+  const chunks = [[]];
+  let area = 0;
+  for (const f of frames) {
+    const a = (f.img.width + 3) * (f.img.height + 3);
+    if (area + a > 2048 * 2048 * 0.62 && chunks[chunks.length - 1].length) {
+      chunks.push([]);
+      area = 0;
+    }
+    chunks[chunks.length - 1].push(f);
+    area += a;
+  }
+  chunks.forEach((c, i) => index.packs.push({ ...writePack(i ? `${base}${i + 1}` : base, c), kind, explode: true }));
+}
+for (const old of fs.readdirSync(OUT)) if (/^(cast|foes|people)\d*\.(png|json)$/.test(old)) fs.rmSync(path.join(OUT, old));
+writePacks('cast', castPlain, 'placeholder');
+writePacks('foes', foePlain, 'placeholder');
+writePacks('people', [...castRig, ...foeRig], 'rig-cast');
+index.placeholders = { cast: castPlain.length, foes: foePlain.length, total: castPlain.length + foePlain.length, rigged: rigged.frames.length, runtimeOnly };
+index.castReport = rigged.report;
+castFrames.length = 0;
+castFrames.push(...castPlain, ...castRig);
+foeFrames.length = 0;
+foeFrames.push(...foePlain, ...foeRig);
 // a contact sheet of every placeholder, for review
 {
-  const all = [...castFrames, ...foeFrames];
-  const cw = 72, chh = 80, cols = 24;
+  const all = [...castPlain, ...foePlain];
+  const cw = 96, chh = 100, cols = 24;
   const sh = R.image(cw * cols, chh * Math.ceil(all.length / cols));
   all.forEach((f, i) => {
     const cx = (i % cols) * cw, cy = Math.floor(i / cols) * chh;
@@ -309,7 +339,31 @@ index.placeholders = { cast: castFrames.length, foes: foeFrames.length, total: c
   });
   fs.writeFileSync(path.join(SHEETS, 'placeholders.png'), encodePNG(sh));
 }
-console.log(`[atlas] placeholders: ${castFrames.length} cast + ${foeFrames.length} foe frames; runtime-only: ${runtimeOnly.length}`);
+// the cast line-up: Jo, then each person's key frames, on a ground line
+{
+  const byName = new Map(rigged.frames.map((f) => [f.name, f]));
+  const joComp = composeHuman((await import('../src/data/rigs/jo.js')).default, { fF: [1, 0, 'flat'], fB: [-1, 0, 'flat'], aF: [-4, 10], aB: [6, 12] });
+  const joRig = (await import('../src/data/rigs/jo.js')).default;
+  const joBody = R.scaleNearest(lettersToImage(joComp.body, joRig.palette), 2);
+  const joHat = R.scaleNearest(lettersToImage(joComp.hat, joRig.palette), 2);
+  const want = (k) => [k, `${k}#2`, `${k}#6`, `${k}-walk#2`, `${k}-talk#2`, `${k}-wave#2`, `${k}-sit`, `${k}-laugh`, `${k}-alert#2`, `${k}-windup#3`, `${k}-grab#1`, `${k}-throw#2`].filter((n) => byName.has(n));
+  const rows = rigged.report.map((r) => want(r.key));
+  const cw = 84, chh = 100, cols = 13;
+  const sh = R.image(cw * cols, chh * rows.length);
+  rows.forEach((names, ri) => {
+    for (let y = 0; y < chh; y++) for (let x = 0; x < sh.width; x++) R.setPx(sh, x, ri * chh + y, y >= chh - 6 ? 0x6c6458 : ri % 2 ? 0xb4b8c0 : 0xc4c8d0);
+    for (let x = 0; x < sh.width; x += 32) for (let y = chh - 5; y < chh; y++) R.setPx(sh, x, ri * chh + y, 0x50483e);
+    // Jo for scale (feet on the line)
+    R.blit(sh, joBody, Math.floor((cw - 128) / 2), ri * chh + chh - 6 - 116);
+    R.blit(sh, joHat, Math.floor((cw - 128) / 2), ri * chh + chh - 6 - 116);
+    names.forEach((n, i) => {
+      const f = byName.get(n);
+      R.blit(sh, f.img, (i + 1) * cw + Math.floor((cw - f.img.width) / 2), ri * chh + chh - 6 - f.img.height);
+    });
+  });
+  fs.writeFileSync(path.join(SHEETS, 'cast-lineup.png'), encodePNG(sh));
+}
+console.log(`[atlas] placeholders: ${castPlain.length} cast + ${foePlain.length} foe frames; rigged cast: ${rigged.frames.length} frames (${rigged.report.length} people); runtime-only: ${runtimeOnly.length}`);
 
 // ---- index + credits ---------------------------------------------------------
 fs.writeFileSync(path.join(OUT, 'index.json'), JSON.stringify(index));

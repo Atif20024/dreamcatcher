@@ -226,7 +226,7 @@ export default class GamblerScene extends BaseLevel {
       duration: (dist / 70) * 1000,
       onUpdate: () => {
         img.x = from + Math.sign(toX - from) * state.d;
-        const stride = (Math.floor(state.d / 14) % 8) + 1;
+        const stride = (Math.floor(state.d / 6) % 8) + 1;
         const k = `gm-p-${id}#${stride}`;
         if (this.textures.exists(k)) img.setTexture(k);
       },
@@ -543,7 +543,7 @@ export default class GamblerScene extends BaseLevel {
   buildLamp(o, floor) {
     if (o.kind === 'sodium') {
       this.add.image(o.wx, floor, 'gm-lamp-post').setOrigin(0.5, 1).setDepth(6);
-      this.add.image(o.wx, floor - 40, 'gm-glow').setDepth(7).setScale(2.4).setAlpha(0.3).setBlendMode(Phaser.BlendModes.ADD).setTint(0xf2b060);
+      this.add.image(o.wx, floor - 188, 'gm-glow').setDepth(7).setScale(2.4).setAlpha(0.3).setBlendMode(Phaser.BlendModes.ADD).setTint(0xf2b060);
     } else if (o.kind === 'bulb') {
       const b = this.add.image(o.wx, (o.ty - 10) * T, 'gm-bulb').setOrigin(0.5, 0).setDepth(6);
       const g = this.add.image(o.wx, (o.ty - 10) * T + 20, 'gm-glow').setDepth(7).setScale(2.6).setAlpha(0.26).setBlendMode(Phaser.BlendModes.ADD).setTint(0xfff2c0);

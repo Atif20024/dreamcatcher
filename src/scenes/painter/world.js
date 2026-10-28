@@ -145,8 +145,9 @@ export default {
     if (o.id) this.props[o.id] = img;
     if (o.kind === 'planks') img.setVisible(false);
     if (o.kind === 'lamp') {
-      this.halo(o.wx, floor - 40, o.halo || 'yellow', 0.9, 8);
-      this.add.image(o.wx, floor - 40, 'pt-glow').setDepth(7).setScale(2.4).setAlpha(0.35).setBlendMode(Phaser.BlendModes.ADD);
+      // the lantern is at the top of a 4.5 m post (round 2 WP2)
+      this.halo(o.wx, floor - 188, o.halo || 'yellow', 0.9, 8);
+      this.add.image(o.wx, floor - 188, 'pt-glow').setDepth(7).setScale(2.4).setAlpha(0.35).setBlendMode(Phaser.BlendModes.ADD);
     }
     if (o.kind === 'stove_north') {
       this.halo(o.wx, floor - 20, 'orange', 0.5, 8);

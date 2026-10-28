@@ -92,7 +92,10 @@ function paint(rows, held) {
 
 function person(hat, held) {
   const build = (legs) => paint([...HATS[hat], ...HEAD_TORSO, ...legs], held);
-  return [build(LEGS_STAND), build(LEGS_STRIDE), build(LEGS_PASS)];
+  const frames = [build(LEGS_STAND), build(LEGS_STRIDE), build(LEGS_PASS)];
+  // the look, for the cast rig bake (src/art/rig/cast.js)
+  frames.look = { hat, held };
+  return frames;
 }
 
 // --- the cast --------------------------------------------------------------
@@ -157,16 +160,17 @@ export const CREATURES = {
       ['.a......a.', '..a....a..', '..bBBBBb..', '.bBBBBBBb.', '..bBBBBb..', 'L..L..L..L'],
     ],
     pal: { b: 0x6a4526, B: 0xa8703c, a: 0x4a3220, L: 0x4a3220 },
-    size: 3,
+    size: 2,
   },
   'foe-rat': {
-    // pale body against a dark floor, ears and tail so the shape reads
+    // §7: a rat is 0.25 m long (28 × 12 at 1 m = 44 px). Pale body against a
+    // dark floor, ears and a long tail so the shape reads at that size
     art: [
-      ['..........', '.......EE.', 'ttt..BBBBB', '..tBBBBBBB', '..BBBBBBeB', '..BBBBBBBB', '..L..L..L.'],
-      ['..........', '.......EE.', '...t.BBBBB', 'ttt.BBBBBB', '..BBBBBBeB', '..BBBBBBBB', '.L..L..L..'],
+      ['...........E..', '......BBBBBEB.', '..tBBBBBBBBBeB', 'tt.BBBBBBBBBBB', '...BBBBBBBB...', '....L..L.L.L..'],
+      ['...........E..', '......BBBBBEB.', 't..BBBBBBBBBeB', '.tt.BBBBBBBBBB', '...BBBBBBBB...', '...L..L..L..L.'],
     ],
     pal: { B: 0xa89a84, t: 0x7a6a58, E: 0xc0a894, e: 0x1a1a20, L: 0x6a5a4a },
-    size: 3,
+    size: 2,
   },
   'foe-grease': {
     art: [
@@ -263,7 +267,7 @@ CREATURES['foe-pigeon'] = {
     ['....gg..', '...gggw.', '.ggggg..', 'gggggg..', '.gggg...', '.f...f..'],
   ],
   pal: { g: 0x7a7a88, w: 0xf2c078, f: 0xc06a3a },
-  size: 3,
+  size: 2,
 };
 
 // the painter's crows: blue-black, two wingbeats
@@ -273,7 +277,7 @@ CREATURES['foe-crow'] = {
     ['...........', '....kkkk...', '..kkkKkkkb.', 'kkkkkkkkk..', '.kk.....kk.', '....k.k....', '...........'],
   ],
   pal: { k: 0x1f3a5f, K: 0x2a2a44, b: 0xd8a840 },
-  size: 3,
+  size: 2,
 };
 
 export function createFoeTextures(scene) {

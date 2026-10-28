@@ -256,7 +256,7 @@ export default class PainterScene extends BaseLevel {
       onUpdate: () => {
         img.x = from + Math.sign(toX - from) * state.d;
         if (img.shadowImg) img.shadowImg.x = img.x;
-        const stride = (Math.floor(state.d / 14) % 8) + 1;
+        const stride = (Math.floor(state.d / 6) % 8) + 1;
         const k = `pt-p-${id}#${stride}`;
         if (this.textures.exists(k)) img.setTexture(k);
       },

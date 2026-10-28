@@ -68,3 +68,10 @@ Phase 1.4 (`src/dev/scenarios/phase14.js`): `chef-chimney-walljump` (ribbed shaf
 - `__dc.readability()` audits the current screen: `min-cap`, `no-plate`, `contrast`, `plate-clash`, `text-clash`, `hud-overlap`, `hud-offscreen`.
 - `src/dev/scenarios/readability.js`: `readability-<place>` for all nine places (the camera sweeps the whole world in a grid of screens, plus the hub vista at 0.62 and the Evening at 0.6), `bark-one-at-a-time`.
 - Lint (`npm run lint:content`): `text-min-size` (screen text pinned to scale 1; world small ×1 without `decor`), `hud-slot` (a screen bar at HUD depth outside HudGrid). Opt out per line with `lint-allow readability: <reason>`.
+
+## Round 2 WP2 (scale: people, foes, props)
+- `src/data/scale.js` is the scale system (1 m = 44 px, class ranges, `CAST_BODIES`, `PROP_TABLE`, `SCALE_EXCEPTIONS`).
+- The cast is baked as rigs by `npm run atlas` (`scripts/lib/cast-bake.js` → `public/atlas/people*.png`; review `sheets/cast-lineup.png`). Same texture keys as before plus `…-idle#n`, `…-talk#n`, `…-wave#n`, foes `…-alert#n / -windup#n / -grab#n / -throw#n / -search#n`. `castFrame(scene, key)` and `personBody(img)` are in `src/art/baked.js`.
+- Furniture comes from `src/art/propKit.js` (`REDRAW`), asked first by `createPixelTexture` and the hub prop painter.
+- `npm run lint:scale` (also in `lint:content`): people, creatures and kit props against their class (± 4 %); exceptions are listed with their owner.
+- `src/dev/scenarios/scale.js`: `scale-<place>` in all nine places measures on-screen opaque heights against Jo (adults 0.82–1.12×, children 0.58–0.78×, doors ≥ 1.15×, props in class). `measureScale(scene)` is exported for ad-hoc audits.
