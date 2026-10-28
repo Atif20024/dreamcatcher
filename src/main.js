@@ -27,7 +27,7 @@ const firstKey = firstSceneKey(window.location.search) || 'Title';
 window.game = new Phaser.Game({
   type: Phaser.AUTO,
   pixelArt: true,
-  backgroundColor: '#2d2d44',
+  backgroundColor: '#14122a', // §9: the night indigo, never black
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

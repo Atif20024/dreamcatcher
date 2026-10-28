@@ -22,3 +22,6 @@ SCENARIOS.push(...backdrops);
 // THE STOPPED HOUR on platform 9 (the proof dream, made a train)
 import proofTrain from './proofTrain.js';
 SCENARIOS.push(...proofTrain);
+// round 2 WP6: the identity system (lamps, the board, the wipe, the chime, Jo's contrast)
+import wp6 from './wp6.js';
+SCENARIOS.push(...wp6);

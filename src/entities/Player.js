@@ -111,6 +111,26 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.art = this.hasAtlas
       ? scene.add.image(x, y, 'jo', this.anim.frameName()).setDepth(12)
       : scene.add.image(x, y, 'jo-stand').setDepth(12);
+    // round 2 WP6 (critique §9 "Jo anchor"): Jo is the highest-contrast thing
+    // on screen. A copy of his frame, tint-filled warm and set 1.5 px toward
+    // the light, peeks out on his lit side as a rim in every place (the
+    // Evening drives its colour and strength from its sky).
+    // On the shadow side a 1 px line of the night indigo closes his outline,
+    // and a soft pool of warm light behind him (`halo`, 0 = off) lifts the
+    // place's dark around him where a place needs it.
+    this.rimStyle = { color: 0xffd890, alpha: 0.5, dx: -1.5, on: true, ink: 0.85, halo: 0, haloColor: 0xf2c890 };
+    this.rim = scene.add.image(x, y, this.art.texture.key, this.art.frame.name).setDepth(11.95).setTintFill(0xffd890).setAlpha(0.5);
+    this.rim.dcRimColor = 0xffd890;
+    this.ink = [
+      [1, 0],
+      [0, 1],
+      [0, -1],
+    ].map(([dx, dy]) => {
+      const o = scene.add.image(x, y, this.art.texture.key, this.art.frame.name).setDepth(11.94).setTintFill(0x14122a);
+      o.inkOff = { dx, dy };
+      return o;
+    });
+    this.halo = scene.add.image(x, y, '__DEFAULT').setVisible(false);
 
     // D5 — hat and tool are separate sprites that trail the body by one
     // frame, so Jo bobbles instead of moving like a decal. The hat wears
@@ -198,6 +218,58 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.tool.setVisible(this.shown && !this.noTool && !this.anim.name.startsWith('sit') && this.anim.name !== 'sleep' && this.anim.name !== 'death' && this.anim.name !== 'pockets').setAlpha(this.alpha * 0.95);
     this.lastFeet = { x: f.x, y: f.y };
     this.lastPos = { x: this.x, y: this.y };
+    this.syncRim();
+  }
+
+  // the warm rim (WP6): Jo's frame, tint-filled, just behind him toward the light
+  setRim(o = {}) {
+    Object.assign(this.rimStyle, o);
+    this.syncRim();
+    return this;
+  }
+
+  syncRim() {
+    const r = this.rim;
+    if (!r || !r.scene) return;
+    const st = this.rimStyle;
+    const a = this.art;
+    if (r.texture.key !== a.texture.key || r.frame.name !== a.frame.name) r.setTexture(a.texture.key, a.frame.name);
+    if (r.dcRimColor !== st.color) {
+      r.setTintFill(st.color);
+      r.dcRimColor = st.color;
+    }
+    r.setOrigin(a.originX, a.originY)
+      .setPosition(a.x + st.dx, a.y)
+      .setScale(a.scaleX, a.scaleY)
+      .setFlipX(a.flipX)
+      .setAngle(a.angle)
+      .setDepth(a.depth - 0.05)
+      .setAlpha(st.alpha * a.alpha)
+      .setVisible(st.on && a.visible && st.alpha > 0);
+    // the ink line on the shadow side (the light comes from st.dx's side)
+    const away = st.dx < 0 ? 1 : -1;
+    for (const o of this.ink || []) {
+      if (!o.scene) continue;
+      if (o.texture.key !== a.texture.key || o.frame.name !== a.frame.name) o.setTexture(a.texture.key, a.frame.name);
+      o.setOrigin(a.originX, a.originY)
+        .setPosition(a.x + o.inkOff.dx * away, a.y + o.inkOff.dy)
+        .setScale(a.scaleX, a.scaleY)
+        .setFlipX(a.flipX)
+        .setAngle(a.angle)
+        .setDepth(a.depth - 0.06)
+        .setAlpha(st.ink * a.alpha)
+        .setVisible(st.on && a.visible && st.ink > 0);
+    }
+    // the pool of light he stands in
+    const h = this.halo;
+    if (h && h.scene) {
+      const on = st.on && this.shown && st.halo > 0 && this.scene.textures.exists('dc-id-glow');
+      if (on) {
+        if (h.texture.key !== 'dc-id-glow') h.setTexture('dc-id-glow').setBlendMode('ADD');
+        h.setPosition(a.x, a.y - 38 * a.scaleY).setScale(1.25, 1.55).setTint(st.haloColor).setAlpha(st.halo).setDepth(a.depth - 0.4);
+      }
+      h.setVisible(on);
+    }
   }
 
   // no atlas (a broken build): the old string-art Jo, 48 px, centred
@@ -209,6 +281,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     const dir = this.flipX ? -1 : 1;
     this.tool.setPosition(lx + dir * 14 * sx, feet - 18 * sy + this.poseDy * 0.5).setFlipX(this.flipX).setVisible(this.shown && !this.noTool).setAlpha(this.alpha * 0.95);
     this.lastPos = { x: this.x, y: this.y };
+    this.syncRim();
   }
 
   // the front hand in world px (the rig's attach point), for held things

@@ -13,6 +13,8 @@ import { uiText } from '../ui/text.js';
 import { panel, dim } from '../ui/Panel.js';
 import { events } from '../core/events.js';
 import { completeDream } from '../utils/save.js';
+import { boardTitle } from '../ui/BoardTitle.js';
+import { dreamById } from '../data/dreams.js';
 
 export class EndingSequence {
   constructor(scene) {
@@ -82,7 +84,12 @@ export class EndingSequence {
         const img = h.add(s.add.image(cam.width / 2, top + H / 2, key).setScrollFactor(0).setDepth(232).setAlpha(0));
         s.tweens.add({ targets: img, alpha: 1, duration: 900 });
       }
-      if (e.title) h.add(uiText(s, cam.width / 2, top + H + 22, e.title, { size: 'display', color: 'accent', align: 'center' }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(232));
+      // round 2 WP6 (§9 "Moments"): the board flips to the ending's name and
+      // CAUGHT, with the place's chime
+      // CAUGHT, with the place's chime; the picture's own name is its plaque
+      const d = dreamById(s.dreamId);
+      h.add(boardTitle(s, `${d ? d.title : e.title || 'THE DREAM'}  CAUGHT`, { y: top + H + 30, persist: true, depth: 233, event: 'caught', name: 'caught-board' }));
+      if (e.title && e.paint) h.add(uiText(s, cam.width / 2, top + H - 4, e.title, { size: 'small', color: 'accent', align: 'center', bg: 0x14122a }).setOrigin(0.5, 1).setScrollFactor(0).setDepth(233));
       const body = h.add(uiText(s, cam.width / 2, top + H + 64, '', { size: 'body', color: 'ink', align: 'center', wrap: 640, lineSpacing: 6 }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(232));
       const full = (e.lines || []).join('\n');
       let n = 0;

@@ -48,6 +48,9 @@ import { musicDirector, sfx } from '../systems/audio.js';
 import { paintProp } from '../art/props.js';
 import { hud } from '../ui/hud.js';
 import { uiText } from '../ui/text.js';
+import { boardTitle } from '../ui/BoardTitle.js';
+import { trainWipe } from '../ui/TrainWipe.js';
+import { placeOf } from '../ui/theme.js';
 
 const T = 32;
 
@@ -208,7 +211,7 @@ export default class DreamScene extends BaseLevel {
       orig(ev, n, f);
       if (ev === 'footstep') this.footsteps.step(this.player.feet(), Math.abs(this.player.body.velocity.x));
     };
-    this.stingers = new Stingers(events);
+    this.stingers = new Stingers(events, { place: placeOf(this) });
     this.perf = new PerfMonitor(this);
     this.verbs = (def.verbs || []).map((v) => ({ mod: v, ctx: this.verbCtx() }));
     for (const v of this.verbs) if (v.mod.create) v.mod.create(v.ctx);
@@ -323,12 +326,9 @@ export default class DreamScene extends BaseLevel {
   }
 
   titleCard(text) {
-    const cam = this.cameras.main;
+    // round 2 WP6 (§9): a place's name arrives on the board, letter by letter
     if (this._titleCard && this._titleCard.active) this._titleCard.destroy();
-    const t = uiText(this, cam.width / 2, 120, text, { size: 'display', color: 'accent', align: 'center' }).setOrigin(0.5).setScrollFactor(0).setDepth(150).setAlpha(0);
-    t.name = 'title-card';
-    this._titleCard = t;
-    this.tweens.add({ targets: t, alpha: 1, duration: 500, hold: 1600, yoyo: true, onComplete: () => t.destroy() });
+    this._titleCard = boardTitle(this, text, { y: 112, name: 'title-card', hold: 1800 });
   }
 
   wireRoom(room) {
@@ -548,8 +548,15 @@ export default class DreamScene extends BaseLevel {
 
   leaveDream(to = 'Hub') {
     if (this.def.ending && this.def.ending.record === false) clearRun(this.dreamId);
-    this.teardown();
-    this.scene.start(to, this.def.hubListed === false ? {} : { returnedFrom: this.dreamId });
+    // the passing-train wipe takes Jo back to the station (WP6, §9)
+    trainWipe(
+      this,
+      () => {
+        this.teardown();
+        this.scene.start(to, this.def.hubListed === false ? {} : { returnedFrom: this.dreamId });
+      },
+      { place: placeOf(this), event: 'return' }
+    );
   }
 
   // ---- modal gate (pause through the InputMap) ------------------------------------

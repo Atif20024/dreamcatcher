@@ -2,9 +2,13 @@
 // saved, a gate opening, a goal changing, an encounter won, the dream
 // caught. They play on the sfx bus (heard with music off: they are feedback).
 import { busTone, busNoise } from './AudioBus.js';
+import { chime } from '../systems/audio.js';
 
+// round 2 WP6 (§9 "Sound"): a lamp lighting plays the station chime in the
+// place's own voice (systems/audio.js `chime`, through the one master)
+let chimePlace = 'hub';
 export const STINGS = {
-  'checkpoint:lit': () => [784, 1047].forEach((f, i) => busTone('sfx', f, 0.35, 'sine', 0.18, i * 0.08)),
+  'checkpoint:lit': (p) => (p && p.silent ? null : chime('lamp', chimePlace)),
   'gate:open': () => {
     busTone('sfx', 150, 0.5, 'square', 0.1);
     busNoise('sfx', 0.35, 0.15, 400);
@@ -16,7 +20,8 @@ export const STINGS = {
 };
 
 export class Stingers {
-  constructor(bus) {
+  constructor(bus, { place = 'hub' } = {}) {
+    chimePlace = place;
     this.offs = Object.entries(STINGS).map(([ev, fn]) =>
       bus.on(ev, (p) => {
         try {
