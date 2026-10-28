@@ -29,14 +29,32 @@ export function toggleMusic() {
   return setMusicOff(!musicOff);
 }
 
+// Development is silent: every sound (music, effects, ambience, every bus)
+// flows through `master`, so one switch mutes the lot. Opt back in with
+// ?sound=1 in the URL or localStorage['dreamcatcher.devSound'] = '1'.
+// Production builds are unaffected.
+const DEV_SILENT = (() => {
+  if (!import.meta.env.DEV) return false;
+  try {
+    if (new URLSearchParams(window.location.search).get('sound') === '1') return false;
+    return localStorage.getItem('dreamcatcher.devSound') !== '1';
+  } catch {
+    return true;
+  }
+})();
+export function isDevSilent() {
+  return DEV_SILENT;
+}
+
 function ac() {
   if (!ctx) {
     ctx = new (window.AudioContext || window.webkitAudioContext)();
     master = ctx.createGain();
-    master.gain.value = 0.35;
+    master.gain.value = DEV_SILENT ? 0 : 0.35;
     master.connect(ctx.destination);
+    if (DEV_SILENT) ctx.suspend();
   }
-  if (ctx.state === 'suspended') ctx.resume();
+  if (ctx.state === 'suspended' && !DEV_SILENT) ctx.resume();
   return ctx;
 }
 
