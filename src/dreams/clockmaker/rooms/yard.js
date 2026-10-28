@@ -42,6 +42,12 @@ export default {
   titleCard: 'THE BELL YARD',
   entities: [
     { type: 'portal', id: 'yard<green', kind: 'seam', x: 0, y: 15, to: { room: 'green', portal: 'green>yard' }, seam: { prop: 'fence', width: 260 } },
+    { type: 'checkpoint', id: 'cp_yard', label: 'THE BELL YARD', x: 5, y: 15 },
+    // coins: a hop at the foot of the hill, and the hilltop behind the bell
+    { type: 'coin', id: 'c_hop1', x: 4, y: 13 },
+    { type: 'coins', id: 'c_hop2', x: 5, y: 12, n: 2 },
+    { type: 'coin', id: 'c_hop3', x: 7, y: 13 },
+    { type: 'coins', id: 'c_top', x: 31, y: 10, n: 2 },
     { type: 'orb', id: 'orb', x: 24, y: 9 },
   ],
 };

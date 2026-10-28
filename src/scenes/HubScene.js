@@ -11,6 +11,7 @@ import { DREAMS, LAST_STOP, dreamById } from '../data/dreams.js';
 import { createHubTextures, HUB_PROP_KEYS } from '../entities/hubArt.js';
 import { stationTex, pigeonTex, doorWingTex } from '../art/trainArt.js';
 import { hubTex } from '../art/hubArt.js';
+import { attachStride } from '../art/stride.js';
 import SplitFlapBoard from '../systems/SplitFlapBoard.js';
 import Train from '../entities/Train.js';
 import Silhouettes from '../entities/Silhouette.js';
@@ -30,7 +31,7 @@ const FLOOR = line(HUB_ROWS.FLOOR - 1); // 832: hall floor / concourse
 const ROOF = line(HUB_ROWS.ROOF - 1); // 256
 const UNDER = line(HUB_ROWS.UNDER - 1); // 1056
 const DOORS_X = px(22);
-const SHED_END_X = px(139);
+const SHED_END_X = px(149);
 
 // --- the people of the station: what they say, per dreamsCaught -----------
 const PEMBERTON_RETURN = [
@@ -187,6 +188,10 @@ export default class HubScene extends BaseLevel {
     // the sun is low in the west: a warm rim on that side, a shadow east
     s.shadow = this.add.image(o.wx - 4, floor - 1, hubTex(this, 'shadow', 64, 8)).setOrigin(0.05, 0.5).setTint(0x2a3050).setAlpha(0.3).setDepth(D.INTERACT - 3);
     s.rim = this.add.image(o.wx - 1.5, floor - 24, `hub-${who}`).setTintFill(0xffd890).setAlpha(0.5).setDepth(D.INTERACT + 0.5);
+    // legs from the ground actually covered, the task loop while standing
+    // (phase 2 motion: src/art/stride.js); Bilal's walk to the dumbwaiter
+    // and the sweeper's rounds step with them, never slide
+    s.stride = attachStride(this, s, `hub-${who}`);
     this.npcs[who] = s;
     return s;
   }
@@ -1192,10 +1197,9 @@ export default class HubScene extends BaseLevel {
     const sw = this.sweeper;
     if (sw) {
       sw.x += sw.dir * 18 * dt;
-      if (sw.x > px(138)) sw.dir = -1;
+      if (sw.x > px(148)) sw.dir = -1;
       if (sw.x < px(28)) sw.dir = 1;
-      sw.setFlipX(sw.dir < 0);
-      sw.setTexture(`hub-sweeper#${(Math.floor(sw.x / 6) % 8) + 1}`);
+      if (!sw.stride) sw.setTexture(`hub-sweeper#${(Math.floor(sw.x / 6) % 8) + 1}`);
       sw.lamp.setPosition(sw.x, sw.y - 6);
       if (Math.floor(time / 2400) !== sw.lastHum && Math.abs(p.x - sw.x) < 300) {
         sw.lastHum = Math.floor(time / 2400);

@@ -60,6 +60,13 @@ export default {
     { type: 'portal', id: 'green>clock', kind: 'door', x: 33, y: 12, to: { room: 'clockhouse', portal: 'clock>green' }, door: { prompt: 'go in', fade: 250 } },
     { type: 'checkpoint', id: 'cp_green', label: 'THE GREEN', x: 6, y: 15 },
     { type: 'npc', id: 'wren', rig: 'wren', x: 18, y: 15, facing: -1, talk: [{ conv: 'wren_done', if: 'clock_wound' }, { conv: 'wren_after', if: 'met_wren' }, { conv: 'wren_first' }] },
+    // coins: the high stone ledge west of the tree (a full jump), the far
+    // end of the terrace past the clock house, an arc over the well
+    { type: 'coins', id: 'c_ledge', x: 10, y: 10, n: 4 },
+    { type: 'coins', id: 'c_terrace', x: 39, y: 11, n: 2 },
+    { type: 'coin', id: 'c_well1', x: 44, y: 13 },
+    { type: 'coin', id: 'c_well2', x: 45, y: 12 },
+    { type: 'coin', id: 'c_well3', x: 46, y: 13 },
     { type: 'gate', id: 'g_yard', x: 52, y: 10, h: 6, requires: ['clock_wound'], hint: 'OPENS WHEN THE CLOCK STRIKES' },
   ],
 };

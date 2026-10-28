@@ -16,6 +16,10 @@ describe('unified warp', () => {
     expect(firstSceneKey('?warp=hub')).toBe('Hub');
     expect(firstSceneKey('')).toBeNull(); // no warp: the title boots
   });
+  it('THE STOPPED HOUR warps by its id and by the old proof alias', () => {
+    expect(firstSceneKey('?warp=clockmaker:start')).toBe('Dream');
+    expect(firstSceneKey('?warp=proof:start')).toBe('Dream');
+  });
   it('old params keep working and unknown dreams are ignored', () => {
     expect(firstSceneKey('?gm=floor')).toBe('Gambler');
     expect(firstSceneKey('?at=pad')).toBe('Astronaut');

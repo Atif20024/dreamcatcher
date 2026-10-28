@@ -8,8 +8,8 @@
 // modules, audio (stems, ambience, footsteps, stingers), the PerfMonitor and
 // a shared EndingSequence. See docs/redesign/FRAMEWORK.md.
 //
-//   this.scene.start('Dream', { dreamId: 'proof', warp?: 'room' | 'room:spawnId', resume?: true })
-// Dev: ?warp=proof:start (src/dev/warp.js).
+//   this.scene.start('Dream', { dreamId: 'clockmaker', warp?: 'room' | 'room:spawnId', resume?: true })
+// Dev: ?warp=clockmaker:start (or the old alias ?warp=proof:start; src/dev/warp.js).
 import BaseLevel from './BaseLevel.js';
 import Player from '../entities/Player.js';
 import { frameworkDream } from '../dreams/index.js';
@@ -43,6 +43,7 @@ import { updateTeach } from '../play/Teach.js';
 import GateSigns from '../play/GateSigns.js';
 import { RunState } from '../play/RunState.js';
 import { getRun, clearRun } from '../utils/save.js';
+import { dreamById } from '../data/dreams.js';
 import { musicDirector, sfx } from '../systems/audio.js';
 import { paintProp } from '../art/props.js';
 import { hud } from '../ui/hud.js';
@@ -136,6 +137,8 @@ export default class DreamScene extends BaseLevel {
     // checkpoints are global (a resume needs every flag's position)
     this.flags = this.physics.add.staticGroup();
     const wr = this.graph.worldRect();
+    // the dream's own coin (data/dreams.js), when it is a train on the board
+    if (dreamById(this.dreamId)) this.dreamCoinId = this.dreamId;
     this.setupCommon({ worldW: wr.x1, worldH: wr.y1, levelName: `DREAM — ${def.title}`, spawn: { x: sp.x, y: sp.y } });
     const cam = this.cameras.main;
     cam.stopFollow();
@@ -143,6 +146,7 @@ export default class DreamScene extends BaseLevel {
     musicDirector.stop();
     this.physics.world.setBounds(wr.x0, wr.y0 - 600, wr.x1 - wr.x0, wr.y1 - wr.y0 + 800);
     this.placeCheckpointsAll();
+    this.placeCoinsAll();
     this.physics.add.overlap(this.player, this.flags, (p, f) => this.activateCheckpoint(f));
 
     // narrative, interaction, encounters, beats
@@ -265,6 +269,19 @@ export default class DreamScene extends BaseLevel {
       const flame = this.add.circle(o.wx + 28, feet - 58, 4, 0xfff0b0).setDepth(-8).setVisible(false);
       this.lanterns.set(o.id, { post, glow, flame });
     }
+  }
+
+  // coins are global like checkpoints (a continued run removes the taken
+  // ones by position): room entities { type: 'coin' } / { type: 'coins', n, dx, dy }
+  placeCoinsAll() {
+    const objs = [];
+    for (const r of this.graph.rooms.values()) {
+      for (const e of r.data.entities || []) {
+        if (e.type !== 'coin' && e.type !== 'coins') continue;
+        objs.push({ ...e, wx: (r.tx + e.x) * T + T / 2, wy: (r.ty + e.y) * T + T / 2 });
+      }
+    }
+    if (objs.length) this.spawnPickups(objs);
   }
 
   onCheckpointLit(cp) {
@@ -612,6 +629,7 @@ export default class DreamScene extends BaseLevel {
       return;
     }
     this.player.update(time, delta);
+    this.updatePickups(time, delta);
     for (const v of this.verbs) if (v.mod.update) v.mod.update(v.ctx, dt);
     this.interaction.update(!this.transitions.busy);
     this.barks.update(time);

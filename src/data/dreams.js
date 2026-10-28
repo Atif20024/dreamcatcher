@@ -61,6 +61,15 @@ export const DREAMS = [
     livery: { body: 0xf6f2ea, trim: 0xc03a2a, window: 0x88b8d8, emblem: 'cross' },
     conductor: 'The White Coat. They will thank you and forget your name by morning.', roLine: 'Scrubbed raw. Long shift.',
   },
+  {
+    // the clockmaker's dream: to keep a whole town's time, and be noticed
+    // only on the evening it stops (src/dreams/clockmaker/, DreamScene)
+    id: 'clockmaker', platform: 9, title: 'THE STOPPED HOUR', scene: 'Dream', propsKind: 'clocks', ambientLoop: 'dusk_lane',
+    coin: { name: 'brass cog', worth: 3, budget: [30, 40], pal: { c: 0x8a6a2c, C: 0xc8a050, h: 0xf2e0a0 } },
+    livery: { body: 0x2e4a3a, trim: 0xc8a050, window: 0xffc870, emblem: 'clock' },
+    conductor: "The Stopped Hour. A little town where every lamp went out at six, and the clock with them.\nKeep its time, sir, and nobody will ever know your name. Still boarding?",
+    roLine: 'Brass dust on your cuffs. You fixed something nobody thanked you for.',
+  },
 ];
 
 // the last stop: the gate past the turnstile, open from the first visit —

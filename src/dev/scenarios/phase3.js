@@ -1,24 +1,35 @@
-// Phase 3a scenarios: the framework, on the proof dream (?warp=proof:start).
-//   proof-playthrough   scripted inputs from the lane to the ending card: walk
+// Phase 3a scenarios: the framework, on THE STOPPED HOUR (once the proof
+// dream; ?warp=clockmaker:start).
+//   clockmaker-playthrough   scripted inputs from the lane to the ending card: walk
 //                       (hops when blocked), talk to Wren with [E], the door,
 //                       climb to the clock, win the encounter, back out, the
 //                       gate opens, up the hill, catch the orb, return to the station
-//   proof-seam-no-snap  walking lane → green: the camera, zoom and every backdrop
+//   clockmaker-seam-no-snap  walking lane → green: the camera, zoom and every backdrop
 //                       layer move continuously; the committed room flips once
-//   proof-door          [E] at the clock house door fades through black into
+//   clockmaker-door          [E] at the clock house door fades through black into
 //                       the interior at the paired portal, and back out
-//   proof-talk-on-e     standing beside Wren never opens the scene box (a bark
+//   clockmaker-talk-on-e     standing beside Wren never opens the scene box (a bark
 //                       may play on the caption bar); [E] does
-//   proof-perf          every room under the budget (objects, draw calls), only
+//   clockmaker-perf          every room under the budget (objects, draw calls), only
 //                       the current room + its neighbours live
-import { clearRun } from '../../utils/save.js';
+import { clearRun, getSave, updateSave } from '../../utils/save.js';
+
+// scenarios write to the real save: put a caught dream back on the board
+export function uncatch(id) {
+  updateSave((s) => {
+    if (s.dreams[id]) {
+      delete s.dreams[id];
+      s.dreamsCaught = Math.max(0, s.dreamsCaught - 1);
+    }
+  });
+}
 import { BUDGET } from '../../core/PerfBudget.js';
 
 const T = 32;
 
 async function boot(dc, place = 'start') {
-  clearRun('proof');
-  dc.warp('proof', place);
+  clearRun('clockmaker');
+  dc.warp('clockmaker', place);
   await dc.run(40);
   const s = dc.scene();
   s.invulnUntil = Infinity;
@@ -98,7 +109,7 @@ async function playEncounter(dc, s) {
 }
 
 const playthrough = {
-  id: 'proof-playthrough',
+  id: 'clockmaker-playthrough',
   async run(dc) {
     const log = [];
     const s = await boot(dc);
@@ -150,14 +161,23 @@ const playthrough = {
     await dc.run(20);
     const back = dc.scene() && dc.scene().sys.settings.key;
     ok('back-at-station', back === 'Hub');
-    clearRun('proof');
+    // the dream is caught: the save flag, and the hub plays the return
+    const hub = dc.scene();
+    ok('caught-flag', !!getSave().dreams.clockmaker);
+    ok('returned-from', hub && hub.returnedFrom === 'clockmaker');
+    for (let i = 0; i < 700 && hub.trains && hub.trains.clockmaker && hub.trains.clockmaker.state !== 'dead' && hub.trains.clockmaker.state !== 'gone'; i++) await dc.run(1);
+    await dc.run(30);
+    const row = hub.board && hub.board.rows.find((r) => r.platform === 9);
+    ok('board-caught', !!row && /CAUGHT/.test(row.status));
+    uncatch('clockmaker');
+    clearRun('clockmaker');
     const pass = log.every((l) => l.endsWith(':ok'));
     return { pass, detail: `${log.join(' ')}; encounter presses ${presses}` };
   },
 };
 
 const seam = {
-  id: 'proof-seam-no-snap',
+  id: 'clockmaker-seam-no-snap',
   async run(dc) {
     const s = await boot(dc);
     put(s, 34 * T, 14 * T + 10);
@@ -204,7 +224,7 @@ const seam = {
 };
 
 const door = {
-  id: 'proof-door',
+  id: 'clockmaker-door',
   async run(dc) {
     const s = await boot(dc, 'green');
     put(s, (44 + 33) * T + 16, 12 * T + 10);
@@ -231,7 +251,7 @@ const door = {
 };
 
 const talkOnE = {
-  id: 'proof-talk-on-e',
+  id: 'clockmaker-talk-on-e',
   async run(dc) {
     const s = await boot(dc, 'green');
     const w = s.npcs.get('wren');
@@ -251,7 +271,7 @@ const talkOnE = {
 };
 
 const perf = {
-  id: 'proof-perf',
+  id: 'clockmaker-perf',
   async run(dc) {
     const out = [];
     let ok = true;
@@ -267,7 +287,7 @@ const perf = {
       ok = ok && good;
       out.push(`${room}: ${total} objects, ~${p.drawCalls} draw calls, live [${live.join(',')}], paint ${JSON.stringify(s.streamer.paintMs)}`);
     }
-    clearRun('proof');
+    clearRun('clockmaker');
     return { pass: ok, detail: out.join('; ') };
   },
 };

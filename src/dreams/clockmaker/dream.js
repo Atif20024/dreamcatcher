@@ -1,8 +1,15 @@
-// THE PROOF: a small test dream that exercises the whole framework (plan 6
-// Phase 3) — one seam (lane → green), one door (green ↔ clock house), an
-// interior with enclosure, one NPC with a scene-box conversation and barks,
-// one encounter (the clock), one gate with a sign, checkpoints, an ending.
-// Reachable only by ?warp=proof:start; it is not on the hub board.
+// THE STOPPED HOUR — the clockmaker's dream (platform 9). Jo has always
+// wanted to be the one who keeps a town's time: the work nobody sees until
+// the evening it stops. At six every lamp in the town went out with the
+// clock; the lamplighter Nell needs steady hands to seat its three gears.
+// Wind it, step back out onto the lit green, and the gate to the bell yard
+// opens on the dream.
+// Built on the phase-3 framework (it began as the framework's proof dream):
+// one seam (lane → green), one door (green ↔ clock house), an interior with
+// enclosure, one NPC with a scene-box conversation and barks, one encounter
+// (the clock), one gate with a sign, checkpoints, coins, an ending.
+// Boarded from the hub (platform 9); dev: ?warp=clockmaker:start (alias
+// ?warp=proof:start).
 import lane from './rooms/lane.js';
 import green from './rooms/green.js';
 import clockhouse from './rooms/clockhouse.js';
@@ -18,10 +25,9 @@ const DUSK_SKY = { top: 0x2a2a58, mid: 0x8a5a7a, bottom: 0xf2a676, sun: { x: 360
 const NIGHT = { ...DUSK, sky: 0x5a4a78, hill: 0x2a2a44, house: 0x2a2438, mist: 0x8a6a8a, mistA: 0.3, leaf: 0x2a3a3a };
 
 export default {
-  id: 'proof',
-  title: 'THE PROOF',
+  id: 'clockmaker',
+  title: 'THE STOPPED HOUR',
   enabled: true,
-  hubListed: false, // dev only: ?warp=proof:start
   profile: { failure: 'default', hud: 'default', camera: { zoom: 1 } },
   rooms: [lane, green, clockhouse, yard],
   start: { room: 'lane', spawn: 'start' },
@@ -33,11 +39,11 @@ export default {
   barks: BARKS,
   encounters: { clockwork: clockworkEnc },
   objectives: {
-    find_lamplighter: 'find the lamplighter on the green',
+    find_lamplighter: 'the lamps are out: find the lamplighter on the green',
     wind_clock: 'wind the clock in the clock house',
     back_out: 'the clock is going: back out to the green',
     to_bell: 'the gate is open: up to the bell',
-    catch_dream: 'catch the dream by the bell',
+    catch_dream: 'up the hill: catch the dream by the bell',
   },
   materials: {},
   decorRules: {},
@@ -82,8 +88,7 @@ export default {
   ambientLoop: 'dusk_lane',
   ending: {
     orb: true,
-    record: false, // the proof is not a dream on the board: nothing is saved as caught
-    title: 'THE LAMPS',
+    title: "SEVEN O'CLOCK",
     lines: ['The clock struck seven, an hour late.', 'Nobody on the green noticed it had stopped.', 'Somebody noticed it start.'],
     vista: 0.8,
     paint(ctx, w, h) {

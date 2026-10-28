@@ -7,9 +7,50 @@ import { arrivalTrain } from '../entities/Train.js';
 import { stationTex } from '../art/trainArt.js';
 import { hubTex } from '../art/hubArt.js';
 import { uiText, PLATE } from '../ui/text.js';
+import { characterManifest } from '../art/baked.js';
 
 // Close-up entry shots: a zoomed street scene, Jo walks to the door, fade in.
 const INTROS = {
+  clockmaker: {
+    ground: 0x4a4048, // the arrival platform's stone (round 2 WP3)
+    caption: 'THE STOPPED HOUR',
+    sub: 'A small town at dusk. Every lamp went out at six, and the clock with them.',
+    doorX: 700,
+    draw(scene) {
+      const g = scene.add.graphics();
+      g.fillGradientStyle(0x2a2a58, 0x2a2a58, 0xf2a676, 0xd88a78, 1);
+      g.fillRect(0, 0, 960, 540);
+      // low hills, then a row of houses with every window lit
+      scene.add.ellipse(260, 470, 900, 220, 0x4a3a5a);
+      scene.add.ellipse(820, 480, 700, 200, 0x3e3250);
+      for (let x = 0; x < 960; x += 120) {
+        const h = 120 + ((x / 120) % 3) * 22;
+        scene.add.rectangle(x + 55, 470 - h / 2, 104, h, 0x3a3048);
+        scene.add.triangle(x + 55, 470 - h - 26, -58, 26, 0, -10, 58, 26, 0x4a2e3e);
+        for (let wy = 470 - h + 24; wy < 440; wy += 40) scene.add.rectangle(x + 34, wy, 16, 20, 0xffc870, 0.9);
+      }
+      // the clock tower over the roofs: its face stopped at six
+      scene.add.rectangle(560, 250, 90, 440, 0x342a40);
+      scene.add.triangle(560, 18, -54, 30, 0, -30, 54, 30, 0x4a2e3e);
+      scene.add.circle(560, 110, 30, 0xf2e6cc);
+      scene.add.circle(560, 110, 30).setStrokeStyle(3, 0xc8a050);
+      scene.add.rectangle(560, 98, 3, 24, 0x2a2028);
+      scene.add.rectangle(560, 124, 3, 26, 0x2a2028);
+      // the lamp posts along the lane, dark
+      for (const lx of [140, 420, 860]) {
+        scene.add.rectangle(lx, 410, 5, 120, 0x2a2028);
+        scene.add.rectangle(lx, 346, 16, 18, 0x4a4048);
+      }
+      // the lane, and a green door under a lit fanlight
+      scene.add.rectangle(480, 505, 960, 70, 0x4a4048);
+      scene.add.rectangle(480, 472, 960, 6, 0x5a5058);
+      scene.add.rectangle(700, 400, 70, 150, 0x2a2028);
+      scene.add.rectangle(700, 404, 58, 138, 0x2e4a3a);
+      scene.add.rectangle(700, 330, 58, 10, 0xffc870, 0.9);
+      scene.add.circle(714, 410, 3, 0xc8a050);
+      return { groundY: 470 };
+    },
+  },
   painter: {
     ground: 0x6b4e2e, // the arrival platform's stone (round 2 WP3)
     caption: 'THE YELLOW HOUSE',
@@ -175,7 +216,7 @@ const INTROS = {
   },
 };
 
-const LEVEL_SCENES = { chef: 'Chef', musician: 'Musician', astronaut: 'Astronaut', writer: 'Writer', painter: 'Painter', gambler: 'Gambler' };
+const LEVEL_SCENES = { clockmaker: 'Dream', chef: 'Chef', musician: 'Musician', astronaut: 'Astronaut', writer: 'Writer', painter: 'Painter', gambler: 'Gambler' };
 
 export default class IntroScene extends Phaser.Scene {
   constructor() {
@@ -300,12 +341,15 @@ export default class IntroScene extends Phaser.Scene {
     if (this.started) return;
     const parts = [this.jo, this.joHat].filter(Boolean);
     const from = this.jo.x;
+    // one frame per step of Jo's walk (manifest step × scale: 8 px), so the
+    // planted foot stays planted (phase 2 motion, as Train.walkIn does)
+    const jm = characterManifest('jo');
+    const stepPx = jm ? jm.animations.walk.step * (jm.scale || 2) : 8;
     this.walkTimer = this.time.addEvent({
       delay: 30,
       loop: true,
-      // the walk advances a frame per 6 px (step 3 at 2×): the feet stay put
       callback: () => {
-        const f = `walk/${String(Math.floor((this.jo.x - from) / 6) % 8).padStart(2, '0')}`;
+        const f = `walk/${String(Math.floor((this.jo.x - from) / stepPx) % 8).padStart(2, '0')}`;
         if (!atlas) return this.jo.setTexture(this.jo.texture.key === 'jo-run' ? 'jo-stand' : 'jo-run');
         this.jo.setFrame(`jo/street/side/${f}`);
         if (this.joHat) this.joHat.setFrame(`jo/street/side/${f}/hat`);

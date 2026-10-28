@@ -10,7 +10,7 @@
 import { auditText } from '../readability.js';
 
 const PLACES = [
-  ['hub', null], ['chef', null], ['musician', null], ['astronaut', 'gym'], ['writer', 'attic'], ['painter', 'arrival'], ['gambler', 'arrival'], ['evening', 'arch'], ['proof', 'start'],
+  ['hub', null], ['chef', null], ['musician', null], ['astronaut', 'gym'], ['writer', 'attic'], ['painter', 'arrival'], ['gambler', 'arrival'], ['evening', 'arch'], ['clockmaker', 'start'],
 ];
 const ZOOMS = { hub: [0.62], evening: [0.6] };
 

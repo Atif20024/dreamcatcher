@@ -8,8 +8,9 @@ const FULL = buildHubMap();
 const slice = (x0, x1) => FULL.map((row) => row.slice(x0, x1 + 1));
 const L = (worldCol, x0) => worldCol - x0;
 
-// platform bays: [world col of the bay's first tile] per platform 1..8
-export const BAYS = [80, 87, 94, 101, 110, 117, 124, 131];
+// platform bays: [world col of the bay's first tile] per platform 1..9
+// (platform 9, THE STOPPED HOUR, has its own short shed past the luggage ramp)
+export const BAYS = [80, 87, 94, 101, 110, 117, 124, 131, 141];
 
 const bay = (x0, p) => {
   const c = BAYS[p - 1];
@@ -118,18 +119,28 @@ const ROOMS = [
     ],
   },
   {
-    id: 'gate',
-    section: 'gate',
+    id: 'platforms_c',
+    section: 'platforms',
     allowNoFoes: true,
     horizon: 832, // the concourse floor: backdrops hang from it, not the undercroft
     grid: slice(140, 149),
     music: { section: 'hub', bpm: 104, state: 'hub' },
+    bg: { far: 'hall_vault', mid: 'shed_ribs', near: 'shed_lamps', landmark: 'train_shed' },
+    objects: [...bay(140, 9)],
+  },
+  {
+    id: 'gate',
+    section: 'gate',
+    allowNoFoes: true,
+    horizon: 832, // the concourse floor: backdrops hang from it, not the undercroft
+    grid: slice(150, 159),
+    music: { section: 'hub', bpm: 104, state: 'hub' },
     bg: { far: 'gate_dark', mid: 'shed_ribs', near: 'railings', landmark: 'no_passengers' },
     objects: [
-      { type: 'turnstile', x: L(143, 140), y: 24 },
-      { type: 'gate', id: 'service_gate', x: L(146, 140), y: 12, h: 14, requires: [], alwaysOpen: true },
-      { type: 'sign', x: L(146, 140), y: 8, text: 'NO PASSENGERS' },
-      { type: 'gate_slot', x: L(146, 140), y: 30 },
+      { type: 'turnstile', x: L(153, 150), y: 24 },
+      { type: 'gate', id: 'service_gate', x: L(156, 150), y: 12, h: 14, requires: [], alwaysOpen: true },
+      { type: 'sign', x: L(156, 150), y: 8, text: 'NO PASSENGERS' },
+      { type: 'gate_slot', x: L(156, 150), y: 30 },
     ],
   },
 ];
@@ -140,6 +151,7 @@ const OBJECTIVES = {
   "hall": "board any train — or the last stop",
   "platforms_a": "board any train — or the last stop",
   "platforms_b": "board any train — or the last stop",
+  "platforms_c": "board any train — or the last stop",
   "gate": "the last stop"
 };
 
