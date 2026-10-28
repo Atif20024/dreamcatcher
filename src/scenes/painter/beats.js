@@ -49,7 +49,19 @@ export default {
       if (this.props.train) {
         this.time.delayedCall(1500, () => {
           sfx('whistle');
-          this.tweens.add({ targets: [this.props.train, this.paulOnTrain], x: '-=900', duration: 4000, ease: 'quad.in' });
+          // two full-size coaches (round 2 WP3): far enough to clear, wheels turning
+          let last = this.props.train.x;
+          this.tweens.add({
+            targets: [this.props.train, this.paulOnTrain],
+            x: '-=2600',
+            duration: 5000,
+            ease: 'quad.in',
+            onUpdate: () => {
+              const dx = this.props.train.x - last;
+              last = this.props.train.x;
+              if (this.nightTrain) this.nightTrain.wheels.forEach((w) => (w.rotation += dx / 20));
+            },
+          });
         });
       }
     }

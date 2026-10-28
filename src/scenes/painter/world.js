@@ -8,6 +8,8 @@ import { showTutorial } from '../../systems/tutorial.js';
 import { recordMoment } from '../../utils/save.js';
 import { T, px, overlaps, hex } from './util.js';
 import { uiText } from '../../ui/text.js';
+import { arrivalTrain } from '../../entities/Train.js';
+import { dreamById } from '../../data/dreams.js';
 
 // THE YELLOW HOUSE — the world: everything rooms.js places, built. Mixed into
 // PainterScene.prototype.
@@ -138,6 +140,7 @@ export default {
   },
 
   buildProp(o, floor) {
+    if (o.kind === 'train') return this.buildNightTrain(o, floor);
     const key = `pt-${o.kind}`;
     if (!this.textures.exists(key)) return;
     const img = this.add.image(o.wx, floor, key).setOrigin(0.5, 1).setDepth(o.kind === 'bed' || o.kind === 'table' || o.kind === 'house_front' || o.kind === 'cafe_front' || o.kind === 'train' ? 6 : 9);
@@ -154,14 +157,20 @@ export default {
     }
     if (o.kind === 'dead_sunflower') img.setAngle(o.n % 2 ? 40 : -35);
     if (o.kind === 'cypress_tall') img.setVisible(false); // the trunk is the ladder; the tree is painted by the parallax landmark
-    if (o.kind === 'train') {
-      this.props.train = img;
-      // Paul is on it; it leaves when Jo arrives at the platform
-      this.paulOnTrain = this.add.image(o.wx + 20, floor - 20, 'pt-p-paul').setOrigin(0.5, 1).setDepth(7).setScale(0.8);
-    }
     const sh = this.add.image(o.wx, floor - 1, 'pt-shadow').setDepth(5).setAlpha(0.6).setScale(img.displayWidth / 64 + 0.3, 1);
     sh.ownerX = o.wx;
     (this.shadows ||= []).push(sh);
+  },
+
+  // the night train through the fields, at full scale (round 2 WP3: two
+  // 20 m coaches, 172 px from rail to roof, on the line at Jo's floor).
+  // Paul stands in its open door; it leaves with him when the wind comes.
+  buildNightTrain(o, floor) {
+    const t = arrivalTrain(this, o.wx, floor, dreamById('painter').livery, { depth: D.SUPPORT - 1, light: false }); // behind the terrain: ladders stay readable
+    t.container.add(t.doorway.setDepth(0)); // the doorway rides with the coach
+    this.props.train = t.container;
+    this.nightTrain = t;
+    this.paulOnTrain = this.add.image(t.doorX, t.sillY, 'pt-p-paul').setOrigin(0.5, 1).setDepth(D.SUPPORT - 0.5);
   },
 
   buildTube(o, floor) {
