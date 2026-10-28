@@ -8,5 +8,6 @@ import hudScale from './hudScale.js';
 import phase14 from './phase14.js';
 import phase2 from './phase2.js';
 import phase3 from './phase3.js';
+import round2 from './round2.js';
 
-export const SCENARIOS = [...backgroundSnap, evaTether, betCard, ...failure, hudScale, ...phase14, ...phase2, ...phase3];
+export const SCENARIOS = [...backgroundSnap, evaTether, betCard, ...failure, hudScale, ...phase14, ...phase2, ...phase3, ...round2];

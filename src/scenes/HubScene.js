@@ -99,6 +99,8 @@ export default class HubScene extends BaseLevel {
       spawn = { x: px(26), y: FLOOR - 24 };
     }
     this.player = new Player(this, spawn.x, spawn.y);
+    // the same long shadow east as everyone else, on the ground under him
+    this.player.shadow.set({ texture: hubTex(this, 'shadow', 64, 8), originX: 0.05, offsetX: -4, tint: 0x2a3050, alpha: 0.42 });
     this.dreamCoinId = 'musician'; // the station pays in busker change
     this.hudProfile = 'hub'; // nothing here can hurt you: no hearts on the HUD
     this.setupCommon({ worldW: built.worldW, worldH: built.worldH, levelName: 'CROSSROADS STATION', spawn });
@@ -166,8 +168,6 @@ export default class HubScene extends BaseLevel {
       s.rim.setPosition(s.x - 1.5, s.y).setFlipX(s.flipX).setAlpha(s.alpha * 0.5).setVisible(s.visible).setDepth(s.depth - 0.5).setScale(s.scaleX, s.scaleY);
       s.shadow.setPosition(s.x - 4, s.y + 23).setAlpha(s.alpha * 0.3).setVisible(s.visible);
     }
-    if (!this.joShadow) this.joShadow = this.add.image(p.x, p.y, hubTex(this, 'shadow', 64, 8)).setOrigin(0.05, 0.5).setTint(0x2a3050).setAlpha(0.3).setDepth(D.PLAYER - 1);
-    this.joShadow.setPosition(p.x - 4, p.body.bottom - 1).setVisible(p.shown && p.body.blocked.down);
   }
 
   // an NPC: a sprite planted on its floor line, an idle bob, a name
@@ -685,7 +685,7 @@ export default class HubScene extends BaseLevel {
       count: Math.round(this.state.travelers / 6),
       y: line(29),
       x0: px(2),
-      x1: px(10),
+      x1: px(5), // the street, short of the first stair
       spawnX: px(2),
     });
   }

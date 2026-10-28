@@ -34,7 +34,7 @@ export function toggleMusic() {
 // ?sound=1 in the URL or localStorage['dreamcatcher.devSound'] = '1'.
 // Production builds are unaffected.
 const DEV_SILENT = (() => {
-  if (!import.meta.env.DEV) return false;
+  if (!(import.meta.env && import.meta.env.DEV)) return false; // (node lint: no env)
   try {
     if (new URLSearchParams(window.location.search).get('sound') === '1') return false;
     return localStorage.getItem('dreamcatcher.devSound') !== '1';

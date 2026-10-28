@@ -7,7 +7,7 @@
 //   const t = Terrain.paint(room, lib, { props, propsExtra, palette })   // canvases + live list
 //   const c = Terrain.colliders(scene, roomGraphEntry)                    // physics groups
 //   Terrain.surfaceAt(room, lib)(tx, ty)                                  // 'grass' | 'stone' | 'wood'…
-import { roleOf, isSolidChar } from '../builders/legend.js';
+import { roleOf, isSolidChar, slopeRoleAt, crestSides } from '../builders/legend.js';
 import { classifyRoom, evaluateDecor, materialMap, seedOf, gridView } from './terrainRules.js';
 import { canvas as mkCanvas, T } from '../art/materials/painters.js';
 import { paintDecor } from '../art/materials/decor.js';
@@ -315,17 +315,24 @@ export const Terrain = {
     const hazards = scene.physics.add.staticGroup();
     const X = r.x0;
     const Y = r.y0;
+    // round 2 §10.2: stairs walk as slopes (no body), and a run's end flush
+    // with a slope's high end is no wall (the ground solver's crest rule)
+    const charAt = (x, y) => (grid[y] && grid[y][x]) || '.';
+    const slopeAt = (x, y) => slopeRoleAt(charAt, x, y);
+    const solidHere = (x, y) => isSolidChar(charAt(x, y)) && roleOf(charAt(x, y)) !== 'gate' && !slopeAt(x, y);
     for (let y = 0; y < grid.length; y++) {
       let x = 0;
       const row = grid[y];
       while (x < row.length) {
         const ch = row[x];
         const role = roleOf(ch);
-        if (isSolidChar(ch) && role !== 'gate') {
+        if (solidHere(x, y)) {
           let e = x;
-          while (e + 1 < row.length && isSolidChar(row[e + 1]) && roleOf(row[e + 1]) !== 'gate') e++;
+          while (e + 1 < row.length && solidHere(e + 1, y)) e++;
           const z = scene.add.zone(X + x * T, Y + y * T, (e - x + 1) * T, T).setOrigin(0, 0);
           scene.physics.add.existing(z, true);
+          if (crestSides(slopeAt, x, y).left) z.body.checkCollision.left = false;
+          if (crestSides(slopeAt, e, y).right) z.body.checkCollision.right = false;
           solids.add(z);
           x = e + 1;
           continue;
@@ -364,6 +371,7 @@ export const Terrain = {
   // world-tile grids the Player reads (ladders, ribbed walls, slopes, solids)
   fillGrids(target, r) {
     const grid = r.data.grid;
+    const charAt = (x, y) => (grid[y] && grid[y][x]) || '.';
     for (let y = 0; y < grid.length; y++)
       for (let x = 0; x < grid[y].length; x++) {
         const role = roleOf(grid[y][x]);
@@ -371,8 +379,10 @@ export const Terrain = {
         const wx = r.tx + x;
         if (role === 'ladder') (target.ladderGrid[wy] ||= {})[wx] = true;
         if (role === 'climbable') (target.climbGrid[wy] ||= {})[wx] = true;
-        if (role.startsWith('slope')) (target.slopeGrid[wy] ||= {})[wx] = role;
-        if (isSolidChar(grid[y][x]) && role !== 'gate') (target.solidGrid[wy] ||= {})[wx] = true;
+        const sRole = slopeRoleAt(charAt, x, y);
+        if (sRole) (target.slopeGrid[wy] ||= {})[wx] = sRole;
+        else if (isSolidChar(grid[y][x]) && role !== 'gate') (target.solidGrid[wy] ||= {})[wx] = true;
+        if (role === 'oneway') ((target.oneWayGrid ||= {})[wy] ||= {})[wx] = wy * T;
         if (role === 'liquid') (target.surfaceGrid[wy] ||= {})[wx] = 'liquid';
       }
   },

@@ -98,6 +98,7 @@ export default class PainterScene extends BaseLevel {
 
     const spawn = { x: px(3), y: px(33) - 10 };
     this.player = new Player(this, spawn.x, spawn.y);
+    this.player.shadow.set({ texture: 'pt-shadow', tint: null, alpha: 0.7, length: 0.6 } /* violet, with the sun: updateLight */);
     this.player.toolPose = 'brush'; // the verb pose a swing plays here
     this.player.tool.setTexture('tool-brush');
     this.dreamCoinId = 'painter';
@@ -841,6 +842,8 @@ export default class PainterScene extends BaseLevel {
       s.setScale(sh.len, 1);
       s.x = (s.ownerX ?? s.x) + sh.dir * (sh.len - 0.5) * 10;
     }
+    // Jo's violet shadow follows the same sun
+    if (this.player && this.player.shadow) this.player.shadow.set({ length: 0.6 * sh.len, offsetX: sh.dir * (sh.len - 0.5) * 10 });
     // the sky's currents: the stroke field scrolls along its spirals
     if (this.skyFar) {
       const z = this.cameras.main.zoom || 1;

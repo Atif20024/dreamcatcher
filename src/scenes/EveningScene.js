@@ -169,7 +169,7 @@ export default class EveningScene extends BaseLevel {
     p.quietSteps = true; // the scene plays steps, crunches and splashes itself
     p.tool.setTexture('tool-trumpet');
     this.hatBase = p.hat.tintTopLeft; // whatever Bilal sold him, under the evening's light
-    this.joShadow = this.add.image(p.x, p.y, 'ev-shadow').setOrigin(0.05, 0.5).setDepth(9).setAlpha(0.3);
+    p.shadow.set({ texture: 'ev-shadow', originX: 0.05, offsetX: -6, alpha: 0.3, depth: 9 });
     this.joRim = this.add.image(p.x, p.y, p.art.texture.key, p.art.frame.name).setDepth(11.9).setTintFill(0xffd890).setAlpha(0.5);
     this.hatSnow = this.add.rectangle(0, 0, 18, 3, 0xf4f8ff).setDepth(13.2).setVisible(false);
 
@@ -707,8 +707,8 @@ export default class EveningScene extends BaseLevel {
     p.art.setTint(tint);
     p.hat.setTint(mulC(this.hatBase === undefined ? 0xffffff : this.hatBase, tint));
     this.joRim.setTexture(p.art.texture.key, p.art.frame.name).setPosition(p.art.x - 1.5, p.art.y).setFlipX(p.art.flipX).setScale(p.art.scaleX, p.art.scaleY).setAngle(p.art.angle).setVisible(p.shown).setTintFill(L.rim).setAlpha(L.rimAlpha);
-    const feet = this.joSitting && this.sitBench ? this.sitBench.y : p.feet().y;
-    this.joShadow.setPosition(p.x - 6, feet - 1).setTint(L.shadow).setAlpha(p.shown ? L.shadowAlpha : 0).setScale(L.shadowLen * (this.joSitting ? 0.7 : 1), 1);
+    // the light's colour and length; on a bench the shadow lies on the seat
+    p.shadow.set({ tint: L.shadow, alpha: L.shadowAlpha, length: L.shadowLen * (this.joSitting ? 0.7 : 1), groundY: this.joSitting && this.sitBench ? this.sitBench.y : null });
     // snow settles on his hat and shoulders too
     const cover = this.weather.cover;
     this.hatSnow.setVisible(cover > 0.1 && p.shown).setPosition(p.hat.x, p.hat.y - 6).setScale(1, 0.6 + cover).setAlpha(Math.min(1, cover * 2));

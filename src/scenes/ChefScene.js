@@ -59,6 +59,7 @@ export default class ChefScene extends BaseLevel {
 
     const spawn = { x: px(3), y: px(32) };
     this.player = new Player(this, spawn.x, spawn.y);
+    this.player.shadow.set({ tint: 0x1c1010, alpha: 0.55 });
     this.player.toolPose = 'swing'; // the verb pose a swing plays here
     this.dreamCoinId = 'chef';
     markMet('chef');

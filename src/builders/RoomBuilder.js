@@ -1,11 +1,33 @@
 import Phaser from 'phaser';
-import { roleOf, isSolidChar, isSlopeChar, SLOPES } from './legend.js';
+import { roleOf, isSolidChar, SLOPES, slopeRoleAt, crestSides, isStairRole, slopeSurface, baseSlope } from './legend.js';
 import { buildTileset, maskAt, wearAt } from './autotile.js';
 import { buildSupportTextures, addSupports } from './supports.js';
 import { D } from './depths.js';
 import { paintTileset } from '../art/levelArt.js';
 
 const T = 32;
+
+// A flight of stairs, drawn: the solid tile's top (its lit lip) stepped down
+// into treads that sit on the walking line at each step's middle (4 steps a
+// tile at 45°, 2 at half pitch). Collision is the slope under it.
+function stairTexture(scene, srcKey, role) {
+  const key = `${srcKey}_${role}`;
+  if (scene.textures.exists(key)) return key;
+  if (!scene.textures.exists(srcKey) || !scene.textures.addDynamicTexture) return srcKey;
+  const dt = scene.textures.addDynamicTexture(key, T, T);
+  if (!dt) return srcKey;
+  const base = baseSlope(role);
+  const n = base === 'slope_r' || base === 'slope_l' ? 4 : 2;
+  const w = T / n;
+  const tmp = scene.make.image({ x: 0, y: 0, key: srcKey, add: false }).setOrigin(0, 0);
+  for (let i = 0; i < n; i++) {
+    const tread = Math.round(slopeSurface(role, (i + 0.5) / n) * T);
+    tmp.setCrop(i * w, 0, w, T - tread);
+    dt.draw(tmp, 0, tread);
+  }
+  tmp.destroy();
+  return key;
+}
 
 // D2/D3 — one generic builder for every dream. Rooms are laid out left to
 // right; each room's objects use room-local tile coords and are offset here.
@@ -55,6 +77,8 @@ export default class RoomBuilder {
       climbGrid: {},
       slopeGrid: {},
       solidGrid: {},
+      oneWayGrid: {}, // tx → the one-way's top y
+      tileBodies: {}, // the tile's physics image (the ground solver skips switched-off ones)
       surfaceGrid: {},
       looseGrid: {},
       objects: [],
@@ -71,9 +95,11 @@ export default class RoomBuilder {
         const cy = ty * T + T / 2;
         const wear = wearAt(tx, ty);
 
-        if (isSlopeChar(ch)) {
-          scene.add.image(cx, cy, `${theme.key}_sl_${role}_${wear}`).setDepth(D.TERRAIN);
-          (out.slopeGrid[ty] ||= {})[tx] = role;
+        const sRole = slopeRoleAt(charAt, tx, ty);
+        if (sRole) {
+          const tex = isStairRole(sRole) ? stairTexture(scene, `${theme.key}_s_${maskAt(solidAt, tx, ty)}_${wear}`, sRole) : `${theme.key}_sl_${sRole}_${wear}`;
+          scene.add.image(cx, cy, tex).setDepth(D.TERRAIN);
+          (out.slopeGrid[ty] ||= {})[tx] = sRole;
           continue;
         }
         if (role === 'oneway') {
@@ -84,6 +110,8 @@ export default class RoomBuilder {
           img.body.checkCollision.left = false;
           img.body.checkCollision.right = false;
           out.oneWays.add(img);
+          (out.oneWayGrid[ty] ||= {})[tx] = img.body.top;
+          (out.tileBodies[ty] ||= {})[tx] = img;
           continue;
         }
         if (role === 'hazard') {
@@ -130,6 +158,11 @@ export default class RoomBuilder {
         img.tx = tx;
         img.ty = ty;
         (out.solidGrid[ty] ||= {})[tx] = true;
+        (out.tileBodies[ty] ||= {})[tx] = img;
+        // a crest: the side flush with a slope's high end is no wall
+        const crest = crestSides((x, y) => slopeRoleAt(charAt, x, y), tx, ty);
+        if (crest.left) img.body.checkCollision.left = false;
+        if (crest.right) img.body.checkCollision.right = false;
 
         if (role === 'climbable') (out.climbGrid[ty] ||= {})[tx] = true;
         if (role === 'ice' || role === 'grease') (out.surfaceGrid[ty] ||= {})[tx] = role;

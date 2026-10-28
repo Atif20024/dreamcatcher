@@ -3,7 +3,8 @@ import { createJoTextures } from './jo.js';
 import { AnimationController } from '../art/AnimationController.js';
 import { characterManifest, bakeFromAtlas } from '../art/baked.js';
 import { sfx } from '../systems/audio.js';
-import { resolveSlope } from './slopes.js';
+import { solveGround } from './ground.js';
+import PlayerShadow from './PlayerShadow.js';
 import { showTutorial } from '../play/Teach.js';
 import { JO_DUST } from './jo.js';
 import { dreamDust } from '../systems/effects.js';
@@ -127,6 +128,9 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this._sync = () => this.syncAttachments();
     scene.events.on('postupdate', this._sync);
     scene.events.once('shutdown', () => scene.events.off('postupdate', this._sync));
+    // round 2 §10.1: the ground shadow (after the sync above: it reads the
+    // final position). Scenes style it with player.shadow.set({...}).
+    this.shadow = new PlayerShadow(scene, this, scene.joShadowStyle || {});
   }
 
   // D5 — Jo bursting into dream-dust, not vanishing
@@ -372,9 +376,11 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     const crouch = this.inDown();
     const locked = time < this.controlLockUntil;
 
-    // D3 — slopes: Arcade has none, so resolve the surface by hand and treat
-    // the result as ground for every other check this frame.
-    this.onSlope = resolveSlope(this.scene, this, body);
+    // Round 2 §10.2 — the continuous ground solver: Jo's feet are laid on
+    // the surface under their centre (slopes, stairs, crests, valleys) and
+    // the result is ground for every other check this frame. Not on a
+    // ladder or in zero-g, where gravity is off.
+    this.onSlope = !this.climbing && !this.floating && body.allowGravity ? solveGround(this.scene, this, body, delta / 1000) : false;
     // Ladders ('H'): hold up/down inside one to climb; gravity is off while
     // on it, and a jump or stepping off the column lets go.
     const lg = this.scene.ladderGrid;
@@ -484,10 +490,6 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     if (!grounded && pressingWall && !this._wallTaught) {
       this._wallTaught = true;
       showTutorial(this.scene, 'wall_jump');
-    }
-    if (this.onSlope && !this._slopeTaught) {
-      this._slopeTaught = true;
-      showTutorial(this.scene, 'slope');
     }
     if (sliding) {
       body.setVelocityY(Math.min(body.velocity.y, 70));

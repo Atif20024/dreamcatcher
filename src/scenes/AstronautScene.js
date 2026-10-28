@@ -105,6 +105,7 @@ export default class AstronautScene extends BaseLevel {
     const spawnO = built.objects.find((o) => o.type === 'spawn');
     const spawn = { x: spawnO.wx, y: spawnO.wy };
     this.player = new Player(this, spawn.x, spawn.y);
+    this.player.shadow.set({ tint: 0x0a0c14, alpha: 0.5 });
     this.player.toolPose = 'swing'; // the verb pose a swing plays here
     this.dreamCoinId = 'astronaut';
     markMet('astronaut');

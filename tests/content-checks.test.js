@@ -26,9 +26,9 @@ describe('tutorial trigger detector', () => {
   it('reports untriggered cards as dead', () => {
     expect(deadCards(TUT, ["showTutorial(this, 'a_card')", "// not a call: 'b_card'"])).toEqual(['b_card', 'c_card']);
   });
-  it('cards are data: 39 cards (the 4 with no mechanic were deleted), each with a trigger', async () => {
+  it('cards are data: 38 cards (the 4 with no mechanic were deleted, and round 2 dropped SLOPES), each with a trigger', async () => {
     const { CARDS } = await import('../src/data/teach.js');
-    expect(Object.keys(CARDS).length).toBe(39);
+    expect(Object.keys(CARDS).length).toBe(38);
     for (const id of ['ledge_grab', 'hang_drop', 'careful_step', 'loose_tile']) expect(CARDS[id]).toBeUndefined();
     for (const c of Object.values(CARDS)) expect(c.triggers.length).toBeGreaterThan(0);
   });

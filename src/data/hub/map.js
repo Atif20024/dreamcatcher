@@ -35,11 +35,14 @@ export function buildHubMap() {
   fill(rows, 31, 32, 0, 29, '#');
   fill(rows, 28, 32, 148, 149, '#');
 
-  // --- front steps: street at row 30, four stone steps up to the hall ----
+  // --- front steps: street at row 30, a flight of sixteen 8 px risers up
+  // to the hall (round 2: half-pitch stair-slopes, walked, never jumped):
+  // a 'k' + 'K' pair climbs one tile over two columns, cols 6-13
   fill(rows, 30, 30, 0, 13, '#');
-  stairs(rows, 30, 10, 4, 'r'); // (29,10) (28,11) (27,12) (26,13)
-  fill(rows, 29, 29, 11, 13, '#'); // solid under each step
-  fill(rows, 28, 28, 12, 13, '#');
+  for (let i = 0; i < 4; i++) {
+    put(rows, 29 - i, 6 + 2 * i, 'kK');
+    fill(rows, 30 - i, 30 - i, 8 + 2 * i - 2, 13, '#'); // solid under the flight
+  }
   fill(rows, 27, 29, 14, 29, '#'); // the hall's front foundation
   // hall floor / platform concourse. The way down to the undercroft is a
   // ladder under the floor tile at col 77: press DOWN on it to climb below,

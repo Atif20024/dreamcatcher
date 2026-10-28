@@ -30,7 +30,6 @@ export const CARDS = {
       { dream: '*', event: 'Player first touch of a ribbed wall in the air' },
     ],
   },
-  slope: { name: 'SLOPES', hint: 'walk, do not jump', key: '', scope: 'once', triggers: [{ dream: '*', event: 'Player first slope' }] },
   plate_gate: {
     name: 'PRESSURE PLATE',
     hint: 'weight holds it open: stand on it, or leave something heavy',

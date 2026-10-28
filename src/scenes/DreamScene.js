@@ -14,7 +14,7 @@ import BaseLevel from './BaseLevel.js';
 import Player from '../entities/Player.js';
 import { frameworkDream } from '../dreams/index.js';
 import { RoomGraph } from '../world/RoomGraph.js';
-import { RoomStreamer } from '../world/RoomStreamer.js';
+import { RoomStreamer, LAYER_DEPTH } from '../world/RoomStreamer.js';
 import { TransitionDirector } from '../world/TransitionDirector.js';
 import { BackdropDirector } from '../world/BackdropDirector.js';
 import { CameraDirector } from '../world/CameraDirector.js';
@@ -108,6 +108,10 @@ export default class DreamScene extends BaseLevel {
     const sp = this.startPoint();
     this.player = new Player(this, sp.x, sp.y);
     this.player.setBodyProfile('dream');
+    // the dream's own shade (DreamDefinition.shadow: PlayerShadow options).
+    // The ground's lit cap is painted in the room's fg layer (depth 30), over
+    // Jo's soles: the shadow lies on that cap, just above it.
+    this.player.shadow.set({ tint: (def.palette && def.palette.shadow) ?? 0x14101c, alpha: 0.5, length: 1.3, depth: LAYER_DEPTH.fg + 0.5, ...(def.shadow || {}) });
     this.player.inputMap = this.inputs;
     this.player.quietSteps = true;
     this.player.noTool = !def.tool;

@@ -52,6 +52,7 @@ export default class MusicianScene extends BaseLevel {
 
     const spawn = { x: px(3), y: px(GROUND - 2) };
     this.player = new Player(this, spawn.x, spawn.y);
+    this.player.shadow.set({ tint: 0x05050f, alpha: 0.6 });
     this.player.keys = this.input.keyboard.addKeys('W,A,S,D,SPACE,X,E,Q,F');
     this.dreamCoinId = 'musician';
     markMet('musician');

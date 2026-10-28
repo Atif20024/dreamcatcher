@@ -97,6 +97,7 @@ export default class WriterScene extends BaseLevel {
 
     const spawn = { x: px(3), y: px(33) - 10 };
     this.player = new Player(this, spawn.x, spawn.y);
+    this.player.shadow.set({ texture: 'wr-shadow', tint: null, alpha: 0.75, length: 0.75 });
     this.player.toolPose = 'pen'; // the verb pose a swing plays here
     this.player.tool.setTexture('tool-pen');
     this.player.typing = false;

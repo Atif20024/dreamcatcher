@@ -4,7 +4,7 @@ import { dreamDust, hitStop } from '../systems/effects.js';
 import { showTutorial } from '../systems/tutorial.js';
 import { frameKeys } from '../utils/pixelart.js';
 import { D } from '../builders/depths.js';
-import { resolveSlope } from './slopes.js';
+import { solveGround } from './ground.js';
 import { uiText } from '../ui/text.js';
 
 const T = 32;
@@ -182,7 +182,7 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
   // walkers cross ramps and hop one-tile kerbs instead of jittering at them
   footing(time) {
     const body = this.body;
-    this.onSlope = resolveSlope(this.scene, this, body);
+    this.onSlope = body.allowGravity ? solveGround(this.scene, this, body, (this.scene.game.loop.delta || 16.7) / 1000) : false;
     const grounded = body.onFloor() || this.onSlope;
     const wall = (this.dir < 0 && body.blocked.left) || (this.dir > 0 && body.blocked.right);
     if (wall && grounded && time > (this.stepAt || 0)) {

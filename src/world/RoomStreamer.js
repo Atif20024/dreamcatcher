@@ -44,7 +44,7 @@ export class RoomStreamer {
     this.live = new Map();
     this.current = null;
     this.paintMs = {};
-    this.grids = { ladderGrid: {}, climbGrid: {}, slopeGrid: {}, solidGrid: {}, surfaceGrid: {} };
+    this.grids = { ladderGrid: {}, climbGrid: {}, slopeGrid: {}, solidGrid: {}, oneWayGrid: {}, surfaceGrid: {} };
     for (const r of graph.rooms.values()) Terrain.fillGrids(this.grids, r);
     ensureGlowTexture(scene);
     scene.events.once('shutdown', () => {

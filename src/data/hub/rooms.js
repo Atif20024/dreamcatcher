@@ -34,7 +34,7 @@ const ROOMS = [
     objects: [
       { type: 'spawn', x: 3, y: 29 },
       { type: 'rain', x: 0, y: 0, w: 30 },
-      { type: 'kiosk', x: 6, y: 29 },
+      { type: 'kiosk', x: 4, y: 29 },
       { type: 'queue', x: 4, y: 29, to: 24 },
       { type: 'npc', who: 'ro', x: 17, y: 25 },
       { type: 'shoeshine', x: 18, y: 25 },
