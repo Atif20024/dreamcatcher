@@ -410,3 +410,8 @@ export function redrawProp(scene, key, oldW, oldH, paintRig = shadePainter) {
   tex.customData = { ...(tex.customData || {}), kit: true };
   return true;
 }
+
+// round 2 WP4: the Evening's street lamps stand at 4.5 m like every other
+// street lamp (they belonged to the house rows, now at scale)
+REDRAW['ev-lamp'] = ['lamp', {}, pal(STREET, { Y: 0xf2d580 })];
+REDRAW_KEYS.push('ev-lamp');

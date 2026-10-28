@@ -11,6 +11,9 @@ import { uiText } from '../../ui/text.js';
 import { arrivalTrain } from '../../entities/Train.js';
 import { dreamById } from '../../data/dreams.js';
 
+// round 2 WP4: props drawn at real size that stand behind the terrain
+const BIG_PROPS = new Set(['house_front', 'cafe_front', 'plane_tree', 'cypress', 'tree_grey']);
+
 // THE YELLOW HOUSE — the world: everything rooms.js places, built. Mixed into
 // PainterScene.prototype.
 export default {
@@ -143,8 +146,12 @@ export default {
     if (o.kind === 'train') return this.buildNightTrain(o, floor);
     const key = `pt-${o.kind}`;
     if (!this.textures.exists(key)) return;
-    const img = this.add.image(o.wx, floor, key).setOrigin(0.5, 1).setDepth(o.kind === 'bed' || o.kind === 'table' || o.kind === 'house_front' || o.kind === 'cafe_front' || o.kind === 'train' ? 6 : 9);
-    img.setAngle((Math.random() - 0.5) * 3);
+    // round 2 WP4: the fronts and the trees are at real size now (a storey
+    // 132 px, a plane tree 15 m): they stand behind the terrain, and lean
+    // only as much as a building or a trunk can
+    const big = BIG_PROPS.has(o.kind);
+    const img = this.add.image(o.wx, floor, key).setOrigin(0.5, 1).setDepth(big ? -10.6 : o.kind === 'bed' || o.kind === 'table' || o.kind === 'train' ? 6 : 9);
+    img.setAngle((Math.random() - 0.5) * 3 * Math.min(1, 80 / img.height));
     if (o.id) this.props[o.id] = img;
     if (o.kind === 'planks') img.setVisible(false);
     if (o.kind === 'lamp') {
@@ -157,7 +164,7 @@ export default {
     }
     if (o.kind === 'dead_sunflower') img.setAngle(o.n % 2 ? 40 : -35);
     if (o.kind === 'cypress_tall') img.setVisible(false); // the trunk is the ladder; the tree is painted by the parallax landmark
-    const sh = this.add.image(o.wx, floor - 1, 'pt-shadow').setDepth(5).setAlpha(0.6).setScale(img.displayWidth / 64 + 0.3, 1);
+    const sh = this.add.image(o.wx, floor - 1, 'pt-shadow').setDepth(big ? -10.55 : 5).setAlpha(0.6).setScale(Math.min(img.displayWidth, big ? 140 : 9999) / 64 + 0.3, 1);
     sh.ownerX = o.wx;
     (this.shadows ||= []).push(sh);
   },

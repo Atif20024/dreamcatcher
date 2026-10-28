@@ -31,7 +31,8 @@ import { takePhoto, loadAlbum, photoTextures, randomPhotos } from '../systems/al
 import { getSave, updateSave, momentsFound, MOMENT_TOTAL } from '../utils/save.js';
 import { sfx, music, laughSfx, toggleMusic, playFx, audioOut } from '../systems/audio.js';
 import DialogueBox from '../systems/DialogueBox.js';
-import { buildWorld, buildArchitecture, makeGround, bucketTerrain, mulC } from './evening/world.js';
+import { buildWorld, buildArchitecture, makeGround, bucketTerrain, bakeTerrain, zoneTint, mulC } from './evening/world.js';
+import { paintRoofBlock, paintRidgeRock } from '../art/eveningArt.js';
 import { uiText, PLATE } from '../ui/text.js';
 
 // THE LONG EVENING — the last place in the game, and the only fully
@@ -142,7 +143,7 @@ export default class EveningScene extends BaseLevel {
     // painted first: the gridded fallbacks below skip any key that exists
     paintEveningArt(this);
     createEveningTextures(this);
-    lightProps(this, PROP_KEYS.filter((k) => !['ev-tree', 'ev-pine', 'ev-arch', 'ev-hedge', 'ev-leaf-1', 'ev-leaf-2'].includes(k)));
+    lightProps(this, PROP_KEYS.filter((k) => !['ev-tree', 'ev-tree-apple', 'ev-hilltree', 'ev-pine', 'ev-door', 'ev-bakery', 'ev-arch', 'ev-hedge', 'ev-leaf-1', 'ev-leaf-2'].includes(k)));
     if (!this.textures.exists('jo')) createJoEveningTextures(this); // fallback only
     createPixelTexture(this, 'heart', HEART.rows, HEART.pal, 3);
 
@@ -158,6 +159,24 @@ export default class EveningScene extends BaseLevel {
     this.ground = makeGround(built, (tx, ty) => this.roadOpen && EV.HEDGE.includes(tx) && ty >= 21 && ty <= 26);
     this.groundY = (x, fromY) => this.ground.groundY(x, fromY);
     this.terrainCols = bucketTerrain(this);
+    // round 2 WP4: the roofs place is the top of a row of houses (tiles,
+    // gutters, chimneys, the facades going down to the street), then the
+    // whole terrain is baked into a few dozen render textures
+    const roofs = paintRoofBlock(this, this.groundY);
+    roofs.baseTint = 0xffffff;
+    roofs.zone = zoneTint(248);
+    this.terrainCols[248].push(roofs);
+    const rock = paintRidgeRock(this, this.groundY, built.worldW, (EV.GROUND + 7) * T + 40);
+    rock.baseTint = 0xffffff;
+    rock.zone = zoneTint(740);
+    this.terrainCols[740].push(rock);
+    // (?nobake=1, dev only: the old per-tile terrain, for measuring against)
+    if (!(import.meta.env.DEV && params.get('nobake') === '1')) {
+      const bake = bakeTerrain(this, this.terrainCols, { maxY: (EV.GROUND + 7) * T + 40 });
+      this.terrainChunks = bake.chunks;
+      this.terrainBaked = bake.baked;
+      this.terrainCols = this.terrainCols.map((c) => (c || []).filter((img) => img.scene && img.displayList));
+    }
 
     // Jo, walking a little slower than anywhere else, trumpet in hand
     const spawnO = built.objects.find((o) => o.type === 'spawn');
@@ -684,6 +703,13 @@ export default class EveningScene extends BaseLevel {
           img.setTint(c);
           img.lastTint = c;
         }
+      }
+    }
+    // the baked terrain (and the roofs) take the light whole
+    for (const rt of this.terrainChunks || []) {
+      if (rt.lastTint !== light.ambient) {
+        rt.setTint(light.ambient);
+        rt.lastTint = light.ambient;
       }
     }
   }
@@ -2492,8 +2518,22 @@ export default class EveningScene extends BaseLevel {
     }
     // the camera pulls back and up, slowly, for a long time
     cam.stopFollow();
-    this.tweens.add({ targets: cam, zoom: 0.6, duration: 26000, ease: 'Sine.easeInOut' });
-    this.tweens.add({ targets: cam, scrollY: cam.scrollY - 260, scrollX: cam.scrollX - 220, duration: 26000, ease: 'Sine.easeInOut' });
+    // round 2 WP4 (critique §5.9): the closing composition keeps the three
+    // of them on the rock in the lower-left third at 0.72 (Jo 59 px standing, 40 sitting), with
+    // the sky, the aurora and the drop beside them. The world ends just east
+    // of the bench, so the bounds come off for the shot (the crag is painted
+    // on past the edge) and go back on when control returns.
+    const Z = 0.72;
+    const fx = this.her ? (p.x + this.her.f.x) / 2 : p.x;
+    cam.removeBounds();
+    this.tweens.add({ targets: cam, zoom: Z, duration: 26000, ease: 'Sine.easeInOut' });
+    this.tweens.add({
+      targets: cam,
+      scrollX: fx - cam.width / 2 - (cam.width * 0.3 - cam.width / 2) / Z,
+      scrollY: p.y - 30 - cam.height / 2 - (cam.height * 0.7 - cam.height / 2) / Z,
+      duration: 26000,
+      ease: 'Sine.easeInOut',
+    });
     await wait(this, 9000);
     const cards = [];
     const total = momentsFound();
@@ -2537,6 +2577,7 @@ export default class EveningScene extends BaseLevel {
     // control returns, on the ridge, with no text at all
     await wait(this, 2000);
     this.tweens.add({ targets: cam, zoom: 1, duration: 5000, ease: 'Sine.easeInOut' });
+    cam.setBounds(0, -800, this.built.worldW, (EV.GROUND + 7) * T + 800);
     cam.startFollow(p, true, 0.04, 0.04);
     this.ending = false;
   }

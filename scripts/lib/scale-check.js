@@ -71,6 +71,9 @@ export async function scaleIssues(ROOT) {
     check(key, 'prop', cls, h, S.PROP_CLASSES[cls].h);
   }
   await trainKitChecks(imp, S, check); // round 2 WP3
+  // round 2 WP4: trees, fronts and backdrop rows
+  const { checkBackdrops } = await imp('scripts/lib/backdrop-check.js');
+  checkBackdrops(S, check, out);
   // the rest of the listed exceptions (not measured here)
   for (const [key, owner] of Object.entries(S.SCALE_EXCEPTIONS)) if (!out.exceptions.some((e) => e.key === key)) out.exceptions.push({ key, h: null, range: null, owner });
   return out;
