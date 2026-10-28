@@ -15,6 +15,7 @@ if (process.argv.includes('--json')) {
 } else {
   const n = (k) => r.measured.filter((m) => m.kind === k).length;
   console.log(`[lint:scale] measured ${n('person')} people, ${n('creature')} creatures, ${n('prop')} props`);
+  console.log(`[lint:scale] WP4: ${n('tree')} trees, ${n('front')} fronts, ${n('row')} backdrop rows`);
   for (const e of r.errors) console.log(`  ERROR ${e.kind} ${e.key}: ${e.h} px, ${e.cls} wants ${e.range.join('–')}${e.note ? ` (${e.note})` : ''}`);
   for (const e of r.exceptions) console.log(`  owned elsewhere: ${e.key}${e.h ? ` (${e.h} px)` : ''} — ${e.owner}`);
   console.log(r.errors.length ? `[lint:scale] ${r.errors.length} error(s)` : '[lint:scale] clean');

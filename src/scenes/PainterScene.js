@@ -5,6 +5,9 @@ import RoomBuilder from '../builders/RoomBuilder.js';
 import Parallax from '../builders/parallax.js';
 import { D } from '../builders/depths.js';
 import { lightThemeProps } from '../art/levelArt.js';
+import { paintTreeTexture } from '../art/treeKit.js';
+import { paintFrontTexture } from '../art/buildingKit.js';
+import { FRONT_TABLE } from '../data/scale.js';
 import painterRooms from '../data/painter/rooms.js';
 import painterTiles from '../data/painter/tiles.js';
 import { DIALOGUES, MOMENTS, CARD_LINES, VIOLET } from '../data/painter/cast.js';
@@ -80,6 +83,13 @@ export default class PainterScene extends BaseLevel {
   create() {
     createPainterTextures(this);
     lightThemeProps(this, ['pt-'], ['pt-stroke', 'pt-well', 'pt-halo', 'pt-star', 'pt-moon', 'pt-sky', 'pt-glow', 'pt-shadow', 'pt-canvas', 'pt-tube']);
+    // round 2 WP4: the trees and the fronts at real scale (a plane tree 15 m,
+    // the yellow house two storeys of 3 m, the café a 4 m shopfront)
+    paintTreeTexture(this, 'pt-plane_tree', 'plane');
+    paintTreeTexture(this, 'pt-cypress', 'cypress');
+    paintTreeTexture(this, 'pt-tree_grey', 'grey');
+    paintFrontTexture(this, 'pt-house_front', FRONT_TABLE['pt-house_front'], { wall: 0xe8c060, roofCol: 0xc8603a, shutter: 0x2e6a4a, doorCol: 0x2e6a4a, doorBay: 1, frame: 0xf2ece0 });
+    paintFrontTexture(this, 'pt-cafe_front', FRONT_TABLE['pt-cafe_front'], { wall: 0xe8c060, sign: 0xb8862c, awning: 0xe8a030, shutter: 0x2e6a4a, doorBay: 2, lit: 0.85 });
 
     const built = RoomBuilder.build(this, painterRooms, painterTiles);
     this.built = built;

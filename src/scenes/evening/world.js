@@ -152,6 +152,55 @@ export function bucketTerrain(scene) {
   return cols;
 }
 
+// Round 2 WP4 (critique §5.9, performance): the terrain was ~12,000 tile
+// images, every one a display object, re-tinted a few dozen columns at a
+// time. Their own colour (wear × zone) never changes; only the evening's
+// ambient light does. So each run of CHUNK columns is drawn once into a
+// render texture per depth, and the light tints the chunk. The tiles keep
+// their physics bodies (they leave the display list, not the world); the
+// hedge's breakable tiles stay live, since the road opening hides them.
+const CHUNK = 32;
+export function bakeTerrain(scene, cols, { maxY = Infinity } = {}) {
+  const chunks = [];
+  let before = 0;
+  for (let c0 = 0; c0 < cols.length; c0 += CHUNK) {
+    const byDepth = new Map();
+    for (let tx = c0; tx < Math.min(cols.length, c0 + CHUNK); tx++) {
+      for (const img of cols[tx] || []) {
+        if (img.tileRole === 'breakable' || !img.visible) continue;
+        (byDepth.get(img.depth) || byDepth.set(img.depth, []).get(img.depth)).push(img);
+      }
+    }
+    for (const [depth, imgs] of byDepth) {
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const img of imgs) {
+        const b = img.getBounds();
+        x0 = Math.min(x0, b.x);
+        y0 = Math.min(y0, b.y);
+        x1 = Math.max(x1, b.right);
+        y1 = Math.max(y1, Math.min(maxY, b.bottom));
+      }
+      if (!(x1 > x0 && y1 > y0)) continue;
+      x0 = Math.floor(x0);
+      y0 = Math.floor(y0);
+      const rt = scene.add.renderTexture(x0, y0, Math.ceil(x1 - x0), Math.ceil(y1 - y0)).setOrigin(0).setDepth(depth);
+      for (const img of imgs) img.setTint(mulC(img.baseTint === undefined ? 0xffffff : img.baseTint, img.zone));
+      // (a list draws each object AT x, y, not offset by it: one at a time)
+      rt.beginDraw();
+      for (const img of imgs) rt.batchDraw(img, img.x - x0, img.y - y0);
+      rt.endDraw();
+      for (const img of imgs) {
+        before++;
+        if (img.body) img.removeFromDisplayList();
+        else img.destroy();
+      }
+      rt.lastTint = null;
+      chunks.push(rt);
+    }
+  }
+  return { chunks, baked: before };
+}
+
 // ---------------------------------------------------------------------------------
 // the furniture: everything in the town that isn't alive
 // ---------------------------------------------------------------------------------
@@ -192,21 +241,18 @@ export function buildWorld(scene, objects) {
         break;
       }
       case 'tree': {
-        const key = o.kind === 'pine' ? 'ev-pine' : o.kind === 'hilltree' ? 'ev-hilltree' : o.kind === 'apple' ? 'ev-tree-apple' : 'ev-tree';
+        // round 2 WP4: every tree at its real height (src/art/treeKit.js);
+        // pines alternate two heights, and on the high road carry snow
+        let key = o.kind === 'pine' ? 'ev-pine' : o.kind === 'hilltree' ? 'ev-hilltree' : o.kind === 'apple' ? 'ev-tree-apple' : 'ev-tree';
+        if (o.kind === 'pine') key = `ev-pine${o.tx >= 638 ? '-snow' : ''}${o.tx % 2 ? '-b' : ''}`;
         const t = stand(key, o, -11.2);
-        if (o.kind === 'apple') {
-          // apples in the canopy, a couple on the ground
-          for (let i = 0; i < 7; i++) scene.add.image(o.wx + Phaser.Math.Between(-36, 36), t.y - Phaser.Math.Between(40, 72), 'ev-apple').setDepth(-11.1);
-          scene.add.image(o.wx + 20, t.y - 2, 'ev-apple').setDepth(6);
-        }
-        // canopy sway: slow, from the trunk
+        if (o.kind === 'pine') t.setFlipX(o.tx % 3 === 0);
+        // the apples are painted into the crown; one has fallen
+        if (o.kind === 'apple') scene.add.image(o.wx + 20, t.y - 2, 'ev-apple').setDepth(6);
+        // canopy sway: slow, from the trunk (a tall tree sways less)
         t.setOrigin(0.5, 1);
-        scene.tweens.add({ targets: t, angle: { from: -0.6, to: 0.6 }, duration: 3200 + Math.random() * 1500, yoyo: true, repeat: -1, ease: 'sine.inout' });
-        if (o.kind === 'pine' && o.tx >= 638) {
-          // snow on the pine road's boughs
-          scene.add.rectangle(o.wx, t.y - 58, 22, 3, 0xf2f6ff, 0.9).setDepth(-11.05);
-          scene.add.rectangle(o.wx, t.y - 38, 34, 3, 0xf2f6ff, 0.8).setDepth(-11.05);
-        }
+        const sway = 60 / Math.max(100, t.height);
+        scene.tweens.add({ targets: t, angle: { from: -sway, to: sway }, duration: 3200 + Math.random() * 1500, yoyo: true, repeat: -1, ease: 'sine.inout' });
         out.marks[`tree_${o.tx}`] = t;
         break;
       }
@@ -234,6 +280,9 @@ export function buildWorld(scene, objects) {
         break;
       }
       case 'door': {
+        // round 2 WP4: a door at 2.2 m belongs to a house at 3 m a storey;
+        // the house front stands behind it (the shed door is the shed's)
+        if (o.id !== 'door_shed' && o.id !== 'door_bakery') stand(`ev-house-${(o.tx * 7) % 3}`, o, -11.05);
         const img = stand('ev-door', o, -10.8);
         out.doors.push({ id: o.id, x: o.wx, img });
         break;
@@ -264,9 +313,11 @@ export function buildWorld(scene, objects) {
         break;
       }
       case 'bakery': {
-        const b = stand('ev-bakery', o, -11);
+        // a 4 m shopfront with a storey over it; its door (col 179) is the
+        // middle bay, so the front is centred there
+        const b = stand('ev-bakery', { ...o, wx: o.wx - T }, -11.05);
         out.bakery = { x: o.wx, y: b.y };
-        uiText(scene, o.wx - 20, b.y - 52, 'BREAD', { fontSize: '10px', color: '#3a2a22' }).setOrigin(0.5).setDepth(-10.9);
+        uiText(scene, o.wx - T, b.y - 150, 'BREAD', { fontSize: '10px', color: '#f2e6cc', backing: 0x8a4a2a }).setOrigin(0.5).setDepth(-10.9);
         break;
       }
       case 'step': {
@@ -283,8 +334,10 @@ export function buildWorld(scene, objects) {
         break;
       case 'lamp': {
         const l = stand('ev-lamp', o, -10.6);
-        const glow = scene.add.image(o.wx, l.y - 76, 'ev-glow').setDepth(-10.55).setScale(3).setTint(0xf8d890).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
-        out.lamps.push({ x: o.wx, y: l.y - 76, glow });
+        // the lantern is at the top of a 4.5 m post (round 2 WP4)
+        const ly = l.y - l.height + 10;
+        const glow = scene.add.image(o.wx, ly, 'ev-glow').setDepth(-10.55).setScale(3).setTint(0xf8d890).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
+        out.lamps.push({ x: o.wx, y: ly, glow });
         break;
       }
       case 'narrowboat': {

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { hex, rgba, mix, shade, hsl, fbm, stamp, dab, gradientV, grain, wash, paintTexture } from './paint.js';
 import { paintGlyphs } from '../ui/BitmapFonts.js';
+import { drawTree } from './treeKit.js';
 
 // Crossroads Station, painted. The same toolkit as THE LONG EVENING, the
 // station's own palette: cream stone, brass, dark-green ironwork, warm
@@ -543,6 +544,10 @@ const LAYER_PAINTERS = {
       ctx.fillRect(x + 6, floor - 84, 16, 3);
       stamp(ctx, x + 14, floor - 70, 6, 0x3a5a80, 0.7, 0.5);
     };
+    // round 2 WP4: two plane trees on the street, at this layer's depth (the
+    // mid slot, s 0.34: a 9 m tree is 135 px), behind the lamps and the cab
+    drawTree(ctx, 160, floor - 4, 'plane', 0.34, rand, { m: 9 });
+    drawTree(ctx, 440, floor - 4, 'plane', 0.34, rand, { m: 10 });
     cab(400);
     bins(20);
     lamp(70);

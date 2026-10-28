@@ -250,3 +250,91 @@ export const SCALE_EXCEPTIONS = {
   'ev-door': 'WP4 (house rows: doors scale with their buildings)', 'ev-lamp': 'WP4 (house rows)', 'ev-bakery': 'WP4',
   'pt-house_front': 'WP4', 'pt-cafe_front': 'WP4', 'pt-train': 'WP3', 'hub-train': 'WP3',
 };
+
+// ---- round 2 WP4: trees, building rows and backdrop depth (§7.1.2, §7.2) -----
+// Every backdrop generator takes metres and the layer's scroll factor s and
+// draws at m × 44 × s. A storey is 3 m (132 px on the play plane, 66 at
+// s 0.5), a shop's ground floor 4 m, a door 2.2 m, a window 1.0 × 1.5 m on a
+// 0.9 m sill. `lint:scale` checks the rows every generator declares here
+// (BACKDROP_ROWS), the trees (TREE_TABLE) and the fronts (FRONT_TABLE).
+export const STOREY_M = 3;
+export const SHOP_M = 4;
+export const DOOR_M = 2.2;
+export const WINDOW_M = [1.0, 1.5];
+export const SILL_M = 0.9;
+export const ROOF_M = 2.4; // a pitched roof's rise over the eaves
+export const storeyPx = (s = 1) => STOREY_M * PX_PER_M * s;
+// one facade's measures at scroll factor s, in px (floats: painters round
+// per edge, never per storey, so ten storeys don't drift)
+export function facadeMetrics(s = 1) {
+  const k = PX_PER_M * s;
+  return { s, k, storey: STOREY_M * k, shop: SHOP_M * k, door: DOOR_M * k, doorW: 1.0 * k, winW: WINDOW_M[0] * k, winH: WINDOW_M[1] * k, sill: SILL_M * k, roof: ROOF_M * k, bay: 2.6 * k, cornice: 0.35 * k };
+}
+// the drawn height of a front: ground floor + storeys + roof (or parapet)
+export function frontPx(spec, s = 1) {
+  const f = facadeMetrics(s);
+  if (spec.door) return Math.round((DOOR_M + 0.25) * f.k); // leaf + frame
+  return Math.round((spec.ground === 'shop' ? f.shop : f.storey) + spec.storeys * f.storey + f.cornice + (spec.roof === false ? 0.9 * f.k : f.roof));
+}
+
+// Trees: a street tree is 6–12 m, a mature plane, pine or cypress 15–25 m.
+// On the play plane they are drawn whole at real height and the camera crops
+// them; on a backdrop layer at s they are drawn at m × 44 × s.
+//   m      height, ground to crown top
+//   crown  [width, height] of the crown as fractions of m
+//   trunk  trunk diameter at the foot (m)
+export const TREE_SPECS = {
+  plane: { m: 15, crown: [0.78, 0.62], trunk: 0.75 },
+  street: { m: 9, crown: [0.62, 0.66], trunk: 0.4 },
+  apple: { m: 6, crown: [0.95, 0.6], trunk: 0.32 },
+  hill: { m: 12, crown: [0.95, 0.62], trunk: 0.7 },
+  pine: { m: 16, crown: [0.34, 0.84], trunk: 0.45 },
+  cypress: { m: 13, crown: [0.2, 0.92], trunk: 0.35 },
+  grey: { m: 10, crown: [0.7, 0.6], trunk: 0.45 },
+  olive: { m: 6, crown: [1.0, 0.55], trunk: 0.45 },
+};
+// a tree's canvas at scroll factor s (the crown top touches the top edge)
+export const treePx = (kind, s = 1, m = null) => {
+  const t = TREE_SPECS[kind];
+  const h = Math.max(4, Math.round((m || t.m) * PX_PER_M * s));
+  return { h, w: Math.max(4, Math.round(t.crown[0] * h * 1.08) + 8) };
+};
+// play-plane tree textures → kind; the lint measures each against its class
+export const TREE_TABLE = {
+  'pt-plane_tree': 'plane', 'pt-cypress': 'cypress', 'pt-tree_grey': 'grey',
+  'ev-tree': 'street', 'ev-tree-apple': 'apple', 'ev-pine': 'pine', 'ev-hilltree': 'hill',
+};
+Object.assign(PROP_CLASSES, {
+  treeStreet: { h: [264, 580] },
+  treeMature: { h: [540, 1100] },
+  frontHouse: { h: [360, 520] }, // two or three storeys and a roof, at 132 px a storey
+  frontShop: { h: [280, 420] }, // a 4 m shopfront and one storey over it
+  doorHouse: { h: [96, 120] },
+});
+export const TREE_CLASS = { plane: 'treeMature', pine: 'treeMature', cypress: 'treeStreet', hill: 'treeStreet', street: 'treeStreet', apple: 'treePlay', grey: 'treeStreet', olive: 'treePlay' };
+
+// play-plane fronts painted by src/art/buildingKit.js
+export const FRONT_TABLE = {
+  'pt-house_front': { storeys: 1, ground: 'house', bays: 3, cls: 'frontHouse' },
+  'pt-cafe_front': { storeys: 1, ground: 'shop', bays: 4, cls: 'frontShop', roof: false },
+  'ev-bakery': { storeys: 1, ground: 'shop', bays: 2, cls: 'frontShop', roof: false },
+  'ev-door': { door: true, cls: 'doorHouse' },
+};
+
+// Every building row a backdrop paints, and the scroll factor of the layer it
+// is painted for. The painters take their storey from facadeMetrics(s) of
+// the entry; lint:scale checks storey = 132·s (± 10 %) and that a row nearer
+// than the far skyline paints a ground line in front of it (the depth cue
+// between Jo's street and the buildings behind it).
+export const BACKDROP_ROWS = {
+  'parallax.skyline': { s: 0.12, groundLine: false },
+  'parallax.facade.mid': { s: 0.34, groundLine: true },
+  'parallax.facade.near': { s: 0.62, groundLine: true },
+  'evening.town': { s: 0.18, groundLine: false },
+  'evening.near': { s: 0.25, groundLine: true },
+};
+
+// WP4 owns these now: measured by lint:scale (trees, fronts, the Evening's
+// doors and lamps), so they are no longer exceptions
+PROP_TABLE['ev-lamp'] = 'lampStreet';
+for (const k of ['pt-plane_tree', 'pt-cypress', 'pt-tree_grey', 'ev-tree', 'ev-tree-apple', 'ev-pine', 'ev-hilltree', 'ev-door', 'ev-lamp', 'ev-bakery', 'pt-house_front', 'pt-cafe_front']) delete SCALE_EXCEPTIONS[k];

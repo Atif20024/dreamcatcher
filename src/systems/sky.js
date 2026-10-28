@@ -377,7 +377,8 @@ export default class Sky {
         const h = 120 + 50 * Math.sin(rb.phase * 0.7 + k * 5 + r);
         const race = rb.flare > 0 ? Math.max(0, 1 - Math.abs(k - (1 - rb.flare)) * 6) : 0;
         const a = this.aurora * swell * (0.22 + 0.16 * Math.sin(rb.phase * 1.3 + k * 9)) + race * 0.6 * this.aurora;
-        col.setPosition(col.x, y + 60).setDisplaySize(col.displayWidth, Math.max(40, h)).setAlpha(Math.max(0, a));
+        // round 2 WP4: twice as bright at its peak (critique §5.9: "the aurora is faint")
+        col.setPosition(col.x, y + 60).setDisplaySize(col.displayWidth, Math.max(40, h)).setAlpha(Math.min(1, Math.max(0, a) * 2));
       });
       const c = Phaser.Display.Color.IntegerToColor(rb.cols[0].tintTopLeft);
       groundR += c.r;

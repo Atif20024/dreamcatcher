@@ -4,6 +4,10 @@ import { D } from './depths.js';
 import { paintOverLayer, paintSky } from '../art/levelArt.js';
 import { paintHubLayer, paintHubLandmark } from '../art/hubArt.js';
 import { uiText } from '../ui/text.js';
+import { facadeMetrics, treePx, PX_PER_M } from '../data/scale.js';
+import { drawRow, drawGroundLine } from '../art/buildingKit.js';
+import { drawTree, backdropTreeKey } from '../art/treeKit.js';
+import { paintTexture, grain, mix } from '../art/paint.js';
 
 // D7 — parallax backdrops.
 //
@@ -346,13 +350,18 @@ function layerDef(name) {
 // `as` overrides the layer's natural kind: only the far slot may fill the
 // frame, so a wall used as a mid layer becomes a facade you walk past instead
 // of a curtain that hides everything behind it.
-function ensureLayerTexture(scene, name, as) {
+function ensureLayerTexture(scene, name, as, slot = null) {
   const [natural, main, accent] = layerDef(name);
   const kind = as || natural;
-  const key = `bg_${name}_${kind}`;
+  // round 2 WP4: building rows and tree rows are painted in metres for the
+  // slot's scroll factor, so the same layer name in another slot is another
+  // painting (a storey is 132·s px)
+  const kit = slot && kitLayer(name, kind);
+  const key = kit ? `bg_${name}_${kind}_${slot}` : `bg_${name}_${kind}`;
   if (scene.textures.exists(key)) return key;
   // a place may carry its own painting for a layer (the station does)
   if (paintHubLayer(scene, name, kind, key, W)) return key;
+  if (kit) return paintKitLayer(scene, key, name, kit, F[slot], main, accent, slot);
   const H = KIND_H[kind];
   const g = scene.make.graphics({ x: 0, y: 0 }, false);
   const rand = new Phaser.Math.RandomDataGenerator([name]);
@@ -362,6 +371,83 @@ function ensureLayerTexture(scene, name, as) {
   // then the paint: wash, light from the top-left, weight at the foot, grain
   paintOverLayer(scene, key, kind, main, accent);
   return key;
+}
+
+// ---------------------------------------------------------------------------
+// round 2 WP4: rows of buildings and trees at the depth rule (critique
+// §7.1.2). A layer at scroll factor s draws a 3 m storey at 132·s px, a door
+// at 2.2 m, a 9 m street tree at 9 × 44 × s; every row nearer than the far
+// skyline stands back behind a strip of its own street (the ground line), so
+// it reads as across the way rather than a doll's house behind Jo.
+// ---------------------------------------------------------------------------
+const BUILDING_SKYLINES = new Set(['city', 'rain_city', 'cold_city', 'street', 'campus', 'thin_houses', 'rain_night', 'glass_city', 'north_winter', 'village_night']);
+const BUILDING_FACADES = new Set(['brick', 'theatre', 'club_wall', 'subway_mouth', 'dawn_terrace', 'sodium_street', 'rooftops', 'square_fronts', 'square_grey', 'night_fronts', 'night_roofs', 'station_umber', 'bus_windows', 'parking_structure']);
+const TREE_ROWS = { plane_trees: ['plane', 11], pines: ['pine', 16] };
+const SKYLINE_STOREYS = { city: [4, 13], glass_city: [6, 13], campus: [2, 6], thin_houses: [3, 6], north_winter: [2, 5], village_night: [1, 3], street: [3, 8], rain_city: [3, 9], rain_night: [3, 8], cold_city: [3, 9] };
+function kitLayer(name, kind) {
+  if (TREE_ROWS[name]) return 'trees';
+  if (kind === 'skyline' && BUILDING_SKYLINES.has(name)) return 'skyline';
+  if (kind === 'facade' && BUILDING_FACADES.has(name)) return 'facade';
+  return null;
+}
+// the colours a dark backdrop row is built from: walls near the layer's main
+// colour (aerial perspective already chose it), lit windows in its accent
+function rowColours(main, accent) {
+  return {
+    walls: [main, mix(main, 0xffffff, 0.06), mix(main, accent, 0.1), mix(main, 0x000000, 0.08)],
+    roofCols: [mix(main, 0x000000, 0.18), mix(main, 0x8a3a2a, 0.25)],
+    glass: mix(main, 0x000000, 0.35),
+    signs: [mix(accent, main, 0.3), mix(main, 0x000000, 0.3)],
+  };
+}
+function paintKitLayer(scene, key, name, kit, s, main, accent, slot) {
+  const f = facadeMetrics(s);
+  const C = rowColours(main, accent);
+  const light = (main >> 16) + ((main >> 8) & 255) + (main & 255) > 330; // a daylight layer
+  const rand = new Phaser.Math.RandomDataGenerator([key]);
+  if (kit === 'trees') {
+    const [tk, m] = TREE_ROWS[name];
+    const t = treePx(tk, s, m);
+    const lift = Math.round(f.k * 1.4);
+    const H = t.h + lift + 4;
+    return paintTexture(scene, key, W, H, (ctx, w, h, r) => {
+      drawGroundLine(ctx, 0, w, h - lift, lift, s, { pave: mix(main, 0xd8c8a0, 0.5), road: mix(main, 0x6a5a48, 0.5) });
+      const step = Math.max(t.w * 0.55, w / Math.max(1, Math.round(w / (t.w * 0.9))));
+      for (let x = step / 2; x < w + step; x += step) {
+        for (const dx of [0, -w]) drawTree(ctx, x + dx + (r.frac() - 0.5) * step * 0.2, h - lift + 1, tk, s, r, { m: m * (0.85 + r.frac() * 0.25) });
+      }
+      grain(ctx, 0, 0, w, h, 0.04, 13);
+    }, key);
+  }
+  if (kit === 'skyline') {
+    // how tall the place builds: a village two or three storeys, a city ten
+    // and more; a skyline used as a nearer layer keeps to street height
+    const [minSt, topSt] = SKYLINE_STOREYS[name] || [3, 9];
+    const maxSt = slot === 'far' ? topSt : Math.min(topSt, 4);
+    const lowSt = Math.min(minSt, maxSt);
+    const gl = slot === 'far' ? 0 : Math.round(f.k * 1.8);
+    const H = Math.ceil(f.storey * (maxSt + 1) + f.roof + f.k * 2) + gl;
+    return paintTexture(scene, key, W, H, (ctx, w, h) => {
+      if (gl) drawGroundLine(ctx, 0, w, h - gl, gl, s, { pave: mix(main, 0xffffff, 0.1), road: mix(main, 0x000000, 0.2) });
+      drawRow(ctx, 0, w, h - gl, s, rand, {
+        ...C, wrapW: w, close: true, gap: 0, storeys: [lowSt, maxSt], bays: [3, 7], lit: light ? 0.05 : 0.22, quoins: false,
+        roof: (r) => (r.frac() < (topSt <= 5 ? 0.8 : 0.25) ? 'pitched' : 'parapet'), ground: () => 'plain', logId: slot === 'far' ? 'parallax.skyline' : `parallax.facade.${slot}`,
+      });
+      grain(ctx, 0, 0, w, h, 0.04, 17);
+    }, key);
+  }
+  // a street of facades with their pavement in front
+  const lift = Math.round(f.k * 1.8);
+  const maxSt = slot === 'near' ? 2 : 3;
+  const H = Math.ceil(f.shop + f.storey * maxSt + f.roof + f.k * 1.5 + lift);
+  return paintTexture(scene, key, W, H, (ctx, w, h) => {
+    drawGroundLine(ctx, 0, w, h - lift, lift, s, { pave: mix(main, 0xffffff, 0.12), road: mix(main, 0x000000, 0.2) });
+    drawRow(ctx, 0, w, h - lift, s, rand, {
+      ...C, wrapW: w, close: true, storeys: [1, maxSt], bays: [2, 4], lit: light ? 0.08 : 0.3, flowers: light, shutter: light ? mix(accent, main, 0.4) : null,
+      awnings: light ? [accent, mix(accent, 0x000000, 0.3)] : null, roof: (r) => (r.frac() < 0.5 ? 'pitched' : 'parapet'), logId: `parallax.facade.${slot}`,
+    });
+    grain(ctx, 0, 0, w, h, 0.04, 19);
+  }, key);
 }
 
 function ensureSkyTexture(scene, name) {
@@ -580,6 +666,24 @@ const SCENERY = {
   concrete_wall: ['crate_stack', 'fan', 'shelf_ladder'],
   dawn_sky: ['streetlamp', 'van', 'pylon', 'streetlamp'],
   staff_wall: ['shelf_ladder', 'crate_stack', 'bench'],
+};
+
+// round 2 WP4: the real height (m) of the outdoor cast, and the things in it
+// that stand on the street rather than on a roof
+const PROP_M = {
+  hedge: 1.6, bench: 0.85, streetlamp: 4.5, phone_booth: 2.3, van: 2.2, market_stall: 2.6, bandstand: 6, awning: 3,
+  water_tower: 7, billboard: 6, crane: 28, radio_mast: 22, church: 20, ac_units: 1.3, pylon: 22, bridge: 9, neon: 3.5,
+  speaker_stack: 3, spotlight_rig: 5, amp_wall: 2, crate_stack: 1.8, poster_board: 2.4,
+};
+const GROUND_PROPS = new Set(['tree', 'hedge', 'bench', 'streetlamp', 'phone_booth', 'van', 'market_stall', 'bandstand', 'awning', 'bridge', 'pylon', 'church', 'crane']);
+const propHeight = (kind) => {
+  let top = 0;
+  for (const p of PROPS[kind]({ main: 0, accent: 0 })) {
+    if (p[0] === 'r') top = Math.min(top, p[2]);
+    else if (p[0] === 'c') top = Math.min(top, p[2] - p[3]);
+    else top = Math.min(top, p[1][1], p[1][3], p[1][5]);
+  }
+  return Math.max(1, -top);
 };
 
 function drawPrimitives(g, prims) {
@@ -1017,12 +1121,14 @@ export default class Parallax {
   applyTexture(sprite, name, slotName) {
     let [kind] = layerDef(name);
     if (kind === 'wall' && slotName !== 'far') kind = 'facade';
-    sprite.setTexture(ensureLayerTexture(this.scene, name, kind));
+    const key = ensureLayerTexture(this.scene, name, kind, slotName);
+    sprite.setTexture(key);
     sprite.kind = kind;
     // A wall is hung from the same ground line as everything else, just tall
     // enough to cover the view from well below it to several screens above.
     sprite.setOrigin(0, 1);
     if (kind === 'wall') sprite.setSize(this.spanW, this.camH * 5);
+    else if (kitLayer(name, kind)) sprite.setSize(this.spanW, this.scene.textures.get(key).getSourceImage().height);
     else sprite.setSize(this.spanW, KIND_H[kind]);
     sprite.wallBand = kind === 'wall';
     return sprite;
@@ -1047,16 +1153,32 @@ export default class Parallax {
     const x1 = x0 + Math.max(...room.grid.map((g) => g.length)) * 32;
     let wx = x0 + rand.between(40, 220);
     let n = 0;
+    // round 2 WP4: outdoors, the cast is drawn at its real size for this
+    // layer's depth (m × 44 × 0.22: a 9 m tree is 87 px, a 4.5 m lamp 44),
+    // and things that stand on the ground stand on the street (behind the
+    // facades, crowns showing over the roofs), not on the rooftops. Indoors
+    // (a kitchen wall, a gym) the old sizes stay: that layer is a room's far
+    // wall, not a distance.
+    const outdoors = ['skyline', 'glow'].includes(layerDef(bg.far || 'city')[0]);
     while (wx < x1 && n < 14 && kinds.length > 0) {
       const kind = kinds[rand.between(0, kinds.length - 1)];
       const depth = rand.frac(); // 0 = further back and paler, 1 = nearer
-      const g = this.scene.add.graphics();
-      drawPrimitives(g, PROPS[kind]({ main, accent }));
-      // placed in layer space, so the prop sits over its world position
-      g.x = (this.camW / 2) * (1 - f) + wx * f;
-      g.y = -rand.between(0, 10);
-      g.setScale(0.75 + depth * 0.45).setAlpha(0.55 + depth * 0.4);
-      cont.add(g);
+      const lx = (this.camW / 2) * (1 - f) + wx * f; // layer space: over its world position
+      const ground = outdoors && GROUND_PROPS.has(kind) ? lift : 0;
+      if (outdoors && kind === 'tree') {
+        const img = this.scene.add.image(lx, ground, backdropTreeKey(this.scene, 'street', f, n % 3)).setOrigin(0.5, 1).setTint(mix(0xffffff, main, 0.35));
+        img.setAlpha(0.7 + depth * 0.3);
+        cont.add(img);
+      } else {
+        const g = this.scene.add.graphics();
+        drawPrimitives(g, PROPS[kind]({ main, accent }));
+        g.x = lx;
+        g.y = ground - rand.between(0, 10);
+        if (outdoors && PROP_M[kind]) g.setScale(Math.min(1.8, (PROP_M[kind] * PX_PER_M * f) / propHeight(kind)) * (0.92 + depth * 0.16));
+        else g.setScale(0.75 + depth * 0.45);
+        g.setAlpha(0.55 + depth * 0.4);
+        cont.add(g);
+      }
       wx += rand.between(168, 330);
       n++;
     }

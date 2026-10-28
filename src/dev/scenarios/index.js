@@ -14,3 +14,7 @@ import readability from './readability.js';
 import scale from './scale.js';
 
 export const SCENARIOS = [...backgroundSnap, evaTether, betCard, ...failure, hudScale, ...phase14, ...phase2, ...phase3, ...round2, ...round2flow, ...readability, ...scale];
+
+// round 2 WP4: backdrops at the depth rule, trees at real height, the Evening's budget
+import backdrops from './backdrops.js';
+SCENARIOS.push(...backdrops);

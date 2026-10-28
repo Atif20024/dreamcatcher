@@ -2,6 +2,9 @@ import Phaser from 'phaser';
 import { PLACES, EV } from '../data/evening/map.js';
 import { lerpC } from './sky.js';
 import { fbmTiled, fbm, gradientV, grain, wash, foliage, trunk, clump, dab, stamp, mix, shade, hex as phex, rgba } from '../art/paint.js';
+import { drawRow, drawBuilding, drawGroundLine, drawFigure, logRow } from '../art/buildingKit.js';
+import { drawTree } from '../art/treeKit.js';
+import { BACKDROP_ROWS, facadeMetrics } from '../data/scale.js';
 
 // A1 — the horizon: four bands behind everything, and the reason this place
 // feels bigger than every other level.
@@ -209,6 +212,8 @@ export default class Horizon {
     const walls = [0xe8d0a8, 0xd8b890, 0xc8a078, 0xe0c8b0, 0xd0b098];
     const roofs = [0xb85a3a, 0xa04a30, 0xc86a48, 0x8a4a3a];
     const hill = (x) => 150 - ridge(x, W, 7, [[1, 40], [3, 18], [7, 6]]);
+    const TM = facadeMetrics(BACKDROP_ROWS['evening.town'].s);
+    logRow('evening.town', TM.s, TM.storey);
     // the hill itself, behind the houses: a warm green, lit on the crown,
     // a little olive in the folds
     for (let x = 0; x < W; x++) {
@@ -246,9 +251,12 @@ export default class Horizon {
           ctx.fillRect(x - 2 + r, top - r, w + 4 - r * 2, 1);
         }
         if (x === x0) {
-          for (let wy = top + 8; wy < base - 8; wy += 14) {
-            for (let wx = x + 5; wx < x + w - 7; wx += 11) {
-              if (this.rand.frac() < 0.55) this.windows.push({ x: wx, y: wy, w: 4, h: 6 });
+          // round 2 WP4: storeys of 3 m and 1.0 x 1.5 m windows at this
+          // band's depth (s 0.18: 24 px a storey, 8 x 12 px a window)
+          for (let fl = base - TM.storey; fl > top + TM.winH * 0.6; fl -= TM.storey) {
+            const wy = Math.round(fl + TM.storey - TM.sill - TM.winH);
+            for (let wx = x + (w % TM.bay) / 2 + (TM.bay - TM.winW) / 2; wx + TM.winW < x + w - 1; wx += TM.bay) {
+              if (this.rand.frac() < 0.55) this.windows.push({ x: Math.round(wx), y: wy, w: Math.round(TM.winW), h: Math.round(TM.winH) });
             }
           }
           if (this.rand.frac() < 0.6) this.chimneys.push({ x: x + Math.round(w * 0.7), y: top - 14 });
@@ -265,8 +273,8 @@ export default class Horizon {
     };
     let x = 0;
     while (x < W) {
-      const w = this.rand.between(18, 38);
-      const h = this.rand.between(30, 70);
+      const w = Math.round(TM.bay * this.rand.between(2, 4) + 2);
+      const h = Math.round(TM.storey * this.rand.between(2, 4) + TM.cornice);
       drawHouse(x, w, h, walls[this.rand.between(0, walls.length - 1)], roofs[this.rand.between(0, roofs.length - 1)]);
       // a water tank or a dish on some roofs
       if (this.rand.frac() < 0.2) {
@@ -328,8 +336,20 @@ export default class Horizon {
 
   // ---- band 1: near buildings, place by place ----------------------------------------
   makeNear() {
+    // round 2 WP4: the near town at its depth. This band moves at 0.25 of
+    // the camera, so by the depth rule (critique §7.1.2) a 3 m storey is 33
+    // px, a door 24 px and a passer-by 19 px, painted by the building kit in
+    // metres. Between Jo's street and the facades lies their own street (a
+    // pavement, a kerb, a strip of road, a few people and lamps on it): the
+    // ground line that makes them read as across the way, not as a doll's
+    // house standing right behind the townsfolk.
+    const S = BACKDROP_ROWS['evening.near'].s;
+    const fm = facadeMetrics(S);
     const W = Math.round(WRAP_PX * 0.25);
-    const H = 300;
+    const HIDDEN = 42; // the band's foot, behind the terrain in the street view
+    const LIFT = HIDDEN + Math.round(fm.k * 2.6); // + the far street, 2.6 m of it seen
+    const H = 360;
+    const GY = H - LIFT;
     const f = W / WRAP_PX;
     const ct = canvasTex(this.scene, 'ev-band-near', W, H);
     const ctx = ct.getContext();
@@ -340,139 +360,83 @@ export default class Horizon {
       ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
       if (x + w > W) ctx.fillRect(Math.round(x - W), Math.round(y), Math.round(w), Math.round(h));
     };
-    const facade = (x, w, h, wall, opts = {}) => {
-      const top = H - h;
-      rect(x, top, w, h, wall);
-      // plaster: the west face warm, the east in shade, a bounce of light low down
-      for (const xx of [x, x + w > W ? x - W : null]) {
-        if (xx === null) continue;
-        const gw = ctx.createLinearGradient(xx, 0, xx + w, 0);
-        gw.addColorStop(0, rgba(0xfff0d0, 0.28));
-        gw.addColorStop(0.55, rgba(0xfff0d0, 0));
-        gw.addColorStop(1, rgba(0x4a3050, 0.22));
-        ctx.fillStyle = gw;
-        ctx.fillRect(Math.round(xx), top, Math.round(w), h);
-        const gv = ctx.createLinearGradient(0, top, 0, H);
-        gv.addColorStop(0, rgba(0x3a2a40, 0.16));
-        gv.addColorStop(0.12, rgba(0x3a2a40, 0));
-        gv.addColorStop(0.8, rgba(0xf0c090, 0));
-        gv.addColorStop(1, rgba(0xf0c090, 0.18));
-        ctx.fillStyle = gv;
-        ctx.fillRect(Math.round(xx), top, Math.round(w), h);
-      }
-      rect(x, top, w, 3, lerpC(wall, 0xfff4e0, 0.45)); // lit cornice
-      rect(x, top + 3, w, 2, 'rgba(40,30,50,0.25)'); // its shadow
-      // cracked plaster
-      if (this.rand.frac() < 0.5) rect(x + this.rand.between(4, w - 10), top + this.rand.between(10, 40), 1, 8, 'rgba(60,40,40,0.3)');
-      const rows = Math.floor((h - 40) / 36);
-      for (let r = 0; r < rows; r++) {
-        const wy = top + 16 + r * 36;
-        for (let wx = x + 8; wx < x + w - 16; wx += 22) {
-          rect(wx, wy, 12, 18, 0x4a3a44);
-          rect(wx, wy, 12, 2, 'rgba(0,0,0,0.35)'); // the reveal
-          rect(wx, wy + 18, 12, 1, 'rgba(255,240,210,0.5)'); // the sill
-          if (this.rand.frac() < 0.35) rect(wx + 2, wy + 4, 3, 5, 'rgba(255,220,170,0.25)'); // a curtain catching light
-          // shutters, some open
-          if (this.rand.frac() < 0.6) {
-            rect(wx - 5, wy, 4, 18, opts.shutter || 0x4a7a6a);
-            rect(wx + 13, wy, 4, 18, opts.shutter || 0x4a7a6a);
-          }
-          // a balcony with someone on it
-          if (opts.balconies && r < rows - 1 && this.rand.frac() < 0.3) {
-            rect(wx - 4, wy + 18, 20, 2, 0x3a3a44);
-            for (let b = 0; b < 5; b++) rect(wx - 4 + b * 5, wy + 20, 1, 6, 0x3a3a44);
-            if (this.rand.frac() < 0.55) this.balconies.push({ x: wx + 4, y: wy + 12, washing: this.rand.frac() < 0.5 });
-            // geraniums
-            if (this.rand.frac() < 0.5) rect(wx - 3, wy + 16, 18, 2, 0xd84a4a);
-          }
-          // pigeons on the ledge
-          if (this.rand.frac() < 0.12) rect(wx + 2, wy - 3, 3, 2, 0x8a8a98);
-        }
-      }
-      // ivy up the west side
-      if (opts.ivy) for (let i = 0; i < 40; i++) clump(ctx, x + this.rand.between(0, 10), top + this.rand.between(10, h - 4), this.rand.realInRange(2, 3.5), i % 2 ? 0x5a8a4a : 0x4a7a3a, 0.95, this.rand, 4);
-      // a painted sign
-      if (opts.sign) {
-        rect(x + 10, H - 70, w - 20, 12, opts.sign);
-        rect(x + 14, H - 66, w - 28, 2, 0xf2e6cc);
-      }
-      // an awning
-      if (opts.awning) for (let a = 0; a < w - 10; a += 6) rect(x + 5 + a, H - 56, 6, 8, a % 12 ? 0xf2e6cc : opts.awning);
-      return top;
-    };
-    const tree = (x, s = 1) => {
-      for (const dx of [0, x + 30 * s > W ? -W : 0]) {
-        trunk(ctx, x + dx, H - 44 * s, H, 3 * s, 5 * s, 0x4a3a2a, this.rand);
-        foliage(ctx, x + dx, H - 52 * s, 24 * s, 17 * s, 0x5a8a48, this.rand, { density: 0.8 });
-      }
-    };
     const tops = [];
+    // the far street first, under everything
+    drawGroundLine(ctx, 0, W, GY, H - GY, S, { pave: 0xc8b898, road: 0x8a7a6a });
+    const keep = (b) => {
+      tops.push({ x: b.x, w: b.w, top: b.top });
+      for (const bal of b.balconies) this.balconies.push({ x: Math.round(bal.x - 4), y: Math.round(bal.y - 6), washing: bal.washing });
+    };
+    const row = (x0, x1, o) => drawRow(ctx, x0, x1, GY, S, this.rand, { wrapW: W, logId: 'evening.near', close: true, flowers: true, ...o }).forEach(keep);
+    const tree = (x, kind = 'street', m = null) => {
+      drawTree(ctx, x, GY + 2, kind, S, this.rand, m ? { m } : {});
+      if (x + 60 > W) drawTree(ctx, x - W, GY + 2, kind, S, this.rand, m ? { m } : {});
+    };
+    // scale cues on the far pavement: people, a lamp
+    const folk = (x0, x1, n) => {
+      const cols = [0x3a5a80, 0xc03a2a, 0x6a4a3a, 0x2e6a4a, 0xd89a4a];
+      for (let i = 0; i < n; i++) drawFigure(ctx, mod(x0 + this.rand.frac() * (x1 - x0), W), GY + fm.k * 0.6, S, cols[i % cols.length], this.rand);
+    };
+    const lamp = (x) => {
+      rect(x, GY - fm.k * 4.5, Math.max(1, fm.k * 0.12), fm.k * 4.5, 0x2e2e38);
+      rect(x - fm.k * 0.2, GY - fm.k * 4.7, fm.k * 0.5, fm.k * 0.4, 0xf2d580);
+    };
     const style = {
       arch: (x0, x1) => {
-        rect(x0, H - 30, x1 - x0, 30, 0xc8b898);
-        for (let x = x0; x < x1; x += 60) tree(x + 30, 1.1);
+        rect(x0, GY - fm.k * 1.2, x1 - x0, fm.k * 1.2, 0xc8b898); // a garden wall
+        rect(x0, GY - fm.k * 1.3, x1 - x0, fm.k * 0.15, 0xe0d4b8);
+        for (let x = x0 + 30; x < x1; x += 70) tree(x, 'street');
       },
       orchard: (x0, x1) => {
-        for (let x = x0; x < x1; x += 46) tree(x + 20, 1.2);
-        rect(x0, H - 14, x1 - x0, 14, 0x6a8a4a);
+        for (let x = x0 + 18; x < x1; x += 52) tree(x, 'apple');
       },
       laundry: (x0, x1) => {
-        let x = x0;
-        while (x < x1) {
-          const w = this.rand.between(56, 80);
-          tops.push({ x, w, top: facade(x, w, this.rand.between(170, 230), [0xe8d0a8, 0xd8b890, 0xe0c0a0][this.rand.between(0, 2)], { balconies: true, shutter: 0x3a6a8a }) });
-          x += w + 4;
-        }
+        row(x0, x1, { storeys: [3, 5], bays: [2, 3], balconies: true, shutter: 0x3a6a8a, walls: [0xe8d0a8, 0xd8b890, 0xe0c0a0], ground: () => 'house' });
+        folk(x0, x1, 3);
       },
       square: (x0, x1) => {
-        let x = x0;
-        const signs = [0x2e6a4a, 0x8a2c2c, 0x2e3a52, 0x6a4a2a];
-        while (x < x1) {
-          const w = this.rand.between(64, 90);
-          tops.push({ x, w, top: facade(x, w, this.rand.between(200, 260), [0xf0d8b0, 0xe8c898, 0xd8b090, 0xe8d8c0][this.rand.between(0, 3)], { balconies: true, sign: signs[this.rand.between(0, 3)], awning: this.rand.frac() < 0.5 ? 0xc03a2a : 0x2e6a4a }) });
-          x += w + 3;
-        }
+        row(x0, x1, {
+          storeys: [3, 5], bays: [3, 4], balconies: true, walls: [0xf0d8b0, 0xe8c898, 0xd8b090, 0xe8d8c0],
+          signs: [0x2e6a4a, 0x8a2c2c, 0x2e3a52, 0x6a4a2a], awnings: [0xc03a2a, 0x2e6a4a], ground: () => 'shop', shutter: 0x4a7a6a,
+        });
+        lamp(x0 + (x1 - x0) * 0.3);
+        lamp(x0 + (x1 - x0) * 0.75);
+        folk(x0, x1, 6);
       },
       canal: (x0, x1) => {
-        let x = x0;
-        while (x < x1) {
-          const w = this.rand.between(80, 110);
-          const top = facade(x, w, this.rand.between(180, 220), [0xb86a4a, 0xa05a3a][this.rand.between(0, 1)], { shutter: 0x2e3a52 });
-          rect(x + w / 2 - 12, H - 60, 24, 60, 0x3a2a22); // a loading door
-          tops.push({ x, w, top });
-          x += w + 6;
-        }
+        row(x0, x1, { storeys: [3, 4], bays: [3, 4], walls: [0xb86a4a, 0xa05a3a, 0xc07a58], shutter: 0x2e3a52, roof: () => 'parapet', ground: () => 'plain' });
+        folk(x0, x1, 2);
       },
       steep: (x0, x1) => {
+        // the houses climb with the street: each one a storey higher
         let x = x0;
-        let h = 160;
-        while (x < x1) {
-          const w = this.rand.between(40, 56);
-          tops.push({ x, w, top: facade(x, w, h, [0xe8c8a0, 0xf0d8b8, 0xd8a888][this.rand.between(0, 2)], { balconies: true, ivy: this.rand.frac() < 0.4 }) });
-          h = Math.min(270, h + 16);
-          x += w + 2;
+        let st = 2;
+        while (x < x1 - fm.bay) {
+          const w = Math.min(x1 - x, fm.bay * 2 + fm.k * 0.4);
+          keep(drawBuilding(ctx, x, GY, { s: S, w, storeys: st, ground: 'house', wall: [0xe8c8a0, 0xf0d8b8, 0xd8a888][st % 3], roof: 'pitched', shutter: 0x4a7a6a, balconies: true, flowers: true, wrapW: W, logId: 'evening.near' }, this.rand));
+          st = Math.min(6, st + 1);
+          x += w + 1;
         }
       },
       rooftops: (x0, x1) => {
-        for (let x = x0; x < x1; x += 40) {
-          rect(x, H - 50, 36, 50, 0xb85a3a);
-          rect(x + 24, H - 70, 6, 20, 0x8a4a3a);
-        }
+        // seen from up here: roofs below, chimneys, and the sky
+        for (let x = x0; x < x1; x += fm.bay * 3) drawBuilding(ctx, x, GY + fm.storey * 1.5, { s: S, w: fm.bay * 3 - 2, storeys: 0, ground: 'plain', wall: 0xd8b890, roof: 'pitched', roofCol: 0xb85a3a, wrapW: W }, this.rand);
       },
       school: (x0, x1) => {
-        tops.push({ x: x0 + 10, w: x1 - x0 - 20, top: facade(x0 + 10, x1 - x0 - 20, 190, 0xc8906a, { sign: 0x2e3a52, shutter: 0x5a7aa8 }) });
+        keep(drawBuilding(ctx, x0 + 10, GY, { s: S, w: x1 - x0 - 20, storeys: 2, ground: 'house', wall: 0xc8906a, roof: 'pitched', roofCol: 0x8a4a3a, shutter: 0x5a7aa8, wrapW: W, logId: 'evening.near' }, this.rand));
+        folk(x0, x1, 4);
       },
       allotments: (x0, x1) => {
         for (let x = x0; x < x1; x += 70) {
-          rect(x, H - 40, 50, 40, 0x7a6a4a);
-          rect(x - 2, H - 44, 54, 4, 0x8a8a94);
+          rect(x, GY - fm.k * 2.2, fm.k * 3, fm.k * 2.2, 0x7a6a4a); // sheds
+          rect(x - 2, GY - fm.k * 2.4, fm.k * 3 + 4, fm.k * 0.25, 0x8a8a94);
         }
-        for (let x = x0; x < x1; x += 90) tree(x + 60, 0.9);
+        for (let x = x0 + 40; x < x1; x += 90) tree(x, 'street', 7);
       },
       hill: () => {},
       station: (x0, x1) => {
-        rect(x0, H - 110, x1 - x0, 8, 0x4a4650);
-        for (let x = x0; x < x1; x += 40) rect(x, H - 102, 4, 102, 0x4a4650);
+        rect(x0, GY - fm.k * 4.2, x1 - x0, fm.k * 0.6, 0x4a4650); // the canopy
+        for (let x = x0; x < x1; x += fm.k * 6) rect(x, GY - fm.k * 3.6, Math.max(2, fm.k * 0.25), fm.k * 3.6, 0x4a4650);
       },
     };
     // one pass per place, laid out where that place sits in the band
@@ -487,7 +451,7 @@ export default class Horizon {
     for (let i = 0; i < tops.length - 1; i++) {
       const A = tops[i];
       const B = tops[i + 1];
-      if (B.x - (A.x + A.w) > 40) continue;
+      if (B.x - (A.x + A.w) > 40 || this.rand.frac() < 0.5) continue;
       const y0 = A.top + 30;
       const y1 = B.top + 26;
       for (let t = 0; t <= 1; t += 0.02) {
@@ -516,11 +480,18 @@ export default class Horizon {
 
   // ---- the road's own bands --------------------------------------------------------
   makeRoad() {
-    const W = 2600;
-    const H = 230;
+    // round 2 WP4 (critique §5.9, "the translucent grey band"): the band was
+    // 2600 px wide and the road scrolls it 2312 px plus a screen, so from the
+    // lake on it wrapped (a hard vertical seam, wheat against snow), its foot
+    // ended in mid-air above the lake, and the rock was painted one column at
+    // a time from fine noise (grey vertical streaks). Now it is wide enough
+    // never to wrap, it runs 200 px further down under the terrain, and the
+    // snow country is painted in patches, not columns.
+    const W = 4096;
+    const H = 430;
     const ct = canvasTex(this.scene, 'ev-band-road', W, H);
     const ctx = ct.getContext();
-    const hill = (x) => 120 - Math.sin(x / 230) * 20 - Math.sin(x / 90 + 1) * 8 - Math.max(0, (x - 1500) / 900) * 70 + (fbm(x / 30, 1, 51, 3) - 0.5) * 10;
+    const hill = (x) => 120 - Math.sin(x / 230) * 20 - Math.sin(x / 90 + 1) * 8 - Math.min(96, Math.max(0, (x - 1500) / 900) * 70) + (fbm(x / 30, 1, 51, 3) - 0.5) * 10;
     // the land: wheat, then meadow, then forest, then snow; each painted as
     // a slope that catches the last of the light on its western faces
     for (let x = 0; x < W; x++) {
@@ -531,20 +502,35 @@ export default class Horizon {
       const wheat = mix(0xc0a858, 0xd8c070, fbm(x / 22, 0, 52, 2));
       const meadow = mix(0x6a8a52, 0x8aa460, fbm(x / 30, 0, 53, 2));
       const forest = mix(0x3e5a48, 0x4e6a50, fbm(x / 18, 0, 55, 2));
-      const rock = mix(0x8a94a8, 0xb8c0d0, fbm(x / 12, 0, 56, 3));
-      const snowy = mix(rock, 0xe8eef8, Math.max(0, fbm(x / 9, 1, 57, 3) - 0.35) * 1.4 * Math.min(1, (x - 1600) / 500));
+      const rock = mix(0x3e5450, 0x5a6670, fbm(x / 120, 0, 56, 2));
+      const snowy = mix(rock, 0xd8e0ee, Math.max(0, fbm(x / 70, 1, 57, 2) - 0.5) * 0.8 * Math.min(1, (x - 1600) / 500));
       const blend = (a, b, from, to) => mix(a, b, Math.max(0, Math.min(1, (x - from) / (to - from))));
-      let col = blend(blend(blend(wheat, meadow, 620, 780), forest, 1020, 1180), snowy, 1600, 1760);
-      col = face > 0 ? mix(col, 0xf8e0b0, face * 0.3) : mix(col, 0x2a3050, -face * 0.25);
+      const col = blend(blend(blend(wheat, meadow, 620, 780), forest, 1020, 1180), snowy, 1600, 1760);
+      // the slope's light only on its face near the crest: carried all the
+      // way down the column it painted vertical stripes
+      const lit = face > 0 ? mix(col, 0xf8e0b0, face * 0.3) : mix(col, 0x2a3050, -face * 0.25);
       const gr = ctx.createLinearGradient(0, top, 0, H);
-      gr.addColorStop(0, phex(col));
-      gr.addColorStop(1, phex(mix(col, 0x4a4050, 0.35)));
+      gr.addColorStop(0, phex(lit));
+      gr.addColorStop(Math.min(0.2, 40 / (H - top)), phex(col));
+      gr.addColorStop(0.45, phex(mix(col, 0x4a4050, 0.25)));
+      gr.addColorStop(1, phex(mix(col, 0x4a4050, 0.4)));
       ctx.fillStyle = gr;
       ctx.fillRect(x, top, 1, H - top);
       if (x > 1650) {
         ctx.fillStyle = face > 0 ? 'rgba(244,246,252,0.9)' : 'rgba(208,216,234,0.9)';
         ctx.fillRect(x, top, 1, Math.round(Math.min(1, (x - 1650) / 200) * (4 + (x - 1650) / 60 + fbm(x / 9, 2, 54, 2) * 8)));
       }
+    }
+    // the snow country in patches: drifts on the slopes, rock showing
+    // through, dark stands of forest below the snowline
+    for (let i = 0; i < 900; i++) {
+      const x = 1550 + this.rand.frac() * (W - 1550);
+      const y = hill(x) + 8 + Math.pow(this.rand.frac(), 1.6) * 150;
+      const k = Math.min(1, (x - 1550) / 400);
+      const r = this.rand.frac();
+      if (r < 0.45) dab(ctx, x, y, this.rand.realInRange(8, 26), this.rand.realInRange(2, 5), this.rand.realInRange(-0.3, 0.3), 0xe8eef8, 0.55 * k, 0.6);
+      else if (r < 0.75) dab(ctx, x, y, this.rand.realInRange(6, 18), this.rand.realInRange(2, 4), this.rand.realInRange(-0.4, 0.4), 0x5a6478, 0.4 * k, 0.6);
+      else dab(ctx, x, y + 20, this.rand.realInRange(10, 30), this.rand.realInRange(4, 9), 0, 0x2a4440, 0.5 * k, 0.5);
     }
     // the wheat in rows, a hedgerow between fields
     for (let x = 0; x < 700; x += 3) {
@@ -579,7 +565,7 @@ export default class Horizon {
     ctx.fillRect(1186, Math.round(hill(1180)) - 20, 4, 5);
     grain(ctx, 0, 0, W, H, 0.05, 61);
     ct.refresh();
-    this.bands.road = this.band('ev-band-road', W, H, 0.2, 0.3, this.depth + 2.5, this.horizonY + 80);
+    this.bands.road = this.band('ev-band-road', W, H, 0.2, 0.3, this.depth + 2.5, this.horizonY + 280);
     this.bands.road.ts.setAlpha(0);
   }
 
@@ -588,10 +574,13 @@ export default class Horizon {
     const s = this.scene;
     this.townDots = [];
     const rand = new Phaser.Math.RandomDataGenerator(['dots']);
-    for (let i = 0; i < 26; i++) {
-      const d = s.add.circle(0, 0, rand.frac() < 0.3 ? 1.5 : 1, 0xf2b060, 1).setScrollFactor(0).setDepth(this.depth + 2.6).setAlpha(0);
-      d.ox = rand.between(-50, 50) + rand.between(-20, 20);
-      d.oy = rand.between(-10, 8);
+    // round 2 WP4: a cluster you can read from the ridge (the critique's
+    // closing shot): more lights, bunched toward the middle, a warm glow
+    this.townGlow = s.add.ellipse(0, 0, 150, 26, 0xf2a050, 1).setScrollFactor(0).setDepth(this.depth + 2.55).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
+    for (let i = 0; i < 64; i++) {
+      const d = s.add.circle(0, 0, rand.frac() < 0.3 ? 1.6 : 1.1, rand.frac() < 0.2 ? 0xfff0c0 : 0xf2b060, 1).setScrollFactor(0).setDepth(this.depth + 2.6).setAlpha(0);
+      d.ox = Math.round((rand.frac() - 0.5) * (rand.frac() < 0.6 ? 70 : 150));
+      d.oy = Math.round((rand.frac() - 0.5) * 16 - Math.max(0, 30 - Math.abs(d.ox)) * 0.25);
       d.tw = rand.realInRange(0, 6);
       this.townDots.push(d);
     }
@@ -628,7 +617,7 @@ export default class Horizon {
       }
       b.ts.y = (b.anchorTop ? b.base : b.base - b.H) + (this.refScroll - sy) * b.fy * 0.6;
       // aerial perspective: far bands wash toward the horizon colour
-      const haze = name === 'sea' ? 0.35 : name === 'mtn' || name === 'mtnSnow' ? 0.5 : name === 'town' ? 0.25 : name === 'road' ? 0.2 : name === 'under' ? 0.15 : 0.08;
+      const haze = name === 'sea' ? 0.35 : name === 'mtn' || name === 'mtnSnow' ? 0.5 : name === 'town' ? 0.25 : name === 'road' ? 0.2 : name === 'under' ? 0.15 : 0.16;
       b.ts.setTint(lerpC(ambient, horizonColour, haze));
     }
     this.bands.sea.ts.setAlpha(town * (1 - rain * 0.3));
@@ -725,6 +714,7 @@ export default class Horizon {
     for (const d of this.townDots) {
       d.setPosition(dx + d.ox, dy + d.oy).setAlpha(this.roadMix * night * (0.6 + 0.4 * Math.sin(time / 700 + d.tw)));
     }
+    if (this.townGlow) this.townGlow.setPosition(dx, dy).setAlpha(this.roadMix * night * 0.12);
   }
 
   lightWindow(w) {
