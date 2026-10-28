@@ -251,7 +251,7 @@ const ROOMS = [
     [
       { type: 'checkpoint', x: 426, y: 31, id: 'CP4a', label: 'THE WIND', loseAt: 3 },
       { type: 'coins', x: 427, y: 29, n: 2 },
-      { type: 'prop', kind: 'train', x: 434, y: 31 },
+      { type: 'prop', kind: 'train', x: 434, y: 33 }, // WP3: the rail at Jo's floor
       { type: 'zone', id: 'wind_fields', x: 432, x1: 497, y: 0, h: 34 },
       { type: 'foe', kind: 'crow', x: 446, y: 25, patrol: [440, 452], human: false },
       { type: 'foe', kind: 'crow', x: 472, y: 24, patrol: [468, 486], human: false },

@@ -250,3 +250,20 @@ export const SCALE_EXCEPTIONS = {
   'ev-door': 'WP4 (house rows: doors scale with their buildings)', 'ev-lamp': 'WP4 (house rows)', 'ev-bakery': 'WP4',
   'pt-house_front': 'WP4', 'pt-cafe_front': 'WP4', 'pt-train': 'WP3', 'hub-train': 'WP3',
 };
+
+// ---- round 2 WP3: the train kit and the station's big furniture -------------
+// Painted in code (src/art/trainArt.js) from the metres in src/art/trainKit.js;
+// `lint:scale` measures TRAIN_KIT_SIZES against these.
+Object.assign(PROP_CLASSES, {
+  carriageEnd: { h: [165, 180], w: [116, 130], m: 3.9 }, // a coach end-on: 2.8 × 3.9 m
+  carriageSide: { h: [165, 180], w: [860, 900], m: 3.9 }, // 20 m side-on (cropped by the screen)
+  carriageDoor: { h: [84, 96], m: 2.0 }, // >= 1.15 × Jo
+  bufferStop: { h: [52, 66], m: 1.35 },
+  platformGate: { h: [44, 54], m: 1.1 },
+  ticketBooth: { h: [108, 120], m: 2.6 },
+  kiosk: { h: [104, 116], m: 2.5 },
+  revolvingDoor: { h: [100, 112], m: 2.4 },
+});
+// the hub's doors, booths, kiosk, lamps, pigeons and every train are drawn
+// at scale now (WP3): they are no longer exceptions
+for (const k of ['hub-door', 'hub-booth', 'hub-kiosk', 'hub-lamp', 'hub-pigeon', 'hub-train', 'pt-train']) delete SCALE_EXCEPTIONS[k];

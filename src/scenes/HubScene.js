@@ -8,7 +8,8 @@ import hubRooms, { BAYS } from '../data/hub/rooms.js';
 import hubTiles from '../data/hub/tiles.js';
 import { HUB_ROWS } from '../data/hub/map.js';
 import { DREAMS, LAST_STOP, dreamById } from '../data/dreams.js';
-import { createHubTextures, createTrainTexture, createDeadTrainTexture, HUB_PROP_KEYS } from '../entities/hubArt.js';
+import { createHubTextures, HUB_PROP_KEYS } from '../entities/hubArt.js';
+import { stationTex, pigeonTex, doorWingTex } from '../art/trainArt.js';
 import { hubTex } from '../art/hubArt.js';
 import SplitFlapBoard from '../systems/SplitFlapBoard.js';
 import Train from '../entities/Train.js';
@@ -94,7 +95,7 @@ export default class HubScene extends BaseLevel {
     let spawn = { x: px(3), y: line(29) - 24 };
     if (this.returnedFrom) {
       const d = dreamById(this.returnedFrom);
-      if (d) spawn = { x: px(BAYS[d.platform - 1] + 3), y: FLOOR - 24 };
+      if (d) spawn = { x: BAYS[d.platform - 1] * T + 176, y: FLOOR - 24 }; // at the bay's gate (WP3)
     } else if (!this.firstVisit) {
       spawn = { x: px(26), y: FLOOR - 24 };
     }
@@ -206,23 +207,29 @@ export default class HubScene extends BaseLevel {
   buildSteps() {
     const street = line(29);
     // newspaper kiosk with headlines that change with the count
+    // (round 2 WP3: a 2.5 m kiosk, the headline on its board)
     const k = this.obj('kiosk');
-    this.add.image(k.wx, street - 16, 'hub-kiosk').setDepth(D.INTERACT - 2);
-    uiText(this, k.wx, street - 52, HEADLINES[this.N], { size: 'body', color: '#f2e6cc', wordWrap: { width: 120 }, align: 'center' })
+    this.add.image(k.wx, street, stationTex(this, 'hub-news-kiosk')).setOrigin(0.5, 1).setDepth(D.INTERACT - 2);
+    this.add.image(k.wx, street - 110 - 24, hubTex(this, 'signboard', 118, 50, { body: 0x1a1a22, trim: 0xc4a25c })).setDepth(D.INTERACT - 2);
+    uiText(this, k.wx, street - 110 - 25, HEADLINES[this.N], { size: 'body', color: '#f2e6cc', wordWrap: { width: 104 }, align: 'center', backing: 0x1a1a22 })
       .setOrigin(0.5)
       .setDepth(D.INTERACT - 1);
-    this.addInteract(k.wx, street - 20, 'paper', () => this.floatText(k.wx, street - 70, `"${HEADLINES[this.N]}"`, '#c8c0b0'));
+    this.addInteract(k.wx, street - 20, 'paper', () => this.floatText(k.wx, street - 124, `"${HEADLINES[this.N]}"`, '#c8c0b0'));
 
-    // three brass revolving doors; only the middle one turns
+    // three station doors at full size (2.6 m pairs, a 2.4 m revolving door
+    // in the middle); only the middle one turns
     this.doors = this.objs('door').map((o) => {
-      const img = this.add.image(o.wx, FLOOR - 20, 'hub-door').setDepth(D.INTERACT - 2);
       if (o.chained) {
-        this.add.image(o.wx, FLOOR - 24, 'hub-chain').setDepth(D.INTERACT - 1);
-        uiText(this, o.wx, FLOOR - 50, '🔒', { fontSize: '10px' }).setOrigin(0.5).setDepth(D.INTERACT - 1).setAlpha(0.8);
-      } else {
-        this.mainDoor = img;
-        this.tweens.add({ targets: img, scaleX: 0.15, duration: 1400, yoyo: true, repeat: -1, ease: 'sine.inout', paused: true });
+        const img = this.add.image(o.wx, FLOOR, stationTex(this, 'hub-double-door')).setOrigin(0.5, 1).setDepth(D.INTERACT - 2);
+        this.add.image(o.wx, FLOOR - 50, 'hub-chain').setDepth(D.INTERACT - 1);
+        uiText(this, o.wx, FLOOR - 36, '🔒', { fontSize: '10px' }).setOrigin(0.5).setDepth(D.INTERACT - 1).setAlpha(0.8);
+        return img;
       }
+      const img = this.add.image(o.wx, FLOOR, stationTex(this, 'hub-revolving-door')).setOrigin(0.5, 1).setDepth(D.INTERACT - 3);
+      // the wings turn inside the drum: one wing seen flat narrows to its edge
+      const wing = this.add.image(o.wx, FLOOR - 6, doorWingTex(this)).setOrigin(0.5, 1).setDepth(D.INTERACT - 2);
+      this.mainDoor = wing;
+      this.tweens.add({ targets: wing, scaleX: 0.15, duration: 1400, yoyo: true, repeat: -1, ease: 'sine.inout', paused: true });
       return img;
     });
     this.hallEntryX = this.obj('hall_entry').wx;
@@ -310,9 +317,11 @@ export default class HubScene extends BaseLevel {
 
     // ticket booths, phone booths, lost & found
     const booths = this.obj('booths');
-    [-40, 0, 40].forEach((dx) => this.add.image(booths.wx + dx, FLOOR - 18, 'hub-booth').setDepth(D.INTERACT - 3));
+    // (round 2 WP3: one 2.6 m ticket booth with a counter at 1.1 m, and two
+    // 2.3 m telephone boxes, clear of the sleeper's bench and the desk)
+    this.add.image(booths.wx + 40, FLOOR, stationTex(this, 'hub-ticket-booth')).setOrigin(0.5, 1).setDepth(D.INTERACT - 3);
     const phones = this.obj('phones');
-    [-14, 14].forEach((dx) => this.add.image(phones.wx + dx, FLOOR - 16, 'hub-phone').setDepth(D.INTERACT - 3));
+    [4, 48].forEach((dx) => this.add.image(phones.wx + dx, FLOOR, stationTex(this, 'hub-phone-box')).setOrigin(0.5, 1).setDepth(D.INTERACT - 3));
     const lf = this.obj('lostfound');
     this.add.image(lf.wx, lf.wy, hubTex(this, 'lostfound', 90, 40)).setDepth(D.INTERACT - 3);
     uiText(this, lf.wx, lf.wy - 8, 'LOST & FOUND', { fontSize: '9px', color: '#c4a25c', backing: 0x2a2230 }).setOrigin(0.5).setDepth(D.INTERACT - 2);
@@ -332,9 +341,9 @@ export default class HubScene extends BaseLevel {
     this.fountainTimer = this.time.addEvent({ delay: 240, loop: true, callback: () => this.fountainDrop() });
     const pg = this.obj('pigeons');
     this.pigeons = [0, 1, 2, 3].map((i) =>
-      this.add.image(pg.wx + i * 18 - 27, FLOOR - 5, 'hub-pigeon').setDepth(D.INTERACT - 1).setFlipX(i % 2 === 0)
+      this.add.image(pg.wx + i * 18 - 27, FLOOR - 6, pigeonTex(this)).setDepth(D.INTERACT - 1).setFlipX(i % 2 === 0)
     );
-    this.pigeonHome = { x: pg.wx, y: FLOOR - 5 };
+    this.pigeonHome = { x: pg.wx, y: FLOOR - 6 };
     const fl = this.obj('flowers');
     this.flowerCart = this.add.image(fl.wx, FLOOR - 12, 'hub-flowers').setDepth(D.INTERACT - 2);
     const fs = this.npc('flower', this.obj('npc', (o) => o.who === 'flower'), { still: true, flip: true });
@@ -444,50 +453,44 @@ export default class HubScene extends BaseLevel {
     for (const d of DREAMS) {
       const caught = !!this.save.dreams[d.id];
       const running = !!d.scene;
-      const p = this.obj('platform', (o) => o.platform === d.platform);
-      const bench = this.obj('bench', (o) => o.platform === d.platform);
-      const lamp = this.obj('lamp', (o) => o.platform === d.platform);
       const bayX0 = BAYS[d.platform - 1] * T;
       const bayMid = bayX0 + 3.5 * T;
 
-      // the overhead sign: readable from the far end of the shed
-      this.platformSign(d, bayMid, caught, running);
-      // a low brass post marks the bay's edge (decor, never a wall)
-      this.add.image(bayX0 + 6, FLOOR - 17, hubTex(this, 'bollard', 12, 34)).setDepth(D.INTERACT - 3);
-
-      this.add.image(bench.wx, FLOOR - 10, 'hub-bench').setDepth(D.INTERACT - 2);
-      const lampImg = this.add.image(lamp.wx, FLOOR - 50, caught || !running ? 'hub-lamp-off' : 'hub-lamp').setDepth(D.INTERACT - 2);
-      if (!caught && running) this.add.image(lamp.wx, FLOOR - 60, hubTex(this, 'glow', 64, 64)).setDisplaySize(110, 110).setTint(0xf2d580).setAlpha(0.28).setDepth(D.INTERACT - 3);
-
-      this.platformProps(d, bayX0);
-      const texture = running ? createTrainTexture(this, d.id, d.livery) : createDeadTrainTexture(this, d.id);
-      const train = new Train(this, d.platform, p.wx, FLOOR, {
-        texture,
+      // the bay at full scale (round 2 WP3): the buffer end of the last
+      // carriage at the stop, the rest of the train running away beside the
+      // platform, the platform gate and its 3.5 m lamp at the mouth
+      const train = new Train(this, d.platform, bayX0, FLOOR, {
+        id: d.id,
+        livery: d.livery,
         outOfService: !running,
         dead: caught && d.id !== this.returnedFrom,
       });
       this.trains[d.id] = train;
+      // the overhead sign: readable from the far end of the shed
+      this.platformSign(d, bayMid, caught, running);
+      // the kitchen line smells of its dream
+      if (d.propsKind === 'produce' && running) this.time.addEvent({ delay: 900, loop: true, callback: () => this.smell(train.gateX - 30, FLOOR - 110) });
 
       if (caught) {
-        // the platform goes quiet: 60% brightness, RESERVED, pigeons roost
-        this.add.rectangle(bayMid, FLOOR - 160, 7 * T, 320, 0x0a0a14, 0.4).setDepth(D.INTERACT + 3);
-        this.add.image(bench.wx - 10, FLOOR - 24, 'hub-pigeon').setDepth(D.INTERACT - 1);
-        this.add.image(lamp.wx + 6, FLOOR - 66, 'hub-pigeon').setDepth(D.INTERACT - 1).setFlipX(true);
+        // the platform goes quiet: dimmed, pigeons roost on the gate and lamp
+        this.add.rectangle(bayMid, FLOOR - 150, 7 * T, 300, 0x0a0a14, 0.35).setDepth(D.INTERACT + 3);
+        this.add.image(train.gateX - 26, FLOOR - 52, pigeonTex(this)).setDepth(D.INTERACT - 1);
+        this.add.image(train.lampX + 4, FLOOR - 160, pigeonTex(this)).setDepth(D.INTERACT - 1).setFlipX(true);
       }
-      this.addInteract(p.wx, FLOOR - 20, 'train', () => this.board_(d), { radius: 52, when: () => this.trains[d.id].state === 'idle' });
-      d._lamp = lampImg;
+      this.addInteract(train.gateX, FLOOR - 20, 'train', () => this.board_(d), { radius: 56, when: () => this.trains[d.id].state === 'idle' });
+      d._lamp = train;
     }
   }
 
   // "PLATFORM 1 · FIVE-STAR DREAM", hung from the shed roof in the train's own
   // colours. Lines that don't run get a red bar you can read from the hall.
   platformSign(d, x, caught, running) {
-    const y = FLOOR - 118;
+    const y = FLOOR - 196; // above the carriage roof (round 2 WP3)
     const w = 196;
     const body = caught ? 0x2a2a30 : running ? d.livery.body : 0x2e2e36;
     const trim = caught ? 0x4a4a52 : running ? d.livery.trim : 0x5a5a62;
     const text = caught ? '#8a8478' : running ? '#f2e6cc' : '#8a8a90';
-    this.add.image(x, y - 34, hubTex(this, 'signpost', 3, 40)).setDepth(D.INTERACT - 3);
+    this.add.image(x, y - 58, hubTex(this, 'signpost', 3, 88)).setDepth(D.INTERACT - 3);
     this.add.image(x, y + 1, hubTex(this, 'signboard', w, 42, { body, trim })).setDepth(D.INTERACT - 2);
     uiText(this, x, y - 9, `PLATFORM ${d.platform}`, { fontSize: '10px', color: text, backing: body })
       .setOrigin(0.5)
@@ -507,19 +510,6 @@ export default class HubScene extends BaseLevel {
     }
   }
 
-  // one identifying prop set per dream, readable from a distance
-  platformProps(d, x0) {
-    const y = FLOOR;
-    const dep = D.INTERACT - 3;
-    const at = (dx) => x0 + dx;
-    const key = hubTex(this, `pp_${d.propsKind}`, 200, 100);
-    if (!key) return;
-    this.add.image(at(0), y, key).setOrigin(0, 1).setDepth(dep);
-    if (d.propsKind === 'produce') {
-      uiText(this, at(170), y - 45, 'MENU', { fontSize: '8px', color: '#f2e6cc' }).setOrigin(0.5).setDepth(dep + 1);
-      this.time.addEvent({ delay: 700, loop: true, callback: () => this.smell(at(26), y - 34) });
-    }
-  }
 
   smell(x, y) {
     if (this.save.dreams.chef) return;
@@ -856,11 +846,13 @@ export default class HubScene extends BaseLevel {
       // the moment the train has gone for good
       const idx0 = DREAMS.findIndex((x) => x.id === d.id);
       this.board.setRow(idx0, { platform: d.platform, title: d.title, departs: 'NOW', status: 'ARRIVED', dim: false }, true);
+      // Jo steps down from the door he left by and walks out through the gate
+      train.walkOut(this.player);
       train.returnAndDie(() => {
         const idx = DREAMS.findIndex((x) => x.id === d.id);
         const rows = this.boardRows();
         this.board.setRow(idx, rows[idx]);
-        d._lamp.setTexture('hub-lamp-off');
+        d._lamp.setLamp(false);
         sfx('scratch');
         this.time.delayedCall(300, () => sfx('scratch'));
         this.drawTally(this.state.tally);
@@ -910,17 +902,22 @@ export default class HubScene extends BaseLevel {
     const train = this.trains[d.id];
     this.player.controlLockUntil = this.time.now + 99999;
     this.player.body.setVelocity(0, 0);
-    this.player.shown = false;
     this.persistClock();
-    sfx('snap');
-    train.depart(() => {
-      const cam = this.cameras.main;
-      cam.fadeOut(600, 8, 8, 12);
-      this.time.delayedCall(650, () => {
-        music.stop();
-        // a continued run skips the intro card and wakes at its flag
-        if (answer === 'continue') this.scene.start(d.scene, { levelKey: d.id, resume: true });
-        else this.scene.start('Intro', { levelKey: d.id });
+    this.boarding = d.id;
+    // through the gate and up the platform into the lit door (about 1.4 s),
+    // the door shuts, and the train runs away into the shed (round 2 WP3)
+    train.walkIn(this.player, () => {
+      sfx('snap');
+      train.depart(() => {});
+      this.time.delayedCall(900, () => {
+        const cam = this.cameras.main;
+        cam.fadeOut(600, 8, 8, 12);
+        this.time.delayedCall(650, () => {
+          music.stop();
+          // a continued run skips the intro card and wakes at its flag
+          if (answer === 'continue') this.scene.start(d.scene, { levelKey: d.id, resume: true });
+          else this.scene.start('Intro', { levelKey: d.id });
+        });
       });
     });
   }

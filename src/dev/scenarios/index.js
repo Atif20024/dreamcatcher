@@ -12,5 +12,6 @@ import round2 from './round2.js';
 import round2flow from './round2flow.js';
 import readability from './readability.js';
 import scale from './scale.js';
+import wp3 from './wp3.js';
 
-export const SCENARIOS = [...backgroundSnap, evaTether, betCard, ...failure, hudScale, ...phase14, ...phase2, ...phase3, ...round2, ...round2flow, ...readability, ...scale];
+export const SCENARIOS = [...backgroundSnap, evaTether, betCard, ...failure, hudScale, ...phase14, ...phase2, ...phase3, ...round2, ...round2flow, ...readability, ...scale, ...wp3];

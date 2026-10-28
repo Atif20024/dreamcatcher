@@ -70,7 +70,26 @@ export async function scaleIssues(ROOT) {
     const h = (filled.lastIndexOf(true) - filled.indexOf(true) + 1) * 2;
     check(key, 'prop', cls, h, S.PROP_CLASSES[cls].h);
   }
+  await trainKitChecks(imp, S, check); // round 2 WP3
   // the rest of the listed exceptions (not measured here)
   for (const [key, owner] of Object.entries(S.SCALE_EXCEPTIONS)) if (!out.exceptions.some((e) => e.key === key)) out.exceptions.push({ key, h: null, range: null, owner });
   return out;
+}
+
+// round 2 WP3: the train kit and the station furniture are painted in code
+// from metres (src/art/trainKit.js); each painted canvas is filled to its
+// height, so the drawn size is the TRAIN_KIT_SIZES entry. Also checks the
+// two §7.3 acceptance ratios: the carriage ≥ 2.1 × Jo, its door ≥ 1.15 × Jo.
+async function trainKitChecks(imp, S, check) {
+  const { TRAIN_KIT_SIZES } = await imp('src/art/trainKit.js');
+  for (const [key, [w, h, cls]] of Object.entries(TRAIN_KIT_SIZES)) {
+    const c = S.PROP_CLASSES[cls];
+    check(key, 'prop', cls, h, c.h);
+    if (c.w) check(`${key} (width)`, 'prop', cls, w, c.w);
+  }
+  check('hub-pigeon-16', 'creature', 'pigeon', 13, S.CLASSES.pigeon.h);
+  const [, endH] = TRAIN_KIT_SIZES['hub-carriage-end'];
+  const [, doorH] = TRAIN_KIT_SIZES['train-carriage-door'];
+  check('train-scale (carriage / Jo)', 'prop', 'carriageEnd', +(endH / S.JO.withHat).toFixed(2), [2.1, 2.3]);
+  check('train-scale (door / Jo body)', 'prop', 'carriageDoor', +(doorH / S.JO.body).toFixed(2), [1.15, 1.25]);
 }
