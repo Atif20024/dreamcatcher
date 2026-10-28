@@ -1113,7 +1113,7 @@ export default class WriterScene extends BaseLevel {
     const momentMsg = this.moments === 0 ? "You didn't notice anything on the way." : this.moments < 3 ? 'You noticed a little.' : 'You noticed. Maybe that was the point.';
     const lines = [`${this.pages} pages.`, '', 'Was it enough?', '', momentMsg, this.pageThreeChoice === 'kept' ? CARD_LINES.kept : CARD_LINES.cut];
     if (this.memoryUsed >= 6) lines.push(CARD_LINES.attentive);
-    lines.push('', '[X] Return to Crossroads Station');
+    lines.push('', '[E] Return to Crossroads Station');
     this.showCard(lines, () => {
       music.stop();
       this.scene.start('Hub', { returnedFrom: 'writer' });

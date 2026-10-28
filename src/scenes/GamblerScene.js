@@ -98,6 +98,7 @@ export default class GamblerScene extends BaseLevel {
     this.dreamCoinId = 'gambler';
     markMet('gambler');
     this.setupCommon({ worldW: built.worldW, worldH: built.worldH, levelName: 'DREAM — THE LAST HAND', spawn });
+    this.time.delayedCall(1200, () => this.floatText(this.player.x, this.player.y - 70, 'his own horn. it came with him.', '#f2d580'));
 
     // §7 — the house wins more, not meaner
     this.snatchMs = this.difficulty >= 2 ? 3000 : 5000;
@@ -1480,7 +1481,7 @@ export default class GamblerScene extends BaseLevel {
     if (this.F.sal) lines.push(this.F.sal_chip ? CARD_LINES.sal_took : CARD_LINES.sal_kept);
     if (voided > 0) lines.push(`${voided} chip${voided > 1 ? 's' : ''}, never cashed.`);
     if (getMarker() > 0) lines.push(`A marker for ${getMarker()}. It never goes away.`);
-    lines.push('', '[X] Return to Crossroads Station');
+    lines.push('', '[E] Return to Crossroads Station');
     const cam = this.cameras.main;
     const white = this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0xffffff, 0).setScrollFactor(0).setDepth(240);
     this.tweens.add({ targets: white, alpha: 1, duration: 1200 });
@@ -1496,7 +1497,7 @@ export default class GamblerScene extends BaseLevel {
   // ---------- small moments ------------------------------------------------------------
 
   moment(id, x, y) {
-    this.addInteract(x, y, 'pause', async () => {
+    this.addInteract(x, y, 'take a breath', async () => {
       const m = MOMENTS[id];
       this.moments += 1;
       recordMoment('gambler', id);

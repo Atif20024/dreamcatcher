@@ -339,7 +339,7 @@ The sequence runs in this order:
 2. The orb rises, drifts to Jo and flashes, and `dream:complete` fires.
 3. `completeDream(id)` runs (skipped when `record: false`, as in the proof).
 4. The image beat: `paint` draws a 560×300 picture, framed, with the title and the dream's own lines typed under it.
-5. "[X] Return to Crossroads Station".
+5. "[E] Return to Crossroads Station".
 
 Write each dream's own lines. "Was it enough?" belongs to the finale only (critique F#11).
 
@@ -347,6 +347,12 @@ Write each dream's own lines. "Was it enough?" belongs to the finale only (criti
 
 - **NPCs** are rigs on the shared skeleton, like Jo (character-motion skill). The proof's Wren is `src/data/rigs/wren.js`, with `wren.poses.js` (Jo's cycles plus her own `talk`), `wren.portrait.js` (Jo's face construction, her features patched in, 3 expressions) and `src/art/characters/wren/manifest.js`. `npm run atlas` builds `public/atlas/wren.*` and `sheets/wren-*.png`.
 - **The NPC actor.** `actors/Npc.js` draws a rig from its atlas, faces Jo when he is near, plays `talk` while it is the speaker, and runs its task loop (`task`) every few seconds.
+
+## 14a. Ground, slopes and Jo's shadow (round 2)
+
+- **Ground solver: `src/entities/ground.js`.** Arcade has no slopes, so everything that walks (Jo, foes, carts) asks `groundAt(...)` for the surface under its feet and is laid on it every frame. Slopes and stairs are therefore continuous: no launch at a crest, no airborne frames on a down-ramp, no push pose against a riser. Framework authors draw slopes and stair joins in the room tiles and get this for free; do not add per-scene slope code.
+- **Shadow: `src/entities/PlayerShadow.js`.** Every player has `player.shadow`. A dream shapes it with `player.shadow.set({ tint, alpha, length, ... })` or declaratively through `def.shadow` (PlayerShadow options, merged over the palette default in `DreamScene`). It lies on whatever walkable surface is under Jo, shrinks and fades with height, and hides over a gap. Do not hand-place a shadow sprite.
+- **Scenarios:** `src/dev/scenarios/round2.js` holds `slope-<place>` (no airborne frame or bad pose across every slope/stair join), `shadow-jump`, `shadow-gap`, `shadow-slope` and `shadow-places`. Run them after any room or physics change. `src/dev/scenarios/round2flow.js` covers the flow fixes: tool visibility (`def.tool` / `player.noTool`), the skippable hub opening, the dialogue key label (always `[E]`) and single signs.
 
 ## 15. Performance (`core/PerfBudget.js`, lint)
 

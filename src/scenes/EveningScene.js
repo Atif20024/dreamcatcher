@@ -2222,10 +2222,19 @@ export default class EveningScene extends BaseLevel {
   }
 
   countLine(tmpl) {
-    const N = getSave().dreamsCaught;
-    const M = momentsFound() + this.director.noticed;
-    const D = ((this.distance / T) * 8 / 1000).toFixed(1);
-    return tmpl.replace('{N}', N).replace('{M}', M).replace('{D}', D).replace(/\b1 dreams\b/, '1 dream').replace(/\b1 small things\b/, '1 small thing');
+    const N = Number(getSave().dreamsCaught) || 0;
+    const M = (Number(momentsFound()) || 0) + (this.director.noticed || 0);
+    const km = (this.distance / T) * 8 / 1000;
+    // low numbers must not read like a scoreboard
+    if (/\{N\}/.test(tmpl) && N === 0) return "You didn't catch any dreams. You came anyway.";
+    if (/\{M\}/.test(tmpl) && M === 0) return "You didn't notice anything in particular. That is allowed.";
+    if (/\{D\}/.test(tmpl) && km < 1) return 'You walked a little way tonight.';
+    return tmpl
+      .replace('{N}', N)
+      .replace('{M}', M)
+      .replace('{D}', km.toFixed(1))
+      .replace(/\b1 dreams\b/, '1 dream')
+      .replace(/\b1 small things\b/, '1 small thing');
   }
 
   async endingStation() {
@@ -2539,7 +2548,7 @@ export default class EveningScene extends BaseLevel {
     add(this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x0e0b14, 0.6));
     this.drawMap(add);
     this.drawThingsToDo(add);
-    add(uiText(this, cam.width / 2, cam.height - 40, '[X] stay     [A] the photos     [Q] back to the station', { fontSize: '12px', color: '#c8c0b0' }).setOrigin(0.5));
+    add(uiText(this, cam.width / 2, cam.height - 40, '[E] stay     [A] the photos     [Q] back to the station', { fontSize: '12px', color: '#c8c0b0' }).setOrigin(0.5));
     this.paused = { objs, album: null, openedAt: this.game.loop.time };
   }
 

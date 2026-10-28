@@ -226,7 +226,6 @@ export default class MusicianScene extends BaseLevel {
   // ------- day builders -------------------------------------------------
 
   buildDay0() {
-    uiText(this, px(12), px(28), 'MERIDIAN JAZZ FESTIVAL — SAT\n     THE  BIG  STAGE', { fontSize: '15px', color: '#f2d580', align: 'center' }).setDepth(4);
     this.resonant(px(8), px(34), 'mus-lamp', () => {
       sfx('bell');
       this.floatText(px(8), px(33), 'the horn in the window rings back');
@@ -1165,7 +1164,7 @@ export default class MusicianScene extends BaseLevel {
     if (this.F.choice === 'tally') lines.push('', "You didn't rush the third bar. Nobody was listening for it.");
     if (this.F.choice === 'nia') lines.push('', 'Somebody was listening for the third bar.');
     if (this.F.marcus_left === 'stay') lines.push('', 'Marcus drove home Sunday. He kept the napkin.');
-    lines.push('', '[X] Return to Crossroads Station');
+    lines.push('', '[E] Return to Crossroads Station');
     this.showCard(lines, () => {
       music.stop();
       this.scene.start('Hub', { returnedFrom: 'musician' });

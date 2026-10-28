@@ -201,7 +201,7 @@ export default class IntroScene extends Phaser.Scene {
       .setOrigin(0.5, 0)
       .setScrollFactor(0)
       .setDepth(150);
-    uiText(this, 944, 524, '[X] skip', { size: 'small', color: 'ink-dim' })
+    uiText(this, 944, 524, '[E] skip', { size: 'small', color: 'ink-dim' })
       .setOrigin(1, 1)
       .setScrollFactor(0)
       .setDepth(150);

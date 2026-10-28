@@ -200,7 +200,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     const feet = this.lastPos.y + 24 + this.artDy;
     this.hat.setPosition(lx, feet - 42 * sy + this.hatKnock.y + this.poseDy).setScale(sx, sy).setAngle(this.hatKnock.angle).setFlipX(this.flipX).setVisible(this.shown).setAlpha(this.alpha);
     const dir = this.flipX ? -1 : 1;
-    this.tool.setPosition(lx + dir * 14 * sx, feet - 18 * sy + this.poseDy * 0.5).setFlipX(this.flipX).setVisible(this.shown).setAlpha(this.alpha * 0.95);
+    this.tool.setPosition(lx + dir * 14 * sx, feet - 18 * sy + this.poseDy * 0.5).setFlipX(this.flipX).setVisible(this.shown && !this.noTool).setAlpha(this.alpha * 0.95);
     this.lastPos = { x: this.x, y: this.y };
   }
 

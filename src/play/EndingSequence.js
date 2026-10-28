@@ -107,7 +107,7 @@ export class EndingSequence {
   card(e) {
     const s = this.scene;
     const cam = s.cameras.main;
-    const hint = uiText(s, cam.width / 2, cam.height - 30, '[X] Return to Crossroads Station', { size: 'small', color: 'calm', align: 'center' }).setOrigin(0.5).setScrollFactor(0).setDepth(233);
+    const hint = uiText(s, cam.width / 2, cam.height - 30, '[E] Return to Crossroads Station', { size: 'small', color: 'calm', align: 'center' }).setOrigin(0.5).setScrollFactor(0).setDepth(233);
     if (this.imageHandle) this.imageHandle.add(hint);
     s.inputs.suspend(false);
     this.waitingForReturn = true;

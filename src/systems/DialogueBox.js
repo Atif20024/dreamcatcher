@@ -49,7 +49,7 @@ export default class DialogueBox {
           .setScrollFactor(0)
           .setDepth(depth + 1)
       );
-      this.hint = add(uiText(s, cam.width - 40, boxY + boxH / 2 - 12, '[X] ▼', { size: 'small', color: 'ink-dim' }).setOrigin(1, 1).setScrollFactor(0).setDepth(depth + 1));
+      this.hint = add(uiText(s, cam.width - 40, boxY + boxH / 2 - 12, '[E] ▼', { size: 'small', color: 'ink-dim' }).setOrigin(1, 1).setScrollFactor(0).setDepth(depth + 1));
       this.portrait = add(s.add.image(88, boxY, '__WHITE').setScrollFactor(0).setDepth(depth + 1).setVisible(false));
 
       this.entries = entries;

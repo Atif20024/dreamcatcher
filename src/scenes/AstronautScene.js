@@ -112,8 +112,8 @@ export default class AstronautScene extends BaseLevel {
     this.setupCommon({ worldW: built.worldW, worldH: built.worldH, levelName: 'DREAM — THE QUIET ABOVE', spawn });
 
     // Phase 1-3 the tool is just his hands; the multitool arrives with the suit
-    this.player.tool.setTexture('astro-wrench').setVisible(false);
-    this.player.tool.setScale(0); // syncAttachments never writes scale on the tool
+    this.player.tool.setTexture('astro-wrench');
+    this.player.noTool = true; // no tool until the locker gives the wrench (Player respects noTool every frame)
     this.F = {};
     this.moments = 0;
     this.interacts = [];
@@ -234,7 +234,6 @@ export default class AstronautScene extends BaseLevel {
     }
     if (ph.suit) {
       this.player.bodyTint = this.theme.suitTint;
-      this.player.tool.setVisible(true).setScale(1);
       this.o2 = this.o2Max;
     }
     if (ph.sat) {
@@ -261,6 +260,7 @@ export default class AstronautScene extends BaseLevel {
 
   setFlag(name) {
     this.F[name] = true;
+    if (name === 'wrench' && this.player) this.player.noTool = false; // the wrench appears in his hand when the locker gives it
     this.refreshGates();
   }
 
@@ -873,9 +873,8 @@ export default class AstronautScene extends BaseLevel {
       this.setFlag('centrifuge');
       // the flight suit: Jo's sprite changes for the rest of the dream
       this.player.bodyTint = this.theme.suitTint;
-      this.player.tool.setVisible(true).setScale(1);
       this.cameras.main.flash(400, 255, 255, 255);
-      this.floatText(p.x, p.y - 60, 'the flight suit. it fits like a decision.\n(+ the multitool)', '#f2d580');
+      this.floatText(p.x, p.y - 60, 'the flight suit. it fits like a decision.', '#f2d580');
       this.setObjective('the tank — seat the spare panel');
     }
   }

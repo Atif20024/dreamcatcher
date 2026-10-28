@@ -952,7 +952,7 @@ export default class PainterScene extends BaseLevel {
     if (this.quarrel === 'agreed') lines.push(CARD_LINES.agreed);
     else if (this.quarrel === 'disagreed') lines.push(CARD_LINES.disagreed);
     if (allMoments) lines.push(CARD_LINES.irises);
-    lines.push('', '[X] Return to Crossroads Station');
+    lines.push('', '[E] Return to Crossroads Station');
     this.showCard(lines, () => {
       music.stop();
       this.scene.start('Hub', { returnedFrom: 'painter' });

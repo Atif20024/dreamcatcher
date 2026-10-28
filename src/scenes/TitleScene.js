@@ -47,7 +47,7 @@ export default class TitleScene extends Phaser.Scene {
       ? `${s.dreamsCaught} caught${runs.length ? ' · a dream is waiting where you left it' : ''}`
       : 'nine o\'clock. every train leaves now.';
     this.subText = uiText(this, W / 2, 262, sub, { size: 'small', color: 'ink-dim', align: 'center' }).setOrigin(0.5).setDepth(20);
-    uiText(this, W / 2, H - 22, '[↑↓] choose   [Enter] / [X] go   [M] music', { size: 'small', color: 'ink-dim', align: 'center' }).setOrigin(0.5).setDepth(20);
+    uiText(this, W / 2, H - 22, '[↑↓] choose   [Enter] / [E] go   [M] music', { size: 'small', color: 'ink-dim', align: 'center' }).setOrigin(0.5).setDepth(20);
     this.render();
     this.input.keyboard.on('keydown', (e) => this.onKey(e));
     this.cameras.main.fadeIn(500);

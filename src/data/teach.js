@@ -22,7 +22,7 @@ export const CARDS = {
   hide: { name: 'HIDE', hint: 'wait for them to pass', key: '↓', triggers: [{ dream: '*', event: 'BaseLevel hide spot' }] },
   wall_jump: {
     name: 'WALL JUMP',
-    hint: 'only on ribbed walls. jump into one, then jump again off it',
+    hint: 'only on ribbed walls. jump into one, hold toward the wall, then jump again off it',
     key: '↑ / SPACE',
     staged: 'chef chimney: the shaft floor is solid, a missed jump just lands you back at its foot',
     triggers: [

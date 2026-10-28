@@ -99,6 +99,7 @@ export default class HubScene extends BaseLevel {
       spawn = { x: px(26), y: FLOOR - 24 };
     }
     this.player = new Player(this, spawn.x, spawn.y);
+    this.player.noTool = true; // the ladle belongs to the Chef's dream, not the station
     // the same long shadow east as everyone else, on the ground under him
     this.player.shadow.set({ texture: hubTex(this, 'shadow', 64, 8), originX: 0.05, offsetX: -4, tint: 0x2a3050, alpha: 0.42 });
     this.dreamCoinId = 'musician'; // the station pays in busker change
@@ -736,64 +737,61 @@ export default class HubScene extends BaseLevel {
   async opening() {
     if (this.openingDone) return;
     this.openingDone = true;
-    this.player.controlLockUntil = this.time.now + 12000;
+    this.openingActive = true;
+    this.player.controlLockUntil = this.time.now + 4000;
     this.player.body.setVelocity(0, 0);
     this.tweens.add({ targets: this.mainDoor, scaleX: 0.1, duration: 500, yoyo: true });
     sfx('click');
     const cam = this.cameras.main;
-    // Camera, title and return are one chain, so nothing can overlap: pull
-    // back to the vista -> hold while the title reads -> come back to Jo.
-    this.time.delayedCall(500, () => {
-      cam.stopFollow();
+    const timers = [];
+    // Any key (E, Esc, anything) skips straight back to Jo with control.
+    const finish = () => {
+      if (!this.openingActive) return;
+      this.openingActive = false;
+      this.input.keyboard.off('keydown', finish);
+      timers.forEach((t) => t.remove(false));
       this.tweens.killTweensOf(cam);
-      for (const t of Object.values(this.trains)) for (let i = 0; i < 8; i++) this.time.delayedCall(i * 160, () => t.puff());
-      this.board.rows.forEach((r, i) => this.time.delayedCall(300 + i * 220, () => this.board.setRow(i, r)));
-      this.tweens.add({
-        targets: cam,
-        scrollX: px(60) - 480,
-        scrollY: FLOOR - 250 - 270,
-        zoom: 0.62,
-        duration: 2600,
-        ease: 'sine.inout',
-        onComplete: () => {
-          // on UIScene (zoom 1): no counter-scaling for the vista zoom
-          const title = uiText(this, 480, 124, 'DREAMCATCHER', { size: 'display', scale: 3, color: '#f2e6cc' })
-            .setOrigin(0.5)
-            .setScrollFactor(0)
-            .setDepth(240)
-            .setAlpha(0);
-          const sub = uiText(this, 480, 184, 'Crossroads Station. Everyone here is going somewhere else.', { size: 'body', color: '#e8dcc8' })
-            .setOrigin(0.5)
-            .setScrollFactor(0)
-            .setDepth(240)
-            .setAlpha(0);
-          this.tweens.add({ targets: title, alpha: 1, duration: 1200 });
-          this.tweens.add({
-            targets: sub,
-            alpha: 1,
-            duration: 1200,
-            delay: 700,
-            hold: 2200,
-            yoyo: true,
-            onComplete: () => {
-              this.tweens.add({ targets: title, alpha: 0, duration: 700, onComplete: () => [title, sub].forEach((t) => t.destroy()) });
+      cam.setZoom(1);
+      cam.startFollow(this.player, true, 0.1, 0.1);
+      cam.centerOn(this.player.x, this.player.y);
+      this.player.controlLockUntil = 0;
+    };
+    this.openingSkip = finish;
+    this.input.keyboard.on('keydown', finish);
+    // pull back to the vista -> brief hold -> come back to Jo (about 3 s). The
+    // board and the steam carry the moment; the title was already shown.
+    timers.push(
+      this.time.delayedCall(400, () => {
+        if (!this.openingActive) return;
+        cam.stopFollow();
+        this.tweens.killTweensOf(cam);
+        for (const t of Object.values(this.trains)) for (let i = 0; i < 8; i++) timers.push(this.time.delayedCall(i * 120, () => t.puff()));
+        this.board.rows.forEach((r, i) => timers.push(this.time.delayedCall(200 + i * 160, () => this.board.setRow(i, r))));
+        this.tweens.add({
+          targets: cam,
+          scrollX: px(60) - 480,
+          scrollY: FLOOR - 250 - 270,
+          zoom: 0.62,
+          duration: 1400,
+          ease: 'sine.inout',
+          onComplete: () => {
+            if (!this.openingActive) return;
+            timers.push(this.time.delayedCall(500, () => {
+              if (!this.openingActive) return;
               this.tweens.add({
                 targets: cam,
                 scrollX: this.player.x - 480,
                 scrollY: this.player.y - 270,
                 zoom: 1,
-                duration: 1200,
+                duration: 800,
                 ease: 'sine.inout',
-                onComplete: () => {
-                  cam.startFollow(this.player, true, 0.1, 0.1);
-                  this.player.controlLockUntil = 0;
-                },
+                onComplete: finish,
               });
-            },
-          });
-        },
-      });
-    });
+            }));
+          },
+        });
+      }),
+    );
   }
 
   async firstDesk() {
@@ -928,7 +926,7 @@ export default class HubScene extends BaseLevel {
   // stands open onto THE LONG EVENING, and that part is here.
   boardLastStop() {
     this.showCard(
-      ['THE LAST STOP', '', 'No ticket. No count to clear.', 'Past the turnstile, a door stands open.', 'It is warm on the other side.', '', '[X] Go through      [Q] Not yet'],
+      ['THE LAST STOP', '', 'No ticket. No count to clear.', 'Past the turnstile, a door stands open.', 'It is warm on the other side.', '', '[E] Go through      [Q] Not yet'],
       () => {
         this.persistClock();
         this.player.controlLockUntil = this.time.now + 99999;
@@ -1102,7 +1100,7 @@ export default class HubScene extends BaseLevel {
       return true;
     }
     if (Phaser.Input.Keyboard.JustDown(this.keyEsc)) {
-      this.showCard(['Paused', '', 'The station keeps the time.', '', '[X] Back'], null);
+      this.showCard(['Paused', '', 'The station keeps the time.', '', '[E] Back'], null);
       return true;
     }
     this.cameras.main.followOffset.x = this.player.flipX ? 48 : -48;

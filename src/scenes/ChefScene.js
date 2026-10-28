@@ -730,7 +730,7 @@ export default class ChefScene extends BaseLevel {
         : this.moments < 3
           ? 'You noticed a little.'
           : 'You noticed. Maybe that was the point.';
-    this.showCard(['Five stars.', '', 'Was it enough?', '', momentMsg, '', '[X] Return to Crossroads Station'], () => {
+    this.showCard(['Five stars.', '', 'Was it enough?', '', momentMsg, '', '[E] Return to Crossroads Station'], () => {
       music.stop();
       this.scene.start('Hub', { returnedFrom: 'chef' });
     });
