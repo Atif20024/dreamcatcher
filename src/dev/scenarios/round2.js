@@ -126,7 +126,9 @@ function judge(sc, log, skip = 6) {
 // there, and an optional room (framework dreams: columns are room-local)
 const SITES = [
   { id: 'hub-steps', dream: 'hub', c0: 3, c1: 17, row: 22 },
-  { id: 'musician-d0', dream: 'musician', c0: 14, c1: 26, row: 30 },
+  { id: 'musician-d0', dream: 'musician_legacy', c0: 14, c1: 26, row: 30 },
+  // THE BIG STAGE on the framework (phase 3b): the theatre's kerb ramp
+  { id: 'musician-kerb', dream: 'musician', place: 'street', room: 'street', c0: 9, c1: 19, row: 14, row1: 15 },
   { id: 'chef-arrival', dream: 'chef', c0: 14, c1: 26, row: 28 },
   { id: 'chef-freezer-stairs', dream: 'chef', c0: 113, c1: 120, row: 30 },
   { id: 'writer-arrival', dream: 'writer', place: 'arrival', c0: 4, c1: 16, row: 28 },
@@ -260,7 +262,7 @@ const shadowGap = {
 const shadowSlope = {
   id: 'shadow-slope',
   async run(dc) {
-    const sc = await arrive(dc, 'musician');
+    const sc = await arrive(dc, 'musician_legacy');
     const p = sc.player;
     placeAt(sc, 14, 30);
     p.speed = 120;

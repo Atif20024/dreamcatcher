@@ -83,7 +83,12 @@ export class BackdropDirector {
     }
     if (set.motes) {
       for (let i = 0; i < (set.moteCount || 18); i++) {
-        const m = s.add.circle(0, 0, set.motes === 'fireflies' ? 1.6 : 1, set.motes === 'fireflies' ? 0xfff0a0 : 0xf2e6d0, 0.8).setDepth(D.PLAYER - 1).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+        // 'rain' (phase 3b): slanted streaks that fall through the view
+        const m =
+          set.motes === 'rain'
+            ? s.add.rectangle(0, 0, 1.2, 14, 0xb8d0f0, 0.55).setAngle(14).setDepth(D.PLAYER + 2).setAlpha(0)
+            : s.add.circle(0, 0, set.motes === 'fireflies' ? 1.6 : 1, set.motes === 'fireflies' ? 0xfff0a0 : 0xf2e6d0, 0.8).setDepth(D.PLAYER - 1).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+        m.rain = set.motes === 'rain';
         m.seed = Math.random() * 1000;
         m.u = Math.random();
         m.v = Math.random();
@@ -147,6 +152,13 @@ export class BackdropDirector {
       const y0 = cam.midPoint.y - vh / 2;
       for (const m of e.motes) {
         const s = time / 1000 + m.seed;
+        if (m.rain) {
+          const fall = (m.v + s * 1.4) % 1;
+          m.x = x0 + ((((m.u - fall * 0.12) % 1) + 1) % 1) * vw;
+          m.y = y0 + fall * vh;
+          m.setAlpha(k * 0.45);
+          continue;
+        }
         m.u = (m.u + 0.0004 * Math.sin(s * 0.7)) % 1;
         m.x = x0 + ((((m.u + Math.sin(s * 0.3) * 0.02) % 1) + 1) % 1) * vw;
         m.y = y0 + vh * (0.25 + 0.6 * m.v) + Math.sin(s * 1.3) * 10;

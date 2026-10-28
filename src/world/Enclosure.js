@@ -59,6 +59,45 @@ export function floorRow(grid) {
   return best;
 }
 
+// brick (a club's cellar wall: courses, a stagger, a few soot-dark bricks) or
+// painted cinder blocks (backstage), over the plaster gradient
+function paintMasonry(ctx, W, H, P, kind) {
+  const r = rand(kind.length * 13 + W);
+  const brick = kind === 'brick';
+  const bw = brick ? 22 : 40;
+  const bh = brick ? 10 : 20;
+  const base = P.wall ?? 0x8a4a34;
+  for (let y = 0, row = 0; y < H; y += bh, row++) {
+    const off = row % 2 ? bw / 2 : 0;
+    for (let x = -off; x < W; x += bw) {
+      const v = r.frac();
+      const c = v < 0.08 ? mix(base, P.deep, 0.45) : v < 0.2 ? mix(base, P.lit, 0.12) : mix(base, P.deep, v * 0.18);
+      ctx.fillStyle = hex(c);
+      ctx.fillRect(x + 1, y + 1, bw - 2, bh - 2);
+      ctx.fillStyle = rgba(P.lit, 0.08);
+      ctx.fillRect(x + 1, y + 1, bw - 2, 1);
+    }
+    ctx.fillStyle = rgba(P.deep, brick ? 0.55 : 0.35);
+    ctx.fillRect(0, y, W, 1);
+  }
+  // damp at the foot, soot at the top
+  gradientV(ctx, 0, 0, W, H, [[0, P.deep, 0.45], [0.3, P.deep, 0], [0.85, P.deep, 0], [1, P.deep, 0.35]]);
+}
+
+// stage drapes: deep velvet folds, lit on their crowns
+function paintDrapes(ctx, W, H, P) {
+  const cloth = P.cloth ?? 0x5a1a2a;
+  for (let x = 0; x < W; x += 28) {
+    const g = ctx.createLinearGradient(x, 0, x + 28, 0);
+    g.addColorStop(0, hex(mix(cloth, P.deep, 0.55)));
+    g.addColorStop(0.45, hex(mix(cloth, P.lit, 0.12)));
+    g.addColorStop(1, hex(mix(cloth, P.deep, 0.65)));
+    ctx.fillStyle = g;
+    ctx.fillRect(x, 0, 28, H);
+  }
+  gradientV(ctx, 0, 0, W, H, [[0, P.deep, 0.5], [0.4, P.deep, 0], [1, P.deep, 0.3]]);
+}
+
 export function paintBackWall(ctx, room, P, lights = []) {
   const enc = room.enclosure || {};
   const grid = room.grid;
@@ -70,7 +109,10 @@ export function paintBackWall(ctx, room, P, lights = []) {
   gradientV(ctx, 0, 0, W, H, [[0, mix(wall, P.deep, 0.35), 1], [0.35, wall, 1], [1, mix(wall, P.deep, 0.3), 1]]);
   // wallpaper: a faint stripe and a small diamond repeat above the rail
   const rail = fy - Math.round(T * 1.7);
-  if (enc.backWall !== 'plaster') {
+  // phase 3b: a club's brick, a stage's drapes, a backstage's painted blocks
+  if (enc.backWall === 'brick' || enc.backWall === 'blocks') paintMasonry(ctx, W, H, P, enc.backWall);
+  if (enc.backWall === 'curtain') paintDrapes(ctx, W, H, P);
+  if (!enc.backWall || enc.backWall === 'panelled') {
     for (let x = 0; x < W; x += 16) {
       ctx.fillStyle = rgba(mix(wall, P.deep, 0.5), 0.07);
       ctx.fillRect(x, 0, 6, rail);

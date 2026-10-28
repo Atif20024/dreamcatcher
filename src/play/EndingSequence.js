@@ -91,7 +91,8 @@ export class EndingSequence {
       h.add(boardTitle(s, `${d ? d.title : e.title || 'THE DREAM'}  CAUGHT`, { y: top + H + 30, persist: true, depth: 233, event: 'caught', name: 'caught-board' }));
       if (e.title && e.paint) h.add(uiText(s, cam.width / 2, top + H - 4, e.title, { size: 'small', color: 'accent', align: 'center', bg: 0x14122a }).setOrigin(0.5, 1).setScrollFactor(0).setDepth(233));
       const body = h.add(uiText(s, cam.width / 2, top + H + 64, '', { size: 'body', color: 'ink', align: 'center', wrap: 640, lineSpacing: 6 }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(232));
-      const full = (e.lines || []).join('\n');
+      // the lines may depend on the run (a choice made in the dream)
+      const full = (typeof e.lines === 'function' ? e.lines(s.F || {}) : e.lines || []).join('\n');
       let n = 0;
       const timer = s.time.addEvent({
         delay: 30,

@@ -8,6 +8,8 @@
 // Layers wash toward the sky colour with distance (aerial perspective).
 import { mix, rgba, hex, stamp, dab, foliage, grain, gradientV } from '../paint.js';
 import { pfbm } from '../materials/painters.js';
+import { drawRow, drawGroundLine } from '../buildingKit.js';
+import { facadeMetrics } from '../../data/scale.js';
 
 export const LAYER_W = 1024;
 
@@ -174,7 +176,185 @@ const LAYERS = {
       ridge(ctx, W, H, 20, 70, mix(P.hill, P.sky, 0.4), seed + 5);
     });
   },
+
+  // ---- the city (ported from builders/parallax.js for the Musician) ----------
+  // Every row is the building kit's (src/art/buildingKit.js) at the depth
+  // rule: a storey is 132·s px for the layer's scroll factor s (ROW_S), and a
+  // row nearer than the far skyline stands behind a ground line. Their s is
+  // declared in src/data/scale.js BACKDROP_ROWS ('painted.<kind>').
+  // the far skyline: 4–13 storeys, parapets and water tanks, a few lit windows
+  city(P, seed) {
+    return skylineRow(P, seed, 'city', [4, 13], 0.2);
+  },
+  // the same city in the rain: lower, colder, streaked, washed in mist
+  rain_city(P, seed) {
+    const c = skylineRow(P, seed, 'rain_city', [3, 9], 0.16);
+    rainOver(c.getContext('2d'), c.width, c.height, P, seed, 0.18);
+    return c;
+  },
+  // the theatre district: shopfronts and a marquee, behind its pavement
+  theatre(P, seed) {
+    const s = ROW_S.theatre;
+    const f = facadeMetrics(s);
+    const lift = Math.round(f.k * 1.8);
+    const H = Math.ceil(f.shop + f.storey * 3 + f.roof + f.k * 1.5 + lift);
+    const c = cv(LAYER_W, H);
+    const ctx = c.getContext('2d');
+    const r = rand(seed);
+    const C = rowCols(P);
+    drawGroundLine(ctx, 0, LAYER_W, H - lift, lift, s, { pave: mix(P.house, 0xffffff, 0.12), road: mix(P.house, P.deep, 0.3) });
+    const blds = drawRow(ctx, 0, LAYER_W, H - lift, s, r, {
+      ...C, wrapW: LAYER_W, close: true, storeys: [1, 3], bays: [2, 4], lit: 0.32,
+      ground: () => 'shop', awnings: [P.accent ?? 0x2e7d9a, mix(P.rim ?? P.light, P.deep, 0.4)], roof: (q) => (q.frac() < 0.4 ? 'pitched' : 'parapet'), logId: 'painted.theatre',
+    });
+    // one front is the theatre: its marquee bulbs over the shop floor
+    const b = blds.reduce((m, x) => (x.w > m.w ? x : m), blds[0]);
+    if (b) {
+      const my = H - lift - f.shop - f.k * 0.2;
+      ctx.fillStyle = hex(mix(P.deep, P.house, 0.4));
+      ctx.fillRect(b.x + 4, my, b.w - 8, f.k * 0.9);
+      for (let x = b.x + 8; x < b.x + b.w - 8; x += 5) stamp(ctx, x, my + 2, 1.4, P.window, 0.95, 0.2);
+      ctx.fillStyle = hex(mix(P.window, 0xffffff, 0.3));
+      ctx.fillRect(b.x + 12, my + 5, b.w - 24, f.k * 0.4);
+    }
+    grain(ctx, 0, 0, LAYER_W, H, 0.04, seed);
+    return c;
+  },
+  // the alley's far wall: brick backs with iron fire escapes zigzagging up
+  fire_escape(P, seed) {
+    const s = ROW_S.fire_escape;
+    const f = facadeMetrics(s);
+    const lift = Math.round(f.k * 1.2);
+    const H = Math.ceil(f.storey * 5 + f.roof + lift + f.k);
+    const c = cv(LAYER_W, H);
+    const ctx = c.getContext('2d');
+    const r = rand(seed);
+    const brick = mix(P.house, 0x6a3020, 0.35);
+    drawGroundLine(ctx, 0, LAYER_W, H - lift, lift, s, { pave: mix(P.house, 0x8a8078, 0.3), road: mix(P.house, P.deep, 0.5) });
+    const blds = drawRow(ctx, 0, LAYER_W, H - lift, s, r, {
+      walls: [brick, mix(brick, P.deep, 0.15), mix(brick, 0x8a5040, 0.2)], roofCols: [mix(brick, P.deep, 0.4)], wrapW: LAYER_W, close: true, gap: 0,
+      storeys: [3, 4], bays: [3, 5], lit: 0.25, quoins: false, ground: () => 'plain', roof: () => 'parapet', logId: 'painted.fire_escape',
+    });
+    // iron: a landing per storey, a flight between, rails; lit edges toward the lamp
+    const iron = mix(P.deep, P.house, 0.25);
+    for (const b of blds) {
+      if (b.w < f.bay * 2.5) continue;
+      const x0 = b.x + b.w * 0.25;
+      const w = Math.min(b.w * 0.5, f.bay * 2.2);
+      for (let k = 1; k <= 3; k++) {
+        const y = H - lift - f.storey * k;
+        if (y < b.top + f.k) break;
+        ctx.fillStyle = hex(iron);
+        ctx.fillRect(x0, y, w, Math.max(2, f.k * 0.12));
+        ctx.fillRect(x0, y - f.k * 0.9, w, 1);
+        for (let x = x0; x <= x0 + w; x += Math.max(3, f.k * 0.3)) ctx.fillRect(x, y - f.k * 0.9, 1, f.k * 0.9);
+        // the flight down to the landing below, alternating sides
+        ctx.strokeStyle = hex(iron);
+        ctx.lineWidth = Math.max(1.5, f.k * 0.1);
+        ctx.beginPath();
+        const right = k % 2 === 0;
+        ctx.moveTo(right ? x0 + w : x0, y);
+        ctx.lineTo(right ? x0 + w * 0.2 : x0 + w * 0.8, y + f.storey - 2);
+        ctx.stroke();
+        ctx.fillStyle = rgba(P.rim ?? P.light, 0.25);
+        ctx.fillRect(x0, y, w, 1);
+      }
+    }
+    grain(ctx, 0, 0, LAYER_W, H, 0.05, seed + 3);
+    return c;
+  },
+  // a festival crowd: heads and shoulders against the stage wash, raised
+  // arms, a few phone lights (the nearest layer in front of the stage)
+  crowd(P, seed) {
+    const H = 120;
+    return tileable(LAYER_W, H, (ctx, W) => {
+      const r = rand(seed);
+      for (let band = 0; band < 3; band++) {
+        const col = mix(P.deep, P.sky, 0.32 - band * 0.12);
+        const base = H - 6 - (2 - band) * 22;
+        for (let x = -10; x < W + 10; x += 13 + r.between(0, 8)) {
+          const hh = 10 + r.frac() * 6;
+          ctx.fillStyle = hex(col); // (a stamp below leaves its gradient as the fill)
+          ctx.beginPath();
+          ctx.arc(x, base - 26 - hh * 0.3, 7 + r.frac() * 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillRect(x - 11, base - 22, 22, H - base + 22);
+          if (r.frac() < 0.14) {
+            ctx.fillRect(x + 6, base - 58, 4, 34);
+            if (r.frac() < 0.5) stamp(ctx, x + 8, base - 60, 2, 0xd8f0ff, 0.9, 0.2);
+          }
+        }
+        ctx.fillStyle = hex(col);
+        ctx.fillRect(-10, base - 2, W + 20, H - base + 2);
+      }
+      gradientV(ctx, 0, 0, W, 40, [[0, P.sky, 0], [1, P.deep, 0]]);
+    });
+  },
 };
+
+// the scroll factor each building row is painted for (the depth rule); a
+// dream places the layer at this f (src/data/scale.js BACKDROP_ROWS)
+export const ROW_S = { city: 0.12, rain_city: 0.12, theatre: 0.3, fire_escape: 0.5 };
+
+function rowCols(P) {
+  const main = mix(P.house, P.sky, P.haze ?? 0.15);
+  return {
+    walls: [main, mix(main, 0xffffff, 0.06), mix(main, P.window, 0.08), mix(main, P.deep, 0.1)],
+    roofCols: [mix(main, P.deep, 0.2), mix(main, P.roof ?? 0x5a3040, 0.3)],
+    glass: mix(main, P.deep, 0.35),
+    signs: [mix(P.window, main, 0.3), mix(main, P.deep, 0.3)],
+  };
+}
+
+function skylineRow(P, seed, kind, [lo, hi], lit) {
+  const s = ROW_S[kind];
+  const f = facadeMetrics(s);
+  const H = Math.ceil(f.storey * (hi + 1) + f.roof + f.k * 2);
+  const c = cv(LAYER_W, H);
+  const ctx = c.getContext('2d');
+  const r = rand(seed);
+  drawRow(ctx, 0, LAYER_W, H, s, r, {
+    ...rowCols(P), wrapW: LAYER_W, close: true, gap: 0, storeys: [lo, hi], bays: [3, 7], lit, quoins: false,
+    roof: (q) => (q.frac() < 0.25 ? 'pitched' : 'parapet'), ground: () => 'plain', logId: `painted.${kind}`,
+  });
+  // water tanks and masts on the parapets: what stops a skyline reading as bars
+  for (let x = r.between(20, 80); x < LAYER_W - 20; x += r.between(120, 220)) {
+    ctx.fillStyle = hex(mix(P.house, P.deep, 0.3));
+    let top = H;
+    const d = ctx.getImageData(x, 0, 1, H).data;
+    for (let y = 0; y < H; y++) if (d[y * 4 + 3] > 200) {
+      top = y;
+      break;
+    }
+    if (top >= H - 10) continue;
+    if (r.frac() < 0.6) {
+      ctx.fillRect(x - 6, top - 14, 12, 10);
+      ctx.fillRect(x - 5, top - 4, 2, 4);
+      ctx.fillRect(x + 3, top - 4, 2, 4);
+    } else {
+      ctx.fillRect(x, top - 26, 2, 26);
+      stamp(ctx, x + 1, top - 27, 1.5, 0xd05040, 0.9, 0.2);
+    }
+  }
+  grain(ctx, 0, 0, LAYER_W, H, 0.04, seed + 1);
+  return c;
+}
+
+// rain streaks and a mist band over a painted layer (in place)
+function rainOver(ctx, W, H, P, seed, alpha) {
+  const r = rand(seed + 9);
+  ctx.strokeStyle = rgba(mix(P.sky, 0xffffff, 0.4), alpha);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 0; i < (W * H) / 900; i++) {
+    const x = r.frac() * W;
+    const y = r.frac() * H;
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - 3, y + 9);
+  }
+  ctx.stroke();
+  gradientV(ctx, 0, H * 0.45, W, H * 0.55, [[0, P.mist ?? P.sky, 0], [1, P.mist ?? P.sky, 0.3]]);
+}
 
 export const BACKDROP_KINDS = Object.keys(LAYERS);
 

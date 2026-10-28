@@ -100,7 +100,7 @@ const objectiveEntry = {
   async run(dc) {
     const out = [];
     let pass = true;
-    for (const [dream, from, to, toX] of [['chef', 'arrival', 'alley_dock', 40], ['musician', 'd1_cellar', 'd2_corner', null]]) {
+    for (const [dream, from, to, toX] of [['chef', 'arrival', 'alley_dock', 40], ['musician_legacy', 'd1_cellar', 'd2_corner', null]]) {
       dc.warp(dream);
       dc.step(60);
       settle(dc);

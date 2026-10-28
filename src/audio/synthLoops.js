@@ -123,6 +123,34 @@ export const LOOPS = {
     crickets(buf, sr, r, 1.5);
     return seamless(buf, sr);
   },
+  // THE BIG STAGE (phase 3b): rain on a city street, a cellar club's murmur
+  // and glasses, the festival's crowd under the PA hum
+  rain_street(sr) {
+    const r = rng(31);
+    const n = sr * 6;
+    const buf = new Float32Array(n);
+    mixInto(buf, band(n, r, 0.08, 0.6), 0.16);
+    mixInto(buf, brown(n, r, 0.02), 0.25);
+    for (let k = 0; k < 40; k++) addClick(buf, sr, r() * 6, 0.03 + r() * 0.04, r, 0.004, 1800 + r() * 1400); // drips
+    return seamless(buf, sr);
+  },
+  club_room(sr) {
+    const r = rng(32);
+    const n = sr * 8;
+    const buf = new Float32Array(n);
+    mixInto(buf, band(n, r, 0.01, 0.08), 0.22, (i) => 0.6 + 0.4 * Math.sin((i / n) * Math.PI * 6));
+    for (let k = 0; k < 6; k++) addTone(buf, sr, r() * 8, 0.4, 2400 + r() * 900, 0.012); // a glass set down
+    addTone(buf, sr, 0, 8, 60, 0.01);
+    return seamless(buf, sr);
+  },
+  festival(sr) {
+    const r = rng(33);
+    const n = sr * 8;
+    const buf = new Float32Array(n);
+    mixInto(buf, band(n, r, 0.02, 0.25), 0.3, (i) => 0.7 + 0.3 * Math.sin((i / n) * Math.PI * 4));
+    addTone(buf, sr, 0, 8, 50, 0.015);
+    return seamless(buf, sr);
+  },
   // the ambientLoop ids in src/data/dreams.js
   sizzle(sr) {
     const r = rng(21);

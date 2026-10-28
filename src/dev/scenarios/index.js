@@ -25,3 +25,6 @@ SCENARIOS.push(...proofTrain);
 // round 2 WP6: the identity system (lamps, the board, the wipe, the chime, Jo's contrast)
 import wp6 from './wp6.js';
 SCENARIOS.push(...wp6);
+// Phase 3b: THE BIG STAGE on the framework (the Musician rebuilt)
+import musician from './musician.js';
+SCENARIOS.push(...musician);

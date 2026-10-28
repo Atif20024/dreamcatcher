@@ -11,7 +11,7 @@ const T = 32;
 const DREAMS = [
   ['hub', null],
   ['chef', null],
-  ['musician', null],
+  ['musician_legacy', null],
   ['astronaut', null],
   ['writer', null],
   ['painter', null],

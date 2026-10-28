@@ -6,6 +6,10 @@
 // is a line on the board that isn't running yet (see HubScene.board()).
 // livery: [body, trim, window] colours + an emblem, so no two trains match.
 // conductor: the question asked at the door before Jo commits to the journey.
+// Phase 3b: THE BIG STAGE plays on the framework (DreamScene, src/dreams/
+// musician/). ?legacy=1 boards the old MusicianScene instead, for comparison.
+export const LEGACY_MUSICIAN = typeof window !== 'undefined' && !!window.location && new URLSearchParams(window.location.search).get('legacy') === '1';
+
 export const DREAMS = [
   {
     id: 'chef', platform: 1, title: 'FIVE-STAR DREAM', scene: 'Chef', propsKind: 'produce', ambientLoop: 'sizzle',
@@ -15,10 +19,10 @@ export const DREAMS = [
     roLine: "Kitchen grease. You've been somewhere hot. Sit, I'll get it off.",
   },
   {
-    id: 'musician', platform: 2, title: 'THE BIG STAGE', scene: 'Musician', propsKind: 'posters', ambientLoop: 'tuning',
+    id: 'musician', platform: 2, title: 'THE BIG STAGE', scene: LEGACY_MUSICIAN ? 'Musician' : 'Dream', propsKind: 'posters', ambientLoop: 'tuning',
     coin: { name: 'busker coin', worth: 1, budget: [120, 150], pal: { c: 0x8a5a34, C: 0xc08a50, h: 0xe8c090 } },
     livery: { body: 0x1e2a4a, trim: 0xc4a25c, window: 0x88b8d8, emblem: 'trumpet' },
-    conductor: 'The Big Stage. Seven days, one half door, a room that listens once.\nDo you still want to be heard that badly?',
+    conductor: 'The Big Stage. A cellar on a Tuesday, a festival on Saturday, eleven minutes in the lights.\nDo you still want to be heard that badly?',
     roLine: 'Your fingers are shaking. Big room?',
   },
   {

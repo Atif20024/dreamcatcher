@@ -379,8 +379,33 @@ Write each dream's own lines. "Was it enough?" belongs to the finale only (criti
 ## 17. Known limits (for Part B)
 
 - **Hub.** A framework dream is not on the hub board until its `data/dreams.js` entry points at `scene: 'Dream'`. The hub's return flow (`returnedFrom`) is unchanged.
-- **Foes, coins and Teach cards.** There are no foe or coin entities in the framework yet. Part B ports them: `BaseLevel.initFoes/spawnPickups` expect legacy room objects (`wx`/`wy`/`room`), so an adapter from `entities` is needed. Teach zone triggers work, because `dreamOfScene` reads `scene.dreamDef.id`, but the cards live in `src/data/teach.js` with `dream: '<id>'`.
+- **Foes and pickups** have an adapter since phase 3b (§18). Teach zone triggers work, because `dreamOfScene` reads `scene.dreamDef.id`, but the cards live in `src/data/teach.js` with `dream: '<id>'`.
 - **Ladders and on-foot reachability.** The reachability check ignores ladders (the proof has none). Add them to `reachableTiles` before relying on one.
 - **Painting a new material kind** is code. A new palette for an existing kind is data.
-- **Backdrops.** Only the five painted layer kinds exist. Port the `parallax.js` kinds the Musician needs (city, rain_city, theatre, fire_escape) into `painted.js`.
+- **Backdrops.** The painted kinds are `hills_town town_row tree_band hedge_line far_ridge` plus, since phase 3b, the city rows `city rain_city theatre fire_escape` (building kit at the depth rule: place them at the `f` in `ROW_S`, declared in `BACKDROP_ROWS`) and `crowd`. Other `parallax.js` kinds still need porting.
 - **The body.** In the 82 px body, under a 2-tile ceiling Jo is stopped by the body itself (it does not fit). Design for 3 tiles.
+
+## 18. Phase 3b additions (THE BIG STAGE, `src/dreams/musician/`)
+
+The Musician is the second framework dream and the reference for the roll-out. What it added to the framework:
+
+```js
+{ type: 'npc', id, cast: 'npc-delphine', pose?: 'sit', turns?: false, depth?: 'behind', when?, unless?, talk: [...] }  // a WP2 cast person (idle/talk loops) instead of a manifest rig
+{ type: 'foe', kind: 'roadie' | 'wisp' | …, x, y, patrol: [c0, c1] (room cols), floats?, facing? }  // data/kinds.js FOES[dream.id]
+{ type: 'keyitem', id, x, y, beat? }        // dream.items[id] = { name, card, w, h, paint }: a lit pedestal; sets item:<id> and <id>
+{ type: 'shard', x, y }                      // a heart shard (BaseLevel pickups)
+{ type: 'audience', id, cast: 'ev-p-baker', x, y, facing }   // seated; an encounter presenter turns them (scene.audience)
+{ type: 'resonant', id, x, y, r, set?, beat? }               // rung by the dream's verb: scene.ringAt(x, y, radius)
+{ type: 'moment', id, x, y, beat, prompt, when? }            // a Small Moment: [E] plays its beat once, recordMoment()
+{ type: 'portal', kind: 'door', …, door: { requires: ['flag'], locked: 'prompt', lockedLine: 'caption' } }
+{ type: 'encounter', …, when?: 'flag' }      // offered only once the flag is set
+```
+
+- **`when` / `unless`** on `npc orb foe keyitem audience resonant moment` spawn and remove the entity as its flags change (`dreamAdapters.watch`).
+- **Dream fields:** `tool: 'trumpet'` (Jo's tool art), `items` (key items), `markMet: true` (save.met), `persist: { flag: 'cast.marcus_left' }` (a flag mirrored into the save for other scenes), `cast[who].face: '<cast key>'` (the SceneBox portrait is cut from that person's rig), `ending.lines` may be a function of the flags.
+- **Encounters:** `params` may be a function of the run's flags; an engine with `release()` hears the key come up (held notes); `keys` picks the actions that play. `src/engines/rhythm.js` is the call-and-response engine (notes, rests, by-ear phrases, an all-rest bar, held notes, nerve and freezes; patient retries); the `'rhythm'` presenter stages it in the room (house lights down, a spot, the staff over the stage, the audience turning, NERVE as a HUD meter, the phase on the HUD context line).
+- **Rooms:** `enclosure.backWall: 'brick' | 'blocks' | 'curtain'`; backdrop `motes: 'rain'`.
+- **Loops:** `rain_street`, `club_room`, `festival` in `synthLoops.js`.
+- **Coins** outside the view (or in rooms not live) are hidden (`cullCoins`): a dream that pays in small change places 120+ of them.
+- **Scene restarts:** `encounterActive` is reset in `create()` and `Encounters.abort()` finishes without its outro (a warp mid-encounter used to leave Jo frozen).
+- **Dev:** `?warp=musician:<room>` (`start street alley cellar backstage escape stage`); `?warp=musician_legacy` or `?warp=musician&legacy=1` plays the old `MusicianScene`.
