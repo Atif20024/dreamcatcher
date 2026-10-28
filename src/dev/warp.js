@@ -5,7 +5,10 @@
 export const DREAM_WARP = {
   hub: { scene: 'Hub', param: null },
   chef: { scene: 'Chef', param: null },
-  musician: { scene: 'Musician', param: null },
+  // THE BIG STAGE on the framework (phase 3b); the old scene stays reachable
+  // as musician_legacy (or ?warp=musician&legacy=1) for comparison
+  musician: { scene: 'Dream', param: null, framework: true },
+  musician_legacy: { scene: 'Musician', param: null },
   astronaut: { scene: 'Astronaut', param: 'at', fallback: 'gym' },
   writer: { scene: 'Writer', param: 'wr', fallback: 'attic' },
   painter: { scene: 'Painter', param: 'pt', fallback: 'arrival' },
@@ -22,7 +25,7 @@ export function resolveWarp(search) {
   const w = sp.get('warp');
   if (!w) return null;
   const [dream, place] = w.split(':');
-  const d = DREAM_WARP[dream];
+  const d = dream === 'musician' && sp.get('legacy') === '1' ? DREAM_WARP.musician_legacy : DREAM_WARP[dream];
   if (!d) return null;
   const legacy = {};
   if (d.param && !sp.get(d.param)) legacy[d.param] = place || d.fallback;

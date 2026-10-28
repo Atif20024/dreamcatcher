@@ -12,9 +12,14 @@ describe('unified warp', () => {
   it('chef/musician/hub have no legacy param but pick the scene', () => {
     expect(resolveWarp('?warp=chef:start').legacy).toEqual({});
     expect(firstSceneKey('?warp=chef:start')).toBe('Chef');
-    expect(firstSceneKey('?warp=musician')).toBe('Musician');
     expect(firstSceneKey('?warp=hub')).toBe('Hub');
     expect(firstSceneKey('')).toBeNull(); // no warp: the title boots
+  });
+  it('THE BIG STAGE warps into the framework; ?legacy=1 keeps the old scene', () => {
+    expect(firstSceneKey('?warp=musician')).toBe('Dream');
+    expect(firstSceneKey('?warp=musician:cellar')).toBe('Dream');
+    expect(firstSceneKey('?warp=musician&legacy=1')).toBe('Musician');
+    expect(firstSceneKey('?warp=musician_legacy')).toBe('Musician');
   });
   it('THE STOPPED HOUR warps by its id and by the old proof alias', () => {
     expect(firstSceneKey('?warp=clockmaker:start')).toBe('Dream');

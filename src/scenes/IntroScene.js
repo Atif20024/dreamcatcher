@@ -157,7 +157,7 @@ const INTROS = {
   musician: {
     ground: 0x201014, // the arrival platform's stone (round 2 WP3)
     caption: 'THE BIG STAGE',
-    sub: 'The half door. Every jazz great walked through it once.',
+    sub: 'A wet city on a Tuesday night. The festival is Saturday.',
     doorX: 700,
     draw(scene) {
       const g = scene.add.graphics();
@@ -218,7 +218,9 @@ const INTROS = {
   },
 };
 
-const LEVEL_SCENES = { clockmaker: 'Dream', chef: 'Chef', musician: 'Musician', astronaut: 'Astronaut', writer: 'Writer', painter: 'Painter', gambler: 'Gambler' };
+// the scene that plays each dream (framework dreams: 'Dream'; the Musician's
+// old scene only with ?legacy=1, data/dreams.js)
+const LEVEL_SCENES = { clockmaker: 'Dream', chef: 'Chef', musician: dreamById('musician').scene, astronaut: 'Astronaut', writer: 'Writer', painter: 'Painter', gambler: 'Gambler' };
 
 export default class IntroScene extends Phaser.Scene {
   constructor() {
