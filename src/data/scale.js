@@ -359,3 +359,12 @@ export const BACKDROP_ROWS = {
 // doors and lamps), so they are no longer exceptions
 PROP_TABLE['ev-lamp'] = 'lampStreet';
 for (const k of ['pt-plane_tree', 'pt-cypress', 'pt-tree_grey', 'ev-tree', 'ev-tree-apple', 'ev-pine', 'ev-hilltree', 'ev-door', 'ev-lamp', 'ev-bakery', 'pt-house_front', 'pt-cafe_front']) delete SCALE_EXCEPTIONS[k];
+
+// Phase 3b (the Musician on the framework): the city rows ported into
+// src/art/backdrops/painted.js, at the s their layers are placed at (ROW_S)
+Object.assign(BACKDROP_ROWS, {
+  'painted.city': { s: 0.12, groundLine: false },
+  'painted.rain_city': { s: 0.12, groundLine: false },
+  'painted.theatre': { s: 0.3, groundLine: true },
+  'painted.fire_escape': { s: 0.5, groundLine: true },
+});
