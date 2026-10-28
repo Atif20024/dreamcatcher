@@ -3,6 +3,7 @@ import { sfx } from '../systems/audio.js';
 import { D } from '../builders/depths.js';
 import { hubTex } from '../art/hubArt.js';
 import { uiText } from '../ui/text.js';
+import { characterManifest } from '../art/baked.js';
 import { TRAIN } from '../art/trainKit.js';
 import {
   BAY,
@@ -345,7 +346,10 @@ function standIn(scene, player) {
         // depth moves count as ground covered too (walking away from us)
         j.dist += Math.hypot(x - last.x, (y - last.y) * 5) / Math.max(0.5, k);
         last = { x, y };
-        setFrame('walk', Math.floor(j.dist / 6) % 8);
+        // one frame per step of Jo's walk (manifest step × scale: 8 px), no slide
+        const jm = characterManifest('jo');
+        const stepPx = jm ? jm.animations.walk.step * (jm.scale || 2) : 8;
+        setFrame('walk', Math.floor(j.dist / stepPx) % 8);
         j.place(x, y, k, 1 - (1 - k) * 0.9);
       },
       onComplete: () => {

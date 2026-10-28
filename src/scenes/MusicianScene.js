@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { attachStride } from '../art/stride.js';
 import { personBody } from '../art/baked.js';
 import Player from '../entities/Player.js';
 import BaseLevel from './BaseLevel.js';
@@ -303,6 +304,7 @@ export default class MusicianScene extends BaseLevel {
   spawnScalper(x) {
     this.scalper = personBody(this.physics.add.image(x, px(34), 'npc-scalper').setDepth(12));
     this.scalper.state = 'lurk';
+    attachStride(this, this.scalper, 'npc-scalper'); // skulks, then sprints on the run frames
     this.physics.add.collider(this.scalper, this.solids);
   }
 
@@ -462,6 +464,7 @@ export default class MusicianScene extends BaseLevel {
       }
     }, { once: false, when: () => this.F.saltbox_done && !this.F.d8_done });
     this.marcusRoad = this.add.image(px(273), px(35), 'npc-marcus').setDepth(10).setVisible(false);
+    attachStride(this, this.marcusRoad, 'npc-marcus');
     this.resonant(px(288), px(34), 'mus-phone', () => {
       sfx('bell');
       this.floatText(px(288), px(32), 'it rings. weirdly.\nno one answers.');
@@ -559,6 +562,7 @@ export default class MusicianScene extends BaseLevel {
     // roadies on the catwalk
     this.roadies = [334, 340].map((c) => {
       const r = this.add.image(px(c), px(27), 'foe-roadie').setDepth(12);
+      attachStride(this, r, 'foe-roadie');
       this.tweens.add({ targets: r, x: px(c + 3), duration: 2600, yoyo: true, repeat: -1 });
       return r;
     });
@@ -923,6 +927,7 @@ export default class MusicianScene extends BaseLevel {
       this.pedNext = time + 4200;
       const isCop = Math.random() < 0.25;
       const ped = this.add.image(px(86), px(35), isCop ? 'npc-tally' : 'npc-sol').setDepth(9);
+      attachStride(this, ped, isCop ? 'npc-tally' : 'npc-sol');
       if (isCop) ped.setTint(0x88a8d8);
       ped.isCop = isCop;
       this.peds.push(ped);
@@ -933,6 +938,7 @@ export default class MusicianScene extends BaseLevel {
       // the kid
       if (!this.kid && this.coins >= 6 && !this.F.m2) {
         this.kid = this.add.image(px(88), px(35), 'npc-kid').setDepth(9);
+        attachStride(this, this.kid, 'npc-kid');
         this.tweens.add({ targets: this.kid, x: px(93), duration: 3000 });
         this.addInteract(px(93), px(35), 'play for her', async () => {
           const passes = await this.runGig({ phrases: [[1, 1, 1, 1]], bpm: 88, label: 'for the kid' });
@@ -1124,6 +1130,7 @@ export default class MusicianScene extends BaseLevel {
       (this.F.met_nia && this.inZone(151, 291)) || (this.F.choice === 'nia' && this.inZone(326, 400) && this.F.set_done !== undefined);
     if (present && !this.nia) {
       this.nia = personBody(this.physics.add.image(this.player.x - 40, this.player.y - 10, 'npc-nia').setDepth(11));
+      attachStride(this, this.nia, 'npc-nia');
       this.physics.add.collider(this.nia, this.solids);
     } else if (!present && this.nia) {
       this.nia.destroy();

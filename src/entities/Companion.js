@@ -113,8 +113,7 @@ export default class Companion {
         f.state = moving ? 'walk' : 'idle';
         f.target = null;
         f.art.setFlipX(p.flipX);
-        // the walk cycles sync
-        f.stride = moving ? p.walkFrame + 1 : 0;
+        // (her legs follow the ground she covers: Townsfolk reads her x)
         this.handG.setVisible(true).setPosition((p.x + f.x) / 2, p.y + 4);
         this.footsteps();
         return;

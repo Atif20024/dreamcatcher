@@ -46,13 +46,22 @@ export async function bakeCast(ROOT, store) {
 
   const out = []; // { name, img, pivot, pack }
   const report = [];
-  for (const [key, look, family] of list) {
-    const base = (!props.has(key) && store.get(key)) || store.get(`${key}#1`);
+  const gaits = {};
+  const { NO_RUN, IDLE_FPS } = await imp('src/art/rig/gaits.js');
+  const RUNNERS = new Set(['pt-p-paul']);
+  // foes get a second look (variant 'b') so a line of them never reads as clones
+  const variants = [];
+  for (const [key, look, family] of list) if (family === 'foe') variants.push([`${key}~b`, look, 'foe', key]);
+  for (const [key, look, family, baseKey] of [...list, ...variants]) {
+    const specKey = baseKey || key;
+    const base = (!props.has(specKey) && store.get(specKey)) || store.get(`${specKey}#1`);
     const oldH = base ? base.img.height : 48;
-    const spec = CAST_BODIES[key] || {};
+    const spec = { ...(CAST_BODIES[specKey] || {}), ...(baseKey ? { variant: 'b' } : {}) };
     const rig = castRig(look, spec);
     const held = spec.held || look.held || null;
-    const P = castPoses(rig, held);
+    const P = castPoses(rig, held, { key: specKey });
+    // runs: every foe that moves, the npc movers and the painter's Paul
+    const hasRun = (family === 'foe' && !NO_RUN.has(specKey)) || family === 'npc' || RUNNERS.has(specKey);
     const seq = (name, poses, h = held) => poses.map((p) => ({ pose: p, held: h, name }));
     // the frame map: [texture key, pose, held]
     const frames = [];
@@ -79,21 +88,26 @@ export async function bakeCast(ROOT, store) {
       add(key, { pose: P.idle[0], held });
       P.walk.forEach((p, i) => add(`${key}#${i + 1}`, { pose: p, held }));
     } else if (family === 'foe') {
-      add(key, { pose: P.idle[0], held });
+      // the base frame is the first of the signature idle
+      add(key, { pose: P.sig[0], held });
       P.walk.forEach((p, i) => add(`${key}#${i + 1}`, { pose: p, held }));
-      for (const a of ['alert', 'windup', 'grab', 'throw', 'search']) P[a].forEach((p, i) => add(`${key}-${a}#${i + 1}`, { pose: p, held: null }));
+      P.sig.forEach((p, i) => add(`${key}-idle#${i + 1}`, { pose: p, held }));
+      for (const a of ['alert', 'windup', 'grab', 'throw', 'search', 'stagger']) P[a].forEach((p, i) => add(`${key}-${a}#${i + 1}`, { pose: p, held: null }));
     } else {
       add(key, { pose: spec.sit ? P.sit[0] : P.idle[0], held });
       P.walk.forEach((p, i) => add(`${key}#${i + 1}`, { pose: p, held }));
     }
+    if (hasRun) P.run.forEach((p, i) => add(`${key}-run#${i + 1}`, { pose: p, held }));
     if (family !== 'foe' && family !== 'traveler') {
-      P.idle.forEach((p, i) => add(`${key}-idle#${i + 1}`, { pose: p, held }));
+      // the idle is a task loop: the world looks employed
+      P.task.forEach((p, i) => add(`${key}-idle#${i + 1}`, { pose: p, held }));
       P.talk.forEach((p, i) => add(`${key}-talk#${i + 1}`, { pose: p, held }));
       P.wave.forEach((p, i) => add(`${key}-wave#${i + 1}`, { pose: p, held: null }));
     }
     // compose every frame, then one canvas for the character
     if (props.has(key)) frames.splice(0, frames.length, ...frames.filter((f) => f.key !== key));
-    const grids = frames.map((f) => composeCast(rig, f.pose, f.held).grid);
+    const comps = frames.map((f) => composeCast(rig, f.pose, f.held));
+    const grids = comps.map((c) => c.grid);
     const M = rig.metrics;
     let minX = M.W, maxX = 0, minY = M.H;
     for (const g of grids)
@@ -127,14 +141,23 @@ export async function bakeCast(ROOT, store) {
           }
           for (let dy = 0; dy < S; dy++) for (let dx = 0; dx < S; dx++) R.setPx(img, x * S + dx, y * S + dy, c);
         }
-      const b = R.bbox(img);
-      // the standing height (a sitter's base frame is seated)
-      if (f.key === `${key}-idle#1` || (family === 'foe' && f.key === key) || (family === 'traveler' && f.key === key)) tall = b ? b.h : 0;
-      out.push({ name: f.key, img, pivot, foe: family === 'foe' });
+      const ct = comps[i].contacts;
+      const contacts = [ct.f, ct.b].filter((c) => c != null).map((c) => (c + M.ax - x0) * S);
+      out.push({ name: f.key, img, pivot, foe: family === 'foe', contacts, trim: true });
     });
+    // the standing height: the plain standing pose, whatever the base frame is
+    {
+      const g = composeCast(rig, family === 'foe' ? P.sig[0] : P.idle[0], held).grid;
+      let top = g.h;
+      let bot = 0;
+      for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (g.px[y * g.w + x]) (top = Math.min(top, y)), (bot = Math.max(bot, y));
+      tall = (bot - top + 1) * S;
+    }
     // keys whose frame is a seated pose (a sitter's base, -sit, -sitlaugh)
     const seated = frames.filter((f) => f.pose === P.sit[0] || f.pose === P.sit[1] || f.pose === P.sitlaugh[0]).map((f) => f.key);
     report.push({ key, body: rig.body, h: tall, w: W * S, frames: frames.length, oldH, seated });
+    // how the runtime plays it (src/art/stride.js): frames and screen px a frame
+    gaits[key] = { gait: P.gait, walk: [P.walk.length, P.walkStep * S], run: hasRun ? [P.run.length, P.runStep * S] : null, runAbove: P.runAbove, idle: [family === 'foe' ? P.sig.length : P.task.length, IDLE_FPS] };
   }
-  return { frames: out, report };
+  return { frames: out, report, gaits };
 }

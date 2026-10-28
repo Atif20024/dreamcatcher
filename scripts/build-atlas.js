@@ -100,9 +100,17 @@ function writePack(key, frames, meta = {}) {
   const byHash = new Map();
   const items = [];
   for (const f of frames) {
-    const h = R.hashImage(f.img);
+    // a trimmed frame (the rigged cast): packed by its opaque box, the full
+    // canvas restored at runtime (src/art/baked.js) so feet stay on the pivot
+    if (f.trim && !f.src) {
+      const b = R.bbox(f.img);
+      f.src = { w: f.img.width, h: f.img.height, x: b ? b.x : 0, y: b ? b.y : 0 };
+      f.packImg = b ? R.crop(f.img, b.x, b.y, b.w, b.h) : f.img;
+    }
+    const pimg = f.packImg || f.img;
+    const h = R.hashImage(pimg);
     if (!byHash.has(h)) {
-      const it = { img: f.img };
+      const it = { img: pimg };
       byHash.set(h, it);
       items.push(it);
     }
@@ -112,13 +120,13 @@ function writePack(key, frames, meta = {}) {
   const json = { frames: {}, meta: { app: 'dreamcatcher build-atlas', image: `${key}.png`, format: 'RGBA8888', size: { w: sheet.width, h: sheet.height }, scale: '1', ...meta } };
   for (const f of frames) {
     const { x, y } = f.rect;
-    const { width: w, height: h } = f.img;
+    const { width: w, height: h } = f.packImg || f.img;
     json.frames[f.name] = {
       frame: { x, y, w, h },
       rotated: false,
-      trimmed: false,
-      spriteSourceSize: { x: 0, y: 0, w, h },
-      sourceSize: { w, h },
+      trimmed: !!f.src,
+      spriteSourceSize: f.src ? { x: f.src.x, y: f.src.y, w, h } : { x: 0, y: 0, w, h },
+      sourceSize: f.src ? { w: f.src.w, h: f.src.h } : { w, h },
       ...(f.pivot ? { anchor: { x: +f.pivot.x.toFixed(4), y: +f.pivot.y.toFixed(4) } } : {}),
     };
   }
@@ -151,11 +159,24 @@ function reviewStrip(file, cells, cellW, cellH, groundY, contacts = []) {
     }
     for (const cx of contacts[i] || []) for (let d = -1; d <= 1; d++) R.setPx(img, i * cellW + cx + d, groundY + 2, 0xe02828), R.setPx(img, i * cellW + cx, groundY + 2 + d + 1, 0xe02828);
   });
-  fs.writeFileSync(file, encodePNG(img));
+  if (file) fs.writeFileSync(file, encodePNG(img));
+  return img;
+}
+// strips stacked into one sheet (walk over run, …)
+function stackSheets(file, imgs) {
+  const w = Math.max(...imgs.map((i) => i.width));
+  const out = R.image(w, imgs.reduce((a, i) => a + i.height + 4, -4));
+  let y = 0;
+  for (const i of imgs) {
+    R.blit(out, i, 0, y);
+    y += i.height + 4;
+  }
+  fs.writeFileSync(file, encodePNG(out));
 }
 
 // ---- 1. rig characters ------------------------------------------------------
 const index = { version: 1, inputsHash: HASH, packs: [], characters: {}, aliases: {}, placeholders: {}, credits: [] };
+const STRIPS = {};
 const charDir = path.join(ROOT, 'src/art/characters');
 const { composeHuman } = await import('../src/art/rig/human.js');
 
@@ -204,7 +225,7 @@ for (const id of fs.readdirSync(charDir)) {
           marks.push([comp.contacts.f, comp.contacts.b].filter((c) => c != null).map((c) => (c + ax) * S));
         }
       });
-      if (cells.length) reviewStrip(path.join(SHEETS, `${id}-${anim}.png`), cells, 64 * S, 64 * S, ay * S, marks);
+      if (cells.length) STRIPS[`${id}-${anim}`] = reviewStrip(path.join(SHEETS, `${id}-${anim}.png`), cells, 64 * S, 64 * S, ay * S, marks);
     }
   }
   // portraits
@@ -243,6 +264,10 @@ for (const id of fs.readdirSync(charDir)) {
   fs.writeFileSync(path.join(SHEETS, `${id}-overview.png`), encodePNG(ov));
   console.log(`[atlas] ${id}: ${frames.length} frames (${pack.unique} unique), ${anims.length} animations, ${pack.size.join('×')}`);
 }
+
+// Phase 2 motion: Jo's walk over his run, and his weight changes, one sheet each
+if (STRIPS['jo-walk'] && STRIPS['jo-run']) stackSheets(path.join(SHEETS, 'jo-walk-vs-run.png'), [STRIPS['jo-walk'], STRIPS['jo-jog'], STRIPS['jo-run']].filter(Boolean));
+if (STRIPS['jo-turn']) stackSheets(path.join(SHEETS, 'jo-start-stop-turn.png'), [STRIPS['jo-run_start'], STRIPS['jo-skid'], STRIPS['jo-turn']].filter(Boolean));
 
 // ---- 2. imported packs ----------------------------------------------------
 const { importPack } = await import('./lib/importer.js');
@@ -296,7 +321,14 @@ for (const [key, rec] of scene.store) {
 const { bakeCast } = await import('./lib/cast-bake.js');
 const rigged = await bakeCast(ROOT, scene.store);
 const riggedNames = new Set(rigged.frames.map((f) => f.name));
-const keepPlain = (arr) => arr.filter((f) => !riggedNames.has(f.name));
+// a rigged person's old walk frames beyond the rig's cycle (a kid walks on 6
+// now) must not survive as old-scale string art
+const riggedKeys = new Set(rigged.report.map((r) => r.key));
+const staleWalk = (n) => {
+  const m = /^(.*?)(-free|-walk)?#\d+$/.exec(n);
+  return !!m && riggedKeys.has(m[1]);
+};
+const keepPlain = (arr) => arr.filter((f) => !riggedNames.has(f.name) && !staleWalk(f.name));
 const castPlain = keepPlain(castFrames);
 const foePlain = keepPlain(foeFrames);
 const castRig = rigged.frames.filter((f) => !f.foe);
@@ -306,7 +338,13 @@ function writePacks(base, frames, kind) {
   const chunks = [[]];
   let area = 0;
   for (const f of frames) {
-    const a = (f.img.width + 3) * (f.img.height + 3);
+    if (f.trim && !f.src) {
+      const b = R.bbox(f.img);
+      f.src = { w: f.img.width, h: f.img.height, x: b ? b.x : 0, y: b ? b.y : 0 };
+      f.packImg = b ? R.crop(f.img, b.x, b.y, b.w, b.h) : f.img;
+    }
+    const pi = f.packImg || f.img;
+    const a = (pi.width + 3) * (pi.height + 3);
     if (area + a > 2048 * 2048 * 0.62 && chunks[chunks.length - 1].length) {
       chunks.push([]);
       area = 0;
@@ -322,6 +360,7 @@ writePacks('foes', foePlain, 'placeholder');
 writePacks('people', [...castRig, ...foeRig], 'rig-cast');
 index.placeholders = { cast: castPlain.length, foes: foePlain.length, total: castPlain.length + foePlain.length, rigged: rigged.frames.length, runtimeOnly };
 index.castReport = rigged.report;
+index.gaits = rigged.gaits;
 castFrames.length = 0;
 castFrames.push(...castPlain, ...castRig);
 foeFrames.length = 0;
@@ -346,9 +385,9 @@ foeFrames.push(...foePlain, ...foeRig);
   const joRig = (await import('../src/data/rigs/jo.js')).default;
   const joBody = R.scaleNearest(lettersToImage(joComp.body, joRig.palette), 2);
   const joHat = R.scaleNearest(lettersToImage(joComp.hat, joRig.palette), 2);
-  const want = (k) => [k, `${k}#2`, `${k}#6`, `${k}-walk#2`, `${k}-talk#2`, `${k}-wave#2`, `${k}-sit`, `${k}-laugh`, `${k}-alert#2`, `${k}-windup#3`, `${k}-grab#1`, `${k}-throw#2`].filter((n) => byName.has(n));
+  const want = (k) => [k, `${k}-idle#3`, `${k}#2`, `${k}#6`, `${k}-walk#2`, `${k}-run#3`, `${k}-talk#2`, `${k}-wave#2`, `${k}-sit`, `${k}-laugh`, `${k}-alert#1`, `${k}-alert#3`, `${k}-windup#3`, `${k}-grab#1`, `${k}-throw#2`, `${k}-search#1`, `${k}-stagger#1`].filter((n) => byName.has(n));
   const rows = rigged.report.map((r) => want(r.key));
-  const cw = 84, chh = 100, cols = 13;
+  const cw = 84, chh = 100, cols = 18;
   const sh = R.image(cw * cols, chh * rows.length);
   rows.forEach((names, ri) => {
     for (let y = 0; y < chh; y++) for (let x = 0; x < sh.width; x++) R.setPx(sh, x, ri * chh + y, y >= chh - 6 ? 0x6c6458 : ri % 2 ? 0xb4b8c0 : 0xc4c8d0);
@@ -362,6 +401,33 @@ foeFrames.push(...foePlain, ...foeRig);
     });
   });
   fs.writeFileSync(path.join(SHEETS, 'cast-lineup.png'), encodePNG(sh));
+  // gait strips (phase 2 motion): walk, run and the signature idle of a few
+  // people, with the planted-foot contacts marked — the feet must not slide
+  for (const k of ['foe-bouncer', 'foe-guard', 'foe-landlady', 'foe-scalper', 'foe-sous-chef', 'foe-roadie', 'ev-p-kite', 'ev-p-baker', 'npc-nia']) {
+    const g = rigged.gaits[k];
+    if (!g) continue;
+    const strip = (names) => {
+      const fs_ = names.map((n) => byName.get(n)).filter(Boolean);
+      if (!fs_.length) return null;
+      const cw2 = Math.max(...fs_.map((f) => f.img.width)) + 8;
+      const ch2 = Math.max(...fs_.map((f) => f.img.height)) + 4;
+      const cells = fs_.map((f) => {
+        const c = R.image(cw2, ch2);
+        R.blit(c, f.img, Math.floor((cw2 - f.img.width) / 2), ch2 - f.img.height);
+        return c;
+      });
+      const marks = fs_.map((f) => (f.contacts || []).map((x) => Math.floor((cw2 - f.img.width) / 2) + x));
+      return reviewStrip(null, cells, cw2, ch2 + 8, ch2, marks);
+    };
+    const rowsG = [
+      strip(Array.from({ length: g.walk[0] }, (_, i) => `${k}#${i + 1}`)),
+      g.run && strip(Array.from({ length: g.run[0] }, (_, i) => `${k}-run#${i + 1}`)),
+      strip(Array.from({ length: g.idle[0] }, (_, i) => `${k}-idle#${i + 1}`)),
+      strip([`${k}-alert#1`, `${k}-alert#2`, `${k}-alert#3`, `${k}-windup#1`, `${k}-windup#2`, `${k}-windup#3`, `${k}-grab#1`, `${k}-grab#2`]),
+      strip([`${k}~b`, `${k}~b#2`, `${k}~b-run#3`, `${k}~b-idle#4`]),
+    ].filter(Boolean);
+    stackSheets(path.join(SHEETS, `gait-${k}.png`), rowsG);
+  }
 }
 console.log(`[atlas] placeholders: ${castPlain.length} cast + ${foePlain.length} foe frames; rigged cast: ${rigged.frames.length} frames (${rigged.report.length} people); runtime-only: ${runtimeOnly.length}`);
 

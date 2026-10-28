@@ -21,7 +21,8 @@ TM.getDelta = function (tick) {
 const KEYCODES = {
   left: ['ArrowLeft', 37], right: ['ArrowRight', 39], up: ['ArrowUp', 38], down: ['ArrowDown', 40],
   jump: ['Space', 32], interact: ['KeyE', 69], action: ['KeyX', 88], shove: ['KeyX', 88],
-  trumpet: ['KeyQ', 81], tether: ['KeyF', 70], esc: ['Escape', 27], enter: ['Enter', 13],
+  trumpet: ['KeyQ', 81], tether: ['KeyF', 70], esc: ['Escape', 27], enter: ['Enter', 13], walk: ['ShiftLeft', 16],
+  ShiftLeft: 16,
   ArrowLeft: 37, ArrowRight: 39, ArrowUp: 38, ArrowDown: 40, Space: 32, Enter: 13, Escape: 27, Tab: 9,
 };
 const codeInfo = (a) => {
