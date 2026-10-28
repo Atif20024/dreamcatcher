@@ -29,7 +29,8 @@ import { makeActivities } from '../systems/activities.js';
 import Director from '../systems/evening.js';
 import { takePhoto, loadAlbum, photoTextures, randomPhotos } from '../systems/album.js';
 import { getSave, updateSave, momentsFound, MOMENT_TOTAL } from '../utils/save.js';
-import { sfx, music, laughSfx, toggleMusic, playFx, audioOut } from '../systems/audio.js';
+import { sfx, music, laughSfx, toggleMusic, playFx, audioOut, chime } from '../systems/audio.js';
+import { wipeActive } from '../ui/TrainWipe.js';
 import DialogueBox from '../systems/DialogueBox.js';
 import { buildWorld, buildArchitecture, makeGround, bucketTerrain, bakeTerrain, zoneTint, mulC } from './evening/world.js';
 import { paintRoofBlock, paintRidgeRock } from '../art/eveningArt.js';
@@ -191,7 +192,8 @@ export default class EveningScene extends BaseLevel {
     p.tool.setTexture('tool-trumpet');
     this.hatBase = p.hat.tintTopLeft; // whatever Bilal sold him, under the evening's light
     p.shadow.set({ texture: 'ev-shadow', originX: 0.05, offsetX: -6, alpha: 0.3, depth: 9 });
-    this.joRim = this.add.image(p.x, p.y, p.art.texture.key, p.art.frame.name).setDepth(11.9).setTintFill(0xffd890).setAlpha(0.5);
+    // the warm rim on his lit side is the Player's own now (WP6, §9); the
+    // Evening sets its colour and strength from the sky (lightJo)
     this.hatSnow = this.add.rectangle(0, 0, 18, 3, 0xf4f8ff).setDepth(13.2).setVisible(false);
 
     this.setupEvening(built);
@@ -263,7 +265,7 @@ export default class EveningScene extends BaseLevel {
     cam.startFollow(this.player, true, 0.08, 0.08);
     cam.setDeadzone(80, 60);
     cam.followOffset.y = 90; // more sky than street: it's that kind of place
-    cam.fadeIn(900, 20, 14, 8);
+    if (!wipeActive()) cam.fadeIn(900, 20, 14, 8); // a train wipe (WP6) reveals it instead
     this.baseOffsetY = 90;
     this.look = setupLook(this);
     this.keyEsc = this.input.keyboard.addKey('ESC');
@@ -743,7 +745,7 @@ export default class EveningScene extends BaseLevel {
     const tint = mulC(wet ? 0xb4bccc : 0xffffff, L.ambient);
     p.art.setTint(tint);
     p.hat.setTint(mulC(this.hatBase === undefined ? 0xffffff : this.hatBase, tint));
-    this.joRim.setTexture(p.art.texture.key, p.art.frame.name).setPosition(p.art.x - 1.5, p.art.y).setFlipX(p.art.flipX).setScale(p.art.scaleX, p.art.scaleY).setAngle(p.art.angle).setVisible(p.shown).setTintFill(L.rim).setAlpha(L.rimAlpha);
+    p.setRim({ color: L.rim, alpha: L.rimAlpha, dx: -1.5 });
     // the light's colour and length; on a bench the shadow lies on the seat
     p.shadow.set({ tint: L.shadow, alpha: L.shadowAlpha, length: L.shadowLen * (this.joSitting ? 0.7 : 1), groundY: this.joSitting && this.sitBench ? this.sitBench.y : null });
     // snow settles on his hat and shoulders too
@@ -2203,6 +2205,8 @@ export default class EveningScene extends BaseLevel {
     this.time.delayedCall(times * 110, () => {
       txt.setAlpha(1).setText(final);
       if (big) txt.setColor('#e9b84a');
+      // the station chime, played by the town's bells (WP6, §9 "Sound")
+      if (big) chime(final === "YOU'RE HERE" ? 'youre-here' : 'board', 'evening');
     });
   }
 
@@ -2543,6 +2547,8 @@ export default class EveningScene extends BaseLevel {
       ease: 'Sine.easeInOut',
     });
     await wait(this, 9000);
+    // the chime once more, unaccompanied (WP6, §9 "Sound")
+    chime('ridge', 'ridge');
     const cards = [];
     const total = momentsFound();
     if (total >= MOMENT_TOTAL) cards.push(CARDS.all_moments);

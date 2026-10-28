@@ -2,10 +2,10 @@ import Phaser from 'phaser';
 import { createPixelTexture } from '../utils/pixelart.js';
 import { getDifficulty, getSave, updateSave, getRun, setRun, clearRun, getSettings, updateSettings } from '../utils/save.js';
 import DialogueBox from '../systems/DialogueBox.js';
-import { sfx, music, musicDirector, sting, isMusicOff, toggleMusic } from '../systems/audio.js';
+import { sfx, music, musicDirector, sting, isMusicOff, toggleMusic, chime } from '../systems/audio.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
 import Parallax from '../builders/parallax.js';
-import { setupLook } from '../art/look.js';
+import { setupLook, setupGrade } from '../art/look.js';
 import Foe from '../entities/Foe.js';
 import { createFoeTextures } from '../entities/foeArt.js';
 import { FOES } from '../data/kinds.js';
@@ -28,6 +28,10 @@ import { uiText, PLATE } from '../ui/text.js';
 import { barkMs, claimBark } from '../ui/barks.js';
 import { panel, dim } from '../ui/Panel.js';
 import { ambience } from '../audio/Ambience.js';
+import { PLACES, placeOf, rimOf } from '../ui/theme.js';
+import { createLampTextures } from '../art/identityArt.js';
+import { boardTitle } from '../ui/BoardTitle.js';
+import { trainWipe, wipeActive } from '../ui/TrainWipe.js';
 
 const T = 32;
 // scene key → dream id (Hub and the Evening have no in-dream run)
@@ -37,11 +41,6 @@ const HEART = { rows: ['.hh.hh.', 'hhhhhhh', 'hhhhhhh', '.hhhhh.', '..hhh..', '.
 const ORB = {
   rows: ['..oooo..', '.oOOOOo.', 'oOOWWOOo', 'oOWWWWOo', 'oOWWWWOo', 'oOOWWOOo', '.oOOOOo.', '..oooo..'],
   pal: { o: 0x7ec8a9, O: 0xa9e8c9, W: 0xf0fff8 },
-};
-const FLAG = {
-  rows: ['P.......', 'Pffff...', 'Pffffff.', 'Pffff...', 'P.......', 'P.......', 'P.......', 'P.......'],
-  pal: { P: 0x8a8aa8, f: 0x88b8d8 },
-  lit: { P: 0x8a8aa8, f: 0xf2c078 },
 };
 
 // Shared level plumbing: lives/hearts (3 + dreams caught, max 5), hurt and
@@ -99,7 +98,7 @@ export default class BaseLevel extends Phaser.Scene {
     this.gateSigns = null;
     this._objKey = undefined;
     this._resumeObjective = undefined;
-    for (const k of ['_bridgeTaught', '_distractTaught', '_railTaught', 'tetherUsed', 'driftRescued', '_refusedAt']) this[k] = undefined;
+    for (const k of ['_bridgeTaught', '_distractTaught', '_railTaught', 'tetherUsed', 'driftRescued', '_refusedAt', '_caughtBoard']) this[k] = undefined;
     this.levelStartedAt = this.time.now;
     this.modals = ModalManager.for(this);
     this.hud = hud.bind(this, this.hudProfile || 'default');
@@ -122,23 +121,29 @@ export default class BaseLevel extends Phaser.Scene {
 
     createPixelTexture(this, 'heart', HEART.rows, HEART.pal, 3);
     createPixelTexture(this, 'orb', ORB.rows, ORB.pal, 3);
-    createPixelTexture(this, 'flag', FLAG.rows, FLAG.pal, 4);
-    createPixelTexture(this, 'flag-lit', FLAG.rows, FLAG.lit, 4);
+    // round 2 WP6 (§9): every checkpoint is a platform lamp, not a flag
+    createLampTextures(this);
 
     this.physics.world.setBounds(0, 0, worldW, worldH + 200);
     const cam = this.cameras.main;
     cam.setBounds(0, 0, worldW, worldH);
     cam.startFollow(this.player, true, 0.1, 0.1);
     cam.setDeadzone(80, 60);
-    cam.fadeIn(400);
+    // arriving by train, the passing-train wipe uncovers the scene (WP6);
+    // otherwise it fades up from the night indigo, never from black
+    if (!wipeActive()) cam.fadeIn(400, 0x14, 0x12, 0x2a);
+    // Jo's warm rim, in this place's light (§9 "Jo anchor")
+    if (this.player && this.player.setRim) this.player.setRim({ color: rimOf(placeOf(this)), halo: PLACES[placeOf(this)].halo || 0, haloColor: PLACES[placeOf(this)].warm });
     // the look: a painted vignette and a moving grain, as in the Evening
     this.look = setupLook(this, { vignette: 0.85, grain: 0.04 });
+    // the place's night grade, under Jo (WP6, §9 "Light")
+    this.grade = setupGrade(this, PLACES[placeOf(this)].grade);
 
     // darkness per dream caught (approximation of the palette shader):
     // overlay below HUD; orbs render above it and stay bright
     if (this.difficulty > 0) {
       this.add
-        .rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x0a0a14, Math.min(0.45, this.difficulty * 0.09))
+        .rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, PLACES[placeOf(this)].shadow, Math.min(0.45, this.difficulty * 0.09))
         .setScrollFactor(0)
         .setDepth(90);
     }
@@ -623,7 +628,7 @@ export default class BaseLevel extends Phaser.Scene {
     this.health.setInvulnerable(this.time.now, 1500);
     this.updateHearts();
     this.cameras.main.centerOn(this.player.x, this.player.y);
-    this.cameras.main.fadeIn(350);
+    this.cameras.main.fadeIn(350, 0x14, 0x12, 0x2a); // death fades through the night indigo (§9)
     this.flashInvulnerable();
   }
 
@@ -644,7 +649,9 @@ export default class BaseLevel extends Phaser.Scene {
     this.coinsSinceCP = 0; // banked: death can no longer scatter these
     if (cp.silent) return;
     if (this.player && this.player.pose && this.player.body.blocked.down) this.player.pose('celebrate');
-    sting.checkpoint();
+    // the lamp comes on with the chime of the place (§9); a framework dream's
+    // Stingers answer `checkpoint:lit` with the same chime
+    if (!this.stingers) chime('lamp', placeOf(this));
     this.showCheckpointLabel(cp.label);
     this.saveRun();
   }
@@ -836,7 +843,9 @@ export default class BaseLevel extends Phaser.Scene {
     this.pauseMenu.destroy();
     this.freezeWorld(false);
     music.stop();
-    this.scene.start('Hub');
+    // the passing-train wipe takes Jo back (WP6, §9 "Transitions")
+    this.player.controlLockUntil = this.time.now + 99999;
+    trainWipe(this, () => this.scene.start('Hub'), { place: placeOf(this), event: 'return' });
   }
 
   // D7 — room-driven music: bpm and state follow the room the CAMERA is in
@@ -922,6 +931,15 @@ export default class BaseLevel extends Phaser.Scene {
     this.cardText = h.add(text);
     this.cardConfirm = onConfirm;
     this.cardAlt = onAlt;
+    // round 2 WP6 (§9 "Moments"): the dream's end card. The board over it
+    // flips to the dream's name and CAUGHT, with the chime, and the way back
+    // to the station is the passing train.
+    if (this.orbCaught && !this._caughtBoard && this.dreamId) {
+      const d = dreamById(this.dreamId);
+      const place = placeOf(this);
+      this._caughtBoard = h.add(boardTitle(this, `${d ? d.title : 'THE DREAM'}  CAUGHT`, { y: Math.max(40, Math.round(cam.height / 2 - ht / 2 - 34)), place, persist: true, depth: 253, event: 'caught', name: 'caught-board' }));
+      if (onConfirm) this.cardConfirm = () => trainWipe(this, onConfirm, { place, event: 'return' });
+    }
   }
 
   _cardClosed() {

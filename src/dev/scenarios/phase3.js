@@ -158,7 +158,9 @@ const playthrough = {
     for (let i = 0; i < 900 && !s.ending.waitingForReturn; i++) await dc.run(1);
     ok('ending-card', !!s.ending.waitingForReturn && s.ending.caught);
     dc.press('action', 3);
-    await dc.run(20);
+    // the passing-train wipe (WP6) starts the station under it at its middle
+    for (let i = 0; i < 90 && !(dc.scene() && dc.scene().sys.settings.key === 'Hub'); i++) await dc.run(1);
+    await dc.run(2);
     const back = dc.scene() && dc.scene().sys.settings.key;
     ok('back-at-station', back === 'Hub');
     // the dream is caught: the save flag, and the hub plays the return

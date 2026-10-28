@@ -57,3 +57,35 @@ export function setupLook(scene, opts = {}) {
   };
   return look;
 }
+
+// Round 2 WP6 (critique §9 "Light"): the place's night grade. Every place is
+// a station at night: the world behind Jo is multiplied toward the place's
+// cool indigo, so most of the frame is shadow and the warm practicals and Jo
+// stand out of it. It sits just under Jo and the foes (depth 11), over the
+// terrain, props and passers-by; Jo is never graded, so he stays the
+// highest-contrast thing on screen.
+export function setupGrade(scene, color, { depth = 11 } = {}) {
+  if (color === undefined || color === null || color === 0xffffff) return null;
+  if (!scene.textures.exists('dc-grade')) {
+    const ct = scene.textures.createCanvas('dc-grade', 4, 4);
+    const ctx = ct.getContext();
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 4, 4);
+    ct.refresh();
+  }
+  const cam = scene.cameras.main;
+  const img = scene.add.image(cam.width / 2, cam.height / 2, 'dc-grade');
+  img.keepInWorld = true; // a world overlay, not UI (src/ui/ui.js)
+  img.setScrollFactor(0).setDepth(depth).setBlendMode(Phaser.BlendModes.MULTIPLY).setTint(color);
+  img.name = 'place-grade';
+  // cover the view at any camera zoom
+  const fit = () => {
+    if (!img.scene) return;
+    const z = cam.zoom || 1;
+    img.setScale((cam.width / 4 / z) * 1.1, (cam.height / 4 / z) * 1.1);
+  };
+  fit();
+  scene.events.on('postupdate', fit);
+  scene.events.once('shutdown', () => scene.events.off('postupdate', fit));
+  return img;
+}

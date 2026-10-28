@@ -20,7 +20,11 @@ import { hubState, HEADLINES } from '../systems/hubState.js';
 import { getSave, updateSave, getRun } from '../utils/save.js';
 import { getWallet, spend } from '../systems/wallet.js';
 import { HATS, hatById } from '../data/hats.js';
-import { sfx, music, musicDirector, sting, accordion } from '../systems/audio.js';
+import { sfx, music, musicDirector, sting, accordion, chime } from '../systems/audio.js';
+import { dreamcatcherTexture, caughtRounds, WEB_ORDER, glowTexture } from '../art/identityArt.js';
+import { PLACES } from '../ui/theme.js';
+import { trainWipe } from '../ui/TrainWipe.js';
+import { boardTitle } from '../ui/BoardTitle.js';
 import { uiText } from '../ui/text.js';
 import { hud } from '../ui/hud.js';
 
@@ -30,6 +34,7 @@ const line = (row) => (row + 1) * T; // the floor line under a tile row
 const FLOOR = line(HUB_ROWS.FLOOR - 1); // 832: hall floor / concourse
 const ROOF = line(HUB_ROWS.ROOF - 1); // 256
 const UNDER = line(HUB_ROWS.UNDER - 1); // 1056
+const DREAMCATCHER_PX = 128; // the hall's dreamcatcher: a 2.9 m hoop (WP6)
 const DOORS_X = px(22);
 const SHED_END_X = px(156);
 
@@ -149,6 +154,9 @@ export default class HubScene extends BaseLevel {
     if (this.returnedFrom) this.runReturn();
     else if (this.firstVisit) this.setObjective('');
     else this.setObjective('board any train — or the last stop');
+    // the place's name on the board (WP6, §9): not over the opening (it has
+    // its own) and not over a train coming home
+    if (!this.returnedFrom && !this.firstVisit) this.placeBoard = boardTitle(this, 'CROSSROADS STATION', { sub: "NINE O'CLOCK", y: 64, place: 'hub', hold: 1800 });
   }
 
   // ---- helpers ------------------------------------------------------------
@@ -426,6 +434,59 @@ export default class HubScene extends BaseLevel {
         .setAngle(-12);
       this.lightBars.push(bar);
     }
+
+    this.buildDreamcatcher();
+  }
+
+  // ---- the station's dreamcatcher (round 2 WP6, critique §9 "Motifs") ------
+  // A big one hangs in the hall on a chain from the roof: one round of web,
+  // in that dream's colour, for every dream caught. A dream caught tonight
+  // is woven in when Jo comes back (runReturn).
+  buildDreamcatcher() {
+    const x = px(73);
+    const top = FLOOR - 266; // the hoop at eye height from the concourse, over the heads of the hall
+    const size = DREAMCATCHER_PX;
+    const caught = { ...this.save.dreams };
+    // the dream Jo has just come back from is woven in on his return
+    if (this.returnedFrom && caught[this.returnedFrom]) {
+      this.weaveNext = this.returnedFrom;
+      delete caught[this.returnedFrom];
+    }
+    this.webRounds = caughtRounds(caught);
+    const key = dreamcatcherTexture(this, 'hub-dreamcatcher', size, { rounds: this.webRounds, ghost: WEB_ORDER.length - this.webRounds.length });
+    const chain = this.add.graphics().setDepth(D.INTERACT - 5);
+    chain.lineStyle(2, 0x3a3448, 1).lineBetween(x, ROOF, x, top + 4);
+    for (let y = ROOF + 6; y < top; y += 8) chain.fillStyle(0x5a5068, 1).fillRect(x - 2, y, 4, 4);
+    this.dreamcatcher = this.add.image(x, top, key).setOrigin(0.5, 0).setDepth(D.INTERACT - 4);
+    // it turns a little in the draught from the doors
+    this.tweens.add({ targets: this.dreamcatcher, angle: { from: -1.6, to: 1.6 }, duration: 3800, yoyo: true, repeat: -1, ease: 'sine.inout' });
+    // the lamp over it: the hall's practical, warm on the web
+    this.add.image(x, top + size / 2, glowTexture(this)).setBlendMode('ADD').setTint(0xf2c078).setAlpha(0.12).setScale(2.6).setDepth(D.INTERACT - 4.5);
+    const plaque = uiText(this, x + size / 2 + 12, top + size / 2, 'ONE STRAND FOR EVERY DREAM CAUGHT', { size: 'small', color: '#f2d580', backing: 0x2a2230, wrap: 96 }).setOrigin(0, 0.5).setDepth(11.3); // over the night grade
+    plaque.name = 'dreamcatcher-plaque';
+  }
+
+  // weave the round for a dream just caught, then the chime (runReturn)
+  weaveStrand() {
+    const id = this.weaveNext;
+    if (!id || !this.dreamcatcher) return;
+    this.weaveNext = null;
+    const color = PLACES[id] ? PLACES[id].accent : 0xf2e6cc;
+    const rounds = this.webRounds;
+    const left = WEB_ORDER.length - rounds.length - 1;
+    const st = { p: 0 };
+    this.tweens.add({
+      targets: st,
+      p: 1,
+      duration: 1600,
+      ease: 'sine.inout',
+      onUpdate: () => dreamcatcherTexture(this, 'hub-dreamcatcher', DREAMCATCHER_PX, { rounds, partial: st.p, partialColor: color, ghost: left }),
+      onComplete: () => {
+        this.webRounds = [...rounds, color];
+        dreamcatcherTexture(this, 'hub-dreamcatcher', DREAMCATCHER_PX, { rounds: this.webRounds, ghost: Math.max(0, left) });
+        chime('strand', 'hub');
+      },
+    });
   }
 
   fountainDrop() {
@@ -756,6 +817,7 @@ export default class HubScene extends BaseLevel {
       this.hud.set('profile', profile);
       this.input.keyboard.off('keydown', finish);
       timers.forEach((t) => t.remove(false));
+      if (this.openingBoard && this.openingBoard.scene) this.openingBoard.destroy();
       this.tweens.killTweensOf(cam);
       cam.setZoom(1);
       cam.startFollow(this.player, true, 0.1, 0.1);
@@ -773,6 +835,8 @@ export default class HubScene extends BaseLevel {
         this.tweens.killTweensOf(cam);
         for (const t of Object.values(this.trains)) for (let i = 0; i < 8; i++) timers.push(this.time.delayedCall(i * 120, () => t.puff()));
         this.board.rows.forEach((r, i) => timers.push(this.time.delayedCall(200 + i * 160, () => this.board.setRow(i, r))));
+        // the one title: the station's name on a board line, with the chime (WP6)
+        this.openingBoard = boardTitle(this, 'CROSSROADS STATION', { sub: "NINE O'CLOCK. EVERY TRAIN LEAVES NOW.", y: 64, place: 'hub', hold: 1500 });
         this.tweens.add({
           targets: cam,
           scrollX: px(60) - 480,
@@ -869,6 +933,8 @@ export default class HubScene extends BaseLevel {
         sfx('scratch');
         this.time.delayedCall(300, () => sfx('scratch'));
         this.drawTally(this.state.tally);
+        // its lamp is out; its round is woven into the hall's dreamcatcher
+        this.time.delayedCall(600, () => this.weaveStrand());
         // then, and only then, the tint darkens
         this.tweens.add({ targets: this.washRect, fillAlpha: this.state.sat * 0.55, duration: 2400 });
         this.setObjective('board any train — or the last stop');
@@ -922,16 +988,20 @@ export default class HubScene extends BaseLevel {
     train.walkIn(this.player, () => {
       sfx('snap');
       train.depart(() => {});
+      // the passing-train wipe in the dream's livery, with the chime (WP6, §9):
+      // the next scene starts under it at the middle
       this.time.delayedCall(900, () => {
-        const cam = this.cameras.main;
-        cam.fadeOut(600, 8, 8, 12);
-        this.time.delayedCall(650, () => {
-          music.stop();
-          // a continued run skips the intro card and wakes at its flag
-          if (d === LAST_STOP) this.scene.start('Evening', { fromDoor: true });
-          else if (answer === 'continue') this.scene.start(d.scene, { levelKey: d.id, resume: true });
-          else this.scene.start('Intro', { levelKey: d.id });
-        });
+        trainWipe(
+          this,
+          () => {
+            music.stop();
+            // a continued run skips the intro card and wakes at its flag
+            if (d === LAST_STOP) this.scene.start('Evening', { fromDoor: true });
+            else if (answer === 'continue') this.scene.start(d.scene, { levelKey: d.id, resume: true });
+            else this.scene.start('Intro', { levelKey: d.id });
+          },
+          { place: d === LAST_STOP ? 'evening' : PLACES[d.id] ? d.id : 'hub', event: 'boarding' }
+        );
       });
     });
   }

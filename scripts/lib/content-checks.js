@@ -184,3 +184,21 @@ export function readabilityIssues(src, file) {
   });
   return out;
 }
+
+// Identity (round 2 WP6, critique §9 "UI frame"). ui-frame-single: the one
+// frame is drawn by src/ui/Panel.js (drawPanel / panel). A rounded-rect frame
+// drawn anywhere else in the UI, the play services, the narrative or a scene
+// is a second frame style. Painted art (src/art, entities) is not UI.
+// A line opts out with `lint-allow frame: <reason>`.
+const FRAME_SCOPE = /^src\/(ui|play|narrative|systems|scenes)\//;
+const ALLOW_FRAME = /lint-allow frame:/;
+export function frameIssues(src, file) {
+  if (!FRAME_SCOPE.test(file) || file === 'src/ui/Panel.js') return [];
+  const out = [];
+  const lines = src.split('\n');
+  lines.forEach((l, i) => {
+    if (ALLOW_FRAME.test(l) || ALLOW_FRAME.test(lines[i - 1] || '')) return;
+    if (/\.(fill|stroke)RoundedRect\(/.test(l)) out.push(`${file}:${i + 1}: ui-frame-single: a frame drawn outside src/ui/Panel.js (use panel / drawPanel)`);
+  });
+  return out;
+}

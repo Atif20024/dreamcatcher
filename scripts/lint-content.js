@@ -13,7 +13,7 @@ import { register } from 'node:module';
 import { join, relative, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runRoomChecks, DREAMS as ROOMS_BY_DREAM } from './lib/rooms-check.js';
-import { countDefaultText, readabilityIssues, checkpointIssues, teachIssues, objectiveIssues, gateIssues, spawnSafetyIssues, landmarkIssues } from './lib/content-checks.js';
+import { countDefaultText, readabilityIssues, checkpointIssues, teachIssues, objectiveIssues, gateIssues, spawnSafetyIssues, landmarkIssues, frameIssues } from './lib/content-checks.js';
 import { CARDS } from '../src/data/teach.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -65,6 +65,9 @@ for (const f of files) {
   if (rel.startsWith('src/dev/') || rel.startsWith('src/ui/')) continue;
   readability.push(...readabilityIssues(readFileSync(f, 'utf8'), rel));
 }
+// 3c. identity (round 2 WP6 §9): ui-frame-single, panels only via Panel.js (fail-level)
+const frames = [];
+for (const f of files) frames.push(...frameIssues(readFileSync(f, 'utf8'), relative(ROOT, f)));
 
 // 4. checkpoints: labelled, unique ids (fail-level)
 const cps = checkpointIssues(ROOMS_BY_DREAM);
@@ -78,7 +81,7 @@ const landmarks = landmarkIssues(ROOMS_BY_DREAM);
 const sharedProps = Object.fromEntries(PROP_IDS.map((k) => [k, { id: k }]));
 const framework = [];
 for (const def of Object.values(FRAMEWORK_DREAMS)) framework.push(...dreamIssues(def, { materials: SHARED_MATERIALS, props: sharedProps, decorRules: SHARED_DECOR_RULES }));
-const content = [...teach, ...objectives, ...gates, ...spawn, ...landmarks, ...framework, ...readability];
+const content = [...teach, ...objectives, ...gates, ...spawn, ...landmarks, ...framework, ...readability, ...frames];
 
 console.log = realLog;
 const report = {
@@ -90,6 +93,7 @@ const report = {
   landmarks: { failures: landmarks },
   defaultText: { files: debt.length, ...totals, perFile: debt },
   readability: { failures: readability },
+  identity: { failures: frames },
   checkpoints: { failures: cps },
   framework: { dreams: Object.keys(FRAMEWORK_DREAMS), failures: framework },
 };
@@ -105,6 +109,8 @@ if (json) {
   for (const d of debt) log(`  ✗ ${d.file}: add.text x${d.addText}, monospace x${d.mono}, canvas text x${d.canvas}`);
   log(`\n--- readability (text-min-size, hud-slot): ${readability.length} failures ---`);
   for (const r of readability) log(`  ✗ ${r}`);
+  log(`\n--- identity (ui-frame-single): ${frames.length} failures ---`);
+  for (const r of frames) log(`  ✗ ${r}`);
   log(`\n--- checkpoints: ${cps.length} failures ---`);
   for (const c of cps) log(`  ✗ ${c}`);
   log(`\n--- framework dreams (${Object.keys(FRAMEWORK_DREAMS).join(', ')}): ${framework.length} failures ---`);

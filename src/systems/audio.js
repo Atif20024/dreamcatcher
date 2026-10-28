@@ -256,6 +256,75 @@ export function laughSfx(pitch = 1) {
   }
 }
 
+// --- round 2 WP6: the station chime --------------------------------------
+// One two-note motif, a falling fourth, re-orchestrated per place (critique
+// §9 "Sound"). It plays on the five identity moments: a board flip (a place
+// title, CAUGHT), a lamp-checkpoint, boarding (the passing-train wipe), the
+// dream's end and the Evening's YOU'RE HERE. Every voice is `tone`/`noise`,
+// so it goes through `master`, and DEV_SILENT mutes it like everything else.
+const FOURTH = 3 / 4; // the second note: a perfect fourth below the first
+const bell = (f, when, vol, partials, decay) => partials.forEach(([m, a, type = 'sine']) => tone(f * m, decay * (m > 2 ? 0.6 : 1), type, vol * a, when));
+export const CHIME_VOICES = Object.freeze({
+  // the hall's own: a soft station bell (sine, a bright second partial)
+  hub: { f: 784, gap: 0.42, voice: (f, w) => bell(f, w, 0.16, [[1, 1], [2, 0.32], [3, 0.08]], 1.6) },
+  // the pass: a service bell, struck twice
+  chef: { f: 1175, gap: 0.24, voice: (f, w) => bell(f, w, 0.13, [[1, 1, 'triangle'], [2.76, 0.35], [5.4, 0.12]], 0.9) },
+  // Marcus's horn: brass, short, a little breath on the front
+  musician: {
+    f: 523,
+    gap: 0.3,
+    voice: (f, w) => {
+      tone(f, 0.34, 'square', 0.07, w);
+      tone(f, 0.34, 'sawtooth', 0.04, w);
+      tone(f * 2, 0.22, 'sine', 0.03, w);
+      noise(0.05, 0.03, 1800, w);
+    },
+  },
+  // mission control: a radio beep, a click of carrier before each
+  astronaut: {
+    f: 1319,
+    gap: 0.22,
+    voice: (f, w) => {
+      noise(0.02, 0.05, 3000, w);
+      tone(f, 0.14, 'square', 0.05, w + 0.02);
+    },
+  },
+  // the carriage-return bell of a typewriter
+  writer: { f: 1568, gap: 0.26, voice: (f, w) => bell(f, w, 0.1, [[1, 1], [2.4, 0.3]], 0.7) },
+  // a church bell across the square: hum, strike, minor third, fifth
+  painter: { f: 523, gap: 0.6, voice: (f, w) => bell(f, w, 0.12, [[0.5, 0.5], [1, 1], [1.19, 0.35], [1.5, 0.25], [2, 0.3]], 2.4) },
+  // a slot machine's pay chime: a quick sparkle on each note
+  gambler: { f: 988, gap: 0.26, voice: (f, w) => [1, 1.5, 2].forEach((m, i) => tone(f * m, 0.3, 'triangle', 0.07 / (i + 1), w + i * 0.03)) },
+  // the clock house: a tubular chime
+  clockmaker: { f: 659, gap: 0.5, voice: (f, w) => bell(f, w, 0.13, [[1, 1], [2, 0.4], [3, 0.15], [4.07, 0.06]], 1.9) },
+  // the town's bells, two towers, slightly out with each other
+  evening: {
+    f: 392,
+    gap: 0.7,
+    voice: (f, w) => {
+      bell(f, w, 0.1, [[1, 1], [2, 0.3], [0.5, 0.4]], 3);
+      bell(f * 1.004, w + 0.21, 0.06, [[1, 1], [2, 0.2]], 2.6);
+    },
+  },
+  // and on the ridge, unaccompanied: one pure voice
+  ridge: { f: 392, gap: 0.9, voice: (f, w) => tone(f, 2.2, 'sine', 0.09, w) },
+});
+// the scenarios read this event log (nothing is played to check it)
+export const chimeLog = [];
+let chimeSeq = 0;
+export function chime(event = 'chime', place = 'hub') {
+  const known = !!CHIME_VOICES[place];
+  const v = known ? CHIME_VOICES[place] : CHIME_VOICES.hub;
+  chimeLog.push({ event, place: known ? place : 'hub', at: Date.now(), seq: ++chimeSeq });
+  if (chimeLog.length > 64) chimeLog.shift();
+  try {
+    v.voice(v.f, 0);
+    v.voice(v.f * FOURTH, v.gap);
+  } catch {
+    /* audio unavailable — stay silent */
+  }
+}
+
 export function sfx(name) {
   try {
     if (SFX[name]) SFX[name]();

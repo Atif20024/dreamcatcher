@@ -8,6 +8,8 @@ import { stationTex } from '../art/trainArt.js';
 import { hubTex } from '../art/hubArt.js';
 import { uiText, PLATE } from '../ui/text.js';
 import { characterManifest } from '../art/baked.js';
+import { boardTitle } from '../ui/BoardTitle.js';
+import { wipeActive } from '../ui/TrainWipe.js';
 
 // Close-up entry shots: a zoomed street scene, Jo walks to the door, fade in.
 const INTROS = {
@@ -260,16 +262,16 @@ export default class IntroScene extends Phaser.Scene {
     if (this.joHat) this.joHat.setDepth(6).setAlpha(0);
     this.cameras.main.setZoom(1.3);
     this.cameras.main.centerOn(400, 360);
-    this.cameras.main.fadeIn(500);
+    // the passing-train wipe (WP6) uncovers the arrival; otherwise a fade up
+    // from the night indigo
+    if (!wipeActive()) this.cameras.main.fadeIn(500, 0x14, 0x12, 0x2a);
 
-    // the caption is screen text (UIScene, zoom 1): the street shot is zoomed
+    // the caption is screen text (UIScene, zoom 1): the street shot is zoomed.
+    // WP6 (§9): the dream's name arrives on the board, letter by letter, with
+    // the dream's chime, over the platform it left from
+    this.titleBoard = boardTitle(this, intro.caption, { y: 50, sub: dream ? `FROM PLATFORM ${dream.platform}` : null, place: this.levelKey, persist: true, name: 'intro-board' });
     // §8: captions on painted art sit on a scrim; the skip hint on the plate
-    uiText(this, 480, 60, intro.caption, { size: 'display', scale: 2, color: '#f2d580' })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(150)
-      .setScrim(0x0e0b14);
-    uiText(this, 480, 100, intro.sub, { size: 'body', color: '#c8c0b0', align: 'center', wrap: 860 })
+    uiText(this, 480, 114, intro.sub, { size: 'body', color: '#c8c0b0', align: 'center', wrap: 860 })
       .setOrigin(0.5, 0)
       .setScrollFactor(0)
       .setDepth(150)
