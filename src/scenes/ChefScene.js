@@ -61,7 +61,7 @@ export default class ChefScene extends BaseLevel {
     this.player = new Player(this, spawn.x, spawn.y);
     this.dreamCoinId = 'chef';
     markMet('chef');
-    this.setupCommon({ worldW, worldH, levelName: 'DREAM 03 — FIVE-STAR DREAM', spawn });
+    this.setupCommon({ worldW, worldH, levelName: 'DREAM — FIVE-STAR DREAM', spawn });
 
     this.F = {};
     this.moments = 0;

@@ -1,10 +1,10 @@
 // A1/F#6: in the EVA, the first push-off without the tether is an instant,
 // untaught death ("no tether. Earth does not get closer.", lose a heart).
 // Correct behaviour: the first unclipped push-off is blocked/taught (card or
-// hint), never a drift-away that costs a heart.
+// hint), never a drift-away that costs a heart. PASSES since phase 1.4: the
+// push is refused, the tether card fires, the first later drift is reeled in.
 export default {
   id: 'eva-tether-trap',
-  expect: 'fail',
   async run(dc) {
     dc.warp('astronaut', 'eva');
     dc.step(60);

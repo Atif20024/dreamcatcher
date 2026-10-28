@@ -1,4 +1,5 @@
 import { buildAstroMap } from '../astronautData.js';
+import { withObjectives } from '../objectives.js';
 
 // D2 — THE QUIET ABOVE as rooms. Terrain from the map painter; every object
 // declarative. `phys` switches the motion model: undefined = 1g,
@@ -7,7 +8,7 @@ const FULL = buildAstroMap();
 const slice = (x0, x1) => FULL.map((row) => row.slice(x0, x1 + 1));
 const L = (worldCol, x0) => worldCol - x0;
 
-export default [
+const ROOMS = [
   {
     id: 'p0_arrival',
     section: 'arrival',
@@ -324,3 +325,74 @@ export default [
     ],
   },
 ];
+
+// Phase 1.4 (plan §2.7): each room's objective, each gate's sign
+const OBJECTIVES = {
+  "p0_arrival": "the intake. then train.",
+  "p1_track": "train it up: the track",
+  "p1_pool": "train it up: the pool",
+  "p1_wall_ring": "train it up: the climbing ring",
+  "p1_study": [
+    "read the notebook. 3 pips in every stat",
+    {
+      "flag": "physical",
+      "text": "the numbers are there. the Board."
+    }
+  ],
+  "p2_gate": [
+    "the Board. Thursday.",
+    {
+      "flag": "selected",
+      "text": "the bus is waiting — training campus"
+    }
+  ],
+  "p3_centrifuge": "the centrifuge",
+  "p3_nbpool": "the tank — seat the spare panel",
+  "p3_sim": "the simulator — dock it",
+  "p3_survival": [
+    "the survival course — night, rain",
+    {
+      "flag": "shelter",
+      "text": "the shelter holds. the beacon. Priya."
+    },
+    {
+      "flag": "survival",
+      "text": "the pad, before dawn"
+    }
+  ],
+  "p4_pad": "the pad, before dawn",
+  "p4_station": [
+    "the coolant leak — follow the droplets",
+    {
+      "flag": "coolant",
+      "text": "the node — report to the ground"
+    },
+    {
+      "flag": "reported",
+      "text": "the airlock — the array is stuck"
+    }
+  ],
+  "p4_eva": [
+    "the array — [F] clip on, then push",
+    {
+      "flag": "array_fixed",
+      "text": "back to the airlock — the moon is next"
+    }
+  ],
+  "p5_moonfield": "the dead probe — cross the crevasse field",
+  "p5_crevasse": "the crevasse field — bound across",
+  "p5_crater": "the crater. her signal is one pip.",
+  "p6_field": "walk."
+};
+
+const GATE_HINTS = {
+  "g0": "INTAKE · talk to the desk first",
+  "g1": "needs 3 pips in every stat",
+  "g2": "THE BOARD · be selected",
+  "g3": "finish the survival course",
+  "gA": "seal the coolant leak",
+  "gB": "report to the ground",
+  "gC": "needs: the wrench"
+};
+
+export default withObjectives(ROOMS, OBJECTIVES, GATE_HINTS);

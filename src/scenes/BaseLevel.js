@@ -9,7 +9,9 @@ import { setupLook } from '../art/look.js';
 import Foe from '../entities/Foe.js';
 import { createFoeTextures } from '../entities/foeArt.js';
 import { FOES } from '../data/kinds.js';
-import { showTutorial } from '../systems/tutorial.js';
+import { showTutorial, updateTeach, seenInDream } from '../play/Teach.js';
+import { roomObjective } from '../play/Objectives.js';
+import GateSigns from '../play/GateSigns.js';
 import { hitStop } from '../systems/effects.js';
 import CoinManager, { createCoinTextures, createShardTexture } from '../entities/Coin.js';
 import { getWallet, coinWorth, deductWorth } from '../systems/wallet.js';
@@ -90,6 +92,12 @@ export default class BaseLevel extends Phaser.Scene {
     this.respawning = false;
     this.paused = false;
     this.safeGround = null;
+    // Phaser reuses the scene instance on restart/warp: per-run teach and
+    // goal state starts fresh (the old gate signs died with the old display list)
+    this.gateSigns = null;
+    this._objKey = undefined;
+    this._resumeObjective = undefined;
+    for (const k of ['_bridgeTaught', '_distractTaught', '_railTaught', 'tetherUsed', 'driftRescued', '_refusedAt']) this[k] = undefined;
     this.levelStartedAt = this.time.now;
     this.modals = ModalManager.for(this);
     this.hud = hud.bind(this, this.hudProfile || 'default');
@@ -763,7 +771,22 @@ export default class BaseLevel extends Phaser.Scene {
       { id: 'resume', label: fromDeath ? 'Back to the flag' : 'Resume', action: resume },
       { id: 'restart', label: label ? `Restart from the flag — ${label}` : 'Restart from the flag', action: () => this.respawnAtCheckpoint() },
       { id: 'station', label: 'Return to station', action: () => this.returnToStation() },
+      { id: 'tutorials', label: 'Replay tutorials', action: (m) => m.setItems(tutorials(), { title: 'Replay tutorials', lines: tutorials().length > 1 ? [] : ['No cards in this dream yet.'] }) },
       { id: 'settings', label: 'Settings', action: (m) => m.setItems(settings(), { title: 'Settings', lines: [] }) },
+    ];
+    // F§5.8: every card this dream has shown can be shown again
+    const tutorials = () => [
+      ...seenInDream(this).map((c) => ({
+        id: `card:${c.id}`,
+        label: c.name,
+        action: () => {
+          if (fromDeath) return;
+          this.pauseMenu.destroy();
+          this.freezeWorld(false);
+          showTutorial(this, c.id, { force: true });
+        },
+      })),
+      { id: 'back', label: 'Back', action: (m) => m.setItems(main(), { title: 'Paused', lines: info() }) },
     ];
     const settings = () => [
       {
@@ -833,8 +856,35 @@ export default class BaseLevel extends Phaser.Scene {
       }
     }
     if (this.look) this.look.update(this.time.now, 16, null);
+    this.updateRoomServices();
     const hunted = (this.foes || []).some((f) => f.human && (f.state === 'alert' || f.state === 'windup'));
     musicDirector.setState(this.thrownOut ? 'caught' : hunted ? 'danger' : this._roomState || 'explore');
+  }
+
+  // Phase 1.4: objectives, teach zones and gate signs follow the room Jo
+  // STANDS in (gameplay), not the camera's room (music, backdrop).
+  //  - the room's objective (data) is applied on entry and whenever a flag
+  //    it lists changes it; a beat's setObjective holds until the next one
+  //  - zone tutorial cards (src/data/teach.js)
+  //  - each requirement-bearing gate wears a sign naming what opens it
+  updateRoomServices() {
+    if (!this.built || !this.built.rooms || !this.player) return;
+    const room = RoomBuilder.roomAt(this.built.rooms, this.player.x);
+    if (!room) return;
+    const text = roomObjective(room, this.F || {});
+    const key = `${room.id}|${text}`;
+    if (key !== this._objKey) {
+      const first = this._objKey === undefined;
+      this._objKey = key;
+      this.objectiveRoom = room.id;
+      // a resumed run keeps the objective it was saved with until Jo moves on
+      if (text !== null && !(first && this._resumeObjective)) this.setObjective(text);
+    }
+    updateTeach(this, room);
+    if (this.gates && this.gates.length) {
+      if (!this.gateSigns) this.gateSigns = new GateSigns(this);
+      this.gateSigns.update(this.gates, this.F || {});
+    }
   }
 
   // a centred card (ModalManager kind 'card'): X confirms, Q is the alt

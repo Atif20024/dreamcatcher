@@ -1,4 +1,5 @@
 import { buildWriterMap } from './map.js';
+import { withObjectives } from '../objectives.js';
 
 // D2 — rooms = grid + objects. Objects are written in WORLD columns and
 // shifted to room-local ones here, so a thing can be moved without
@@ -40,7 +41,7 @@ export const PARAGRAPHS = [
   { id: 'p_wren', name: 'wren', w: 4, x0: 456, x1: 458, y: 20 },
 ];
 
-export default [
+const ROOMS = [
   room(
     { id: 'arrival', section: 'arrival', allowNoFoes: true, music: { bpm: 84, state: 'quiet' }, bg: { far: 'thin_houses', mid: 'dawn_terrace', near: 'railings', landmark: 'attic_window' } },
     0, 28,
@@ -313,3 +314,71 @@ export default [
     ]
   ),
 ];
+
+// Phase 1.4 (plan §2.7): each room's objective, each gate's sign
+const OBJECTIVES = {
+  "arrival": "the attic. the blank page.",
+  "attic": "write chapter one (12 pages)",
+  "copyshop": [
+    "the copy shop. fix four machines.",
+    {
+      "flag": "pages12",
+      "unless": "rent_paid",
+      "text": "the rent. (she is outside)"
+    },
+    {
+      "flag": "rent_paid",
+      "text": "the café"
+    }
+  ],
+  "cafe": [
+    "the café: the napkin, her challenge",
+    {
+      "flag": "lines",
+      "text": "the garden table (30 pages)"
+    },
+    {
+      "flag": "pages30",
+      "text": "the library"
+    }
+  ],
+  "library": [
+    "the stacks: five sources · the cards",
+    {
+      "flag": "research",
+      "text": "the shape of it: the cards"
+    },
+    {
+      "flag": "structure",
+      "unless": "research",
+      "text": "the stacks: five sources"
+    },
+    {
+      "flag": "structure",
+      "text": "the desk (60 pages)"
+    }
+  ],
+  "postoffice": "post it. forty addresses.",
+  "bus": "the night bus",
+  "rain": "the rain. keep moving.",
+  "rewrite": "the wall of cards. from memory.",
+  "editor": "the editor. (the stairs, past the door)",
+  "agent": "the agent",
+  "city": "the printworks",
+  "press": "the printworks. feed it, then ink → press → fold.",
+  "bookshop": "the shelf. spine out."
+};
+
+const GATE_HINTS = {
+  "g1": "needs: the rent · 12 pages",
+  "g_gap": "the gap is narrow. strike it wide",
+  "g_dog": "wake the dog",
+  "g2": "needs: her challenge · 30 pages",
+  "g3": "needs: sources · the cards · 60 pages",
+  "g4a": "post it. wait for the answer",
+  "g4": "rewrite it, from memory",
+  "g5": "make the cut",
+  "g6": "print the book"
+};
+
+export default withObjectives(ROOMS, OBJECTIVES, GATE_HINTS);

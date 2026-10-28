@@ -1,4 +1,5 @@
 import { buildPainterMap } from './map.js';
+import { withObjectives } from '../objectives.js';
 
 // D2 — rooms = grid + objects. Objects are written in WORLD columns and
 // shifted to room-local ones here. Object types the PainterScene knows:
@@ -28,7 +29,7 @@ function room(def, x0, x1, objects) {
   };
 }
 
-export default [
+const ROOMS = [
   room(
     { id: 'arrival', section: 'arrival', allowNoFoes: true, music: { bpm: 72, state: 'quiet' }, bg: { far: 'south_dawn', mid: 'station_umber', near: 'plane_trees', landmark: 'chrome_strip' } },
     0, 39,
@@ -373,3 +374,39 @@ export default [
     ]
   ),
 ];
+
+// Phase 1.4 (plan §2.7): each room's objective, each gate's sign
+const OBJECTIVES = {
+  "arrival": "the yellow house. two streets.",
+  "studio": "the house. no curtains.",
+  "square": "the square. the postman.",
+  "fields": "ten canvases in ten days",
+  "hill": "the hill. the view.",
+  "vautrin": "the city. the dealer.",
+  "cafe": "the café at night",
+  "roofs": "the rooftops. the bell tower.",
+  "quarrel": "the same chair",
+  "wind": "home. with no paint.",
+  "petition": "the house is being boarded. get inside.",
+  "garden": "one colour a day",
+  "cypress": "the cypress. up.",
+  "sky": "the currents. the stars.",
+  "isak": "the star."
+};
+
+const GATE_HINTS = {
+  "g0": "light the lamp by the door",
+  "g1": "needs: the bedroom canvas · day one",
+  "g2": "the cart: help it up the hill",
+  "g3": "see the dealer first",
+  "g4": "Paul: call him [F]",
+  "g5": "the third day, painted",
+  "g6": "after the quarrel",
+  "g7": "Roulin: paint him yellow",
+  "g_door": "BOARDED · no way in here",
+  "g8": "the house is boarded. go round",
+  "g9": "bring the colours back",
+  "g10": "Isak's room first"
+};
+
+export default withObjectives(ROOMS, OBJECTIVES, GATE_HINTS);

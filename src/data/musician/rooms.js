@@ -1,4 +1,5 @@
 import { buildMusicianMap } from '../musicianData.js';
+import { withObjectives } from '../objectives.js';
 
 // D2 — the seven "days" as rooms. Terrain from the section painter; every
 // object declarative.
@@ -6,7 +7,7 @@ const FULL = buildMusicianMap();
 const slice = (x0, x1) => FULL.map((row) => row.slice(x0, x1 + 1));
 const L = (worldCol, x0) => worldCol - x0;
 
-export default [
+const ROOMS = [
   {
     id: 'd0_marquee',
     section: 'arrival',
@@ -233,3 +234,72 @@ export default [
     ],
   },
 ];
+
+// Phase 1.4 (plan §2.7): each room's objective, each gate's sign
+const OBJECTIVES = {
+  "d0_marquee": "get to The Blue Cellar",
+  "d1_cellar": [
+    "The Blue Cellar: nine chairs, one set",
+    {
+      "flag": "cellar_gig",
+      "text": "the alley — watch your case"
+    }
+  ],
+  "d2_corner": [
+    "the corner: busk for the rent",
+    {
+      "flag": "busking_done",
+      "text": "find Nia"
+    },
+    {
+      "flag": "met_nia",
+      "text": "basement, Thursday"
+    }
+  ],
+  "d3_basement": [
+    "basement, Thursday: the cue",
+    {
+      "flag": "rehearsal",
+      "text": "jam night — twenty people"
+    },
+    {
+      "flag": "jam_done",
+      "text": "the dark stage: Ray"
+    },
+    {
+      "flag": "ray_lesson",
+      "text": "the road — three towns"
+    }
+  ],
+  "d4_road": [
+    "the road — three towns",
+    {
+      "flag": "tour_done",
+      "text": "the studio — session work pays"
+    }
+  ],
+  "d5_studio": [
+    "the studio — session work pays",
+    {
+      "flag": "choice_made",
+      "text": "Saturday. the festival."
+    }
+  ],
+  "d6_stage": "THE BIG STAGE — play the set",
+  "d7_after": "backstage. after."
+};
+
+const GATE_HINTS = {
+  "g0": "STAGE DOOR · talk to the doorman",
+  "g1": "BACK DOOR · play the cellar set",
+  "g2": "busk the corner first",
+  "g3": "find Nia first",
+  "g3b": "rehearse the cue first",
+  "g4": "Ray's lesson: the dark stage",
+  "g5": "finish the tour",
+  "g6": "make the choice",
+  "g7": "make the choice for good",
+  "g8": "play the last long note"
+};
+
+export default withObjectives(ROOMS, OBJECTIVES, GATE_HINTS);

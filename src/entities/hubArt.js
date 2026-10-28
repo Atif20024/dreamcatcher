@@ -192,6 +192,10 @@ const EMBLEMS = {
   trumpet: ['..EE', '.EEE', 'EEE.', 'eE..'],
   stripe: ['EEEE', 'eeee', 'EEEE', 'eeee'],
   palette: ['eEEe', 'EeEE', 'EEeE', 'eEEe'],
+  // the writer's line: a quill nib, diagonal (F#15: it wore the palette)
+  quill: ['...E', '..EE', '.EE.', 'e...'],
+  sun: ['e.Ee', '.EE.', '.EE.', 'eE.e'],
+  spade: ['.EE.', 'EEEE', 'EEEE', '.ee.'],
   chart: ['e..E', 'e.EE', 'eEEE', 'EEEE'],
   wings: ['E..E', 'EEEE', '.EE.', '..e.'],
   star: ['.eE.', 'eEEe', 'EEEE', 'e..e'],

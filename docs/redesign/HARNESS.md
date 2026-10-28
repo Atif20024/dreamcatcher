@@ -16,11 +16,18 @@ Each asserts the correct future behaviour and returns `{pass, detail}`. Run in t
 
 Phase 1.1 adds four that must PASS, each across Chef, Writer, Gambler and Painter (`src/dev/scenarios/failure.js`): `hit-knockback` (a hit costs one heart, knockback, i-frames, no teleport), `zero-hearts-checkpoint` (death card → back at the last flag, hearts refilled, same scene instance, no dialogue replay), `checkpoint-label` (flag name shown on touch and in the pause menu), `continue-run` (a lit flag saves the run; the hub board shows CONTINUE; continuing wakes Jo at that flag with flags restored). They write to the real save and clear the run they made.
 
-`npm run scenarios` prints these instructions (no headless runner yet). Still FAILING on purpose (later workstreams): `eva-tether-trap` (untaught drift-away death).
+`npm run scenarios` prints these instructions (no headless runner yet). Since phase 1.4 every scenario passes, `eva-tether-trap` included.
 
 Phase 1.2 (UI layer): `bet-card-hidden` now PASSES (the BET card is the top ModalManager modal; the stake selector waits hidden under it and returns), and `hud-scale-zoom` asserts the hearts, the level line and a screen-space probe keep their on-screen size when the world camera zooms to 0.62 (they live on UIScene at zoom 1). The warp keeps UIScene running.
 
 Phase 1.3 (room transitions): `background-snap` now PASSES. `blend-continuity` pans the camera across every room boundary, both ways, in all eight places (no visible backdrop layer y jump > 8 px, alpha jump > 0.1 or zoom jump > 0.02 per frame); `boundary-no-flicker` wobbles the camera on each boundary for 120 frames and asserts the committed room never changes.
+
+Phase 1.4 (`src/dev/scenarios/phase14.js`): `chef-chimney-walljump` (ribbed shaft, WALL JUMP card at its foot, Jo climbs out), `gate-hint-visible` (the dock hatch sign is on screen 10 tiles before the gate), `objective-room-entry` (chef arrival → dock; musician cellar → corner), `title-continue` (the title offers Continue; the board shows CONTINUE). The slow ones are `blend-continuity` and `boundary-no-flicker` (about 2 minutes with the pane hidden: the Evening load waits on throttled timers); run them one at a time and poll.
+
+## Title, teaching, objectives (phase 1.4)
+- Boot opens `TitleScene` unless a warp is given; `?notitle=1` (and `?scenarios`, `?warp=hub`) start at the station.
+- Cards: `src/data/teach.js` (zone or event triggers), run by `src/play/Teach.js`; seen per dream in `SaveStore.seenCards(dream)`. `unmarkSeen(id, dream)` re-arms one.
+- Objectives: `OBJECTIVES` in each `src/data/<dream>/rooms.js` (string or `[{text, flag?, unless?}]`); gate `hint`s in `GATE_HINTS`. `scene.gateSigns.state(id)` reads a sign.
 
 ## Room transitions (phase 1.3)
 - The current room (`scene._room`: music, ambience, room-scoped logic) comes from the camera centre with 1.5 tiles of hysteresis (`RoomBuilder.roomAtCamera`). Gameplay that asks where Jo stands still uses `RoomBuilder.roomAt(rooms, player.x)`.
@@ -34,5 +41,5 @@ Phase 1.3 (room transitions): `background-snap` now PASSES. `blend-continuity` p
 
 ## Lint and tests
 - `npm run lint:rooms` is unchanged in output (logic lives in `scripts/lib/rooms-check.js`).
-- `npm run lint:content [-- --json]` = room checks + dead tutorial cards (warn) + default text (ERROR: any `add.text(`, `make.text(`, `monospace`, canvas `fillText`/`ctx.font`; a line may opt out with `lint-allow default-text: <reason>`; there are none).
+- `npm run lint:content [-- --json]` = room checks + tutorial cards without a firing trigger, rooms without an objective, gates without a hint, foes near spawn, cross-dream landmarks (all ERRORS) + default text (ERROR: any `add.text(`, `make.text(`, `monospace`, canvas `fillText`/`ctx.font`; a line may opt out with `lint-allow default-text: <reason>`; there are none).
 - `npm test` runs Vitest (`tests/`).

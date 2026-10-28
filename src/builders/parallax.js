@@ -677,6 +677,14 @@ function drawLandmark(scene, name) {
       add(scene.add.triangle(0, -134, 0, 0, -30, 26, 30, 26, 0xd8a840));
       add(scene.add.circle(0, -60, 70, 0xf2c078, 0.08));
       break;
+    case 'le_reve_awning':
+      // FIVE-STAR DREAM: the restaurant's striped awning over the kerb
+      add(scene.add.rectangle(0, -70, 220, 140, 0x2a1a18, 0.9));
+      for (let i = 0; i < 8; i++) add(scene.add.rectangle(-98 + i * 28, -150, 28, 26, i % 2 ? 0xf2e6cc : 0xb83a34));
+      add(scene.add.rectangle(-60, -60, 50, 70, 0xf2c078, 0.55));
+      add(scene.add.rectangle(60, -60, 50, 70, 0xf2c078, 0.55));
+      label('LE REVE', '#f2c078', 18);
+      break;
     case 'meridian_sign':
       // THE LAST HAND: the sign so big it is a sky (the painted neon sits in
       // the scene itself; this is the structure it hangs off)

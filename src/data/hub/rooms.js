@@ -1,4 +1,5 @@
 import { buildHubMap } from './map.js';
+import { withObjectives } from '../objectives.js';
 
 // Crossroads Station — five rooms across, each two screens tall. The roof
 // (row 8) and the undercroft (rows 28-32) run through every room, so a
@@ -21,7 +22,7 @@ const bay = (x0, p) => {
   ];
 };
 
-export default [
+const ROOMS = [
   {
     id: 'steps',
     section: 'steps',
@@ -132,3 +133,16 @@ export default [
     ],
   },
 ];
+
+// Phase 1.4 (plan §2.7): each room's objective, each gate's sign
+const OBJECTIVES = {
+  "steps": "up the steps. the station.",
+  "hall": "board any train — or the last stop",
+  "platforms_a": "board any train — or the last stop",
+  "platforms_b": "board any train — or the last stop",
+  "gate": "the last stop"
+};
+
+const GATE_HINTS = {};
+
+export default withObjectives(ROOMS, OBJECTIVES, GATE_HINTS);

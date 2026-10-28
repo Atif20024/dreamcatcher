@@ -1,4 +1,5 @@
 import { buildEveningMap, EV, PLACES, ROAD } from './map.js';
+import { withObjectives } from '../objectives.js';
 
 // D2 — THE LONG EVENING as rooms. `finale: true` exempts every room from the
 // rules this level breaks on purpose (spec §10): no foes, no traps, no
@@ -266,9 +267,17 @@ function room(id, c0, c1, extra = {}) {
   };
 }
 
-export default [
+const ROOMS = [
   room('meadow_w', 0, EV.BUF - 1),
   ...PLACES.map((p) => room(p.id, p.c0, p.c1, p.id === 'hill' ? { vista: true } : {})),
   room('meadow_e', EV.E0, EV.R0 - 1),
   ...ROAD.map((p) => room(p.id, p.c0, p.c1, { road: true, vista: p.id === 'ridge' })),
 ];
+
+// Phase 1.4 (plan §2.7): every room declares an objective. The Long Evening
+// takes the HUD away on purpose (hudRitual), so these are never drawn; they
+// say what the walk is for, in her voice, for the data and the lint.
+const OBJECTIVES = Object.fromEntries(ROOMS.map((r) => [r.id, r.road ? 'up, together. the ridge.' : 'walk with her. no hurry.']));
+
+export default withObjectives(ROOMS, OBJECTIVES, {});
+

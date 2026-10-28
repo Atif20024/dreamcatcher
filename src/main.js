@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import HubScene from './scenes/HubScene.js';
+import TitleScene from './scenes/TitleScene.js';
 import IntroScene from './scenes/IntroScene.js';
 import MusicianScene from './scenes/MusicianScene.js';
 import ChefScene from './scenes/ChefScene.js';
@@ -37,13 +38,15 @@ window.game = new Phaser.Game({
       gravity: { y: 1200 },
     },
   },
-  // the game opens mid-life, at the station's front steps -- never on a menu.
+  // the game opens on the title (Continue / New game / Settings), then the
+  // station's front steps.
   // ?at=<phase> is a dev warp straight into the astronaut dream (see
   // AstronautScene.devWarp); ?ev=<place> opens THE LONG EVENING there (see
   // EveningScene.devWarp); ?wr=, ?pt=, ?gm= do the same for the writer, the
   // painter and the gambler. Without any, nothing about the boot changes.
   scene: (() => {
-    const ALL = [HubScene, IntroScene, MusicianScene, ChefScene, AstronautScene, EveningScene, WriterScene, PainterScene, GamblerScene];
+    // no warp: Boot → Title (Continue / New game / Settings) → the station
+    const ALL = [TitleScene, HubScene, IntroScene, MusicianScene, ChefScene, AstronautScene, EveningScene, WriterScene, PainterScene, GamblerScene];
     // a dev warp puts its scene first so it boots directly
     const BY_KEY = { Hub: HubScene, Chef: ChefScene, Musician: MusicianScene, Astronaut: AstronautScene, Evening: EveningScene, Writer: WriterScene, Painter: PainterScene, Gambler: GamblerScene };
     const first = BY_KEY[firstKey] || null;

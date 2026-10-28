@@ -251,7 +251,7 @@ export default class AstronautScene extends BaseLevel {
     }
     if (at === 'field') this.statHud.setVisible(false);
     this.setObjective(ph.obj);
-    this.floatText(p.x, p.y - 70, `[dev] warped to ${at}`, '#7ec8d8');
+    if (import.meta.env.DEV) this.floatText(p.x, p.y - 70, `[dev] warped to ${at}`, '#7ec8d8');
     return true;
   }
 
@@ -771,9 +771,24 @@ export default class AstronautScene extends BaseLevel {
 
     // survival forest
     const dz = this.obj('dark_zone');
-    this.darkZone = this.add
-      .rectangle((dz.wx - T / 2) + (dz.w * T) / 2, this.worldH / 2, dz.w * T, this.worldH, 0x060a08, 0.7)
-      .setDepth(88);
+    // F#15 / B5: the forest night is feathered (soft 160 px edges) and only
+    // there while Jo is in the forest and the course is not done; it fades
+    // in and out instead of standing in the sky from the launch pad.
+    {
+      const x0 = dz.wx - T / 2;
+      const w = dz.w * T;
+      const g = this.add.graphics().setDepth(88).setAlpha(0);
+      const FEATHER = 160;
+      const STEPS = 10;
+      g.fillStyle(0x060a08, 0.7).fillRect(x0 + FEATHER, 0, w - 2 * FEATHER, this.worldH);
+      for (let k = 0; k < STEPS; k++) {
+        const a = (0.7 * (k + 1)) / (STEPS + 1);
+        const sw = FEATHER / STEPS;
+        g.fillStyle(0x060a08, a).fillRect(x0 + k * sw, 0, sw, this.worldH);
+        g.fillStyle(0x060a08, a).fillRect(x0 + w - (k + 1) * sw, 0, sw, this.worldH);
+      }
+      this.darkZone = g;
+    }
     this.rainZone = { x0: dz.wx - T / 2, x1: dz.wx - T / 2 + dz.w * T };
     this.campItems = 0;
     this.objAll('camp_item').forEach((o, i) => {
@@ -1459,6 +1474,10 @@ export default class AstronautScene extends BaseLevel {
     if (right) p.setFlipX(false);
 
     const onRail = this.rails.find((r) => p.x > r.x0 - 8 && p.x < r.x1 + 8 && Math.abs(p.y - r.y) < 30);
+    if (!this._railTaught && !this.tutorialActive && this.rails.some((r) => p.x > r.x0 - 64 && p.x < r.x1 + 64 && Math.abs(p.y - r.y) < 96)) {
+      this._railTaught = true;
+      showTutorial(this, 'zero_g_rail');
+    }
     // Arcade only reports blocked while moving into a wall; a floater at rest
     // reads as touching nothing. Probe the tiles just past the body instead.
     const solid = this.built.solidAt;
@@ -1500,6 +1519,19 @@ export default class AstronautScene extends BaseLevel {
       if (Phaser.Input.Keyboard.JustDown(p.keys.SPACE)) {
         const evaRoom = this.roomPhys().room.id === 'p4_eva';
         if (evaRoom && !this.tether) {
+          // staged teach (plan §2.9): until Jo has clipped on once, an
+          // unclipped push-off is refused and the tether taught; after
+          // that, the first drift is reeled back by the ground. Only a
+          // second deliberate unclipped push is the drift-away.
+          if (!this.tetherUsed) {
+            this.refusePush();
+            return;
+          }
+          if (!this.driftRescued) {
+            this.driftRescued = true;
+            this.driftAway({ rescue: true });
+            return;
+          }
           this.driftAway();
           return;
         }
@@ -1556,6 +1588,8 @@ export default class AstronautScene extends BaseLevel {
       const near = this.hooks.filter((h) => Phaser.Math.Distance.Between(p.x, p.y, h.x, h.y) < 6.5 * T);
       if (Phaser.Input.Keyboard.JustDown(this.keyF) && near.length) {
         this.tether = near.sort((a, c) => Math.abs(a.x - p.x) - Math.abs(c.x - p.x))[0];
+        if (!this.tetherUsed) this.floatText(p.x, p.y - 56, 'clipped on. now push off: [Space]', '#7ec87e');
+        this.tetherUsed = true;
         sfx('snap');
         this.floatText(this.tether.x, this.tether.y - 30, 'clipped', '#7ec87e');
       }
@@ -1578,10 +1612,44 @@ export default class AstronautScene extends BaseLevel {
     }
   }
 
-  driftAway() {
-    if (this.drifting) return;
-    this.drifting = true;
+  // the first unclipped push-off: refused, the hook shown, the card taught
+  refusePush() {
     const p = this.player;
+    sfx('click');
+    const hook = [...this.hooks].sort((a, c) => Phaser.Math.Distance.Between(p.x, p.y, a.x, a.y) - Phaser.Math.Distance.Between(p.x, p.y, c.x, c.y))[0];
+    if (!showTutorial(this, 'eva_tether') && (this.time.now - (this._refusedAt || 0) > 1500)) {
+      this.floatText(p.x, p.y - 56, 'not untethered. [F] clip to a hook first', '#e8b84a');
+    }
+    this._refusedAt = this.time.now;
+    if (hook) {
+      const ring = this.add.circle(hook.x, hook.y, 10).setStrokeStyle(2, 0xf2c078).setDepth(D.INTERACT + 1);
+      this.tweens.add({ targets: ring, scale: 3, alpha: 0, duration: 700, repeat: 2, onComplete: () => ring.destroy() });
+    }
+  }
+
+  // rescue: the first drift is reeled back on the ground crew's safety line
+  driftAway({ rescue = false } = {}) {
+    if (this.drifting) return;
+    const p = this.player;
+    if (rescue) {
+      this.drifting = true;
+      p.controlLockUntil = this.time.now + 2400;
+      p.body.setVelocity(40, -70);
+      this.floatText(p.x, p.y - 60, 'Halvorsen: "reeling you in. clip on, Jo. every time."', '#e8b84a');
+      const home = { x: this.checkpoint.x, y: this.checkpoint.y };
+      const line = this.add.line(0, 0, 0, 0, 0, 0, 0xe8b84a, 0.9).setOrigin(0).setDepth(D.PLAYER - 1).setLineWidth(1.5);
+      const ev = this.time.addEvent({ delay: 16, loop: true, callback: () => line.setTo(p.x, p.y, home.x, home.y) });
+      this.time.delayedCall(900, () => {
+        this.tweens.add({ targets: p, x: home.x, y: home.y, duration: 1300, ease: 'sine.inOut', onComplete: () => {
+          p.body.reset(home.x, home.y);
+          ev.remove();
+          line.destroy();
+          this.drifting = false;
+        } });
+      });
+      return;
+    }
+    this.drifting = true;
     p.controlLockUntil = this.time.now + 4000;
     p.body.setVelocity(40, -70);
     music.stop();
@@ -1771,6 +1839,12 @@ export default class AstronautScene extends BaseLevel {
     if (p.body.onFloor()) this.groundedSinceBell = true;
     if (this.bout) this.updateBoxing(time);
 
+    // the forest night: present only in the forest, until the course is done
+    if (this.darkZone && this.rainZone) {
+      const inside = p.x > this.rainZone.x0 - 64 && p.x < this.rainZone.x1 + 64 && !this.F.survival;
+      const a = this.darkZone.alpha + ((inside ? 1 : 0) - this.darkZone.alpha) * 0.04;
+      this.darkZone.setAlpha(a < 0.01 ? 0 : a).setVisible(a >= 0.01);
+    }
     // survival rain
     if (this.rainZone && p.x > this.rainZone.x0 && p.x < this.rainZone.x1 && Math.random() < 0.3) {
       const r = this.add.rectangle(p.x + Phaser.Math.Between(-240, 240), p.y - 200, 1, 10, 0x88b8d8, 0.5).setDepth(86);

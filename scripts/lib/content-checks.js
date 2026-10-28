@@ -59,3 +59,106 @@ export function checkpointIssues(roomsByDream) {
   }
   return out;
 }
+
+// ---- phase 1.4: teaching, objectives, gates, spawn safety, landmarks -------
+
+// tutorial cards as data (src/data/teach.js): every card has a trigger that
+// can fire. An event trigger needs a showTutorial(…, 'id') call in code; a
+// zone trigger needs its room (and columns) in that dream's room data.
+export function teachIssues(cards, srcs, roomsByDream) {
+  const out = [];
+  const called = findTriggeredIds(srcs);
+  for (const [id, c] of Object.entries(cards)) {
+    const trig = c.triggers || [];
+    if (!trig.length) {
+      out.push(`card "${id}" has no trigger`);
+      continue;
+    }
+    for (const t of trig) {
+      if (!t.dream) out.push(`card "${id}": a trigger has no dream`);
+      if (t.event !== undefined) {
+        if (!called.has(id)) out.push(`card "${id}": event trigger "${t.event}" but no code calls showTutorial(…, '${id}')`);
+      } else if (t.zone) {
+        const rooms = roomsByDream[t.dream];
+        const room = rooms && rooms.find((r) => r.id === t.zone.room);
+        if (!room) out.push(`card "${id}": zone room ${t.dream}/${t.zone.room} does not exist`);
+        else {
+          const w = Math.max(...room.grid.map((g) => g.length));
+          if ((t.zone.x0 !== undefined && (t.zone.x0 < 0 || t.zone.x0 >= w)) || (t.zone.x1 !== undefined && (t.zone.x1 < 0 || t.zone.x1 >= w))) out.push(`card "${id}": zone columns outside ${t.dream}/${t.zone.room} (width ${w})`);
+        }
+      } else out.push(`card "${id}": trigger is neither an event nor a zone`);
+    }
+  }
+  for (const id of called) if (!cards[id]) out.push(`code shows card "${id}" which has no data`);
+  return out;
+}
+
+// every room declares an objective: a string, or a list of entries
+// [{ text, flag?, unless? }] where the last entry whose flag is set wins
+export const OBJECTIVE_MAX = 64;
+export function objectiveIssues(roomsByDream) {
+  const out = [];
+  for (const [dream, rooms] of Object.entries(roomsByDream)) {
+    for (const room of rooms) {
+      const o = room.objective;
+      const list = typeof o === 'string' ? [{ text: o }] : Array.isArray(o) ? o.map((e) => (typeof e === 'string' ? { text: e } : e)) : null;
+      if (!list || !list.length) {
+        out.push(`${dream}/${room.id}: room has no objective`);
+        continue;
+      }
+      if (list[0].flag) out.push(`${dream}/${room.id}: the first objective entry must be unconditional`);
+      for (const e of list) {
+        if (!e || !e.text) out.push(`${dream}/${room.id}: an objective entry has no text`);
+        else if (e.text.length > OBJECTIVE_MAX) out.push(`${dream}/${room.id}: objective "${e.text}" is over ${OBJECTIVE_MAX} chars`);
+      }
+    }
+  }
+  return out;
+}
+
+// every requirement-bearing gate carries a hint naming what opens it
+export const GATE_HINT_MAX = 40;
+export function gateIssues(roomsByDream) {
+  const out = [];
+  for (const [dream, rooms] of Object.entries(roomsByDream)) {
+    for (const room of rooms) {
+      for (const o of room.objects || []) {
+        if (o.type !== 'gate' || !(o.requires && o.requires.length)) continue;
+        const where = `${dream}/${room.id} gate ${o.id}`;
+        if (!o.hint) out.push(`${where}: no hint (what opens it?)`);
+        else if (o.hint.length > GATE_HINT_MAX) out.push(`${where}: hint "${o.hint}" is over ${GATE_HINT_MAX} chars`);
+      }
+    }
+  }
+  return out;
+}
+
+// the first 2 minutes are harmless (F§5.9): no foe within 15 tiles of the
+// spawn in a dream's first room
+export function spawnSafetyIssues(roomsByDream, tiles = 15) {
+  const out = [];
+  for (const [dream, rooms] of Object.entries(roomsByDream)) {
+    const room = rooms[0];
+    const spawn = room && (room.objects || []).find((o) => o.type === 'spawn');
+    if (!spawn) continue;
+    for (const o of room.objects || []) if (o.type === 'foe' && Math.abs(o.x - spawn.x) < tiles) out.push(`${dream}/${room.id}: foe ${o.kind} ${Math.abs(o.x - spawn.x)} tiles from spawn`);
+  }
+  return out;
+}
+
+// a landmark belongs to one dream (the chef arrival once used the gambler's
+// meridian_sign). Generic street furniture (a lamp post) may be shared.
+export const GENERIC_LANDMARKS = new Set(['one_lamp']);
+export function landmarkIssues(roomsByDream) {
+  const owner = {};
+  const out = [];
+  for (const [dream, rooms] of Object.entries(roomsByDream)) {
+    for (const room of rooms) {
+      const l = room.bg && room.bg.landmark;
+      if (!l || GENERIC_LANDMARKS.has(l)) continue;
+      if (owner[l] && owner[l] !== dream) out.push(`${dream}/${room.id}: landmark "${l}" belongs to ${owner[l]}`);
+      else owner[l] = dream;
+    }
+  }
+  return out;
+}

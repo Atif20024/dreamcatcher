@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { createJoTextures } from './jo.js';
 import { sfx } from '../systems/audio.js';
 import { resolveSlope } from './slopes.js';
+import { showTutorial } from '../play/Teach.js';
 import { JO_DUST, WALK_HIPS } from './jo.js';
 import { dreamDust } from '../systems/effects.js';
 import { getSave } from '../utils/save.js';
@@ -288,13 +289,28 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       const ty1 = Math.floor((this.y + 10) / T);
       return !!(cg[ty0]?.[tx] || cg[ty1]?.[tx]);
     };
-    const pressingWall =
-      (left && body.blocked.left && climbableSide(-18)) || (right && body.blocked.right && climbableSide(18));
+    // B1: a ribbed wall within reach counts as touching (Arcade only reports
+    // `blocked` on the frame of contact, and pushing into a column of tile
+    // bodies while rising snags on their seams, killing the jump). In the air
+    // Jo leans on it instead of pushing into it.
+    const wallL = left && climbableSide(-18);
+    const wallR = right && climbableSide(18);
+    const pressingWall = wallL || wallR;
+    if (pressingWall && !grounded && !locked) body.setVelocityX(0);
     const sliding = !grounded && pressingWall && body.velocity.y > 0;
+    // teach (data: src/data/teach.js): the first ribbed wall, the first slope
+    if (!grounded && pressingWall && !this._wallTaught) {
+      this._wallTaught = true;
+      showTutorial(this.scene, 'wall_jump');
+    }
+    if (this.onSlope && !this._slopeTaught) {
+      this._slopeTaught = true;
+      showTutorial(this.scene, 'slope');
+    }
     if (sliding) {
       body.setVelocityY(Math.min(body.velocity.y, 70));
       if (jumpJust) {
-        const away = body.blocked.left ? 1 : -1;
+        const away = wallL ? 1 : -1;
         body.setVelocityY(-JUMP * 0.92);
         body.setVelocityX(away * 280);
         this.setFlipX(away < 0);

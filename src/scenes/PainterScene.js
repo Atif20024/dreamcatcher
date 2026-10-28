@@ -748,6 +748,11 @@ export default class PainterScene extends BaseLevel {
       }
     }
     if (Phaser.Input.Keyboard.JustDown(this.keyF)) this.callPaul();
+    // the first person in sight: teach the tube before it is needed
+    if (!this._distractTaught && this.foes.some((f) => f.human && f.active && Math.abs(f.x - p.x) < 320 && Math.abs(f.y - p.y) < 120)) {
+      this._distractTaught = true;
+      showTutorial(this, 'distract');
+    }
     // Q: throw the empty tube — it rattles, and people turn to look
     if (Phaser.Input.Keyboard.JustDown(this.keyQ) && time > (this.qCool || 0)) {
       this.qCool = time + 3000;

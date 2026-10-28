@@ -499,8 +499,10 @@ export default class EveningScene extends BaseLevel {
     }
     if (at === 'station') this.stationEnded = false;
     this.lastX = p.x;
-    const t = uiText(this, p.x, p.y - 70, `[dev] ${at}`, { fontSize: '12px', color: '#7ec8d8' }).setOrigin(0.5).setDepth(90);
-    this.tweens.add({ targets: t, alpha: 0, delay: 1500, duration: 800, onComplete: () => t.destroy() });
+    if (import.meta.env.DEV) {
+      const t = uiText(this, p.x, p.y - 70, `[dev] ${at}`, { fontSize: '12px', color: '#7ec8d8' }).setOrigin(0.5).setDepth(90);
+      this.tweens.add({ targets: t, alpha: 0, delay: 1500, duration: 800, onComplete: () => t.destroy() });
+    }
     return true;
   }
 

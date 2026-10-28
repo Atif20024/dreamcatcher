@@ -4,12 +4,15 @@
 //   - Phaser default text (add.text( / make.text( / monospace / canvas
 //     fillText): FAILS the run (phase 1.2: every use is the bitmap helper)
 //   - checkpoints: id + readable label on every flag (FAILS the run)
-// Dead cards are warn-level: they print but do not fail the run yet.
+// Phase 1.4 (all FAIL the run): tutorial cards are data (src/data/teach.js)
+// and each needs a trigger that can fire; every room has an objective;
+// every gate a hint; no foe near a dream's spawn; landmarks stay in their dream.
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runRoomChecks, DREAMS as ROOMS_BY_DREAM } from './lib/rooms-check.js';
-import { deadCards, countDefaultText, parseCardIds, checkpointIssues } from './lib/content-checks.js';
+import { countDefaultText, checkpointIssues, teachIssues, objectiveIssues, gateIssues, spawnSafetyIssues, landmarkIssues } from './lib/content-checks.js';
+import { CARDS } from '../src/data/teach.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = join(ROOT, 'src');
@@ -31,13 +34,12 @@ if (json) console.log = () => {};
 // 1. geometry / placement (existing lint-rooms checks)
 const rooms = runRoomChecks();
 
-// 2. dead tutorial cards
+// 2. tutorial cards: every card has a trigger that can fire
 const files = walk(SRC);
-const tutorialPath = join(SRC, 'systems', 'tutorial.js');
-const tutorialSrc = readFileSync(tutorialPath, 'utf8');
-const others = files.filter((f) => f !== tutorialPath).map((f) => readFileSync(f, 'utf8'));
-const allIds = parseCardIds(tutorialSrc);
-const dead = deadCards(tutorialSrc, others);
+const dataPath = join(SRC, 'data', 'teach.js');
+const others = files.filter((f) => f !== dataPath).map((f) => readFileSync(f, 'utf8'));
+const allIds = Object.keys(CARDS);
+const teach = teachIssues(CARDS, others, ROOMS_BY_DREAM);
 
 // 3. default text: an error now (src/ui/text.js uiText is the only way)
 const debt = [];
@@ -51,10 +53,21 @@ const totals = debt.reduce((t, d) => ({ addText: t.addText + d.addText, mono: t.
 // 4. checkpoints: labelled, unique ids (fail-level)
 const cps = checkpointIssues(ROOMS_BY_DREAM);
 
+// 5. objectives, gate hints, spawn safety, landmarks (fail-level)
+const objectives = objectiveIssues(ROOMS_BY_DREAM);
+const gates = gateIssues(ROOMS_BY_DREAM);
+const spawn = spawnSafetyIssues(ROOMS_BY_DREAM);
+const landmarks = landmarkIssues(ROOMS_BY_DREAM);
+const content = [...teach, ...objectives, ...gates, ...spawn, ...landmarks];
+
 console.log = realLog;
 const report = {
   rooms: { failures: rooms.failures, warnings: rooms.warnings },
-  tutorials: { total: allIds.length, dead },
+  tutorials: { total: allIds.length, failures: teach },
+  objectives: { failures: objectives },
+  gates: { failures: gates },
+  spawn: { failures: spawn },
+  landmarks: { failures: landmarks },
   defaultText: { files: debt.length, ...totals, perFile: debt },
   checkpoints: { failures: cps },
 };
@@ -62,13 +75,15 @@ const report = {
 if (json) {
   console.log(JSON.stringify(report, null, 2));
 } else {
-  log(`\n--- tutorials: ${allIds.length} cards, ${dead.length} never triggered (warn) ---`);
-  for (const id of dead) log(`  ! card "${id}" is defined but no code triggers it`);
+  log(`\n--- tutorials: ${allIds.length} cards, ${teach.length} failures ---`);
+  for (const t of teach) log(`  ✗ ${t}`);
+  log(`\n--- objectives: ${objectives.length} failures; gate hints: ${gates.length}; spawn safety: ${spawn.length}; landmarks: ${landmarks.length} ---`);
+  for (const t of [...objectives, ...gates, ...spawn, ...landmarks]) log(`  ✗ ${t}`);
   log(`\n--- default text (error): ${totals.addText} add.text( calls, ${totals.mono} monospace mentions, ${totals.canvas} canvas text calls in ${debt.length} files ---`);
   for (const d of debt) log(`  ✗ ${d.file}: add.text x${d.addText}, monospace x${d.mono}, canvas text x${d.canvas}`);
   log(`\n--- checkpoints: ${cps.length} failures ---`);
   for (const c of cps) log(`  ✗ ${c}`);
-  log(`\nrooms: ${rooms.failures} failures, ${rooms.warnings} warnings; default text: ${debt.length} files; content warnings: ${dead.length}`);
+  log(`\nrooms: ${rooms.failures} failures, ${rooms.warnings} warnings; default text: ${debt.length} files; content failures: ${content.length}`);
 }
-// room, checkpoint and default-text checks fail the run; the rest warn
-process.exit(rooms.failures > 0 || cps.length > 0 || debt.length > 0 ? 1 : 0);
+// every check above fails the run
+process.exit(rooms.failures > 0 || cps.length > 0 || debt.length > 0 || content.length > 0 ? 1 : 0);

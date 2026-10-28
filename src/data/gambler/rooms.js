@@ -1,4 +1,5 @@
 import { buildGamblerMap, COLS, FLOOR, MEZZ, LOUNGE } from './map.js';
+import { withObjectives } from '../objectives.js';
 
 // D2 — rooms = grid + objects. Objects are written in WORLD columns and
 // shifted to room-local ones here. y is the tile row the thing stands IN
@@ -31,7 +32,7 @@ const M = MEZZ - 1; // the row Jo stands in on the casino floor
 const L = LOUNGE - 1; // ...and in the lounge
 const G = FLOOR - 1; // ...and on the ground
 
-export default [
+const ROOMS = [
   room(
     { id: 'arrival', section: 'arrival', allowNoFoes: true, music: { bpm: 96, state: 'quiet' }, bg: { far: 'rain_night', mid: 'parking_structure', near: 'railings', landmark: 'meridian_sign' } },
     0, 39,
@@ -225,3 +226,52 @@ export default [
     ]
   ),
 ];
+
+// Phase 1.4 (plan §2.7): each room's objective, each gate's sign
+const OBJECTIVES = {
+  "arrival": "the door. one chip.",
+  "floor": [
+    "the slots. the pit. the cage. Lou.",
+    {
+      "flag": "first_win",
+      "text": "the lounge: the curved stair"
+    }
+  ],
+  "lounge": [
+    "the lounge: the curved stair",
+    {
+      "flag": "key",
+      "text": "the billiards room: three balls, then the lift"
+    }
+  ],
+  "backrooms": [
+    "three rooms. no numbers.",
+    {
+      "flag": "safe",
+      "text": "the window at the end. or the pawn hatch."
+    }
+  ],
+  "carpark": [
+    "dawn. the cage, the bus.",
+    {
+      "flag": "sal",
+      "text": "the bus stop"
+    }
+  ],
+  "lasthand": "a table between two cars",
+  "lostfound": "lost and found: a cardboard box"
+};
+
+const GATE_HINTS = {
+  "g0": "DOOR · higher or lower: win one",
+  "g_service": "SERVICE · hit 7 7 7",
+  "g_roulette": "stop the wheel on the mark",
+  "g1": "win once on the floor",
+  "g2": "needs: the key · the lift down",
+  "g_safe": "the safe takes twenty-five chips",
+  "g3": "the poker room first",
+  "g4": "Sal: talk to her",
+  "g5": "play the last hand"
+};
+
+export default withObjectives(ROOMS, OBJECTIVES, GATE_HINTS);

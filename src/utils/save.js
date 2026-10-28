@@ -21,8 +21,9 @@ export function markSeen(id) {
 }
 
 // dev/scenarios: forget a card so it shows again
-export function unmarkSeen(id) {
+export function unmarkSeen(id, dream = null) {
   store((s) => (s.seen = s.seen.filter((x) => x !== id)));
+  saveStore.unmarkCard(dream, id);
 }
 
 export function getSave() {

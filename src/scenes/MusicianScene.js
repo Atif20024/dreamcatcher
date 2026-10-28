@@ -16,6 +16,7 @@ import { addCoins } from '../systems/wallet.js';
 import { sfx, music, sting, trumpet, bassNote } from '../systems/audio.js';
 import { uiText } from '../ui/text.js';
 import { hud, TOOL_BARS } from '../ui/hud.js';
+import { showTutorial } from '../play/Teach.js';
 
 const T = 32;
 const px = (t) => t * T + T / 2;
@@ -390,7 +391,7 @@ export default class MusicianScene extends BaseLevel {
       const ok = await playTheRoom(this);
       if (ok) {
         this.setFlag('ray_lesson');
-        this.floatText(px(206), px(33), 'from now on: rests are part of the phrase.\n(hollow icon = DON\'T play)');
+        showTutorial(this, 'rest_note');
         this.setObjective('the road — three towns');
       }
     }, { once: false, when: () => this.F.jam_done && !this.F.ray_lesson });
@@ -604,7 +605,13 @@ export default class MusicianScene extends BaseLevel {
 
   // ------- the gig runner ----------------------------------------------
 
-  runGig(opts) {
+  // the first gig teaches the form before the first bar plays
+  async runGig(opts) {
+    if (showTutorial(this, 'call_response')) {
+      await new Promise((res) => {
+        const ev = this.time.addEvent({ delay: 50, loop: true, callback: () => !this.tutorialActive && (ev.remove(), res()) });
+      });
+    }
     return new Promise((resolve) => {
       this.nerve = opts.keepNerve ? this.nerve : 0;
       this.gig = new Phrases(this, {
@@ -819,6 +826,10 @@ export default class MusicianScene extends BaseLevel {
     // sound bridges
     for (const a of this.anchors) {
       const near = Phaser.Math.Distance.Between(p.x, p.y, a.x, a.y) < 150;
+      if (near && !this._bridgeTaught) {
+        this._bridgeTaught = true;
+        showTutorial(this, 'sound_bridge');
+      }
       if (near && qDown && this.breath > 5 && !p.body.onFloor()) {
         if (!a.bridge) {
           a.bridge = this.physics.add.image(a.x + a.dir * (a.len / 2), px(a.row) + 8, 'mus-beat').setImmovable(true);

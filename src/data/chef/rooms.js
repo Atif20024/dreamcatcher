@@ -1,4 +1,5 @@
 import { buildChefMap } from '../chefMap.js';
+import { withObjectives } from '../objectives.js';
 
 // D2 — rooms = grid + objects. Terrain comes from the section painter (the
 // grid chars are already legend-compliant: # solid, ~ liquid, <> conveyor,
@@ -7,18 +8,18 @@ const FULL = buildChefMap();
 const slice = (x0, x1) => FULL.map((row) => row.slice(x0, x1 + 1));
 const L = (worldCol, x0) => worldCol - x0;
 
-export default [
+const ROOMS = [
   {
     id: 'arrival',
     section: 'arrival',
     grid: slice(0, 25),
     music: { section: 'arrival', bpm: 96, state: 'quiet' },
-    bg: { far: 'city', mid: 'brick', near: 'fence', landmark: 'meridian_sign' },
+    bg: { far: 'city', mid: 'brick', near: 'fence', landmark: 'le_reve_awning' },
     objects: [
       { type: 'spawn', x: 3, y: 32 },
       { type: 'dialogue', x: 6, y: 33, id: 'd0', auto: true },
-      { type: 'foe', kind: 'rat', x: 12, y: 33, human: false },
-      { type: 'foe', kind: 'rat', x: 15, y: 33, human: false },
+      // C1: the first minutes are harmless: one rat, by the kerb, 17 tiles in
+      { type: 'foe', kind: 'rat', x: 20, y: 33, human: false },
       // coins (tier 1): the kerb ramp is optional height — the pay is up there
       { type: 'coins', x: 19, y: 31, n: 3 },
       { type: 'coin', x: 24, y: 32, breadcrumb: true }, // marks the gate
@@ -217,3 +218,68 @@ export default [
     ],
   },
 ];
+
+// Phase 1.4 (plan §2.7): each room's objective, each gate's sign
+const OBJECTIVES = {
+  "arrival": "find the service entrance",
+  "alley_dock": [
+    "the loading dock: two crates on the plate",
+    {
+      "flag": "crates",
+      "text": "through the hatch. the freezer."
+    }
+  ],
+  "freezer": [
+    "the freezer: find the saffron",
+    {
+      "flag": "has_saffron",
+      "text": "saffron in hand. the valve, then out"
+    },
+    {
+      "flag": "freezer_valve",
+      "unless": "has_saffron",
+      "text": "the valve is open. now the saffron"
+    }
+  ],
+  "the_line": [
+    "deliver saffron → risotto station",
+    {
+      "flag": "saffron_delivered",
+      "text": "sort the ticket rail"
+    },
+    {
+      "flag": "ticket_rail",
+      "text": "RUSH: fish · herbs · bread → the pass"
+    },
+    {
+      "flag": "rush_done",
+      "text": "take the dumbwaiter up"
+    }
+  ],
+  "loft": [
+    "the loft: pipe the plate, find the gold leaf",
+    {
+      "flag": "has_gold_leaf",
+      "text": "bring the gold to the pass — yourself"
+    }
+  ],
+  "the_pass": [
+    "the pass: read the icon, feed the pass",
+    {
+      "flag": "service_survived",
+      "text": "the roof door is open"
+    }
+  ],
+  "rooftop": "the roof. one plate left."
+};
+
+const GATE_HINTS = {
+  "g0": "STAFF DOOR · hear Marguerite out",
+  "g1": "HATCH · two crates on the plate",
+  "g2": "needs: the valve · the saffron",
+  "g3": "LIFT · survive the rush",
+  "g4": "needs: the piping · the gold leaf",
+  "g5": "ROOF · survive service"
+};
+
+export default withObjectives(ROOMS, OBJECTIVES, GATE_HINTS);

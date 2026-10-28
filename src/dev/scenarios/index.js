@@ -5,5 +5,6 @@ import evaTether from './evaTether.js';
 import betCard from './betCard.js';
 import failure from './failure.js';
 import hudScale from './hudScale.js';
+import phase14 from './phase14.js';
 
-export const SCENARIOS = [...backgroundSnap, evaTether, betCard, ...failure, hudScale];
+export const SCENARIOS = [...backgroundSnap, evaTether, betCard, ...failure, hudScale, ...phase14];

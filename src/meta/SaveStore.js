@@ -75,7 +75,9 @@ export function slotFromLegacy(legacy, prev = null) {
     hub: { flags: hub, stationSeconds: s.stationSeconds },
     // per-dream flag namespaces (wr / pt / gm): progress-level state today
     flags: dreamFlags,
-    seen: { cards: { '*': s.seen }, convs: prev && prev.seen ? [...(prev.seen.convs || [])] : [] },
+    // cards: '*' is the legacy global list (scope 'once'); every other key is
+    // a dream's own seen list (scope 'perDream', phase 1.4), kept from prev
+    seen: { cards: { ...(prev && prev.seen ? clone(prev.seen.cards || {}) : {}), '*': s.seen }, convs: prev && prev.seen ? [...(prev.seen.convs || [])] : [] },
     evening: s.evening,
     runs: prev && prev.runs ? clone(prev.runs) : {},
     extra,
@@ -276,6 +278,36 @@ export class SaveStore {
   clearRun(dreamId) {
     this.update((slot) => {
       if (slot.runs) delete slot.runs[dreamId];
+    });
+  }
+
+  // ---- tutorial cards seen, per dream ('*' = once per save) -----------------
+  seenCards(dream) {
+    const c = ((this.slot().seen || {}).cards || {})[dream || '*'];
+    return Array.isArray(c) ? [...c] : [];
+  }
+
+  markCard(dream, id) {
+    const k = dream || '*';
+    this.update((slot) => {
+      slot.seen = slot.seen || { cards: {}, convs: [] };
+      slot.seen.cards = slot.seen.cards || {};
+      const list = (slot.seen.cards[k] ||= []);
+      if (!list.includes(id)) list.push(id);
+    });
+  }
+
+  unmarkCard(dream, id) {
+    this.update((slot) => {
+      const cards = (slot.seen || {}).cards || {};
+      for (const k of dream ? [dream, '*'] : Object.keys(cards)) if (cards[k]) cards[k] = cards[k].filter((x) => x !== id);
+    });
+  }
+
+  // New game: the active slot is wiped (settings are global and stay)
+  resetSlot() {
+    this.mutate((s) => {
+      s.slots[s.activeSlot] = emptySlot();
     });
   }
 

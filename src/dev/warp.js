@@ -29,13 +29,15 @@ export function resolveWarp(search) {
 // which scene should boot first, honouring the legacy params too
 export function firstSceneKey(search) {
   const w = resolveWarp(search);
-  if (w && w.dream !== 'hub') return w.scene;
+  if (w) return w.scene; // ?warp=hub too: a dev warp never shows the title
   const sp = new URLSearchParams(search);
   if (sp.get('pt')) return 'Painter';
   if (sp.get('gm')) return 'Gambler';
   if (sp.get('wr')) return 'Writer';
   if (sp.get('ev')) return 'Evening';
   if (sp.get('at')) return 'Astronaut';
+  // the scenario runner and ?notitle start at the station like a warp
+  if (sp.has('scenarios') || sp.has('notitle')) return 'Hub';
   return null;
 }
 

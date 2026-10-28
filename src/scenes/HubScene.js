@@ -1144,15 +1144,13 @@ export default class HubScene extends BaseLevel {
 
     // the opening: crossing the door on the first visit
     if (this.firstVisit && !this.openingDone && p.x > this.hallEntryX) this.opening();
-    // Pemberton meets Jo at the desk on the way in
+    // H2: Pemberton never takes control by proximity. Walking past, he
+    // looks up and calls once; the conversation opens on [E] (talkPemberton).
     const pem = this.npcs.pemberton;
-    if (pem && Math.abs(p.x - pem.x) < 70 && Math.abs(p.y - pem.y) < 60) {
-      if (this.N === 0 && !this.visitLines.desk0 && this.openingDone) {
-        this.visitLines.desk0 = true;
-        this.firstDesk();
-      } else if (this.returnedFrom && !this.visitLines.deskReturn && time > 8000) {
-        this.visitLines.deskReturn = true;
-        this.say('pemberton', PEMBERTON_RETURN[this.N] || 'Back again.');
+    if (pem && !this.visitLines.pemCall && (this.openingDone || !this.firstVisit) && Math.abs(p.x - pem.x) < 110 && Math.abs(p.y - pem.y) < 60) {
+      if ((this.N === 0 && !this.visitLines.desk0) || (this.returnedFrom && !this.visitLines.deskReturn)) {
+        this.visitLines.pemCall = true;
+        this.floatText(pem.x, pem.y - 56, this.N === 0 ? 'Sir? A word, at the desk.  [E]' : 'Welcome back, sir.  [E]', '#f2e6cc');
       }
     }
     // the last walk: single lines, no box, as Jo passes each lamp

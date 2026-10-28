@@ -13,7 +13,8 @@ describe('unified warp', () => {
     expect(resolveWarp('?warp=chef:start').legacy).toEqual({});
     expect(firstSceneKey('?warp=chef:start')).toBe('Chef');
     expect(firstSceneKey('?warp=musician')).toBe('Musician');
-    expect(firstSceneKey('?warp=hub')).toBeNull();
+    expect(firstSceneKey('?warp=hub')).toBe('Hub');
+    expect(firstSceneKey('')).toBeNull(); // no warp: the title boots
   });
   it('old params keep working and unknown dreams are ignored', () => {
     expect(firstSceneKey('?gm=floor')).toBe('Gambler');
