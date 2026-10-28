@@ -8,6 +8,10 @@
 //   const result = await enc.start('clockwork', { anchor: { x, y } });
 //   enc.update(dt, input)   // every frame from the scene
 //
+// def.params may be a function of the run's flags (ctx.flags), so a choice
+// made earlier changes the set (the Musician's last gig). An engine with a
+// release(action) hears the key come up (a held note).
+//
 // The host supplies the Phaser side: makePresenter(def, engine, ctx),
 // enter(def, ctx), exit(def, result, ctx). Tests pass a fake host, which is
 // the point of the split: the logic runs without a renderer.
@@ -28,7 +32,9 @@ export class Encounters {
     const def = this.defs[id];
     if (!def) return Promise.reject(new Error(`Encounters: no encounter "${id}"`));
     if (this.active) return Promise.reject(new Error(`Encounters: "${this.active.id}" is already running`));
-    const engine = def.engine(def.params || {});
+    // params may depend on the run (a choice made earlier): (flags) → params
+    const params = typeof def.params === 'function' ? def.params(ctx.flags || {}) : def.params || {};
+    const engine = def.engine(params);
     const presenter = this.host.makePresenter ? this.host.makePresenter(def, engine, ctx) : null;
     return new Promise((resolve) => {
       this.active = { id, def, engine, presenter, ctx, resolve, t: 0, ending: false };
@@ -48,12 +54,14 @@ export class Encounters {
     const keys = a.def.keys || ['act1', 'confirm'];
     let outcome = null;
     if (input && a.t > 250 && keys.some((k) => input.justDown(k))) outcome = a.engine.press('act');
+    // a held note: the engine hears the key come up (optional)
+    if (input && a.engine.release && input.justUp && keys.some((k) => input.justUp(k))) outcome = a.engine.release('act') || outcome;
     if (input && a.def.canLeave !== false && input.justDown('back')) return this.finish({ ok: false, left: true });
     if (a.presenter && a.presenter.render) a.presenter.render(a.engine.state(), outcome);
     if (a.engine.done) this.finish(a.engine.result);
   }
 
-  finish(result) {
+  finish(result, { immediate = false } = {}) {
     const a = this.active;
     if (!a || a.ending) return;
     a.ending = true;
@@ -64,14 +72,15 @@ export class Encounters {
       if (this.bus) this.bus.emit('encounter:end', { id: a.id, result });
       a.resolve(result);
     };
-    const hold = a.presenter && a.presenter.outro ? a.presenter.outro(result) : null;
+    // a scene shutting down cannot wait for an outro (its clock has stopped)
+    const hold = !immediate && a.presenter && a.presenter.outro ? a.presenter.outro(result) : null;
     if (hold && hold.then) hold.then(done);
     else done();
   }
 
   // a scene shutting down mid-encounter
   abort() {
-    if (this.active) this.finish({ ok: false, aborted: true });
+    if (this.active) this.finish({ ok: false, aborted: true }, { immediate: true });
   }
 }
 
