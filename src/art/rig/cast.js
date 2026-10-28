@@ -152,7 +152,7 @@ const HATS = {
   veil: { rows: ['..UHHHH...', '.UHHHHHH..', 'UHHHHh....', 'HHHHh.....', 'HHHh......', 'HHHh......', 'HHh.......', 'Hh........'], ox: 4, oy: 8 },
   // Phase 2 motion: silhouettes a line of foes can be told apart by
   kepi: { rows: ['..UHHHH...', '..UHHHHh..', '..UHHHHh..', '..yyyyyr..', '..hhhhhhhh'], ox: 4, oy: 10 },
-  helmet: { rows: ['...UUHH...', '.UUHHHHHh.', 'UHHHHHHHHh', 'UHHHHHHHhh', 'yyyyyyyyyr', 'h........h'], ox: 5, oy: 9 },
+  helmet: { rows: ['..UUHHHH..', 'UHHHHHHHHh', 'UHHHHHHHhh', 'yyyyyyyyyr', 'h........h'], ox: 5, oy: 8 },
   earpiece: { rows: ['.i', '.i', 'i.', 'i.'], ox: 1, oy: 3 },
 };
 // heads grew a row (phase 2 motion): every hat sits one row higher
