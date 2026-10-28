@@ -16,7 +16,7 @@ export default {
   animations: {
     idle: { fps: 5, loop: true },
     idle_fidget: { fps: 7, loop: false, next: 'idle', fallback: 'idle' },
-    walk: { mode: 'stride', step: 3, loop: true, events: { 0: 'footstep', 4: 'footstep' }, fallback: 'idle' },
+    walk: { mode: 'stride', step: 4, loop: true, events: { 0: 'footstep', 4: 'footstep' }, fallback: 'idle' },
     talk: { fps: 6, loop: true, fallback: 'idle' },
     wave: { fps: 8, loop: true, fallback: 'idle' },
     laugh: { fps: 8, loop: true, fallback: 'idle' },

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { gaitInfo } from '../art/stride.js';
 import { D } from '../builders/depths.js';
 
 // Travelers: painted soft silhouettes with suitcases that walk IN — from the
@@ -42,12 +43,15 @@ export default class Silhouettes {
     for (const s of this.list) {
       s.x += s.speed * dt;
       s.phase += s.speed * dt;
-      // a frame per 6 px of ground, like Jo; the hips drop and rise with it
-      const frame = (Math.floor(s.phase / 6) % 8) + 1;
+      // a frame per step of ground, scaled with the figure (a traveller drawn
+      // at 0.86 steps 0.86 as far), so the planted foot stays put; the rig's
+      // own walk carries the hip bob
+      const [n, stepPx] = gaitInfo('hub-traveler').walk;
+      const frame = (Math.floor(s.phase / (stepPx * s.scaleX)) % n) + 1;
       if (frame !== s.stride) {
         s.stride = frame;
         s.setTexture(`hub-traveler#${frame}`).setOrigin(0.5, 1);
-        s.y = this.y - [0, 0, -1, 0, 1, 0, -1, 0, 1][frame] * s.scaleY;
+        s.y = this.y;
       }
       if (s.x > this.x1) s.x = this.spawnX - Phaser.Math.Between(0, 200);
     }

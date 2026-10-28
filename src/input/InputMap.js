@@ -11,7 +11,7 @@
 //   input.suspend(true)                      // beats lock control (all false)
 //   input.setContext('dialogue')
 
-export const ACTIONS = Object.freeze(['left', 'right', 'up', 'down', 'jump', 'crouch', 'act1', 'act2', 'confirm', 'back', 'pause']);
+export const ACTIONS = Object.freeze(['left', 'right', 'up', 'down', 'jump', 'crouch', 'act1', 'act2', 'confirm', 'back', 'pause', 'walk']);
 
 // standard gamepad: 0 A, 1 B, 2 X, 3 Y, 9 start, 12 up, 13 down, 14 left, 15 right
 export const DEFAULT_BINDINGS = Object.freeze({
@@ -27,6 +27,7 @@ export const DEFAULT_BINDINGS = Object.freeze({
     confirm: ['KeyX', 'KeyE', 'Space', 'Enter'],
     back: ['Escape', 'Backspace'],
     pause: ['Escape'],
+    walk: ['ShiftLeft', 'ShiftRight'],
   },
   gamepad: {
     left: ['b14', 'ax0-'],
@@ -40,6 +41,7 @@ export const DEFAULT_BINDINGS = Object.freeze({
     confirm: ['b0', 'b2'],
     back: ['b1'],
     pause: ['b9'],
+    walk: ['b4'],
   },
 });
 

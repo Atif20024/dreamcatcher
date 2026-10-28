@@ -3,6 +3,7 @@ import { laughSfx } from '../systems/audio.js';
 import { uiText } from '../ui/text.js';
 import { barkMs, claimBark, onCamera } from '../ui/barks.js';
 import { castFrame } from '../art/baked.js';
+import { Stride } from '../art/stride.js';
 import { redrawProp } from '../art/propKit.js';
 
 // A person in the long evening. Not physics: they walk the ground by
@@ -21,7 +22,11 @@ export default class Townsfolk {
     // the rigged cast are baked at their real height (a kid is 1.25 m, ~56 px):
     // no runtime shrinking (round 2 WP2, src/art/rig/cast.js)
     this.scale = 1;
-    this.stepPx = this.kid ? 3.5 : 6; // the rig's walk step at 2x: feet never slide
+    // phase 2 motion: the legs play from the ground actually covered, in this
+    // person's gait (a kid bounces on six frames, the old stroll on short
+    // steps); standing, they work through a task loop (src/art/stride.js)
+    this.gait = new Stride(scene, key);
+    this.walkKey = null;
     this.voice = def.voice || 1;
     this.home = { x, y };
     this.x = x;
@@ -33,8 +38,7 @@ export default class Townsfolk {
     this.still = still;
     this.target = null;
     this.onArrive = null;
-    this.walked = 0;
-    this.stride = 0;
+    this.lastX = x;
     this.free = false; // hands empty (put their thing down)
     this.bubble = null;
     this.bubbleUntil = 0;
@@ -65,7 +69,9 @@ export default class Townsfolk {
       const k = `${this.key}-talk#${(Math.floor(this.scene.time.now / 160) % 4) + 1}`;
       if (castFrame(this.scene, k)) return k;
     }
-    if (this.stride && this.state === 'walk') return free ? `${this.key}-free#${this.stride}` : `${this.key}#${this.stride}`;
+    if (this.walkKey) return this.walkKey;
+    // standing about: the task loop (sweeping, reading, wiping…)
+    if (this.state === 'idle' && !this.free && !this.still && !this.busy) return this.gait.idle(this.scene.time.now + this.idleT);
     return free ? `${this.key}-free` : this.key;
   }
 
@@ -169,6 +175,7 @@ export default class Townsfolk {
 
   teleport(x) {
     this.x = x;
+    this.lastX = x;
     this.y = this.scene.groundY(x, this.y - 40);
     this.target = null;
   }
@@ -182,17 +189,10 @@ export default class Townsfolk {
       const dx = this.target - this.x;
       const step = Math.sign(dx) * Math.min(Math.abs(dx), this.walkSpeed * dt);
       this.x += step;
-      this.walked += Math.abs(step);
-      // legs change by distance, never by clock: no sliding
-      if (this.walked > this.stepPx) {
-        this.walked = 0;
-        this.stride = (this.stride % 8) + 1; // the eight walk frames, by distance
-      }
       this.art.setFlipX(dx < 0);
       this.y = this.scene.groundY(this.x, this.y - 40);
       if (Math.abs(dx) < 1.5) {
         this.state = 'idle';
-        this.stride = 0;
         const cb = this.onArrive;
         this.onArrive = null;
         if (cb) cb();
@@ -201,6 +201,15 @@ export default class Townsfolk {
         if (!this.art.active) return;
       }
     }
+    // legs from the ground covered this frame, however it was covered (a
+    // walkTo, a hand held, an activity sliding them along): never a slide
+    // (on a bike she rolls: no steps)
+    const riding = !!(this.busy && this.busy.bike);
+    const moved = this.state === 'sit' || riding ? 0 : this.x - this.lastX;
+    this.lastX = this.x;
+    this.gait.free = this.free;
+    this.walkKey = this.gait.next(moved, delta);
+    if (this.walkKey && !this.scene.textures.exists(this.walkKey) && !castFrame(this.scene, this.walkKey)) this.walkKey = null;
     this.frameKey();
     // breathing: a one-pixel rise and fall, sitting or standing
     const breath = this.still ? 0 : Math.sin(time / 900 + this.bob) * 0.6;

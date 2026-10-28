@@ -11,6 +11,9 @@ import { composeHuman } from '../src/art/rig/human.js';
 import { encodePNG, decodePNG } from '../scripts/lib/png.js';
 import { image, setPx } from '../scripts/lib/raster.js';
 import { importPack } from '../scripts/lib/importer.js';
+import { GAITS, FOE_GAITS } from '../src/art/rig/gaits.js';
+import { castRig, castPoses } from '../src/art/rig/cast.js';
+import { FOES } from '../src/data/kinds.js';
 
 const counts = Object.fromEntries(Object.keys(joManifest.animations).map((a) => [a, POSES[a].length]));
 const withFrames = { ...joManifest, animations: Object.fromEntries(Object.entries(joManifest.animations).map(([a, m]) => [a, { ...m, frames: counts[a] }])) };
@@ -143,6 +146,44 @@ describe('Jo rig', () => {
     const step = joManifest.animations.walk.step;
     const f = POSES.walk.map((p) => composeHuman(joRig, p).contacts.f);
     for (let i = 1; i < 4; i++) expect(f[i - 1] - f[i]).toBe(step);
+  });
+});
+
+describe('gaits (phase 2 motion)', () => {
+  it("Jo's walk is upright and short-stepped; his run leans", () => {
+    expect(POSES.walk.every((p) => !p.lean)).toBe(true);
+    expect(POSES.run.every((p) => p.lean >= 2)).toBe(true);
+    expect(joManifest.animations.walk.step).toBeLessThan(joManifest.animations.run.step);
+  });
+  it('run_start is stride-locked: its planted foot moves one step a frame', () => {
+    const step = joManifest.animations.run_start.step;
+    const f = POSES.run_start.map((p) => composeHuman(joRig, p).contacts.f);
+    for (let i = 1; i < 3; i++) expect(f[i - 1] - f[i]).toBe(step);
+  });
+  it('every gait on every body: the planted foot moves exactly one step a frame', () => {
+    const bodies = ['m', 'f', 'big', 'elderly', 'teen', 'child'];
+    for (const gait of Object.keys(GAITS))
+      for (const body of bodies) {
+        const rig = castRig({ pal: {} }, { body: ['m', 'f'].includes(body) ? undefined : body, sex: body === 'f' ? 'f' : 'm' });
+        const P = castPoses(rig, null, { gait });
+        const m = P.walk.length / 2;
+        const c = P.walk.map((p) => composeHuman(rig, p).contacts);
+        // the front foot is planted from contact to the last frame of the half
+        for (let i = 1; i < m; i++) expect([gait, body, i, c[i - 1].f - c[i].f]).toEqual([gait, body, i, P.walkStep]);
+        // the run: contact → drive moves one run step
+        const r = P.run.map((p) => composeHuman(rig, p).contacts);
+        expect([gait, body, r[0].f - r[1].f]).toEqual([gait, body, P.runStep]);
+      }
+  });
+  it('every foe kind has a gait from the table, and a readable 3-frame windup', () => {
+    for (const dream of Object.values(FOES))
+      for (const k of Object.values(dream)) {
+        if (!k.human) continue;
+        expect([k.texture, !!FOE_GAITS[k.texture]]).toEqual([k.texture, true]);
+      }
+    const rig = castRig({ pal: {} }, {});
+    expect(castPoses(rig, null).windup.length).toBe(3);
+    expect(castPoses(rig, null).alert.length).toBe(3);
   });
 });
 

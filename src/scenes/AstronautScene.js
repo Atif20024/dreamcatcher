@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { attachStride } from '../art/stride.js';
 import { personBody } from '../art/baked.js';
 import Player from '../entities/Player.js';
 import BaseLevel from './BaseLevel.js';
@@ -549,6 +550,7 @@ export default class AstronautScene extends BaseLevel {
     if (this.bout.opp.frame.customPivot) personBody(this.bout.opp, 20, 40);
     else this.bout.opp.body.setSize(20, 40);
     this.physics.add.collider(this.bout.opp, this.solids);
+    attachStride(this, this.bout.opp, vsPriya ? 'npc-priya' : 'foe-gym-rat', { face: false }); // circles, backs off, lunges: feet stay put
     this.floatText(ring.wx, px(29), vsPriya ? 'ROUND 4 — PRIYA.\nshe parries everything. wait her out.' : `ROUND ${round} — land 5, eat none you can duck.`, '#f2d580');
     sfx('bell');
   }
@@ -2018,6 +2020,7 @@ export default class AstronautScene extends BaseLevel {
     if (want && !this.priyaFollow) {
       this.priyaFollow = this.physics.add.image(this.player.x - 50, this.player.y - 10, 'npc-priya').setDepth(D.FOE - 1);
       personBody(this.priyaFollow, 18, 40);
+      attachStride(this, this.priyaFollow, 'npc-priya');
       this.physics.add.collider(this.priyaFollow, this.solids);
     }
     if (this.priyaFollow) {

@@ -50,7 +50,7 @@ function opaqueH(o) {
   box.set(id, h);
   return h;
 }
-const baseKey = (k) => k.replace(/#\d+$/, '').replace(/-(free|stand|walk|idle|talk|wave|alert|windup|grab|throw|search)(#\d+)?$/, '').replace(/-free$/, '');
+const baseKey = (k) => k.replace(/#\d+$/, '').replace(/-(free|stand|walk|run|idle|talk|wave|alert|windup|grab|throw|search|stagger)(#\d+)?$/, '').replace(/-free$/, '').replace(/~b$/, '');
 function personClass(key) {
   if (key === 'wren' || key === 'jo') return 'adult';
   const b = baseKey(key);
