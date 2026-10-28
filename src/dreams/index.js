@@ -1,9 +1,13 @@
 // Framework dreams (plan 4.1): DreamDefinitions played by DreamScene.
-// Phase 3: only the proof dream; Part B adds the Musician here.
-import proof from './_proof/dream.js';
+// THE STOPPED HOUR (clockmaker) began as the framework's proof dream; it is
+// now a train on platform 9. `proof` stays as a warp alias.
+import clockmaker from './clockmaker/dream.js';
 
-export const FRAMEWORK_DREAMS = { proof };
+export const FRAMEWORK_DREAMS = { clockmaker };
+
+// old ids that still resolve (?warp=proof:start)
+export const DREAM_ALIASES = { proof: 'clockmaker' };
 
 export function frameworkDream(id) {
-  return FRAMEWORK_DREAMS[id] || null;
+  return FRAMEWORK_DREAMS[id] || FRAMEWORK_DREAMS[DREAM_ALIASES[id]] || null;
 }
