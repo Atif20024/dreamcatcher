@@ -206,3 +206,60 @@ Results:
   are parallax layers passing behind the wall as Jo walks, not overlaps.
 - The Painter's via shows a thin vertical seam between two façades, near
   x ≈ 1700. This already existed and is unrelated to transitions.
+
+## Polish pass (station walls)
+
+The coordinator's review: each wall face read as a flat placeholder slab
+covering about a third of the screen.
+
+- **Camera.** The station now clamps the camera to the room on screen
+  (`HubScene.camBounds`), out to the far edge of each doorway frame and no
+  further.
+  - A room shows only its own doorway, a 2.2 m frame at the screen's edge.
+    Jo is 32 px from the edge when the dip triggers.
+  - On the roof the whole station shows, because the roof is shared by every
+    room.
+  - The gate room is 10 tiles wide, narrower than the view, so it opens out
+    toward its wall, and the shed's glass wall face carries on there.
+  - The bounds change only at the dip's full dark, or when Jo climbs onto
+    the roof or back down.
+- **Wall faces** (`src/builders/hubThresholds.js`, rewritten). Each side is
+  that room's own architecture: a pilaster or riveted column on either side
+  of a moulded doorway, a lintel, a sign over the door, a cornice, and a
+  dado.
+  - Hall: cream stone over the green tile wainscot, with brass-green trim.
+    The signs are "TO THE PLATFORMS" and, at the front door, "WAY OUT".
+  - Train shed: iron and glass on dark-green riveted columns. The signs are
+    "WAY OUT" and "STAFF ONLY".
+  - Street: the façade's stone.
+  - Under the concourse, the inner walls carry on down with a round arch
+    over the undercroft passage: real semicircle geometry, voussoirs and a
+    keystone. The concourse slab and the base are left to the terrain, so
+    the floor lines carry on without a break.
+  - Past the frame, in the views that can see further (the roof and the gate
+    room), a face carries the same wall, slab and undercroft arcade on. It
+    sits under the night grade (depth 11), so it is lit like the terrain.
+- **Layout fixes.**
+  - The hall's end wall moved to x 2544, clear of the undercroft ladder; the
+    buffer stops of bay 1 now stand against it.
+  - The shed's end wall moved to x 5012, clear of the gate room's step.
+  - The dreamcatcher moved one tile left (to `px(72)`), so its plaque is
+    clear of the wall.
+  - "LEFT LUGGAGE" moved further from the doorway.
+- **Text.** The faint "TICKETS / ENQUIRIES" lettering is the hall's painted
+  back wall (the `ticket_hall` mid layer). It is drawn at the parallax's
+  aerial haze (`HAZE.mid` 0.86), as before this work, and is not text
+  floating over the gallery.
+  - The first-visit vista ends at the hall's end wall; the board and title
+    sit over the hall.
+  - The HUD corner can sit over the top of a wall's upper storey when Jo is
+    right at a doorway; that is the screen's edge.
+- **Seam audit.** Screenshots were taken about 3 m before and after each
+  doorway.
+  - Steps|hall: the façade's doorway at the right edge, then "WAY OUT" in
+    green and cream at the left.
+  - Hall|platforms: "TO THE PLATFORMS" with the undercroft arch below it,
+    then iron and glass with "WAY OUT".
+  - Platforms|gate: "STAFF ONLY", then the shed's glass wall. The gate room
+    is narrow, so that wall fills its left half.
+  - No overlaps, no orphaned signs, and no break in the floor lines.

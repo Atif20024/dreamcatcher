@@ -3,7 +3,7 @@ import Player from '../entities/Player.js';
 import BaseLevel from './BaseLevel.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
 import Parallax from '../builders/parallax.js';
-import { doorway } from '../builders/hubThresholds.js';
+import { doorway, FRAME_W } from '../builders/hubThresholds.js';
 import { frameCrossing, sideOf, DIPS } from '../world/thresholds.js';
 import { dipThroughDark } from '../world/TransitionDirector.js';
 import { D } from '../builders/depths.js';
@@ -180,8 +180,10 @@ export default class HubScene extends BaseLevel {
     const id = (k) => rooms[k].id;
     const edge = (k) => rooms[k]._x0 * T;
     const door = this.hallEntryX;
-    const shed = edge(2) - 32; // the hall's end wall: the buffer stops of bay 1 stand against it
-    const gate = edge(4);
+    // the hall's end wall: clear of the undercroft ladder, bay 1's buffer
+    // stops against it; the shed's end wall clear of the gate room's step
+    const shed = edge(2) - 16;
+    const gate = edge(4) - 12;
     // below the roof only: on the leads Jo is outside every room
     const band = { y0: ROOF + T };
     this.hubFrames = [
@@ -192,14 +194,13 @@ export default class HubScene extends BaseLevel {
     ];
     const bottom = this.built.worldH + 200;
     const top = ROOF + T;
-    // the concourse doorway: 1.45 m × 3.4 m; under the floor, the
-    // undercroft's passage runs on through a low arch (1.1 m × 2.7 m)
-    const door1 = { floor: FLOOR, w: 64, h: 150 };
-    const under = { floor: UNDER, w: 48, h: 120 };
+    // the front wall stands on solid ground; the two inner walls carry on
+    // down over the undercroft's passage (an arch at its floor line)
+    const at = { top, floor: FLOOR, bottom };
     this.walls = [
-      { frame: this.hubFrames[0], d: doorway(this, { x: door, top, bottom, openings: [door1], left: 'stationFront', right: 'hallFront' }) },
-      { frame: this.hubFrames[1], d: doorway(this, { x: shed, top, bottom, openings: [door1, under], left: 'hallEnd', right: 'shedEnd' }) },
-      { frame: this.hubFrames[3], d: doorway(this, { x: gate, top, bottom, openings: [door1, under], left: 'shedGate', right: 'gateBack' }) },
+      { frame: this.hubFrames[0], d: doorway(this, { x: door, ...at, left: 'stationFront', right: 'hallFront' }) },
+      { frame: this.hubFrames[1], d: doorway(this, { x: shed, ...at, under: UNDER, left: 'hallEnd', right: 'shedEnd' }) },
+      { frame: this.hubFrames[3], d: doorway(this, { x: gate, ...at, under: UNDER, left: 'shedGate', right: 'gateBack' }) },
     ];
     this.dips = 0;
     // Phaser reuses the scene: nothing from the last visit (its rooms, a dip
@@ -207,6 +208,36 @@ export default class HubScene extends BaseLevel {
     this._room = null;
     this._lastJo = null;
     this.dipping = null;
+    this._camBounds = null;
+  }
+
+  // what the camera may show of the room on screen: out to the far edge of
+  // the doorway frames either side of it and no further (a room narrower than
+  // the view, the gate, opens out toward its wall, where the wall's face
+  // carries on). On the roof, where every room's leads join, the whole station.
+  camBounds() {
+    const cam = this.cameras.main;
+    const W = this.built.worldW;
+    const H = this.built.worldH;
+    const p = this.player;
+    let x0 = 0;
+    let x1 = W;
+    if (this._room && p.y >= ROOF + T) {
+      const r = this._room;
+      const mid = (r._x0 + Math.max(...r.grid.map((g) => g.length)) / 2) * T;
+      for (const w of this.walls) {
+        if (w.d.x < mid) x0 = Math.max(x0, w.d.x - FRAME_W / 2);
+        else x1 = Math.min(x1, w.d.x + FRAME_W / 2);
+      }
+      if (x1 - x0 < cam.width) {
+        if (x1 === W) x0 = W - cam.width;
+        else x1 = x0 + cam.width;
+      }
+    }
+    const key = `${x0}|${x1}`;
+    if (key === this._camBounds) return;
+    this._camBounds = key;
+    cam.setBounds(x0, 0, x1 - x0, H);
   }
 
   // the room on screen (its backdrop, its sound, which face of each wall
@@ -217,6 +248,7 @@ export default class HubScene extends BaseLevel {
     this.parallax.setRoom(room);
     const k = this.built.rooms.indexOf(room);
     for (const w of this.walls || []) w.d.setSide(k <= this.built.rooms.findIndex((r) => r.id === w.frame.left) ? 'left' : 'right');
+    this.camBounds();
     if (room !== was) {
       this.enterAudioRoom(room);
       if (was && this.player.locate) this.player.locate('room', room.id);
@@ -229,6 +261,7 @@ export default class HubScene extends BaseLevel {
     const byId = (id) => rooms.find((r) => r.id === id);
     // (Jo's last place is kept through a dip: a move made under it still counts)
     if (this.dipping) return;
+    this.camBounds(); // up on the roof, or back down off it
     const moved = this._lastJo ? Math.abs(p.x - this._lastJo.x) + Math.abs(p.y - this._lastJo.y) : 0;
     this._lastJo = { x: p.x, y: p.y };
     // a fresh placement (the scene starting, a dream's return, a big move):
@@ -498,9 +531,9 @@ export default class HubScene extends BaseLevel {
     this.add.image(hatchX, FLOOR + 3, hubTex(this, 'grate', 38, 12)).setDepth(D.TERRAIN + 1);
     // (the sign stands on the hall side of the grate: the end wall's doorway
     // is just past it)
-    this.add.image(hatchX - 40, FLOOR - 30, hubTex(this, 'signpost', 4, 60)).setDepth(D.INTERACT - 3);
-    this.add.image(hatchX - 40, FLOOR - 58, hubTex(this, 'signboard', 120, 24)).setDepth(D.INTERACT - 3);
-    uiText(this, hatchX - 40, FLOOR - 59, '\u2193 LEFT LUGGAGE', { fontSize: '9px', color: '#f2e6cc', backing: 0x2e3a52 })
+    this.add.image(hatchX - 56, FLOOR - 30, hubTex(this, 'signpost', 4, 60)).setDepth(D.INTERACT - 3);
+    this.add.image(hatchX - 56, FLOOR - 58, hubTex(this, 'signboard', 120, 24)).setDepth(D.INTERACT - 3);
+    uiText(this, hatchX - 56, FLOOR - 59, '\u2193 LEFT LUGGAGE', { fontSize: '9px', color: '#f2e6cc', backing: 0x2e3a52 })
       .setOrigin(0.5)
       .setDepth(D.INTERACT - 2);
     this.hatchPrompt = uiText(this, hatchX, FLOOR - 40, '[\u2193] down', { fontSize: '12px', color: '#88b8d8', backgroundColor: '#14101c' })
@@ -542,7 +575,7 @@ export default class HubScene extends BaseLevel {
   // in that dream's colour, for every dream caught. A dream caught tonight
   // is woven in when Jo comes back (runReturn).
   buildDreamcatcher() {
-    const x = px(73);
+    const x = px(72); // its plaque clear of the hall's end wall
     const top = FLOOR - 266; // the hoop at eye height from the concourse, over the heads of the hall
     const size = DREAMCATCHER_PX;
     const caught = { ...this.save.dreams };
