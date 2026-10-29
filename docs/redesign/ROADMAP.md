@@ -28,7 +28,9 @@ Updated 2026-10-29 after the owner's change of direction. The owner's words over
 - The game fills the browser window.
 
 ## In progress
-- Nothing. Feedback 3 is done (see round2/FEEDBACK3_REPORT.md). Open issue: on the painter's daylight street, Jo's contrast is 2.7:1, below the 3:1 target; recolouring his coat would fix it.
+- Room transitions: no crossfades. Every room change is a short dip through dark behind a door, an arch or a gate, triggered by walking through it. See `advice/room_transitions_advice.md`. The owner said go on 2026-10-29.
+- The racer dream: design doc by a pro-gamer advisor (`docs/dream_racer.md`), then the build.
+- Open issue: on the painter's daylight street, Jo's contrast is 2.7:1, below the 3:1 target; recolouring his coat would fix it.
 
 ## Next, in order
 The build order follows `advice/lead_design_review.md` §5. One agent at a time.
@@ -43,7 +45,8 @@ The build order follows `advice/lead_design_review.md` §5. One agent at a time.
 | 6 | Chef rebuild: the ticket rail as the verb | L |
 | 7 | Astronaut rebuild: one circuit, the Board, the grey year, sim, EVA, the moon | L |
 | 8 | Writer rebuild: keep the pen | L |
-| 9 | Gambler rebuild: two games, the comp lounge, walking away as the catch | L |
+| 9 | Gambler rebuild per `advice/gambler_champion_critique.md` (owner approved): the *Lantern Queen* riverboat in 1884, Lou's dream, SHOWDOWN three-card poker, tilt, the slate, and standing up as the catch | L |
+| 9b | The racer dream: build from `docs/dream_racer.md` (new, owner's request) | L |
 | 10 | Musician polish (busking, the road, Marcus sits) and painter polish | M |
 | 11 | Hub between dreams: lamps for each catch, people on benches | M |
 | 12 | The Evening payoff: the people from caught dreams appear in the town | M |
