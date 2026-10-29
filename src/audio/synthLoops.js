@@ -3,6 +3,7 @@
 // credit. A loop is a function (sr) → Float32Array (mono, seamless: the end
 // fades into the start). Pure (no WebAudio), so it can be unit-tested.
 // Names include the `ambientLoop` ids declared in src/data/dreams.js.
+import { ERA_LOOPS } from './eraLoops.js';
 
 function rng(seed) {
   let s = seed >>> 0 || 1;
@@ -206,5 +207,9 @@ export const LOOPS = {
     return seamless(buf, sr);
   },
 };
+
+// era loops written as recipes (src/audio/eraLoops.js): THE MASTER'S LADDER's
+// bottega, street, colour-seller, square, guild hall, palazzo and chapel
+Object.assign(LOOPS, ERA_LOOPS);
 
 export const LOOP_NAMES = Object.keys(LOOPS);
