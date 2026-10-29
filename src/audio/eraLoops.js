@@ -294,8 +294,12 @@ export const RECIPES = {
   // --- audio pass ------------------------------------------------------
   // Crossroads: the hall's air (low noise, a 60 Hz hum), and its crowd
   // (voices, feet, the hall's echo), mixed by how full the station is
-  hub_hall: { seconds: 9, seed: 51, rms: -40, layers: [['murmur', { vol: 0.05, k: 0.01 }], ['hum', { f: 60, vol: 0.01 }], ['echo', { delay: 0.17, taps: 4, fb: 0.5 }]] },
-  hub_crowd: { seconds: 11, seed: 52, rms: -37, layers: [['chatter', { voices: 6, vol: 0.03, pitch: 0.9 }], ['steps', { vol: 0.03, pace: 0.5, walks: 3 }], ['echo', { delay: 0.17, taps: 4, fb: 0.5 }]] },
+  // (feedback 4, "the noise in the background is repetitive … not so
+  // dominating": long loops, a second crowd of another length under the
+  // first (src/audio/synthLoops.js LOOP_LAYERS) and quieter overall)
+  hub_hall: { seconds: 21, seed: 51, rms: -43, layers: [['murmur', { vol: 0.05, k: 0.01 }], ['hum', { f: 60, vol: 0.005 }], ['echo', { delay: 0.17, taps: 4, fb: 0.5 }]] },
+  hub_crowd: { seconds: 26, seed: 52, rms: -41, layers: [['chatter', { voices: 5, vol: 0.03, pitch: 0.9 }], ['steps', { vol: 0.03, pace: 0.5, walks: 4 }], ['echo', { delay: 0.17, taps: 4, fb: 0.5 }]] },
+  hub_crowd_far: { seconds: 17, seed: 57, rms: -46, layers: [['chatter', { voices: 3, vol: 0.03, pitch: 1.05 }], ['steps', { vol: 0.02, pace: 0.7, walks: 2 }], ['echo', { delay: 0.23, taps: 5, fb: 0.55 }]] },
   // THE FINISH LINE (athlete, unlaunched): a stadium's crowd under the wind
   pistol: { seconds: 12, seed: 53, rms: -35, layers: [['roar', { vol: 0.05, f: 800, swells: 2 }], ['chatter', { voices: 6, vol: 0.02 }], ['wind', { vol: 0.02 }], ['echo', { delay: 0.25, taps: 3, fb: 0.35 }]] },
   // THE WHITE COAT (doctor, unlaunched): a ward's monitors, the vent

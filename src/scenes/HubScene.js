@@ -147,7 +147,8 @@ export default class HubScene extends BaseLevel {
 
     musicDirector.setMix(this.state.music); // the station's band (setupCommon)
     // the hall's air and its crowd, thinner with every dream caught
-    ambience.set({ hub_hall: 1, hub_crowd: Math.min(1, 0.15 + this.state.travelers / 40) });
+    // (kept under the band: a bed, not a wall of noise)
+    ambience.set({ hub_hall: 0.7, hub_crowd: Math.min(0.6, 0.1 + this.state.travelers / 60) });
     this.events.once('shutdown', () => ambience.stop());
     this.boardIdle = this.time.addEvent({ delay: this.state.boardIdleMs, loop: true, callback: () => this.board.idleClack() });
     this.clockTick = this.time.addEvent({ delay: 1000, loop: true, callback: () => this.tickClock() });

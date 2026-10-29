@@ -467,14 +467,14 @@ describe('the clocks', () => {
     const bed = new EventBed(BEDS.hub, { rand });
     const fired = [];
     for (let t = 0; t < 600; t += 0.25) fired.push(...bed.update(t, null));
-    expect(fired.length).toBeGreaterThan(40);
+    expect(fired.length).toBeGreaterThan(30);
     expect(fired[0].at).toBeGreaterThanOrEqual(6);
     for (let i = 1; i < fired.length; i++) if (fired[i].at !== fired[i - 1].at) expect(fired[i].shot === fired[i - 1].shot && fired[i].at - fired[i - 1].at < 1).toBe(false);
-    // the announcements keep their 25–40 s (plus at most a short wait)
+    // the announcements keep their 50–100 s (plus at most a short wait)
     const ann = fired.filter((f) => f.shot === 'announce').map((f) => f.at);
     for (let i = 1; i < ann.length; i++) {
-      expect(ann[i] - ann[i - 1]).toBeGreaterThanOrEqual(24.9);
-      expect(ann[i] - ann[i - 1]).toBeLessThan(44);
+      expect(ann[i] - ann[i - 1]).toBeGreaterThanOrEqual(49.9);
+      expect(ann[i] - ann[i - 1]).toBeLessThan(104);
     }
     for (const f of fired) {
       expect(Math.abs(f.pitch - 1)).toBeLessThanOrEqual(0.06);

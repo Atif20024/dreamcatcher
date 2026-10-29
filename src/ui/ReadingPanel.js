@@ -5,20 +5,30 @@
 //
 //   await readDocument(scene, { title: "Isak's letter", text: 'Dear…\n\n…', ink: 0x1f3a5f })
 //
-// - Paper (cream, the §9 frame's brass line) under a dim; the ink is dark,
-//   at 7:1 or better against the paper.
-// - Body type at ×2 (cap 18, the dialogue size), the title at ×2 in the
-//   accent's dark ink; never rotated, never bobbing.
+// - Paper (cream, a brass line) under a dim; the ink is dark, at 7:1 or
+//   better against the paper.
+// - The page is the game's own font (the body face), painted onto a canvas
+//   laid over the game at the screen's real pixels, at a whole-number
+//   scale and without the baked outline. Drawn into the 960 × 540 canvas
+//   and stretched to fill the browser, dark ink on cream with that outline
+//   turned to blobs ("no human would be able to read notes like that"); a
+//   book face read well but looked like another game.
 // - Wrapped to the page and paged when long: [E]/[Space]/[→] next,
 //   [←] back, [Esc] closes. A footer says where you are ("2 / 3").
 // - A ModalManager modal ('card' priority): keys go to it alone and the
 //   world is frozen under it.
-import { uiText, contrast, CAP } from './text.js';
-import { drawPanel, dim } from './Panel.js';
+import { contrast } from './text.js';
+import { measure, paintGlyphs } from './BitmapFonts.js';
+import { dim } from './Panel.js';
 import ModalManager from './ModalManager.js';
 import { READING, wrapWords, paginate } from './readingLayout.js';
 
 export { READING, wrapWords, paginate };
+
+const hex = (c) => `#${(c >>> 0).toString(16).padStart(6, '0').slice(-6)}`;
+const BRASS = 0xc8a24a;
+// widths in canvas px (the 960 × 540 game), at the page's scale
+const widthOf = (str, size = 'body', scale = READING.scale) => measure(size, str, scale).width;
 
 export class ReadingPanel {
   constructor(scene) {
@@ -38,22 +48,15 @@ export class ReadingPanel {
     this.onClose = onClose;
     this.isOpen = true;
     this.page = 0;
-    // lay the text out: measure with one throwaway text in the same font
+    // lay the text out in canvas px
     const W = READING.width;
-    const probe = uiText(s, 0, 0, '', { size: 'body', scale: READING.scale, screen: true }).setScrollFactor(0).setVisible(false);
-    const measure = (str) => {
-      probe.setText(str);
-      return probe.width;
-    };
     // `pages`: the document's own pages (a notebook), each wrapped and,
     // if it is still too long, paged again
     const docs = pages && pages.length ? pages : [text];
-    const wrapped = docs.map((t) => wrapWords(t, measure, W - READING.padX * 2));
+    const wrapped = docs.map((t) => wrapWords(t, (str) => widthOf(str), W - READING.padX * 2));
     this.lines = wrapped.flat();
-    probe.setText('Ag');
-    this.lineH = Math.ceil(probe.height) + READING.lineGap;
-    probe.destroy();
-    const titleH = title ? CAP.body * READING.scale + 26 : 0;
+    this.lineH = measure('body', 'Ag', READING.scale).height + READING.lineGap;
+    const titleH = title ? this._titleH() : 0;
     const per = Math.max(3, Math.floor((READING.maxHeight - READING.padY * 2 - titleH - 30) / this.lineH));
     this.pages = wrapped.flatMap((ls) => paginate(ls, per));
     this.per = per;
@@ -121,6 +124,68 @@ export class ReadingPanel {
   _clear() {
     (this.objs || []).forEach((o) => o && o.scene && o.destroy());
     this.objs = [];
+    if (this.layer) this.layer.remove();
+    this.layer = null;
+    this.bodyEl = null;
+    if (this._unfit) this._unfit();
+    this._unfit = null;
+  }
+
+  _titleH() {
+    return measure('body', 'Ag', READING.scale).height + 26;
+  }
+
+  // the page's canvas: centred on the game, at the screen's own pixels.
+  // `u` is screen px per game px, rounded so the body face lands on a
+  // whole-number pixel scale (every glyph pixel the same size)
+  _paint() {
+    const r0 = this.rect;
+    const game = this.scene.game.canvas;
+    const L = this.layer;
+    if (!L || !game || !r0) return;
+    const box = game.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const cam = this.scene.cameras.main;
+    const k = (box.width / cam.width) * dpr;
+    const S = Math.max(READING.scale, Math.round(READING.scale * k)); // body glyph pixel, device px
+    const u = S / READING.scale;
+    const Wd = Math.round(r0.w * u);
+    const Hd = Math.round(r0.h * u);
+    L.width = Wd;
+    L.height = Hd;
+    L.style.width = `${Wd / dpr}px`;
+    L.style.height = `${Hd / dpr}px`;
+    L.style.left = `${Math.round(box.left + box.width / 2 - Wd / dpr / 2)}px`;
+    L.style.top = `${Math.round(box.top + box.height / 2 - Hd / dpr / 2)}px`;
+    const ctx = L.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    // the paper: a dark edge, the brass line, cream
+    const e = Math.max(1, Math.round(u));
+    ctx.fillStyle = '#2a2340';
+    ctx.fillRect(0, 0, Wd, Hd);
+    ctx.fillStyle = hex(BRASS);
+    ctx.fillRect(e, e, Wd - 2 * e, Hd - 2 * e);
+    ctx.fillStyle = hex(this.paper);
+    ctx.fillRect(3 * e, 3 * e, Wd - 6 * e, Hd - 6 * e);
+    const at = (v) => Math.round(v * u);
+    let y = READING.padY;
+    if (this.title) {
+      paintGlyphs(ctx, this.title, at(r0.w / 2), at(y), { size: 'body', scale: S, color: this.ink, align: 'center' });
+      y += measure('body', 'Ag', READING.scale).height + 12;
+      const tw = Math.min(r0.w - 120, Math.max(120, widthOf(this.title) + 40));
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = hex(this.ink);
+      ctx.fillRect(at(r0.w / 2 - tw / 2), at(y), at(tw), Math.max(1, at(2)));
+      ctx.globalAlpha = 1;
+      y += 14;
+    }
+    const lines = this.pages[this.page] || [''];
+    lines.forEach((ln, i) => paintGlyphs(ctx, ln, at(READING.padX), at(y + i * this.lineH), { size: 'body', scale: S, color: this.ink }));
+    const n = this.pages.length;
+    const more = this.page < n - 1;
+    const foot = `${n > 1 ? `${this.page + 1} / ${n}     ` : ''}${more ? '[E] next' : '[E] done'}${this.page > 0 ? '   [←] back' : ''}   [Esc] close`;
+    const fs = Math.max(1, Math.round(u * 1.5));
+    paintGlyphs(ctx, foot, at(r0.w - 18), at(r0.h - 12) - measure('small', 'A', fs).height, { size: 'small', scale: fs, color: this.ink, align: 'right' });
   }
 
   _draw() {
@@ -134,40 +199,37 @@ export class ReadingPanel {
       return o;
     };
     const lines = this.pages[this.page] || [''];
-    const titleH = this.title ? CAP.body * READING.scale + 26 : 0;
+    const titleH = this.title ? this._titleH() : 0;
     const bodyH = Math.max(lines.length, 3) * this.lineH;
     const H = Math.min(READING.maxHeight + 40, READING.padY * 2 + titleH + bodyH + 30);
     const x0 = Math.round(cam.width / 2 - W / 2);
     const y0 = Math.round(cam.height / 2 - H / 2);
-    const depth = 300;
-    add(dim(s, 0.7, depth));
-    const g = add(s.add.graphics().setScrollFactor(0).setDepth(depth + 1));
-    drawPanel(g, x0, y0, W, H, { fill: this.paper, alpha: 1 });
-    g.panelRect = { x: x0, y: y0, w: W, h: H };
-    g.isDCPanel = true;
-    g.isReadingPaper = true;
-    let y = y0 + READING.padY;
-    const text = (str, x, yy, opts) => add(uiText(s, x, yy, str, { size: 'body', scale: READING.scale, screen: true, backing: this.paper, ...opts }).setScrollFactor(0).setDepth(depth + 2));
-    if (this.title) {
-      const t = text(this.title, cam.width / 2, y, { color: this.ink, align: 'center' }).setOrigin(0.5, 0);
-      t.isReadingTitle = true;
-      y += CAP.body * READING.scale + 12;
-      const rule = add(s.add.rectangle(cam.width / 2, y, Math.min(W - 120, Math.max(120, t.width + 40)), 2, this.ink, 0.5).setScrollFactor(0).setDepth(depth + 2));
-      rule.isReadingRule = true;
-      y += 14;
-    }
-    this.bodyText = text(lines.join('\n'), x0 + READING.padX, y, { color: this.ink, lineSpacing: READING.lineGap });
-    this.bodyText.isReadingBody = true;
-    const n = this.pages.length;
-    const more = this.page < n - 1;
-    const foot = `${n > 1 ? `${this.page + 1} / ${n}     ` : ''}${more ? '[E] next' : '[E] done'}${this.page > 0 ? '   [←] back' : ''}   [Esc] close`;
-    const f = add(uiText(s, x0 + W - 18, y0 + H - 12, foot, { size: 'small', screen: true, color: this.ink, backing: this.paper }).setOrigin(1, 1).setScrollFactor(0).setDepth(depth + 2));
-    f.isReadingFoot = true;
+    add(dim(s, 0.7, 300));
+    this.rect = { x: x0, y: y0, w: W, h: H };
+    this.widest = Math.max(0, ...lines.map((l) => widthOf(l)));
+
+    const L = document.createElement('canvas');
+    L.className = 'dc-reading';
+    L.style.cssText = 'position:fixed;pointer-events:none;z-index:10;image-rendering:pixelated';
+    document.body.appendChild(L);
+    this.layer = L;
+    this.bodyEl = L;
+    this._paint();
+    const fit = () => this._paint();
+    window.addEventListener('resize', fit);
+    s.scale.on('resize', fit);
+    const gone = () => this.close('scene');
+    s.events.once('shutdown', gone);
+    this._unfit = () => {
+      window.removeEventListener('resize', fit);
+      s.scale.off('resize', fit);
+      s.events.off('shutdown', gone);
+    };
   }
 
   // for scenarios: what is on the page, at what size, at what contrast
   state() {
-    const b = this.bodyText && this.bodyText.scene ? this.bodyText : null;
+    const r = this.rect;
     const cam = this.scene.cameras.main;
     return {
       open: this.isOpen,
@@ -176,10 +238,11 @@ export class ReadingPanel {
       pages: this.pages.length,
       lines: (this.pages[this.page] || []).length,
       text: (this.pages[this.page] || []).join('\n'),
-      cap: b ? CAP[b.dc.size] * (b.dc.scale || READING.scale) : 0,
+      cap: this.bodyEl ? 9 * READING.scale : 0,
       contrast: +contrast(this.ink, this.paper).toFixed(2),
-      angle: b ? b.angle : 0,
-      fits: b ? b.y + b.height <= cam.height - 10 && b.x + b.width <= cam.width - 10 : false,
+      angle: 0,
+      dom: !!(this.layer && this.layer.isConnected),
+      fits: !!(this.bodyEl && r && this.widest <= r.w - READING.padX * 2 + 1 && r.y + r.h <= cam.height - 10),
     };
   }
 }

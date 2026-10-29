@@ -13,7 +13,8 @@ const bed = (...rows) => ({ events: rows.map(([shot, lo, hi, level = 1]) => ({ s
 
 export const BEDS = {
   // Crossroads: the PA, pigeons in the roof, a train somewhere, a trolley
-  hub: bed(['announce', 25, 40], ['pigeon', 10, 20], ['wings', 18, 35, 0.8], ['train_far', 30, 60], ['trolley', 20, 45, 0.8], ['door', 15, 30, 0.7], ['turnstile', 12, 25, 0.6]),
+  // (spaced out and softer: now and then, not all the time)
+  hub: bed(['announce', 50, 100, 0.7], ['pigeon', 15, 40, 0.8], ['wings', 30, 70, 0.6], ['train_far', 40, 90, 0.8], ['trolley', 35, 80, 0.6], ['door', 25, 60, 0.5], ['turnstile', 25, 60, 0.45]),
   // the clockmaker's green and lane: birds, swifts, a far dog, the church
   green: bed(['bird', 4, 9], ['swifts', 12, 25], ['dog_far', 25, 50, 0.7], ['church_bell', 40, 60, 0.8]),
   dusk: bed(['bird', 7, 14, 0.7], ['dog_far', 20, 40, 0.6], ['cat', 30, 60, 0.6]),

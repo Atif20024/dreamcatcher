@@ -218,6 +218,7 @@ export const LOOP_NAMES = Object.keys(LOOPS);
 // under the same gain): the bed never lines up the same way twice
 export const LOOP_LAYERS = {
   rain_street: ['rain_far'],
+  hub_crowd: ['hub_crowd_far'],
   clock_room: ['clock_slow'],
   slots: ['casino_murmur'],
   engines: ['station_vent'],

@@ -7,7 +7,9 @@ export const READING = Object.freeze({
   ink: IDENTITY.night,
   scale: 2, // body ×2: cap 18 on a 960 × 540 canvas
   minCap: 18,
-  minContrast: 7,
+  // the page is the game's own pixel font, painted on a canvas laid over
+  // the game at the screen's real resolution, without the baked outline
+  // (src/ui/ReadingPanel.js): crisp at any window size, and still the game
   width: 720, // the page
   maxHeight: 420,
   padX: 40,

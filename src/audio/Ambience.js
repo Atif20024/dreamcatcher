@@ -8,7 +8,8 @@
 // incommensurate length (rain 6 s + 9 s, two clocks 1.0 s + 1.37 s), played
 // together under one gain, so the bed never repeats the same way twice. A
 // room fades in over ~400 ms and out over ~800 ms; a name with no loop is
-// skipped (once, with a warning) instead of failing.
+// skipped (once, with a warning) instead of failing. Every layer starts at
+// a random point in its loop, slightly off pitch, so no visit repeats.
 import { buses } from './AudioBus.js';
 import { LOOPS, LOOP_LAYERS } from './synthLoops.js';
 
@@ -55,7 +56,10 @@ export class Ambience {
       src.buffer = b;
       src.loop = true;
       src.connect(gain);
-      src.start();
+      // each layer starts somewhere random in its loop, a touch off pitch:
+      // the same room never sounds the same way twice
+      src.playbackRate.value = 0.97 + Math.random() * 0.06;
+      src.start(0, Math.random() * b.duration);
       return src;
     });
     const v = { src: srcs[0], srcs, gain, level: 0 };
