@@ -33,9 +33,8 @@ window.game = new Phaser.Game({
     autoCenter: Phaser.Scale.CENTER_BOTH,
     width: 960,
     height: 540,
-    // a fixed game window: native 960×540, only shrinking when the browser
-    // is smaller; it never stretches to fill the page (fullscreen is on [B])
-    max: { width: 960, height: 540 },
+    // fills the browser keeping 16:9; the leftover edges are plain black
+    // (index.html), not the game's indigo
   },
   physics: {
     default: 'arcade',
