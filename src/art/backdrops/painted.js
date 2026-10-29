@@ -290,11 +290,118 @@ const LAYERS = {
       gradientV(ctx, 0, 0, W, 40, [[0, P.sky, 0], [1, P.deep, 0]]);
     });
   },
+
+  // ---- Fioralba (THE MASTER'S LADDER) -----------------------------------------
+  // the hills behind the city: long soft ridges washed toward the sky, rows
+  // of cypress up the slopes, olive dots, a villa or a chapel on a crest
+  rn_hills(P, seed) {
+    const H = 260;
+    return tileable(LAYER_W, H, (ctx, W) => {
+      const r = rand(seed);
+      ridge(ctx, W, H, 120, 70, mix(P.hill, P.sky, 0.62), seed + 1);
+      ridge(ctx, W, H, 70, 80, mix(P.hill, P.sky, 0.42), seed + 2);
+      // olive groves: grey-green dots in terraced rows on the near ridge
+      for (let y = H - 70; y < H - 8; y += 9)
+        for (let x = r.between(0, 10); x < W; x += r.between(9, 16)) {
+          const top = H - 70 - pfbm(x % W, 0, W, seed + 2, 4, W / 3) * 80;
+          if (y < top + 6 || r.frac() < 0.35) continue;
+          ctx.fillStyle = hex(mix(P.leaf, P.sky, 0.45 + r.frac() * 0.1));
+          ctx.beginPath();
+          ctx.ellipse(x, y, 3.2, 2.4, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      // cypress avenues up the slopes: dark flames, lit on the west side
+      for (let x = r.between(40, 120); x < W - 20; x += r.between(150, 260)) {
+        const n = r.between(3, 6);
+        for (let i = 0; i < n; i++) {
+          const cx = x + i * 11;
+          const gy = H - 50 - pfbm(cx % W, 0, W, seed + 2, 4, W / 3) * 80 + 30 + i * 3;
+          const h = 26 + r.frac() * 10;
+          ctx.fillStyle = hex(mix(P.leaf, P.sky, 0.32));
+          ctx.beginPath();
+          ctx.moveTo(cx, gy - h);
+          ctx.quadraticCurveTo(cx + 5, gy - h * 0.55, cx + 3, gy);
+          ctx.lineTo(cx - 3, gy);
+          ctx.quadraticCurveTo(cx - 5, gy - h * 0.55, cx, gy - h);
+          ctx.fill();
+          ctx.fillStyle = rgba(P.rim ?? P.light, 0.18);
+          ctx.fillRect(cx - 2, gy - h * 0.7, 1, h * 0.6);
+        }
+        // a villa at the head of the avenue: ochre walls, a terracotta roof
+        const vx = x + n * 11 + 8;
+        const vy = H - 50 - pfbm(vx % W, 0, W, seed + 2, 4, W / 3) * 80 + 28;
+        ctx.fillStyle = hex(mix(P.house, P.sky, 0.35));
+        ctx.fillRect(vx, vy - 14, 26, 14);
+        ctx.fillStyle = hex(mix(P.roof, P.sky, 0.3));
+        ctx.fillRect(vx - 2, vy - 17, 30, 3);
+        ctx.fillStyle = hex(mix(P.deep, P.sky, 0.5));
+        for (let k = 0; k < 3; k++) ctx.fillRect(vx + 4 + k * 8, vy - 10, 2, 4);
+      }
+    });
+  },
+  // the far city: terracotta roofs packed close, ochre and cream walls,
+  // slim tower-houses standing out of the roofline (s 0.12)
+  rn_skyline(P, seed) {
+    const s = ROW_S.rn_skyline;
+    const f = facadeMetrics(s);
+    const H = Math.ceil(f.storey * 9 + f.roof + f.k * 2);
+    const c = cv(LAYER_W, H);
+    const ctx = c.getContext('2d');
+    const r = rand(seed);
+    const C = rnCols(P);
+    // tower-houses first (behind the roofs): 7–9 storeys, battlemented tops
+    for (let x = r.between(30, 90); x < LAYER_W - 30; x += r.between(110, 230)) {
+      const w = f.bay * 1.4;
+      const h = f.storey * r.between(6, 8);
+      ctx.fillStyle = hex(C.walls[r.between(0, C.walls.length - 1)]);
+      ctx.fillRect(x, H - h, w, h);
+      ctx.fillStyle = rgba(P.rim ?? P.light, 0.22);
+      ctx.fillRect(x, H - h, 1, h);
+      for (let b = 0; b < 3; b++) ctx.fillRect(x + b * (w / 3), H - h - f.k * 0.8, w / 6, f.k * 0.8);
+      ctx.fillStyle = hex(mix(P.deep, P.house, 0.4));
+      for (let y = H - h + f.k; y < H - f.storey; y += f.storey) ctx.fillRect(x + w * 0.4, y, Math.max(1, w * 0.2), f.k * 0.9);
+    }
+    drawRow(ctx, 0, LAYER_W, H, s, r, {
+      ...C, wrapW: LAYER_W, close: true, gap: 0, storeys: [1, 3], bays: [2, 5], lit: 0.04, quoins: false,
+      roof: () => 'pitched', ground: () => 'plain', logId: 'painted.rn_skyline',
+    });
+    grain(ctx, 0, 0, LAYER_W, H, 0.04, seed + 1);
+    return c;
+  },
+  // a near street of the city: arcaded ground floors (loggias), shuttered
+  // windows, low terracotta roofs, behind its paving (s 0.3)
+  rn_row(P, seed) {
+    const s = ROW_S.rn_row;
+    const f = facadeMetrics(s);
+    const lift = Math.round(f.k * 1.6);
+    const H = Math.ceil(f.storey * 4 + f.roof + f.k * 2 + lift);
+    const c = cv(LAYER_W, H);
+    const ctx = c.getContext('2d');
+    const r = rand(seed);
+    drawGroundLine(ctx, 0, LAYER_W, H - lift, lift, s, { pave: mix(P.house, 0xd8c8a8, 0.4), road: mix(P.house, P.deep, 0.25) });
+    drawRow(ctx, 0, LAYER_W, H - lift, s, r, {
+      ...rnCols(P), wrapW: LAYER_W, close: true, storeys: [2, 3], bays: [3, 5], lit: 0.05, shutter: mix(P.leaf, P.house, 0.3), shutterOdds: 0.8, flowers: true,
+      ground: (q) => (q.frac() < 0.45 ? 'arcade' : 'house'), roof: () => 'pitched', logId: 'painted.rn_row',
+    });
+    grain(ctx, 0, 0, LAYER_W, H, 0.04, seed);
+    return c;
+  },
 };
+
+// Fioralba's walls: ochre, sienna, cream and pale stone; terracotta roofs
+function rnCols(P) {
+  const hz = P.haze ?? 0.15;
+  const w = (c) => mix(c, P.sky, hz);
+  return {
+    walls: [w(0xd8b078), w(0xc89060), w(0xe8d4a8), w(0xd0a070), w(0xb8a088)],
+    roofCols: [w(0xb85a34), w(0xa04a2e), w(0xc86a40)],
+    glass: w(0x3a3040),
+  };
+}
 
 // the scroll factor each building row is painted for (the depth rule); a
 // dream places the layer at this f (src/data/scale.js BACKDROP_ROWS)
-export const ROW_S = { city: 0.12, rain_city: 0.12, theatre: 0.3, fire_escape: 0.5 };
+export const ROW_S = { city: 0.12, rain_city: 0.12, theatre: 0.3, fire_escape: 0.5, rn_skyline: 0.12, rn_row: 0.3 };
 
 function rowCols(P) {
   const main = mix(P.house, P.sky, P.haze ?? 0.15);
@@ -420,6 +527,11 @@ export function paintSky(sky) {
 export function paintLandmark(kind, P) {
   const key = `lm|${kind}|${JSON.stringify(P)}`;
   if (cache.has(key)) return cache.get(key);
+  if (RN_LANDMARKS[kind]) {
+    const c = RN_LANDMARKS[kind](P);
+    cache.set(key, c);
+    return c;
+  }
   const c = cv(220, 420);
   const ctx = c.getContext('2d');
   if (kind === 'bell_tower') {
@@ -457,3 +569,207 @@ export function paintLandmark(kind, P) {
   cache.set(key, c);
   return c;
 }
+
+// ---- Fioralba's landmarks (THE MASTER'S LADDER), painted at s 0.12 ----------
+// k = 44 × 0.12 px a metre: the campanile is 84 m, the cathedral's dome is
+// half built in its timber centering, a treadwheel crane on the works.
+const LK = 44 * 0.12;
+const RN_LANDMARKS = {
+  campanile(P) {
+    const W = 120;
+    const H = Math.round(86 * LK) + 4;
+    const c = cv(W, H);
+    const ctx = c.getContext('2d');
+    const tw = 12 * LK;
+    const x0 = (W - tw) / 2;
+    const stone = mix(0xe8dcc0, P.sky, 0.28);
+    const band = mix(0x7a9a7a, P.sky, 0.3);
+    const rose = mix(0xd8a090, P.sky, 0.3);
+    const top = H - 72 * LK;
+    // the shaft: stone in courses, banded every storey, lit on the west
+    ctx.fillStyle = hex(stone);
+    ctx.fillRect(x0, top, tw, H - top);
+    for (let y = top + 6; y < H; y += 9 * LK) {
+      ctx.fillStyle = hex(band);
+      ctx.fillRect(x0, y, tw, 2);
+      ctx.fillStyle = hex(rose);
+      ctx.fillRect(x0 + 3, y + 6, tw - 6, 1);
+    }
+    ctx.fillStyle = rgba(P.rim ?? P.light, 0.3);
+    ctx.fillRect(x0, top, 2, H - top);
+    ctx.fillStyle = rgba(P.deep, 0.22);
+    ctx.fillRect(x0 + tw - 4, top, 4, H - top);
+    // windows growing larger toward the top: single, paired, the open belfry
+    const arch = (x, y, w, h) => {
+      ctx.fillStyle = hex(mix(P.deep, P.sky, 0.25));
+      ctx.fillRect(x, y + w / 2, w, h - w / 2);
+      ctx.beginPath();
+      ctx.arc(x + w / 2, y + w / 2, w / 2, Math.PI, 0);
+      ctx.fill();
+    };
+    arch(x0 + tw / 2 - 2, H - 34 * LK, 4, 12);
+    arch(x0 + tw / 2 - 6, H - 50 * LK, 4, 16);
+    arch(x0 + tw / 2 + 2, H - 50 * LK, 4, 16);
+    arch(x0 + 6, top + 8, tw / 2 - 9, 34);
+    arch(x0 + tw / 2 + 3, top + 8, tw / 2 - 9, 34);
+    // the bell, dark in the belfry
+    ctx.fillStyle = hex(mix(0xb08a3a, P.sky, 0.3));
+    ctx.beginPath();
+    ctx.arc(x0 + tw / 2, top + 30, 5, Math.PI, 0);
+    ctx.fill();
+    // the cornice and the low terracotta spire
+    ctx.fillStyle = hex(mix(stone, 0xffffff, 0.15));
+    ctx.fillRect(x0 - 4, top - 4, tw + 8, 5);
+    ctx.fillStyle = hex(mix(0xb85a34, P.sky, 0.3));
+    ctx.beginPath();
+    ctx.moveTo(x0 - 2, top - 4);
+    ctx.lineTo(W / 2, top - 12 * LK);
+    ctx.lineTo(x0 + tw + 2, top - 4);
+    ctx.fill();
+    ctx.fillStyle = rgba(P.rim ?? P.light, 0.25);
+    ctx.beginPath();
+    ctx.moveTo(x0 - 2, top - 4);
+    ctx.lineTo(W / 2, top - 12 * LK);
+    ctx.lineTo(W / 2, top - 4);
+    ctx.fill();
+    grain(ctx, 0, 0, W, H, 0.05, 3);
+    return c;
+  },
+  dome_works(P) {
+    const W = 340;
+    const H = 440;
+    const c = cv(W, H);
+    const ctx = c.getContext('2d');
+    const k = LK;
+    const cx = W * 0.56;
+    const marble = mix(0xf0e8d8, P.sky, 0.25);
+    const green = mix(0x5a7a6a, P.sky, 0.3);
+    const brick = mix(0xc0623a, P.sky, 0.28);
+    const deep = mix(P.deep, P.sky, 0.35);
+    // the nave's long roof (left) and the tribunes round the crossing
+    const naveTop = H - 14 * k;
+    ctx.fillStyle = hex(marble);
+    ctx.fillRect(0, naveTop, cx - 20 * k, H - naveTop);
+    for (let x = 4; x < cx - 20 * k; x += 7 * k) {
+      ctx.fillStyle = hex(green);
+      ctx.fillRect(x, naveTop + 4, 1.5, H - naveTop - 4);
+    }
+    ctx.fillStyle = hex(brick);
+    ctx.beginPath();
+    ctx.moveTo(-4, naveTop);
+    ctx.lineTo(cx - 20 * k, naveTop - 6 * k);
+    ctx.lineTo(cx - 20 * k, naveTop);
+    ctx.fill();
+    for (const dx of [-24, 24]) {
+      const tx = cx + dx * k;
+      ctx.fillStyle = hex(marble);
+      ctx.fillRect(tx - 8 * k, H - 18 * k, 16 * k, 18 * k);
+      ctx.fillStyle = hex(brick);
+      ctx.beginPath();
+      ctx.arc(tx, H - 18 * k, 8 * k, Math.PI, 0);
+      ctx.fill();
+    }
+    // the octagonal drum: two faces in light, one in shade, round windows
+    const dw = 44 * k;
+    const dTop = H - 18 * k - 14 * k;
+    ctx.fillStyle = hex(marble);
+    ctx.fillRect(cx - dw / 2, dTop, dw, 14 * k + 2);
+    ctx.fillStyle = rgba(P.deep, 0.18);
+    ctx.fillRect(cx + dw * 0.18, dTop, dw * 0.32, 14 * k + 2);
+    ctx.fillStyle = hex(green);
+    for (const fx of [-0.5, -0.18, 0.18, 0.5]) ctx.fillRect(cx + fx * dw - 1, dTop, 2, 14 * k);
+    for (const fx of [-0.34, 0, 0.34]) {
+      ctx.fillStyle = hex(deep);
+      ctx.beginPath();
+      ctx.arc(cx + fx * dw, dTop + 7 * k, 2.6 * k, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = hex(marble);
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+    // the dome as far as it is built: a pointed shell in brick herringbone,
+    // white ribs, the top edge ragged where the courses stop
+    const full = 36 * k;
+    const built = 0.62;
+    const yAt = (t) => dTop - full * t; // t: 0 at the drum, 1 at the eye
+    const halfAt = (t) => (dw / 2) * Math.sqrt(Math.max(0, 1 - t * t)) * (1 - 0.15 * t);
+    ctx.fillStyle = hex(brick);
+    ctx.beginPath();
+    ctx.moveTo(cx - dw / 2, dTop);
+    for (let t = 0; t <= built; t += 0.02) ctx.lineTo(cx - halfAt(t), yAt(t));
+    for (let x = -1; x <= 1; x += 0.1) ctx.lineTo(cx + x * halfAt(built), yAt(built) + (Math.abs(Math.sin(x * 9)) * 3));
+    for (let t = built; t >= 0; t -= 0.02) ctx.lineTo(cx + halfAt(t), yAt(t));
+    ctx.closePath();
+    ctx.fill();
+    ctx.save();
+    ctx.clip();
+    ctx.fillStyle = rgba(P.deep, 0.2);
+    ctx.fillRect(cx + 4 * k, 0, W, H);
+    ctx.strokeStyle = rgba(0x6a2a1a, 0.35);
+    ctx.lineWidth = 1;
+    for (let y = dTop; y > yAt(built) - 4; y -= 3) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y + ((y / 3) % 2 ? 2 : -2));
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.strokeStyle = hex(marble);
+    ctx.lineWidth = 2.5;
+    for (const fx of [-1, -0.45, 0, 0.45, 1]) {
+      ctx.beginPath();
+      for (let t = 0; t <= built; t += 0.02) {
+        const px = cx + fx * halfAt(t) * (Math.abs(fx) === 1 ? 0.98 : 1);
+        if (t === 0) ctx.moveTo(px, yAt(t));
+        else ctx.lineTo(px, yAt(t));
+      }
+      ctx.stroke();
+    }
+    // the timber centering and scaffold standing in the open top
+    const wood = mix(0x8a6a3a, P.sky, 0.25);
+    const yB = yAt(built);
+    const hb = halfAt(built);
+    ctx.strokeStyle = hex(wood);
+    ctx.lineWidth = 1.2;
+    for (let x = -hb; x <= hb; x += 3 * k) {
+      ctx.beginPath();
+      ctx.moveTo(cx + x, yB + 2);
+      ctx.lineTo(cx + x * 0.6, yB - 9 * k);
+      ctx.stroke();
+    }
+    for (let y = yB; y > yB - 10 * k; y -= 3 * k) {
+      ctx.beginPath();
+      ctx.moveTo(cx - hb * 0.9, y);
+      ctx.lineTo(cx + hb * 0.9, y);
+      ctx.stroke();
+    }
+    // the treadwheel crane: a mast, a jib, the wheel, the rope and a stone
+    const mx = cx - 4 * k;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(mx, yB);
+    ctx.lineTo(mx, yB - 22 * k);
+    ctx.lineTo(mx + 16 * k, yB - 20 * k);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(mx - 3 * k, yB - 6 * k, 4 * k, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(mx + 16 * k, yB - 20 * k);
+    ctx.lineTo(mx + 16 * k, yB - 8 * k);
+    ctx.stroke();
+    ctx.fillStyle = hex(marble);
+    ctx.fillRect(mx + 16 * k - 3, yB - 8 * k, 6, 4);
+    // light from the west on the whole mass
+    ctx.globalCompositeOperation = 'source-atop';
+    const g = ctx.createLinearGradient(0, 0, W, 0);
+    g.addColorStop(0, rgba(P.rim ?? P.light, 0.22));
+    g.addColorStop(0.6, rgba(P.rim ?? P.light, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+    grain(ctx, 0, 0, W, H, 0.05, 7);
+    return c;
+  },
+};
