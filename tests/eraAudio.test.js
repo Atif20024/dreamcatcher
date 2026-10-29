@@ -23,10 +23,12 @@ describe('era ambience loops (offline render)', () => {
   it('never clips (peak ≤ -6 dBFS), is never silent, has no NaN', () => {
     for (const [k, buf] of Object.entries(rendered)) {
       let peak = 0;
+      let finite = true;
       for (const v of buf) {
-        expect(Number.isFinite(v), k).toBe(true);
+        if (!Number.isFinite(v)) finite = false;
         peak = Math.max(peak, Math.abs(v));
       }
+      expect(finite, k).toBe(true);
       expect(peak, `${k} peak`).toBeLessThanOrEqual(0.5001);
       expect(rms(buf), `${k} rms`).toBeGreaterThan(0.004);
       expect(buf.length / SR, `${k} length`).toBeGreaterThan(5);
