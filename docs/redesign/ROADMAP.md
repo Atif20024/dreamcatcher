@@ -28,13 +28,7 @@ Updated 2026-10-29 after the owner's change of direction. The owner's words over
 - The game fills the browser window.
 
 ## In progress
-- **Feedback 3** covers:
-  - Jo's glow, which becomes a short locator instead
-  - quieter music, with volume sliders
-  - restart options: from the checkpoint, the room or the dream
-  - readable notes
-  - smaller dialogue text and a lighter HUD
-  - jumping off a ladder mid-climb
+- Nothing. Feedback 3 is done (see round2/FEEDBACK3_REPORT.md). Open issue: on the painter's daylight street, Jo's contrast is 2.7:1, below the 3:1 target; recolouring his coat would fix it.
 
 ## Next, in order
 The build order follows `advice/lead_design_review.md` §5. One agent at a time.
