@@ -21,31 +21,40 @@ Updated 2026-10-29 after the owner's change of direction. The owner's words over
 - THE STOPPED HOUR, the clockmaker dream, on platform 9. This is the pattern the owner likes.
 - THE BIG STAGE, the Musician, on platform 2. This is the reference rebuild.
 
+## Done since
+- Painter: THE MASTER'S LADDER (Renaissance) on platform 5.
+- Audio pass: a master chain, a band per place, ambience, chatter and acoustics.
+- The game fills the browser window.
+
 ## In progress
-1. **Painter: done.** THE MASTER'S LADDER is on platform 5. See round2/PAINTER_REPORT.md.
-   - Jo goes from apprentice to the guild to a commission.
-   - It ends in a public competition against an invented rival master.
-   - It has era music and ambience per room.
+- **Feedback 3** covers:
+  - Jo's glow, which becomes a short locator instead
+  - quieter music, with volume sliders
+  - restart options: from the checkpoint, the room or the dream
+  - readable notes
+  - smaller dialogue text and a lighter HUD
+  - jumping off a ladder mid-climb
 
 ## Next, in order
-2. **Audio pass for the whole game.**
-   - Music by dream, era and inside/outside for every place: the station, every dream and the Evening.
-   - Ambience loops: station announcements and crowd, rain, traffic, kitchen clatter, casino chatter, the hum of a space station, birds, bells.
-   - One-off sounds tied to things in the world, by distance: a pigeon flaps, a door creaks, NPCs talk in short bursts as Jo passes.
-   - A mix check by offline render: loudness per bus and no clipping.
-3. **Chef** rebuilt to the bar. The dream moves from the dining room through the kitchen to the cold store, with era and place detail.
-4. **Writer** rebuilt to the bar: the flat, the stairwell, the publisher's office.
-5. **Astronaut** rebuilt to the bar: station corridors, the airlock, the hull.
-6. **Gambler** rebuilt to the bar: the casino floor, the back office, the vault.
-7. **Station and onboarding (phase 4).** The station's opening, its dreamcatcher, Jo's back-view walk, and per-room flip-board titles.
-8. **The Long Evening (phase 6)** to the bar.
-   - Check the gaps at walking speed.
-   - Swap the turnstile's old fade for the train wipe.
-   - Let windows and stoves glow through the night grade.
-9. **Polish and release (phase 7).**
-   - A full scenario run.
-   - The owner's play-through of every dream.
-   - Performance checks on the 8 GB machine.
+The build order follows `advice/lead_design_review.md` §5. One agent at a time.
+
+| # | Build | Size |
+|---|---|---|
+| 1 | Astronaut track hotfix: the stairs, the track deck, real medicine balls, the poster, the g0 hint, the HUD stat block | S |
+| 2 | Readability and object lint: no bare shapes at gameplay depths; redraw the top 10; signs clamped to their rooms | S |
+| 3 | Lamp checkpoint at every room entrance; check the restart options from Feedback 3 | S |
+| 4 | HUD diet, framework-wide | M |
+| 5 | Clockmaker grows to six areas | M |
+| 6 | Chef rebuild: the ticket rail as the verb | L |
+| 7 | Astronaut rebuild: one circuit, the Board, the grey year, sim, EVA, the moon | L |
+| 8 | Writer rebuild: keep the pen | L |
+| 9 | Gambler rebuild: two games, the comp lounge, walking away as the catch | L |
+| 10 | Musician polish (busking, the road, Marcus sits) and painter polish | M |
+| 11 | Hub between dreams: lamps for each catch, people on benches | M |
+| 12 | The Evening payoff: the people from caught dreams appear in the town | M |
+| 13 | Polish and release: a full scenario run, the owner's play-through, performance | M |
+
+Each rebuild starts with a short advisor note on the career, as the painter's did.
 
 ## Open from earlier reports
 - The night grade dims shop windows and stoves. Lights need to be exempt from it.
