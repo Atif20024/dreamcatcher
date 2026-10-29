@@ -69,8 +69,8 @@ export default {
     { type: 'foe', kind: 'rival', x: 24, y: 15, patrol: [19, 35] },
     { type: 'foe', kind: 'rival', x: 33, y: 10, patrol: [27, 32] },
     // the guild's chain across the gate to the square
-    { type: 'gate', id: 'g_chain', x: 64, y: 10, h: 6, requires: ['assistant'], hint: "THE GUILD'S CHAIN: MASTERS' MEN ONLY" },
-    { type: 'portal', id: 'via>piazza', kind: 'seam', x: 69, y: 15, to: { room: 'piazza', portal: 'piazza<via' }, seam: { prop: 'city_arch', width: 240 } },
+    { type: 'gate', id: 'g_chain', x: 62, y: 10, h: 6, requires: ['assistant'], hint: "THE GUILD'S CHAIN: MASTERS' MEN ONLY" },
+    { type: 'portal', id: 'via>piazza', kind: 'seam', x: 69, y: 15, to: { room: 'piazza', portal: 'piazza<via' }, seam: { prop: 'city_arch' } },
     // giglio coins: a breadcrumb by the colour-seller; the high road over
     // the pentices, the balcony, and an arc over the rivals' barrels
     { type: 'coin', id: 'c_door', x: 45, y: 14 },

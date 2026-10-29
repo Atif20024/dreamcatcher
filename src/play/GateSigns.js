@@ -41,7 +41,14 @@ export default class GateSigns {
     return sign;
   }
 
-  update(gates, flags) {
+  // shown: the room on screen (DreamScene). A sign stands on its gate's
+  // approach side, in the gate's room: past a seam frame, in the next room,
+  // it is not drawn (the camera can still see a sliver of that side)
+  update(gates, flags, shown = null) {
+    for (const s of this.signs.values()) {
+      const vis = !shown || !s.g.room || s.g.room === shown;
+      for (const o of s.objs) o.setVisible(vis);
+    }
     for (const g of gates) {
       if (!g.hint || !(g.requires && g.requires.length)) continue;
       const sign = this.signs.get(g.id) || this.make(g);

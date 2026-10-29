@@ -34,3 +34,6 @@ SCENARIOS.push(...painter);
 // feedback 3: restarts, volumes, the reading panel, Jo's light and locator, ladder jumps
 import feedback3 from './feedback3.js';
 SCENARIOS.push(...feedback3);
+// room transitions: a dip through dark inside a drawn frame, never a blend
+import transitions from './transitions.js';
+SCENARIOS.push(...transitions);

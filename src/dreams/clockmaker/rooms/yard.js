@@ -43,7 +43,7 @@ export default {
   objective: 'catch_dream',
   titleCard: 'THE BELL YARD',
   entities: [
-    { type: 'portal', id: 'yard<green', kind: 'seam', x: 0, y: 15, to: { room: 'green', portal: 'green>yard' }, seam: { prop: 'fence', width: 260 } },
+    { type: 'portal', id: 'yard<green', kind: 'seam', x: 0, y: 15, to: { room: 'green', portal: 'green>yard' }, seam: { prop: 'yard_lychgate' } },
     { type: 'checkpoint', id: 'cp_yard', label: 'THE BELL YARD', x: 5, y: 15 },
     // coins: a hop at the foot of the hill, and the hilltop behind the bell
     { type: 'coin', id: 'c_hop1', x: 4, y: 13 },

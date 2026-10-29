@@ -1,5 +1,7 @@
-// F#4 / T2a / F§5.2: room transitions are a continuous blend driven by the
-// camera centre, never a swap.
+// F#4 / T2a / F§5.2: the legacy scenes' room transitions, a continuous blend
+// driven by the camera centre. The station and the framework dreams no longer
+// blend at all (a dip through dark inside a drawn frame): transitions.js
+// asserts that instead.
 //   background-snap     walking left out of the gambler's floor, no parallax
 //                       layer moves more than 8 px between frames
 //   blend-continuity    the camera crosses every room boundary in each place;
@@ -9,7 +11,6 @@
 //                       never changes the committed room
 const T = 32;
 const DREAMS = [
-  ['hub', null],
   ['chef', null],
   ['musician_legacy', null],
   ['astronaut', null],

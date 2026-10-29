@@ -49,7 +49,7 @@ export default {
   ],
   titleCard: 'THE PIAZZA',
   entities: [
-    { type: 'portal', id: 'piazza<via', kind: 'seam', x: 0, y: 15, to: { room: 'via', portal: 'via>piazza' }, seam: { prop: 'city_arch', width: 240 } },
+    { type: 'portal', id: 'piazza<via', kind: 'seam', x: 0, y: 15, to: { room: 'via', portal: 'via>piazza' }, seam: { prop: 'city_arch' } },
     { type: 'checkpoint', id: 'cp_piazza', label: 'THE PIAZZA', x: 4, y: 15 },
     { type: 'portal', id: 'piazza>guild', kind: 'door', x: 13, y: 15, to: { room: 'guild', portal: 'guild>piazza' }, door: { prompt: 'into the guild hall', fade: 260 } },
     { type: 'portal', id: 'piazza>palazzo', kind: 'door', x: 58, y: 15, to: { room: 'palazzo', portal: 'palazzo>piazza' }, door: { prompt: 'into Palazzo Bardelli', fade: 260, requires: ['seal'], locked: 'the palazzo receives masters', lockedLine: 'The doorkeeper looks at my hands. No seal, no door.' } },

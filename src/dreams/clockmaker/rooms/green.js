@@ -42,9 +42,10 @@ export default {
     { prop: 'bush', x: 39, y: 13, scale: 0.8 },
     { prop: 'well', x: 45, y: 16 },
     { prop: 'fence', x: 48, y: 16, dx: -8 },
-    { prop: 'bench', x: 8, y: 16, dx: 8 },
+    { prop: 'yard_lychgate', x: 52, y: 16 }, // the seam's frame, over g_yard's posts
+    { prop: 'bench', x: 11, y: 16 },
   ],
-  enclosure: { fgFoliage: [{ x: 50, w: 6 }], frames: [] },
+  enclosure: { frames: [] },
   backdrop: { set: 'dusk_green', horizon: 16 },
   ambience: 'meadow_dusk',
   acoustics: 'open',
@@ -57,10 +58,10 @@ export default {
   ],
   titleCard: 'THE GREEN',
   entities: [
-    { type: 'portal', id: 'green<lane', kind: 'seam', x: 0, y: 15, to: { room: 'lane', portal: 'lane>green' }, seam: { prop: 'arch_hedge', width: 300 } },
-    { type: 'portal', id: 'green>yard', kind: 'seam', x: 55, y: 15, to: { room: 'yard', portal: 'yard<green' }, seam: { prop: 'fence', width: 260 } },
+    { type: 'portal', id: 'green<lane', kind: 'seam', x: 0, y: 15, to: { room: 'lane', portal: 'lane>green' }, seam: { prop: 'arch_hedge' } },
+    { type: 'portal', id: 'green>yard', kind: 'seam', x: 55, y: 15, to: { room: 'yard', portal: 'yard<green' }, seam: { prop: 'yard_lychgate' } },
     { type: 'portal', id: 'green>clock', kind: 'door', x: 33, y: 12, to: { room: 'clockhouse', portal: 'clock>green' }, door: { prompt: 'go in', fade: 250 } },
-    { type: 'checkpoint', id: 'cp_green', label: 'THE GREEN', x: 6, y: 15 },
+    { type: 'checkpoint', id: 'cp_green', label: 'THE GREEN', x: 8, y: 15 },
     { type: 'npc', id: 'wren', rig: 'wren', x: 18, y: 15, facing: -1, talk: [{ conv: 'wren_done', if: 'clock_wound' }, { conv: 'wren_after', if: 'met_wren' }, { conv: 'wren_first' }] },
     // coins: the high stone ledge west of the tree (a full jump), the far
     // end of the terrace past the clock house, an arc over the well

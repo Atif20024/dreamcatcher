@@ -3,6 +3,9 @@ import Player from '../entities/Player.js';
 import BaseLevel from './BaseLevel.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
 import Parallax from '../builders/parallax.js';
+import { doorway } from '../builders/hubThresholds.js';
+import { frameCrossing, sideOf, DIPS } from '../world/thresholds.js';
+import { dipThroughDark } from '../world/TransitionDirector.js';
 import { D } from '../builders/depths.js';
 import hubRooms, { BAYS, bayIndex } from '../data/hub/rooms.js';
 import hubTiles from '../data/hub/tiles.js';
@@ -90,7 +93,9 @@ export default class HubScene extends BaseLevel {
 
     const built = RoomBuilder.build(this, hubRooms, hubTiles);
     this.built = built;
-    this.parallax = new Parallax(this, built.rooms);
+    // one room's backdrop at a time: it changes inside a doorway or an arch
+    // (buildThresholds), at the full dark of a short dip
+    this.parallax = new Parallax(this, built.rooms, { cut: true });
     // the station has an undercroft under its floor: the backdrops hang from
     // the concourse (rooms.js says where), not from the lowest solid row
     for (const r of built.rooms) if (r.horizon) r._horizon = r.horizon;
@@ -132,6 +137,7 @@ export default class HubScene extends BaseLevel {
     this.buildHall();
     this.buildPlatforms();
     this.buildGate();
+    this.buildThresholds();
     this.buildUndercroft();
     this.buildRoof();
     this.buildTravelers();
@@ -162,6 +168,91 @@ export default class HubScene extends BaseLevel {
     // the place's name on the board (WP6, §9): not over the opening (it has
     // its own) and not over a train coming home
     if (!this.returnedFrom && !this.firstVisit) this.placeBoard = boardTitle(this, 'CROSSROADS STATION', { sub: "NINE O'CLOCK", y: 64, place: 'hub', hold: 1800 });
+  }
+
+  // ---- thresholds: the screen changes rooms only inside a frame ----------
+  // (room transitions advice). The front doorway (outside to inside), the
+  // brick arch onto the platforms and the one to the service gate (room to
+  // room) each dip through dark as Jo walks through, never locked. The two
+  // platform rooms are one train shed: they meet with no frame and no dip.
+  buildThresholds() {
+    const rooms = this.built.rooms;
+    const id = (k) => rooms[k].id;
+    const edge = (k) => rooms[k]._x0 * T;
+    const door = this.hallEntryX;
+    const shed = edge(2) - 32; // the hall's end wall: the buffer stops of bay 1 stand against it
+    const gate = edge(4);
+    // below the roof only: on the leads Jo is outside every room
+    const band = { y0: ROOF + T };
+    this.hubFrames = [
+      { x: door, left: 'steps', right: 'hall', dip: DIPS.inout, ...band },
+      { x: shed, left: id(1), right: id(2), dip: DIPS.inin, ...band },
+      { x: edge(3), left: id(2), right: id(3), open: true },
+      { x: gate, left: id(3), right: id(4), dip: DIPS.inin, ...band },
+    ];
+    const bottom = this.built.worldH + 200;
+    const top = ROOF + T;
+    // the concourse doorway: 1.45 m × 3.4 m; under the floor, the
+    // undercroft's passage runs on through a low arch (1.1 m × 2.7 m)
+    const door1 = { floor: FLOOR, w: 64, h: 150 };
+    const under = { floor: UNDER, w: 48, h: 120 };
+    this.walls = [
+      { frame: this.hubFrames[0], d: doorway(this, { x: door, top, bottom, openings: [door1], left: 'stationFront', right: 'hallFront' }) },
+      { frame: this.hubFrames[1], d: doorway(this, { x: shed, top, bottom, openings: [door1, under], left: 'hallEnd', right: 'shedEnd' }) },
+      { frame: this.hubFrames[3], d: doorway(this, { x: gate, top, bottom, openings: [door1, under], left: 'shedGate', right: 'gateBack' }) },
+    ];
+    this.dips = 0;
+    // Phaser reuses the scene: nothing from the last visit (its rooms, a dip
+    // cut short by a warp) carries over
+    this._room = null;
+    this._lastJo = null;
+    this.dipping = null;
+  }
+
+  // the room on screen (its backdrop, its sound, which face of each wall
+  // shows); called at the full dark of a dip, or at once for a fresh placement
+  enterHubRoom(room) {
+    const was = this._room;
+    this._room = room;
+    this.parallax.setRoom(room);
+    const k = this.built.rooms.indexOf(room);
+    for (const w of this.walls || []) w.d.setSide(k <= this.built.rooms.findIndex((r) => r.id === w.frame.left) ? 'left' : 'right');
+    if (room !== was) {
+      this.enterAudioRoom(room);
+      if (was && this.player.locate) this.player.locate('room', room.id);
+    }
+  }
+
+  updateThreshold() {
+    const p = this.player;
+    const rooms = this.built.rooms;
+    const byId = (id) => rooms.find((r) => r.id === id);
+    // (Jo's last place is kept through a dip: a move made under it still counts)
+    if (this.dipping) return;
+    const moved = this._lastJo ? Math.abs(p.x - this._lastJo.x) + Math.abs(p.y - this._lastJo.y) : 0;
+    this._lastJo = { x: p.x, y: p.y };
+    // a fresh placement (the scene starting, a dream's return, a big move):
+    // the side of the frames Jo stands on, at once
+    if (!this._room || moved > 4 * T) {
+      const side = byId(sideOf(this.hubFrames, p.x, p.y, null)) || RoomBuilder.roomAt(rooms, p.x);
+      if (side !== this._room) this.enterHubRoom(side);
+      return;
+    }
+    const f = frameCrossing(this.hubFrames, p.x, p.y, this._room.id);
+    if (!f) return;
+    if (f.open) return this.enterHubRoom(byId(f.to));
+    // only on the ground: a jump through the doorway waits for the landing
+    if (!(p.body.blocked.down || p.climbing)) return;
+    this.dipping = f;
+    dipThroughDark(
+      this,
+      f.dip,
+      () => {
+        this.dips += 1;
+        this.enterHubRoom(byId(f.to));
+      },
+      () => (this.dipping = null)
+    );
   }
 
   // ---- helpers ------------------------------------------------------------
@@ -405,9 +496,11 @@ export default class HubScene extends BaseLevel {
     // the way down: an open grate in the floor, a sign, and a prompt
     const hatchX = px(77);
     this.add.image(hatchX, FLOOR + 3, hubTex(this, 'grate', 38, 12)).setDepth(D.TERRAIN + 1);
-    this.add.image(hatchX + 36, FLOOR - 30, hubTex(this, 'signpost', 4, 60)).setDepth(D.INTERACT - 3);
-    this.add.image(hatchX + 36, FLOOR - 58, hubTex(this, 'signboard', 120, 24)).setDepth(D.INTERACT - 3);
-    uiText(this, hatchX + 36, FLOOR - 59, '\u2193 LEFT LUGGAGE', { fontSize: '9px', color: '#f2e6cc', backing: 0x2e3a52 })
+    // (the sign stands on the hall side of the grate: the end wall's doorway
+    // is just past it)
+    this.add.image(hatchX - 40, FLOOR - 30, hubTex(this, 'signpost', 4, 60)).setDepth(D.INTERACT - 3);
+    this.add.image(hatchX - 40, FLOOR - 58, hubTex(this, 'signboard', 120, 24)).setDepth(D.INTERACT - 3);
+    uiText(this, hatchX - 40, FLOOR - 59, '\u2193 LEFT LUGGAGE', { fontSize: '9px', color: '#f2e6cc', backing: 0x2e3a52 })
       .setOrigin(0.5)
       .setDepth(D.INTERACT - 2);
     this.hatchPrompt = uiText(this, hatchX, FLOOR - 40, '[\u2193] down', { fontSize: '12px', color: '#88b8d8', backgroundColor: '#14101c' })
@@ -1255,7 +1348,8 @@ export default class HubScene extends BaseLevel {
     }
 
     // the opening: crossing the door on the first visit
-    if (this.firstVisit && !this.openingDone && p.x > this.hallEntryX) this.opening();
+    // (inside: the vista only after the doorway's dip has come back up)
+    if (this.firstVisit && !this.openingDone && !this.dipping && this._room && this._room.id === 'hall' && p.x > this.hallEntryX) this.opening();
     // H2: Pemberton never takes control by proximity. Walking past, he
     // looks up and calls once; the conversation opens on [E] (talkPemberton).
     const pem = this.npcs.pemberton;
@@ -1387,11 +1481,8 @@ export default class HubScene extends BaseLevel {
     this.queue.update(dt);
     if (this.rain) this.rain.setVisible(p.x < px(40));
     if (this.updateMusicRoom) {
-      const cam = this.cameras.main;
-      const was = this._room;
-      this._room = this._room ? RoomBuilder.roomAtCamera(this.built.rooms, cam.scrollX + cam.width / 2, this._room) : RoomBuilder.roomAt(this.built.rooms, p.x);
-      if (this._room !== was) this.enterAudioRoom(this._room);
-      this.parallax.update(); // continuous blend from the camera centre
+      this.updateThreshold();
+      this.parallax.update(); // the room on screen, alone
     }
     if (this.placeAudio) this.placeAudio.update(time);
     if (this.look) this.look.update(time, delta, null);

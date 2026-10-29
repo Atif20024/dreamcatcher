@@ -1,14 +1,16 @@
 // CameraDirector (plan 2.12): the camera as data. A base follow shot
 // (look-ahead in the facing/moving direction, a vertical bias so Jo sits low
-// in frame, eased) clamped to the current room — or, across a seam, to the
-// two rooms' rects blended on the RoomGraph's t, so the clamp never snaps.
+// in frame, eased) clamped to the current room: across to the far faces of
+// the seam frames it meets (RoomGraph.viewX: the next room never shows past
+// a frame), in y to the room itself. The room only changes at the full dark
+// of a frame's dip, so the clamp and the zoom snap there, unseen (snap()).
 // Pushed shots sit on top (talk push-in, vista pull-out, encounter close-up,
 // the ending), each eased in and out by its weight.
 //
 //   cam.push({ zoom: 1.3, focus: {x,y} | () => ({x,y}), ms: 600 }) → handle
 //   cam.pop(handle, ms)
 //   cam.snap()      after a teleport (door, respawn)
-// Zoom = base zoom (dream profile) × room zoom (lerped on t) × shots.
+// Zoom = base zoom (dream profile) × room zoom × shots.
 
 const ease = (u) => (u < 0.5 ? 2 * u * u : 1 - (-2 * u + 2) ** 2 / 2);
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -48,9 +50,11 @@ export class CameraDirector {
     for (const h of this.shots) this.pop(h, ms);
   }
 
-  snap() {
+  // keepLook: a walk through a frame (Jo is still moving the same way, so
+  // the look-ahead carries on instead of easing back out after the dip)
+  snap({ keepLook = false } = {}) {
     this.pos = null;
-    this.look = 0;
+    if (!keepLook) this.look = 0;
   }
 
   focusOf(h) {
@@ -58,25 +62,15 @@ export class CameraDirector {
     return typeof h.focus === 'function' ? h.focus() : h.focus;
   }
 
-  // the clamp rect: the room, or across a seam both rooms blended on t
-  bounds(roomId, blend) {
+  // the clamp rect: out to the room's frames across, the room up and down
+  bounds(roomId) {
     const g = this.graph;
-    const rect = (id) => {
-      const r = g.room(id);
-      return { x0: r.x0, y0: r.y0, x1: r.x1, y1: r.y1 };
-    };
-    if (blend) {
-      const A = rect(blend.a);
-      const B = rect(blend.b);
-      const z = g.zoneRect(blend.a);
-      return { x0: z.x0, x1: z.x1, y0: lerp(A.y0, B.y0, blend.t), y1: lerp(A.y1, B.y1, blend.t) };
-    }
-    const r = rect(roomId);
-    const z = g.zoneRect(roomId);
-    return { x0: z.x0, x1: z.x1, y0: r.y0, y1: r.y1 };
+    const r = g.room(roomId);
+    const v = g.viewX(roomId);
+    return { x0: v.x0, x1: v.x1, y0: r.y0, y1: r.y1 };
   }
 
-  update(dt, { roomId, blend, roomZoom = 1, frozen = false } = {}) {
+  update(dt, { roomId, roomZoom = 1, frozen = false } = {}) {
     const now = this.scene.time.now;
     // shot weights
     for (const h of this.shots) {
@@ -108,8 +102,8 @@ export class CameraDirector {
       this.pos.x += (fx - this.pos.x) * k;
       this.pos.y += (fy - this.pos.y) * Math.min(1, dt / 160);
     }
-    // clamp the view inside the room (or blended rooms)
-    const b = this.bounds(roomId, blend);
+    // clamp the view inside the room
+    const b = this.bounds(roomId);
     // never show the void past a small room: zoom in until the room fills the view
     zoom = Math.max(zoom, this.cam.height / Math.max(1, b.y1 - b.y0), this.cam.width / Math.max(1, b.x1 - b.x0));
     const hw = this.cam.width / (2 * zoom);

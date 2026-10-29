@@ -58,6 +58,6 @@ export default {
     { type: 'coin', id: 'c_dip1', x: 37, y: 13 },
     { type: 'coins', id: 'c_dip2', x: 38, y: 12, n: 3 },
     { type: 'coin', id: 'c_dip3', x: 41, y: 13 },
-    { type: 'portal', id: 'lane>green', kind: 'seam', x: 43, y: 15, to: { room: 'green', portal: 'green<lane' }, seam: { prop: 'arch_hedge', width: 300 } },
+    { type: 'portal', id: 'lane>green', kind: 'seam', x: 43, y: 15, to: { room: 'green', portal: 'green<lane' }, seam: { prop: 'arch_hedge' } },
   ],
 };

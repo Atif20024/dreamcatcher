@@ -46,7 +46,7 @@ const ROOMS = [
       { type: 'door', x: 22, y: 25, chained: false },
       { type: 'door', x: 25, y: 25, chained: true },
       { type: 'clock', x: 14, y: 3 },
-      { type: 'hall_entry', x: 26, y: 25 },
+      { type: 'hall_entry', x: 29, y: 25 }, // the front doorway (HubScene.buildThresholds)
     ],
   },
   {

@@ -1064,9 +1064,15 @@ function horizonOf(room) {
 }
 
 export default class Parallax {
-  constructor(scene, rooms) {
+  // opts.cut (the station): no blend at all. The scene names the room on
+  // screen (setRoom, at the full dark of a doorway's dip) and only its set
+  // is shown; rooms that share one set (one long train shed) show their
+  // scenery and landmarks side by side, as the one place they are.
+  constructor(scene, rooms, { cut = false } = {}) {
     this.scene = scene;
     this.rooms = rooms;
+    this.cut = cut;
+    this.room = null;
     const cam = scene.cameras.main;
     this.camW = cam.width;
     this.camH = cam.height;
@@ -1260,13 +1266,28 @@ export default class Parallax {
     return d;
   }
 
+  // cut mode: the room on screen from now on (its horizon snaps: this is
+  // called with the screen dark)
+  setRoom(room) {
+    this.room = room;
+    this._hz = undefined;
+  }
+
+  // the same backdrop set: far, mid and near all match
+  sameSet(a, b) {
+    const x = a.bg || {};
+    const y = b.bg || {};
+    return ['far', 'mid', 'near'].every((k) => (x[k] || 'city') === (y[k] || 'city'));
+  }
+
   // Every frame, from the camera centre: no events, no tweens, no snaps.
   update() {
     const cam = this.scene.cameras.main;
     const cx = cam.scrollX + cam.width / 2;
     this.frames = (this.frames || 0) + 1; // the harness checks the blend is live
-    this.updateEdges(cam);
-    const { L, R, t } = (this.blend = this.blendAt(cx));
+    if (!this.cut) this.updateEdges(cam);
+    const shown = this.room || this.rooms[0];
+    const { L, R, t } = (this.blend = this.cut ? { L: shown, R: shown, t: 0 } : this.blendAt(cx));
     this.current = t < 0.5 ? L : R;
     const bl = L.bg || {};
     const br = R.bg || {};
@@ -1309,14 +1330,16 @@ export default class Parallax {
     }
 
     // scenery and landmarks: both rooms' sets live only inside the zone
+    // (cut: the room's own, and a same-set neighbour's at full strength)
+    const live = L === R ? [[L, 1]] : [[L, 1 - t], [R, t]];
+    if (this.cut) for (const r of this.rooms) if (r !== L && Math.abs(this.rooms.indexOf(r) - this.rooms.indexOf(L)) === 1 && this.sameSet(r, L)) live.push([r, 1]);
     for (const [room, d] of this.decor) {
-      if (room !== L && room !== R) {
+      if (!live.some(([r]) => r === room)) {
         d.scenery.destroy();
         if (d.landmark) d.landmark.destroy();
         this.decor.delete(room);
       }
     }
-    const live = L === R ? [[L, 1]] : [[L, 1 - t], [R, t]];
     for (const [room, k] of live) {
       const d = this.decorFor(room);
       d.scenery.setAlpha(HAZE.scenery * k);

@@ -2,7 +2,7 @@
 // DreamDefinition (src/dreams/<id>/dream.js). It hosts the phase-1 services
 // through BaseLevel (hearts, checkpoints, the death card, runs, pause, the
 // HUD on UIScene) and adds the phase-3 world: RoomGraph + RoomStreamer
-// (seams blend, doors fade), painted terrain baked to chunks, the
+// (seams dip through dark inside a drawn frame, doors fade), painted terrain baked to chunks, the
 // BackdropDirector, the CameraDirector, InputMap + gamepad, the caption bar
 // and scene box, barks, interaction, encounters, the BeatRunner, verb
 // modules, audio (stems, ambience, footsteps, stingers), the PerfMonitor and
@@ -17,6 +17,7 @@ import { frameworkDream } from '../dreams/index.js';
 import { RoomGraph } from '../world/RoomGraph.js';
 import { RoomStreamer, LAYER_DEPTH } from '../world/RoomStreamer.js';
 import { TransitionDirector } from '../world/TransitionDirector.js';
+import { DIPS } from '../world/thresholds.js';
 import { BackdropDirector } from '../world/BackdropDirector.js';
 import { CameraDirector } from '../world/CameraDirector.js';
 import { MaterialLibrary } from '../world/MaterialLibrary.js';
@@ -48,7 +49,7 @@ import { RunState } from '../play/RunState.js';
 import { getRun, clearRun } from '../utils/save.js';
 import { dreamById } from '../data/dreams.js';
 import { musicDirector, sfx } from '../systems/audio.js';
-import { paintProp } from '../art/props.js';
+import { paintProp, propDef } from '../art/props.js';
 import { hud } from '../ui/hud.js';
 import { uiText } from '../ui/text.js';
 import { boardTitle } from '../ui/BoardTitle.js';
@@ -106,7 +107,9 @@ export default class DreamScene extends BaseLevel {
     }
     const r = this.graph.room(roomId);
     const ents = r.data.entities || [];
-    const e = ents.find((x) => x.id === spawnId && (x.type === 'spawn' || x.type === 'checkpoint' || x.type === 'portal')) || ents.find((x) => x.type === 'spawn') || ents.find((x) => x.type === 'portal') || { x: 2, y: r.h - 5 };
+    // (a room with no spawn: a door, else its checkpoint, before a seam's
+    // portal, which sits at the room's edge on the far side of the seam's frame)
+    const e = ents.find((x) => x.id === spawnId && (x.type === 'spawn' || x.type === 'checkpoint' || x.type === 'portal')) || ents.find((x) => x.type === 'spawn') || ents.find((x) => x.type === 'portal' && x.kind !== 'seam') || ents.find((x) => x.type === 'checkpoint') || ents.find((x) => x.type === 'portal') || { x: 2, y: r.h - 5 };
     return { room: roomId, x: (r.tx + e.x) * T + T / 2, y: (r.ty + e.y) * T + T - 22 };
   }
 
@@ -126,7 +129,8 @@ export default class DreamScene extends BaseLevel {
     this.convSeen = new Set();
     this.inputs = attachInput(new InputMap());
     this.lib = new MaterialLibrary(def.materials || {}, def.decorRules || {});
-    this.graph = RoomGraph.fromDefinition(def);
+    // a seam frame's width from the prop library (the camera stops at its far face)
+    this.graph = RoomGraph.fromDefinition(def, { frameWidth: (name) => (propDef(name, def.props || {}) || {}).w });
     this.baker = new StaticBaker(this);
     const sp = this.startPoint();
     this.player = new Player(this, sp.x, sp.y);
@@ -255,6 +259,7 @@ export default class DreamScene extends BaseLevel {
     for (const v of this.verbs) if (v.mod.create) v.mod.create(v.ctx);
 
     this.roomId = null;
+    this._lastJo = null;
     this.commit(sp.room, { teleport: true });
     this.events.once('shutdown', () => this.teardown());
     if (def.onStart && this.beats.has(def.onStart)) this.beats.play(def.onStart).catch((e) => console.warn('[dream] beat', e));
@@ -351,8 +356,9 @@ export default class DreamScene extends BaseLevel {
   }
 
   // ---- rooms -----------------------------------------------------------------------
-  // the committed room changed (camera centre, with hysteresis) or a door/respawn moved us
-  commit(id, { teleport = false } = {}) {
+  // the committed room changed: Jo walked through a seam's frame (at the
+  // dip's full dark), or a door/respawn moved him
+  commit(id, { teleport = false, walk = false } = {}) {
     if (!id || id === this.roomId) return;
     const prev = this.roomId;
     this.roomId = id;
@@ -373,7 +379,7 @@ export default class DreamScene extends BaseLevel {
     buses.setWall((m && m.wall) || false, teleport);
     // the room's one-shots (room.events, else the place's own)
     if (this.placeAudio) this.placeAudio.setBed(r.data.events !== undefined ? r.data.events : PLACE_BED[placeOf(this)]);
-    if (teleport) this.camDir.snap();
+    if (teleport) this.camDir.snap({ keepLook: walk });
     // entering a room: the brief locator over Jo (feedback 3), not again
     // for a room he was in a moment ago
     if (prev && this.player && this.player.locate) this.player.locate('room', id);
@@ -732,6 +738,43 @@ export default class DreamScene extends BaseLevel {
     return false;
   }
 
+  // Rooms change where Jo walks through a seam's frame (an arch, a gate, an
+  // alley mouth): a short dip through dark, the swap at full dark, Jo never
+  // stopped. Only on the ground: a jump over the frame waits for the landing.
+  // A teleport (a respawn at a flag, a dev put) commits at once instead.
+  updateThreshold() {
+    const p = this.player;
+    // (Jo's last place is kept through a dip or a door: a move made under it still counts)
+    if (this.transitions.busy) return;
+    const moved = this._lastJo ? Math.hypot(p.x - this._lastJo.x, p.y - this._lastJo.y) : 0;
+    this._lastJo = { x: p.x, y: p.y };
+    const pr = this.graph.roomAt(p.x, p.y);
+    if (!pr) return;
+    if (!this.streamer.room(pr.id) || (pr.id !== this.roomId && (moved > 4 * T || !this.graph.zone(this.roomId).has(pr.id)))) {
+      // the side of a frame he landed on (between a seam's edge and its
+      // arch he is still in the room the arch belongs to)
+      const f = this.graph.seams().find((s) => (s.right === pr.id && p.x < s.x) || (s.left === pr.id && p.x > s.x));
+      const id = f ? (f.right === pr.id ? f.left : f.right) : pr.id;
+      this.streamer.focus(id);
+      this.commit(id, { teleport: true });
+      return;
+    }
+    const cross = this.graph.crossing(p.x, p.y, this.roomId);
+    if (!cross || !(p.body.blocked.down || p.climbing)) return;
+    this.transitions.walk(cross, (c) => this.commit(c.to, { teleport: true, walk: true }));
+  }
+
+  // the room past a frame Jo is walking up to (its backdrop is built early)
+  nearFrame() {
+    const p = this.player;
+    for (const f of this.graph.seams()) {
+      if (Math.abs(p.x - f.x) > 15 * T || p.y < f.y0 || p.y > f.y1) continue;
+      if (f.left === this.roomId) return f.right;
+      if (f.right === this.roomId) return f.left;
+    }
+    return null;
+  }
+
   // objectives, teach zones and gate signs follow the room Jo stands in
   updateRoomServices() {
     const pr = this.graph.roomAt(this.player.x, this.player.y);
@@ -748,7 +791,7 @@ export default class DreamScene extends BaseLevel {
     updateTeach(this, { id: pr.id, _x0: pr.tx });
     if (this.gates.length) {
       if (!this.gateSigns) this.gateSigns = new GateSigns(this);
-      this.gateSigns.update(this.gates, this.F);
+      this.gateSigns.update(this.gates, this.F, this.roomId);
     }
   }
 
@@ -762,17 +805,18 @@ export default class DreamScene extends BaseLevel {
     const cam = this.cameras.main;
     // the world keeps its look while anything modal is up
     const visuals = () => {
-      const blend = this.graph.blendAt(this.camDir.center ? this.camDir.center.x : this.player.x, this.player.y, this.roomId);
-      const rz = (id) => ((this.graph.room(id).data.camera || {}).zoom || 1);
-      const roomZoom = blend ? rz(blend.a) + (rz(blend.b) - rz(blend.a)) * blend.t : rz(this.roomId);
-      this.camDir.update(dt, { roomId: this.roomId, blend, roomZoom });
-      const c = this.camDir.center || { x: this.player.x, y: this.player.y };
-      this.commit(this.graph.commitRoom(c.x, c.y, this.roomId));
-      this.blend = blend;
-      this.backdrop.update(this.roomId, blend, time);
-      const amb = (id) => this.graph.room(id).data.ambience || this.def.ambientLoop || null;
-      if (blend) ambience.blend(amb(blend.a), amb(blend.b), blend.t);
-      else ambience.blend(amb(this.roomId), null, 0);
+      // one room on screen at a time: its zoom, its backdrop (the room past
+      // a frame Jo is near is built, unseen, so the swap never paints)
+      const roomZoom = (this.graph.room(this.roomId).data.camera || {}).zoom || 1;
+      this.camDir.update(dt, { roomId: this.roomId, roomZoom });
+      this.backdrop.update(this.roomId, time, this.nearFrame());
+      // the sound may cross where the picture may not: going in or out, the
+      // room's loop ducks on the way down; the next one rises after the swap
+      const amb = this.graph.room(this.roomId).data.ambience || this.def.ambientLoop || null;
+      const w = this.transitions.walking;
+      const duck = w && w.dip === DIPS.inout && w.from === this.roomId;
+      if (amb) ambience.set({ [amb]: duck ? 0 : 1 });
+      else ambience.set({});
       this.streamer.update(time);
       for (const w of [...this.watchers]) w();
       for (const n of this.npcs.values()) n.update(dt, this.player);
@@ -814,12 +858,7 @@ export default class DreamScene extends BaseLevel {
     for (const v of this.verbs) if (v.mod.update) v.mod.update(v.ctx, dt);
     this.interaction.update(!this.transitions.busy);
     this.barks.update(time);
-    // a teleport (respawn at a flag in another room): stream it in at once
-    const pr = this.graph.roomAt(this.player.x, this.player.y);
-    if (pr && !this.streamer.room(pr.id)) {
-      this.streamer.focus(pr.id);
-      this.commit(pr.id, { teleport: true });
-    }
+    this.updateThreshold();
     for (const g of this.gates) g.update(this.F);
     if (this.orb && !this.ending.active && Math.hypot(this.orb.x - this.player.x, this.orb.y - (this.player.y - 20)) < 48) this.endDream();
     // fell below the room: a heart, back to safe footing

@@ -4,8 +4,10 @@
 //                       (hops when blocked), talk to Wren with [E], the door,
 //                       climb to the clock, win the encounter, back out, the
 //                       gate opens, up the hill, catch the orb, return to the station
-//   clockmaker-seam-no-snap  walking lane → green: the camera, zoom and every backdrop
-//                       layer move continuously; the committed room flips once
+//   clockmaker-seam-dip  walking lane → green through the hedge arch: one dip
+//                       through dark, never two backdrops on screen, the room
+//                       flips once at full dark, the camera, zoom and layers
+//                       jump only under it, control never locked
 //   clockmaker-door          [E] at the clock house door fades through black into
 //                       the interior at the paired portal, and back out
 //   clockmaker-talk-on-e     standing beside Wren never opens the scene box (a bark
@@ -179,15 +181,22 @@ const playthrough = {
 };
 
 const seam = {
-  id: 'clockmaker-seam-no-snap',
+  id: 'clockmaker-seam-dip',
   async run(dc) {
     const s = await boot(dc);
     put(s, 34 * T, 14 * T + 10);
     await dc.run(40);
     const rooms = [];
-    let worst = { cam: 0, camY: 0, zoom: 0, layerY: 0, alpha: 0 };
+    const cam = s.cameras.main;
+    // per-frame changes seen with the screen up (fade < 0.99): the follow only
+    let worst = { cam: 0, camY: 0, zoom: 0, layerY: 0 };
     let prev = null;
     let both = 0;
+    let swapDark = 1;
+    let locked = 0;
+    let darkest = 0;
+    let prevDark = 0;
+    const dips0 = s.transitions.dips;
     dc.hold('right');
     let jumpUntil = -1;
     for (let f = 0; f < 260; f++) {
@@ -200,28 +209,33 @@ const seam = {
         jumpUntil = -1;
       }
       await dc.run(1);
+      const dark = cam.fadeEffect.alpha || 0;
+      darkest = Math.max(darkest, dark);
+      if (s.inputs.suspended) locked += 1;
       const c = s.camDir.center;
       const probe = s.backdrop.probe();
-      const cur = { x: c.x, y: c.y, zoom: s.cameras.main.zoom, layers: new Map(probe.filter((l) => !l.sky).map((l, i) => [`${l.room}:${i}`, l])) };
-      if (new Set(probe.map((l) => l.room)).size > 1) both += 1;
-      if (prev) {
+      const shown = new Set(probe.filter((l) => l.alpha > 0.001).map((l) => l.room));
+      if (shown.size > 1) both += 1;
+      const cur = { x: c.x, y: c.y, zoom: cam.zoom, room: s.roomId, layers: new Map(probe.filter((l) => !l.sky && l.alpha > 0.001).map((l, i) => [`${l.room}:${i}`, l])) };
+      if (prev && cur.room !== prev.room) swapDark = Math.min(swapDark, dark);
+      if (prev && dark < 0.99 && prevDark < 0.99) {
         worst.cam = Math.max(worst.cam, Math.abs(cur.x - prev.x));
         worst.camY = Math.max(worst.camY, Math.abs(cur.y - prev.y));
         worst.zoom = Math.max(worst.zoom, Math.abs(cur.zoom - prev.zoom));
         for (const [k, l] of cur.layers) {
           const q = prev.layers.get(k);
-          if (!q) continue;
-          worst.layerY = Math.max(worst.layerY, Math.abs(l.y - q.y));
-          worst.alpha = Math.max(worst.alpha, Math.abs(l.alpha - q.alpha));
+          if (q) worst.layerY = Math.max(worst.layerY, Math.abs(l.y - q.y));
         }
       }
+      prevDark = dark;
       prev = cur;
       if (rooms[rooms.length - 1] !== s.roomId) rooms.push(s.roomId);
     }
     dc.releaseAll();
-    const pass = rooms.join('>') === 'lane>green' && worst.cam <= 12 && worst.camY <= 6 && worst.zoom <= 0.02 && worst.layerY <= 8 && worst.alpha <= 0.1 && both > 10;
+    const dips = s.transitions.dips - dips0;
+    const pass = rooms.join('>') === 'lane>green' && dips === 1 && both === 0 && swapDark >= 0.99 && darkest >= 0.99 && !locked && worst.cam <= 12 && worst.camY <= 6 && worst.zoom <= 0.02 && worst.layerY <= 8;
     const r = (v) => Math.round(v * 1000) / 1000;
-    return { pass, detail: `rooms ${rooms.join('>')}; frames with both backdrops ${both}; worst per-frame: cam x ${r(worst.cam)} px, cam y ${r(worst.camY)} px, zoom ${r(worst.zoom)}, layer y ${r(worst.layerY)} px, alpha ${r(worst.alpha)}` };
+    return { pass, detail: `rooms ${rooms.join('>')}; dips ${dips}; frames with two backdrops ${both}; swap at fade ${r(swapDark)}; locked frames ${locked}; worst per-frame with the screen up: cam x ${r(worst.cam)} px, cam y ${r(worst.camY)} px, zoom ${r(worst.zoom)}, layer y ${r(worst.layerY)} px` };
   },
 };
 

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { RoomGraph, smoothstep } from '../src/world/RoomGraph.js';
+import { RoomGraph } from '../src/world/RoomGraph.js';
+import { frameCrossing, sideOf, dipFor, DIPS, FRAME_HALF } from '../src/world/thresholds.js';
 import { classifyTile, gridView, variantAt, classifyRoom, evaluateDecor, materialMap, headroomSpans } from '../src/world/terrainRules.js';
 import { BeatRunner } from '../src/play/BeatRunner.js';
 import { DialogueRunner, conversationIssues } from '../src/narrative/DialogueRunner.js';
@@ -12,12 +13,13 @@ import { countObjects, estimateDrawCalls } from '../src/core/PerfBudget.js';
 const T = 32;
 const box = (w, h, floor = h - 2) => Array.from({ length: h }, (_, y) => (y >= floor ? '#'.repeat(w) : '.'.repeat(w)));
 
-function twoRooms() {
+function twoRooms(opts = {}) {
   return new RoomGraph([
-    { id: 'a', origin: { tx: 0, ty: 0 }, grid: box(40, 12), entities: [{ type: 'portal', id: 'a>b', kind: 'seam', x: 39, y: 9, to: { room: 'b', portal: 'b<a' }, seam: { prop: 'arch', width: 300 } }, { type: 'portal', id: 'a>in', kind: 'door', x: 10, y: 9, to: { room: 'in', portal: 'in>a' } }] },
-    { id: 'b', origin: { tx: 40, ty: 0 }, grid: box(40, 12), entities: [{ type: 'portal', id: 'b<a', kind: 'seam', x: 0, y: 9, to: { room: 'a', portal: 'a>b' }, seam: { prop: 'arch' } }] },
+    // the seam's frame: an arch standing at b's first columns (centre x = 40 T + 64)
+    { id: 'a', origin: { tx: 0, ty: 0 }, grid: box(40, 12), backdrop: { set: 'dusk' }, entities: [{ type: 'portal', id: 'a>b', kind: 'seam', x: 39, y: 9, to: { room: 'b', portal: 'b<a' }, seam: { prop: 'arch' } }, { type: 'portal', id: 'a>in', kind: 'door', x: 10, y: 9, to: { room: 'in', portal: 'in>a' } }] },
+    { id: 'b', origin: { tx: 40, ty: 0 }, grid: box(40, 12), backdrop: { set: 'night' }, props: [{ prop: 'arch', x: 1.5 }], entities: [{ type: 'portal', id: 'b<a', kind: 'seam', x: 0, y: 9, to: { room: 'a', portal: 'a>b' }, seam: { prop: 'arch' } }] },
     { id: 'in', origin: { tx: 0, ty: 30 }, grid: box(20, 10), entities: [{ type: 'portal', id: 'in>a', kind: 'door', x: 3, y: 7, to: { room: 'a', portal: 'a>in' } }] },
-  ]);
+  ], opts);
 }
 
 describe('RoomGraph', () => {
@@ -31,37 +33,58 @@ describe('RoomGraph', () => {
     expect(g.validate()).toEqual([]);
     expect([...g.reachable('a')].sort()).toEqual(['a', 'b', 'in']);
   });
-  it('blends across a seam on the camera x with smoothstep, never through a door', () => {
+  it('never blends: a seam is crossed inside its drawn frame, with hysteresis', () => {
     const g = twoRooms();
-    const x = 40 * T;
-    expect(g.blendAt(x - 400, 200, 'a')).toBeNull();
-    const mid = g.blendAt(x, 200, 'a');
-    expect(mid.a).toBe('a');
-    expect(mid.b).toBe('b');
-    expect(mid.t).toBeCloseTo(0.5);
-    let prev = 0;
-    for (let cx = x - 299; cx <= x + 299; cx += 7) {
-      const t = g.blendAt(cx, 200, 'a').t;
-      expect(t).toBeGreaterThanOrEqual(prev);
-      expect(t - prev).toBeLessThan(0.05);
-      prev = t;
+    const fx = 40 * T + 64; // the arch's centre
+    const [s] = g.seams();
+    expect(s.x).toBe(fx);
+    expect(s.edge).toBe(40 * T);
+    expect(s.dip).toBe(DIPS.outout); // both rooms have a sky
+    expect('t' in s).toBe(false);
+    expect(g.blendAt).toBeUndefined();
+    // walking right: nothing until Jo is a half-tile past the arch's centre
+    expect(g.crossing(fx, 200, 'a')).toBeNull();
+    expect(g.crossing(40 * T + 8, 200, 'a')).toBeNull(); // over the edge, not yet through the arch
+    expect(g.crossing(fx + FRAME_HALF, 200, 'a')).toBeNull();
+    const c = g.crossing(fx + FRAME_HALF + 1, 200, 'a');
+    expect(c).toMatchObject({ from: 'a', to: 'b', dir: 1 });
+    // standing in the arch never flips back and forth
+    for (let x = fx - FRAME_HALF; x <= fx + FRAME_HALF; x += 4) {
+      expect(g.crossing(x, 200, 'a')).toBeNull();
+      expect(g.crossing(x, 200, 'b')).toBeNull();
     }
-    expect(g.blendAt(x, 200, 'in')).toBeNull();
-    expect(smoothstep(0, 1, 0.5)).toBe(0.5);
+    expect(g.crossing(fx - FRAME_HALF - 1, 200, 'b')).toMatchObject({ from: 'b', to: 'a', dir: -1 });
+    // a room behind a door is never part of it
+    expect(g.crossing(fx + 100, 31 * T, 'in')).toBeNull();
   });
-  it('commits the camera room with hysteresis', () => {
-    const g = twoRooms();
-    const x = 40 * T;
-    expect(g.commitRoom(x + 10, 200, 'a')).toBe('a');
-    expect(g.commitRoom(x + 47, 200, 'a')).toBe('a');
-    expect(g.commitRoom(x + 49, 200, 'a')).toBe('b');
-    expect(g.commitRoom(x - 10, 200, 'b')).toBe('b');
-    expect(g.commitRoom(x - 60, 200, 'b')).toBe('a');
-    expect(g.commitRoom(100, 31 * T, 'a')).toBe('in');
+  it('lets the camera show a room only out to its frames', () => {
+    const g = twoRooms({ frameWidth: () => 160 });
+    const fx = 40 * T + 64;
+    expect(g.viewX('a')).toEqual({ x0: 0, x1: fx + 80 });
+    expect(g.viewX('b')).toEqual({ x0: fx - 80, x1: 80 * T });
+    expect(g.viewX('in')).toEqual({ x0: 0, x1: 20 * T });
+  });
+  it('dips by kind: outside to inside, outdoor to outdoor, room to room', () => {
+    expect(dipFor(true, false)).toEqual({ down: 120, hold: 60, up: 160 });
+    expect(dipFor(false, true)).toBe(DIPS.inout);
+    expect(dipFor(true, true)).toEqual({ down: 180, hold: 80, up: 220 });
+    expect(dipFor(false, false)).toEqual({ down: 90, hold: 40, up: 110 });
+    const frames = [
+      { x: 100, left: 'out', right: 'hall', y0: 0 },
+      { x: 500, left: 'hall', right: 'shed', open: true },
+    ];
+    expect(sideOf(frames, 50, 10)).toBe('out');
+    expect(sideOf(frames, 300, 10)).toBe('hall');
+    expect(sideOf(frames, 900, 10)).toBe('shed');
+    expect(frameCrossing(frames, 120, 10, 'out')).toMatchObject({ to: 'hall' });
+    expect(frameCrossing(frames, 120, -10, 'out')).toBeNull(); // above the band (the roof)
+    expect(frameCrossing(frames, 520, 10, 'hall')).toMatchObject({ to: 'shed', open: true });
   });
   it('reports unpaired portals, missing seam props, gaps and overlaps', () => {
     const g = new RoomGraph([
       { id: 'a', grid: box(10, 8), entities: [{ type: 'portal', id: 'a>b', kind: 'seam', x: 9, y: 5, to: { room: 'b', portal: 'b<a' } }] },
+      { id: 'd', origin: { tx: 40, ty: 0 }, grid: box(10, 8), entities: [{ type: 'portal', id: 'd>e', kind: 'seam', x: 9, y: 5, to: { room: 'e', portal: 'e<d' }, seam: { prop: 'gate' } }] },
+      { id: 'e', origin: { tx: 50, ty: 0 }, grid: box(10, 8), entities: [{ type: 'portal', id: 'e<d', kind: 'seam', x: 0, y: 5, to: { room: 'd', portal: 'd>e' }, seam: { prop: 'gate' } }] },
       { id: 'b', origin: { tx: 12, ty: 0 }, grid: box(10, 8), entities: [{ type: 'portal', id: 'b<a', kind: 'seam', x: 0, y: 5, to: { room: 'a', portal: 'nope' } }] },
       { id: 'c', origin: { tx: 1, ty: 1 }, grid: box(3, 3) },
     ]);
@@ -71,6 +94,8 @@ describe('RoomGraph', () => {
     expect(issues).toMatch(/physical seam prop/);
     expect(issues).toMatch(/partner portal "nope"/);
     expect(issues).toMatch(/overlap in the world/);
+    // a seam's frame has to be drawn, at the seam
+    expect(issues).toMatch(/seam prop "gate" is not placed in d or e/);
     expect([...g.reachable('a')].sort()).toEqual(['a', 'b']);
   });
 });
