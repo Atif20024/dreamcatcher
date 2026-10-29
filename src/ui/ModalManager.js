@@ -17,6 +17,7 @@
 //   h.close()
 import Phaser from 'phaser';
 import { UI } from './ui.js';
+import { buses } from '../audio/AudioBus.js';
 
 export const PRIORITY = Object.freeze({ death: 50, pause: 40, tutorial: 30, card: 30, dialogue: 20, choice: 20, puzzle: 10, encounter: 10 });
 const FREEZE_LEVEL = { none: 0, physics: 1, tweens: 2, world: 3 };
@@ -145,6 +146,8 @@ export default class ModalManager {
     const top = this.top;
     this.stack.forEach((h) => h.setShown(h === top));
     this.applyFreeze();
+    // the music (-4 dB) and the ambience (-3 dB) step back while anyone talks
+    buses.duckDialogue(this.has('dialogue'));
   }
 
   // the one place the world is frozen and released for modals
@@ -173,6 +176,7 @@ export default class ModalManager {
   destroy() {
     this.dead = true;
     this.stack = [];
+    buses.duckDialogue(false);
     if (this.scene.input && this.scene.input.keyboard) this.scene.input.keyboard.off('keydown', this.onKeyDown);
   }
 }

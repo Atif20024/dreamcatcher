@@ -1,4 +1,7 @@
 import { audioCtx, audioOut, playTone, playFx, playNoise, isMusicOff } from './audio.js';
+import { busNode } from '../audio/synth.js';
+import { VOICES } from '../audio/instruments.js';
+import { buses, flatGain } from '../audio/AudioBus.js';
 
 // §6 — sound in the long evening. Ambience first: every place is a real
 // soundscape of continuous loops (wind, water, the fountain at three
@@ -63,14 +66,18 @@ class Loop {
 export class Soundscape {
   constructor() {
     this.c = audioCtx();
-    this.out = audioOut();
+    // audio pass: the Evening's air goes through the ambience bus (it ducks
+    // under dialogue and passes the master chain like everything else)
+    buses.ensure();
+    this.out = busNode('ambience') || audioOut();
     this.loops = {};
     this.next = {};
     this.duck = 1; // snow eats the ambience
     if (!this.c || !this.out) return;
     // the ambience bus sits under everything else
     this.bus = this.c.createGain();
-    this.bus.gain.value = 0.9;
+    // (the level it was written for, direct to the master)
+    this.bus.gain.value = 0.9 * (this.out === audioOut() ? 1 : flatGain('ambience'));
     this.bus.connect(this.out);
     const L = (k, type, f, q) => (this.loops[k] = new Loop(this.c, this.bus, type, f, q));
     L('wind', 'lowpass', 500, 0.5);
@@ -227,24 +234,23 @@ export class Ensemble {
     }
     switch (this.stem()) {
       case 'piano':
-        if (b % 2 === 0 && Math.random() < 0.8) playTone(pick(KEY.slice(0, 8)), 1.4, 'sine', 0.05 * v);
+        // a felt piano (audio pass): the Evening's warm, close instrument
+        if (b % 2 === 0 && Math.random() < 0.8 && !isMusicOff()) VOICES.felt_piano(pick(KEY.slice(0, 8)), 900, 0.05 * v * flatGain('music'), 3600);
         if (b % 8 === 0) [KEY[0] / 2, KEY[2] / 2, KEY[4] / 2].forEach((f, i) => playTone(f, 2.4, 'sine', 0.025 * v, i * 0.04));
         break;
       case 'trumpet':
         // muted: a square with most of its edge filed off
-        if (b % 3 === 0 && Math.random() < 0.7) {
-          const f = pick(KEY.slice(3, 9));
-          playTone(f, 0.7, 'triangle', 0.035 * v);
-          playTone(f * 2, 0.4, 'sine', 0.008 * v);
-        }
+        // a harmonica now, a little breath and vibrato (audio pass)
+        if (b % 3 === 0 && Math.random() < 0.7) VOICES.harmonica(pick(KEY.slice(3, 9)), 900, 0.045 * v * flatGain('music'), 3600);
         break;
       case 'bass':
         playTone(pick([65, 73, 82, 98, 110, 98]), 0.6, 'triangle', 0.08 * v);
         break;
       case 'guitar':
+        // a nylon guitar, plucked (audio pass)
         if (b % 2 === 0) {
           const f = pick(KEY.slice(0, 7));
-          playTone(f, 0.9, 'triangle', 0.035 * v);
+          VOICES.nylon(f, 900, 0.04 * v * flatGain('music'), 3600);
           playTone(f * 1.5, 0.6, 'sine', 0.012 * v, 0.03);
         }
         break;
