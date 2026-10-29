@@ -59,6 +59,7 @@ export class DreamGate {
   constructor(scene, def, room) {
     this.scene = scene;
     this.id = def.id;
+    this.room = room.id;
     this.requires = def.requires || [];
     this.hint = def.hint;
     this.signSide = def.signSide || 'left';

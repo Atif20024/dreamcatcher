@@ -35,7 +35,7 @@ export default {
     { prop: 'hydrant', x: 55, y: 16 },
     { prop: 'street_lamp', x: 56, y: 16, dx: 20 },
     { prop: 'dumpster', x: 64, y: 16 },
-    { prop: 'alley_arch', x: 69, y: 16 },
+    { prop: 'alley_arch', x: 68, y: 16 }, // the seam's frame: wholly inside the street, so neither pier is cut
   ],
   enclosure: { fgFoliage: [], frames: [] },
   light: { tint: 0xe0e4f8 },
@@ -60,6 +60,6 @@ export default {
     { type: 'coins', id: 'c_hop', x: 54, y: 10, n: 2 },
     { type: 'coins', id: 'c_awning', x: 57, y: 10, n: 7 },
     { type: 'coins', id: 'c_bin', x: 63, y: 12, n: 3 },
-    { type: 'portal', id: 'street>alley', kind: 'seam', x: 71, y: 15, to: { room: 'alley', portal: 'alley<street' }, seam: { prop: 'alley_arch', width: 260 } },
+    { type: 'portal', id: 'street>alley', kind: 'seam', x: 71, y: 15, to: { room: 'alley', portal: 'alley<street' }, seam: { prop: 'alley_arch' } },
   ],
 };

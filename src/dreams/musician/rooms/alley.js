@@ -54,7 +54,7 @@ export default {
   ],
   titleCard: 'THE ALLEY',
   entities: [
-    { type: 'portal', id: 'alley<street', kind: 'seam', x: 0, y: 21, to: { room: 'street', portal: 'street>alley' }, seam: { prop: 'alley_arch', width: 260 } },
+    { type: 'portal', id: 'alley<street', kind: 'seam', x: 0, y: 21, to: { room: 'street', portal: 'street>alley' }, seam: { prop: 'alley_arch' } },
     { type: 'checkpoint', id: 'cp_alley', label: 'THE ALLEY', x: 4, y: 21 },
     // the dead neon: play it back (a two-phrase call and response)
     { type: 'encounter', id: 'neon', x: 25, y: 21, anchor: { x: 20, y: 16 }, prompt: 'play the dead neon', unless: 'neon_lit' },

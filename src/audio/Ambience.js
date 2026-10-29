@@ -1,6 +1,7 @@
 // Ambience (plan 2.13): a loop per room (room.ambience, else the dream's
-// `ambientLoop`), crossfaded by the RoomGraph's blend t, on the ambience
-// bus. Loops are synthesised once (src/audio/synthLoops.js) and cached as
+// `ambientLoop`), crossfaded in time as a room changes (set(): the old loop
+// fades out as the new one rises; sound may cross where the picture may not), on
+// the ambience bus. Loops are synthesised once (src/audio/synthLoops.js) and cached as
 // AudioBuffers. Legacy scenes use it too: BaseLevel plays the dream's
 // `ambientLoop` from src/data/dreams.js.
 //

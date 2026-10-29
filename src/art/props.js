@@ -410,6 +410,52 @@ const PROPS = {
       ctx.fillRect(20, 55, 40, 2);
     },
   },
+  // the seam between the green and the bell yard: a lychgate roof over the
+  // iron gate's stone posts (DreamGate, 4.4 m), the fence running up to it.
+  // Only the roof is painted: the posts and the gate are the live DreamGate.
+  yard_lychgate: {
+    w: 140, h: 252, anchor: [0.5, 1],
+    paint(ctx, w, h, P) {
+      const r = rand(23);
+      const beam = h - 204; // just over the posts' caps
+      // the tie beam and its brackets down onto the posts
+      box(ctx, 6, beam, w - 12, 10, P.wood, P);
+      for (const x of [26, w - 34]) {
+        ctx.fillStyle = hex(mix(P.wood, P.deep, 0.2));
+        ctx.beginPath();
+        ctx.moveTo(x, beam + 10);
+        ctx.lineTo(x + 8, beam + 10);
+        ctx.lineTo(x + 4, beam + 24);
+        ctx.fill();
+      }
+      // a steep tiled roof with a ridge, lit on its left slope
+      const peak = beam - 44;
+      ctx.fillStyle = hex(P.roof);
+      ctx.beginPath();
+      ctx.moveTo(0, beam + 2);
+      ctx.lineTo(w / 2, peak);
+      ctx.lineTo(w, beam + 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.save();
+      ctx.clip();
+      for (let y = peak + 6; y < beam; y += 7) {
+        ctx.fillStyle = rgba(P.deep, 0.35);
+        ctx.fillRect(0, y, w, 1);
+        for (let x = (y / 7) % 2 ? 0 : 6; x < w; x += 12) ctx.fillRect(x, y - 6, 1, 6);
+      }
+      ctx.fillStyle = rgba(P.lit, 0.18);
+      ctx.beginPath();
+      ctx.moveTo(0, beam + 2);
+      ctx.lineTo(w / 2, peak);
+      ctx.lineTo(w / 2, beam + 2);
+      ctx.fill();
+      ctx.restore();
+      box(ctx, w / 2 - 3, peak - 4, 6, 8, mix(P.roof, P.deep, 0.3), P);
+      // moss on the tiles
+      for (let i = 0; i < 6; i++) stamp(ctx, 16 + r.frac() * (w - 32), beam - 6 - r.frac() * 20, 2.2, P.leaf, 0.7, 0.4);
+    },
+  },
   fence: {
     w: 128, h: 48, anchor: [0.5, 1],
     paint(ctx, w, h, P) {

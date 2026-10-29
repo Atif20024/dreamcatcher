@@ -5,42 +5,47 @@
 //   const g = RoomGraph.fromDefinition(def)      // def.rooms: [roomData]
 //   g.room('green')                              // { id, data, tx, ty, w, h, x0, y0, x1, y1 }
 //   g.neighbours('green')                        // ids joined by a portal
-//   g.blendAt(cx, cy, 'green')                   // { a, b, t, portal } | null (seams)
-//   g.commitRoom(cx, cy, prevId)                 // the camera's room, with hysteresis
+//   g.crossing(x, y, 'green')                    // the seam frame Jo has walked through | null
+//   g.viewX('green')                             // { x0, x1 } the camera may show (to the frames)
 //   g.roomAt(wx, wy)                             // the room containing a world point
 //   g.validate()                                 // [issue strings] (lint)
 //
 // Two portal kinds (4.3):
-//   seam  rooms side by side, crossed continuously; the blend t runs over
-//         `seam.width` px (half-width) either side of the shared edge
-//   door  a fade through black; the rooms may sit anywhere in the world
+//   seam  rooms side by side, walked through a drawn frame (`seam.prop`: an
+//         arch, a gate, an alley mouth standing at the shared edge). Jo
+//         keeps walking; the screen dips through dark inside the frame and
+//         the rooms swap at full dark (src/world/thresholds.js). Two rooms'
+//         backdrops are never on screen together.
+//   door  a fade through black on [E]; the rooms may sit anywhere in the world
 // A portal is a room entity: { type:'portal', id, kind, x, y, to:{room, portal} }.
 // Ids follow 'from>to' by convention; the pair must point at each other.
 
-export const T = 32;
-export const DEFAULT_SEAM_HALF = 300;
+import { frameCrossing, dipFor } from './thresholds.js';
 
-export const smoothstep = (e0, e1, x) => {
-  const u = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
-  return u * u * (3 - 2 * u);
-};
+export const T = 32;
+// a seam's frame must stand within this many px of the shared edge
+export const FRAME_REACH = 6 * T;
 
 const gridW = (grid) => Math.max(...grid.map((r) => r.length));
 
 export class RoomGraph {
-  constructor(rooms = []) {
+  // frameWidth(propName) → px (the scene's prop library); without it a
+  // frame counts as 4 tiles wide
+  constructor(rooms = [], { frameWidth = null } = {}) {
     this.rooms = new Map();
     this.portals = new Map();
+    this.frameWidth = frameWidth;
     for (const data of rooms) this.add(data);
   }
 
-  static fromDefinition(def) {
-    return new RoomGraph(def.rooms || []);
+  static fromDefinition(def, opts = {}) {
+    return new RoomGraph(def.rooms || [], opts);
   }
 
   add(data) {
     if (!data || !data.id) throw new Error('RoomGraph: a room needs an id');
     if (this.rooms.has(data.id)) throw new Error(`RoomGraph: duplicate room "${data.id}"`);
+    this._seams = null;
     const o = data.origin || { tx: 0, ty: 0 };
     const w = gridW(data.grid);
     const h = data.grid.length;
@@ -54,7 +59,6 @@ export class RoomGraph {
         kind: e.kind || 'door',
         wx: (o.tx + e.x) * T + T / 2,
         wy: (o.ty + e.y) * T + T / 2,
-        half: (e.seam && e.seam.width) || DEFAULT_SEAM_HALF,
       };
       if (this.portals.has(p.id)) throw new Error(`RoomGraph: duplicate portal "${p.id}"`);
       this.portals.set(p.id, p);
@@ -109,8 +113,33 @@ export class RoomGraph {
     return a.x0 < b.x0 ? b.x0 : a.x0;
   }
 
-  // every seam once, as { left, right, x, half, portal }
+  // the world x of a seam's drawn frame: the centre of its `seam.prop` in
+  // either room, the one nearest the shared edge (null: none drawn)
+  frameX(p) {
+    const name = p.seam && p.seam.prop;
+    if (!name || !p.to) return null;
+    const edge = this.seamEdge(p);
+    let best = null;
+    for (const id of [p.room, p.to.room]) {
+      const r = this.room(id);
+      for (const q of (r && r.data.props) || []) {
+        if (q.prop !== name) continue;
+        const x = r.x0 + (q.x + 0.5) * T + (q.dx || 0);
+        if (best === null || Math.abs(x - edge) < Math.abs(best - edge)) best = x;
+      }
+    }
+    return best;
+  }
+
+  outdoor(id) {
+    const r = this.room(id);
+    return !!(r && r.data.backdrop);
+  }
+
+  // every seam once, as { left, right, x (its drawn frame's centre), edge
+  // (the shared edge), y0, y1 (the band both rooms share), dip, portal }
   seams() {
+    if (this._seams) return this._seams;
     const out = [];
     const seen = new Set();
     for (const p of this.portals.values()) {
@@ -121,10 +150,20 @@ export class RoomGraph {
       const a = this.room(p.room);
       const b = this.room(p.to.room);
       const [left, right] = a.x0 < b.x0 ? [a, b] : [b, a];
-      const half = Math.min(p.half, 0.45 * left.w * T, 0.45 * right.w * T);
-      out.push({ left: left.id, right: right.id, x: right.x0, half, portal: p.id });
+      const q = this.partner(p.id);
+      const frame = this.frameX(p) ?? (q && this.frameX(q)) ?? right.x0;
+      const dip = (p.seam && p.seam.dip) || dipFor(this.outdoor(left.id), this.outdoor(right.id));
+      const w = (this.frameWidth && this.frameWidth(p.seam && p.seam.prop)) || 4 * T;
+      out.push({ left: left.id, right: right.id, x: frame, half: w / 2, edge: right.x0, y0: Math.max(left.y0, right.y0) - 4 * T, y1: Math.min(left.y1, right.y1) + 4 * T, dip, portal: p.id });
     }
+    this._seams = out;
     return out;
+  }
+
+  // the seam frame Jo has walked through, seen from the room on screen:
+  // { from, to, x, dip, portal, dir } | null (thresholds.frameCrossing)
+  crossing(x, y, currentId) {
+    return frameCrossing(this.seams(), x, y, currentId);
   }
 
   contains(r, wx, wy, pad = 0) {
@@ -148,37 +187,18 @@ export class RoomGraph {
     return best;
   }
 
-  // The blend across a seam from the camera centre (F5.2): t = smoothstep
-  // over [x - half, x + half]. Only seams touching the committed room's zone
-  // count, so a far room at the same x (a door interior) never blends in.
-  blendAt(cx, cy, currentId) {
-    const zone = currentId ? this.zone(currentId) : null;
-    let best = null;
+  // what the camera may show of a room across: the room itself, out to the
+  // far face of each seam frame it meets and no further, so nothing of the
+  // next room shows past the frame until the dip has swapped them
+  viewX(id) {
+    const r = this.room(id);
+    let x0 = r.x0;
+    let x1 = r.x1;
     for (const s of this.seams()) {
-      if (zone && !(zone.has(s.left) && zone.has(s.right))) continue;
-      const d = Math.abs(cx - s.x);
-      if (d >= s.half) continue;
-      if (!best || d < best.d) best = { a: s.left, b: s.right, t: smoothstep(s.x - s.half, s.x + s.half, cx), portal: s.portal, d, x: s.x };
+      if (s.right === id) x0 = s.x - s.half;
+      if (s.left === id) x1 = s.x + s.half;
     }
-    if (!best) return null;
-    delete best.d;
-    return best;
-  }
-
-  // The committed room (music, ambience, objective switch at t = 0.5):
-  // the camera centre's room, but the previous room is kept until the
-  // centre is `band` px past the shared edge, so a wobble on the line never
-  // flickers. Rooms outside the previous room's zone are only taken when the
-  // centre is inside them (a door moves the camera there directly).
-  commitRoom(cx, cy, prevId, band = 1.5 * T) {
-    const prev = prevId ? this.room(prevId) : null;
-    if (prev) {
-      if (this.contains(prev, cx, cy, band)) return prev.id;
-      const zone = this.zone(prev.id);
-      for (const id of zone) if (this.contains(this.room(id), cx, cy, 0)) return id;
-    }
-    const r = this.roomAt(cx, cy);
-    return r ? r.id : prevId || null;
+    return { x0, x1 };
   }
 
   // world rect of a zone (union of its rooms)
@@ -254,6 +274,14 @@ export class RoomGraph {
         const ov = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
         if (ov < 4 * T) out.push(`${where}: seam rooms overlap vertically by less than 4 tiles`);
         if (!p.seam || !p.seam.prop) out.push(`${where}: a seam needs a physical seam prop (arch, tunnel, fog)`);
+        else {
+          // the dip happens inside the frame: it has to be drawn, at the seam
+          const q = this.portal(p.to.portal);
+          const fx = this.frameX(p) ?? (q && this.frameX(q));
+          const d = fx === null || fx === undefined ? null : Math.abs(fx - this.seamEdge(p));
+          if (d === null) out.push(`${where}: seam prop "${p.seam.prop}" is not placed in ${a.id} or ${b.id}`);
+          else if (d > FRAME_REACH) out.push(`${where}: seam prop "${p.seam.prop}" stands ${Math.round(d / T)} tiles from the seam (max ${FRAME_REACH / T})`);
+        }
       }
     }
     // rooms must not overlap in the world

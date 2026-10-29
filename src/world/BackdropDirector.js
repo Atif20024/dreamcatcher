@@ -1,9 +1,9 @@
 // BackdropDirector (plan 2.4): each room names a backdrop set; the set's
 // painted layers (src/art/backdrops/painted.js) are painted once per page
 // into tileable canvases and shown as TileSprites, at most 2× the viewport
-// wide. Between two seam-joined rooms both sets are alive and crossfade on
-// the RoomGraph's blend t, with the horizon lerped on the same t (never
-// assigned raw). Interiors (no backdrop) show nothing behind their back wall.
+// wide. One room's set is shown at a time, at full strength: rooms swap at
+// the full dark of a frame's dip (src/world/thresholds.js), never blended.
+// Interiors (no backdrop) show nothing behind their back wall.
 //
 // set = { sky: {top, mid, bottom, sun?, stars?, clouds?}, palette: {...},
 //         layers: [{ kind, f (parallax 0..1), dy (px below horizon), seed }],
@@ -29,7 +29,7 @@ export class BackdropDirector {
     this.spanX = -(this.spanW - this.camW) / 2;
     this.frames = 0;
     this.hz = null;
-    this.state = { a: null, b: null, t: 0 };
+    this.state = { a: null, next: null };
     scene.events.once('shutdown', () => this.destroyAll());
   }
 
@@ -110,33 +110,22 @@ export class BackdropDirector {
     for (const id of [...this.live.keys()]) this.drop(id);
   }
 
-  // every frame: the committed room + the blend from the RoomGraph
-  update(currentId, blend, time = 0) {
+  // every frame: the committed room's set, alone, at full strength. A room
+  // only changes at a frame's full dark (or a teleport), so the horizon is
+  // simply that room's. `next` (the room past a frame Jo is near) is built
+  // but kept at alpha 0, so the swap never has to paint.
+  update(currentId, time = 0, next = null) {
     const cam = this.scene.cameras.main;
     this.frames += 1;
-    let a = currentId;
-    let b = null;
-    let t = 0;
-    if (blend) {
-      a = blend.a;
-      b = blend.b;
-      t = blend.t;
-    }
-    const want = new Set([a, b].filter(Boolean));
+    const a = currentId;
+    const want = new Set([a, next].filter(Boolean));
     for (const id of [...this.live.keys()]) if (!want.has(id)) this.drop(id);
     const A = this.build(a);
-    const B = b ? this.build(b) : null;
-    // the shared horizon: lerped on t; a teleport (door, respawn) snaps
-    const target = B ? this.horizonOf(a) + (this.horizonOf(b) - this.horizonOf(a)) * t : this.horizonOf(a);
-    const jumped = this._lastScroll !== undefined && Math.abs(cam.scrollX - this._lastScroll) > this.camW;
-    if (this.hz === null || jumped || this._lastRoom === undefined || (!blend && this._lastRoom !== a && !this.graph.zone(this._lastRoom).has(a))) this.hz = target;
-    else this.hz += Phaser.Math.Clamp(target - this.hz, -6, 6);
-    this._lastScroll = cam.scrollX;
-    this._lastRoom = a;
-    const same = B && A.set === B.set;
-    const show = (e, k, top) => {
+    const N = next && next !== a ? this.build(next) : null;
+    this.hz = this.horizonOf(a);
+    const show = (e, k) => {
       if (!e) return;
-      if (e.sky) e.sky.setAlpha(top ? k : 1).setDepth(D.SKY + (top ? 0.02 : 0));
+      if (e.sky) e.sky.setAlpha(k).setDepth(D.SKY);
       for (const L of e.layers) {
         L.setAlpha(k);
         L.y = this.hz + L.dy;
@@ -145,6 +134,10 @@ export class BackdropDirector {
       if (e.landmark) {
         e.landmark.setAlpha(k);
         e.landmark.y = this.hz + e.landmark.dy;
+      }
+      if (!k) {
+        for (const m of e.motes) m.setAlpha(0);
+        return;
       }
       const vw = this.camW / cam.zoom;
       const vh = this.camH / cam.zoom;
@@ -165,26 +158,13 @@ export class BackdropDirector {
         m.setAlpha(k * (0.35 + 0.45 * (0.5 + 0.5 * Math.sin(s * 2.1))));
       }
     };
-    if (!B) show(A, 1, false);
-    else if (same) {
-      show(A, 1, false);
-      if (B.sky) B.sky.setAlpha(0);
-      for (const L of B.layers) L.setAlpha(0);
-      if (A.landmark) A.landmark.setAlpha(1 - t);
-      if (B.landmark) {
-        B.landmark.setAlpha(t);
-        B.landmark.y = this.hz + B.landmark.dy;
-      }
-    } else {
-      show(A, 1 - t, false);
-      show(B, t, true);
-      if (A.sky) A.sky.setAlpha(1);
-    }
-    this.state = { a, b, t, horizon: this.hz };
-    cam.setBackgroundColor(A.sky || (B && B.sky) ? 0x1a1420 : 0x0c0a10);
+    show(A, 1);
+    show(N, 0);
+    this.state = { a, next: N ? next : null, horizon: this.hz };
+    cam.setBackgroundColor(A.sky ? 0x1a1420 : 0x0c0a10);
   }
 
-  // harness: layer y values and alphas (blend continuity checks)
+  // harness: layer y values and alphas (one room visible at a time)
   probe() {
     const out = [];
     for (const [id, e] of this.live) {
