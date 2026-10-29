@@ -409,3 +409,20 @@ The Musician is the second framework dream and the reference for the roll-out. W
 - **Coins** outside the view (or in rooms not live) are hidden (`cullCoins`): a dream that pays in small change places 120+ of them.
 - **Scene restarts:** `encounterActive` is reset in `create()` and `Encounters.abort()` finishes without its outro (a warp mid-encounter used to leave Jo frozen).
 - **Dev:** `?warp=musician:<room>` (`start street alley cellar backstage escape stage`); `?warp=musician_legacy` or `?warp=musician&legacy=1` plays the old `MusicianScene`.
+
+## 19. THE MASTER'S LADDER additions (`src/dreams/painter/`)
+
+- **Encounter `view: 'craft'`** (`src/engines/craft.js`, `src/play/craftPresenter.js`). A job is a list of steps. A brush sweeps a bar, and the player presses on the gold mark.
+  - **Params:** `steps: [{ label, section?, at?, zone?, auto? }]`, `speed`, `zone`, `clock` (ms of wet plaster per section; a dried section restarts), `rival: { ms }`.
+  - **Def:** `work: { w, h, dx, dy, depth?, paint(ctx, w, h, k, n) }` paints the piece at k steps done, offset from the anchor. `onRender(scene, state)` runs every frame. `rivalLabel` names the rival's meter.
+  - **Results:** DreamScene stores `F['result:<id>']` and sets `F['<id>_clean']` for beats to branch on.
+- **Ladders in the lint:** `reachableTiles` follows `H` columns up and down, and steps or drops off them sideways.
+- **Landmarks** may set `depth`, for example -25 to stand behind the roofs.
+- **Rooms:**
+  - `music.key` picks a named setting from `dream.music.keys`: `{ bpm, root, mode, motif, voices, meter, leadEvery, leadOctave, walk, droneAlways }`.
+  - **Voices** (`MusicDirector.VOICES`): `lute lute_pulse recorder shawm organ organ_flute glass frame_drum drone`.
+  - **Modes:** `ionian dorian phrygian lydian mixolydian aeolian`.
+- **Acoustics:** `room.acoustics: 'open' | 'room' | 'hall' | 'chapel'` (`AudioBus.ACOUSTICS`) sets a low-pass and a comb reverb on the music and ambience buses. It defaults to open (dry), and the scene resets it on teardown.
+- **Ambience recipes:** `src/audio/eraLoops.js`. `RECIPES.<loop> = { seconds, seed, rms, layers: [[sound, opts], …] }` over the `SOUNDS` kit, rendered pure and merged into `LOOPS`.
+- **Cast:** `src/dreams/painter/people.js` (`npc-rn-*`, baked with a foot pivot) and `FOE_LOOKS` (`foe-rn-*`).
+- **Dev:** `?warp=painter:<room>` (`start bottega via speziale piazza guild palazzo chapel`). `?warp=painter_legacy`, or `?warp=painter&legacy=1`, plays the old `PainterScene`.

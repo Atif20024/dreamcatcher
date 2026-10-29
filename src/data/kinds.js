@@ -33,6 +33,15 @@ export const FOES = {
     gardener: { texture: 'foe-gardener', human: true, speed: 50, sight: 110, gentle: true },
     farmer: { texture: 'foe-farmer', human: true, speed: 100, sight: 180 },
     shopkeeper: { texture: 'foe-shopkeeper', human: true, speed: 70, sight: 140 },
+    // THE MASTER'S LADDER (the framework painter): the Dori workshop's
+    // apprentices, the guild's inspectors, Bruno the foreman and his
+    // porters, and the pigeons that get into every chapel (they hurt on
+    // contact and can be stomped; a boy drawing does not frighten them)
+    rival: { texture: 'foe-rn-rival', human: true, speed: 85, sight: 150 },
+    inspector: { texture: 'foe-rn-inspector', human: true, speed: 55, sight: 190, cone: true },
+    foreman: { texture: 'foe-rn-foreman', human: true, speed: 50, big: true, sight: 130 },
+    porter: { texture: 'foe-rn-foreman', human: true, speed: 45, big: true, sight: 110 },
+    pigeon: { texture: 'foe-pigeon', human: false, speed: 40, silenced: false, dustColors: [0x8a8a98, 0xd8d8e0] },
   },
   gambler: {
     security: { texture: 'foe-floor-security', human: true, speed: 70, sight: 160 },

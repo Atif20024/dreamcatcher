@@ -73,7 +73,7 @@ export class BackdropDirector {
     if (set.landmark) {
       const lm = set.landmark;
       const key = this.tex(`bdlm:${lm.kind}`, paintLandmark(lm.kind, set.palette), true);
-      const img = s.add.image(0, 0, key).setOrigin(0.5, 1).setScrollFactor(lm.f ?? 0.3, 1).setDepth(D.BG_LANDMARK).setAlpha(0);
+      const img = s.add.image(0, 0, key).setOrigin(0.5, 1).setScrollFactor(lm.f ?? 0.3, 1).setDepth(lm.depth ?? D.BG_LANDMARK).setAlpha(0);
       const f = lm.f ?? 0.3;
       const wx = r.x0 + ((lm.x ?? r.w / 2) + 0.5) * T;
       img.x = (this.camW / 2) * (1 - f) + wx * f;

@@ -14,7 +14,7 @@ const DREAMS = [
   ['musician_legacy', null],
   ['astronaut', null],
   ['writer', null],
-  ['painter', null],
+  ['painter_legacy', null],
   ['gambler', null],
   ['evening', null],
 ];

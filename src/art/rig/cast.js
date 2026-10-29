@@ -154,6 +154,10 @@ const HATS = {
   kepi: { rows: ['..UHHHH...', '..UHHHHh..', '..UHHHHh..', '..yyyyyr..', '..hhhhhhhh'], ox: 4, oy: 10 },
   helmet: { rows: ['..UUHHHH..', 'UHHHHHHHHh', 'UHHHHHHHhh', 'yyyyyyyyyr', 'h........h'], ox: 5, oy: 8 },
   earpiece: { rows: ['.i', '.i', 'i.', 'i.'], ox: 1, oy: 3 },
+  // THE MASTER'S LADDER (era costume): the soft flat berretta of a workshop,
+  // and the mazzocchio, a padded roll with its tail hanging behind
+  berretta: { rows: ['...UHHHH...', '.UHHHHHHHh.', 'hhhhhhhhhhh'], ox: 5, oy: 8 },
+  mazzocchio: { rows: ['...UHHHH...', '.UyyyyyyyH.', 'Uyyyyyyyyyh', '.hnnnnnnnh.', 'H..........', 'H..........', 'h..........'], ox: 5, oy: 9 },
 };
 // heads grew a row (phase 2 motion): every hat sits one row higher
 for (const h of Object.values(HATS)) h.oy += 1;

@@ -100,7 +100,7 @@ export function drawBuilding(ctx, x, gy, o, rand) {
   const W = o.wrapW || 0;
   const k = f.k;
   const w = o.w || f.bay * (o.bays || 3);
-  const groundH = o.ground === 'shop' ? f.shop : f.storey;
+  const groundH = o.ground === 'shop' || o.ground === 'arcade' ? f.shop : f.storey;
   const bodyH = groundH + o.storeys * f.storey;
   const top = gy - bodyH;
   const wall = o.wall || 0xe8d0a8;
@@ -159,6 +159,42 @@ export function drawBuilding(ctx, x, gy, o, rand) {
       box(ctx, x, ay + k * 0.7, w, Math.max(1, k * 0.12), shade(o.awning, 0.7), W);
       grad(ctx, x, ay + k * 0.82, w, k * 0.6, [[0, 0x2a2030, 0.3], [1, 0x2a2030, 0]], false, W);
     }
+  } else if (o.ground === 'arcade') {
+    // a loggia (THE MASTER'S LADDER): round arches on slim columns across the
+    // 4 m ground floor, the shade under it, a lit doorway at the back
+    const col = Math.max(1, k * 0.32);
+    const spring = gy - f.shop * 0.55;
+    const stone = mix(wall, 0xf4ecd8, 0.35);
+    for (let b = 0; b < bays; b++) {
+      const bx = x + b * bayW + col / 2;
+      const ow = bayW - col;
+      const rr = ow / 2;
+      ctx.fillStyle = hex(mix(o.glass || 0x3a3040, 0x14122a, 0.45));
+      ctx.beginPath();
+      ctx.moveTo(R(bx), R(gy));
+      ctx.lineTo(R(bx), R(spring));
+      ctx.arc(bx + rr, spring, rr, Math.PI, 0);
+      ctx.lineTo(R(bx + ow), R(gy));
+      ctx.closePath();
+      ctx.fill();
+      if (W && bx + ow > W) {
+        ctx.save();
+        ctx.translate(-W, 0);
+        ctx.fill();
+        ctx.restore();
+      }
+      // the back wall's warm doorway and the vault's shade
+      if (k >= 6 && b === door) box(ctx, bx + ow * 0.35, gy - f.door * 0.8, ow * 0.3, f.door * 0.8, rgba(0xf2c070, 0.55), W);
+      if (k >= 8) {
+        ctx.strokeStyle = hex(stone);
+        ctx.lineWidth = Math.max(1, k * 0.12);
+        ctx.beginPath();
+        ctx.arc(bx + rr, spring, rr, Math.PI, 0);
+        ctx.stroke();
+      }
+      box(ctx, bx - col, spring - k * 0.08, col, gy - spring + k * 0.08, stone, W);
+    }
+    box(ctx, x + w - col, spring, col, gy - spring, stone, W);
   } else {
     for (let b = 0; b < bays; b++) {
       const bx = x + b * bayW;

@@ -35,7 +35,10 @@ import { trainWipe, wipeActive } from '../ui/TrainWipe.js';
 
 const T = 32;
 // scene key → dream id (Hub and the Evening have no in-dream run)
-const DREAM_OF_SCENE = Object.fromEntries(DREAMS.filter((d) => d.scene).map((d) => [d.scene, d.id]));
+const DREAM_OF_SCENE = Object.fromEntries(DREAMS.filter((d) => d.scene && d.scene !== 'Dream').map((d) => [d.scene, d.id]));
+// the legacy scenes of dreams rebuilt on the framework still save their runs
+// and their catch under the dream's id (?legacy=1 / ?warp=<dream>_legacy)
+Object.assign(DREAM_OF_SCENE, { Musician: 'musician', Painter: 'painter' });
 
 const HEART = { rows: ['.hh.hh.', 'hhhhhhh', 'hhhhhhh', '.hhhhh.', '..hhh..', '...h...'], pal: { h: 0xe86a6a } };
 const ORB = {

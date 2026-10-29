@@ -55,12 +55,34 @@ export function reachableTiles(grid, starts) {
     }
     return standable(v, x, yy) ? [x, yy] : null;
   };
+  // ladders ('H', THE MASTER'S LADDER's scaffolds): Jo climbs a ladder column
+  // up and down, and steps or drops off it sideways
+  const ladder = (x, y) => v.role(x, y) === 'ladder';
   while (q.length) {
     const [x, y] = q.shift();
     const k = key(x, y);
     if (seen.has(k)) continue;
     seen.add(k);
     const next = [];
+    if (ladder(x, y) || ladder(x, y + 1) || ladder(x, y + 2)) {
+      // up a rung; out of the top through a deck plank, standing on it
+      if (ladder(x, y) && y > 0 && !v.solid(x, y - 1)) next.push(v.role(x, y - 1) === 'oneway' && standable(v, x, y - 2) ? [x, y - 2] : [x, y - 1]);
+      // down a rung, or down through the deck plank Jo stands on
+      if (ladder(x, y + 1)) next.push([x, y + 1]);
+      else if (v.role(x, y + 1) === 'oneway' && ladder(x, y + 2)) next.push([x, y + 2]);
+      for (const dx of [-1, 1]) {
+        if (v.solid(x + dx, y)) continue;
+        if (standable(v, x + dx, y)) next.push([x + dx, y]);
+        else {
+          const f = fall(x + dx, y);
+          if (f) next.push(f);
+        }
+      }
+      if (!standable(v, x, y)) {
+        for (const n of next) if (!seen.has(key(n[0], n[1]))) q.push(n);
+        continue;
+      }
+    }
     for (const dx of [-1, 1]) {
       if (!v.solid(x + dx, y)) {
         if (standable(v, x + dx, y)) next.push([x + dx, y]);

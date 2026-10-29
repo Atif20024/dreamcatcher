@@ -13,7 +13,7 @@ const DREAMS = [
   { id: 'chef', place: null, scene: 'Chef' },
   { id: 'writer', place: 'cafe', scene: 'Writer' },
   { id: 'gambler', place: 'lou', scene: 'Gambler' },
-  { id: 'painter', place: 'fields', scene: 'Painter' },
+  { id: 'painter_legacy', run: 'painter', place: 'fields', scene: 'Painter' }, // the Yellow House (THE MASTER'S LADDER is a framework dream),
 ];
 
 const dist = (a, b) => Math.round(Math.hypot(a.x - b.x, a.y - b.y));
@@ -153,7 +153,7 @@ export const continueRun = {
       if (!f) return { pass: false, detail: 'no unlit flag' };
       sc.F.__probe = true;
       sc.activateCheckpoint(f); // autosaves the run
-      const run = getRun(d.id);
+      const run = getRun(d.run || d.id);
       if (!run || run.checkpointId !== f.cpId) return { pass: false, detail: `no saved run at ${f.cpId}` };
       // the station offers it
       dc.warp('hub');
@@ -167,7 +167,7 @@ export const continueRun = {
       const url = new URL(window.location.href);
       ['at', 'wr', 'pt', 'gm', 'ev', 'warp'].forEach((k) => url.searchParams.delete(k));
       window.history.replaceState(null, '', url);
-      g.scene.start(d.scene, { levelKey: d.id, resume: true });
+      g.scene.start(d.scene, { levelKey: d.run || d.id, resume: true });
       dc.step(80);
       settle(dc);
       const sc2 = dc.scene();
@@ -175,7 +175,7 @@ export const continueRun = {
       const flagsBack = sc2.F && sc2.F.__probe === true;
       const relit = sc2.checkpoints.spriteFor(f.cpId) && sc2.checkpoints.spriteFor(f.cpId).texture.key === 'flag-lit';
       const label = sc2.checkpoint.label === f.cpLabel;
-      clearRun(d.id);
+      clearRun(d.run || d.id);
       const ok = offered && at < 80 && flagsBack && relit && label;
       return { pass: ok, detail: `hub CONTINUE ${offered}; woke ${at}px from ${f.cpLabel}; flags ${flagsBack}; flag relit ${!!relit}` };
     });

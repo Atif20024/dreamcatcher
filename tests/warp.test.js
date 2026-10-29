@@ -6,8 +6,15 @@ describe('unified warp', () => {
     expect(resolveWarp('?warp=gambler:pit').legacy).toEqual({ gm: 'pit' });
     expect(resolveWarp('?warp=astronaut:eva').legacy).toEqual({ at: 'eva' });
     expect(resolveWarp('?warp=writer:cafe').legacy).toEqual({ wr: 'cafe' });
-    expect(resolveWarp('?warp=painter:studio').legacy).toEqual({ pt: 'studio' });
+    expect(resolveWarp('?warp=painter_legacy:studio').legacy).toEqual({ pt: 'studio' });
+    expect(resolveWarp('?warp=painter:studio&legacy=1').legacy).toEqual({ pt: 'studio' });
     expect(resolveWarp('?warp=evening:ridge').legacy).toEqual({ ev: 'ridge' });
+  });
+  it("THE MASTER'S LADDER warps into the framework; ?legacy=1 keeps the Yellow House", () => {
+    expect(firstSceneKey('?warp=painter:chapel')).toBe('Dream');
+    expect(resolveWarp('?warp=painter:chapel').legacy).toEqual({});
+    expect(firstSceneKey('?warp=painter&legacy=1')).toBe('Painter');
+    expect(firstSceneKey('?warp=painter_legacy')).toBe('Painter');
   });
   it('chef/musician/hub have no legacy param but pick the scene', () => {
     expect(resolveWarp('?warp=chef:start').legacy).toEqual({});

@@ -28,3 +28,6 @@ SCENARIOS.push(...wp6);
 // Phase 3b: THE BIG STAGE on the framework (the Musician rebuilt)
 import musician from './musician.js';
 SCENARIOS.push(...musician);
+// THE MASTER'S LADDER on the framework (the painter rebuilt)
+import painter from './painter.js';
+SCENARIOS.push(...painter);

@@ -213,7 +213,7 @@ const footSlide = {
 
 // a short route in each dream: run right from the spawn, hop when blocked
 const ROUTES = [
-  ['hub', null], ['chef', null], ['musician', null], ['astronaut', 'gym'], ['writer', 'attic'], ['painter', 'arrival'], ['gambler', 'arrival'], ['evening', 'arch'],
+  ['hub', null], ['chef', null], ['musician', null], ['astronaut', 'gym'], ['writer', 'attic'], ['painter_legacy', 'arrival'], ['gambler', 'arrival'], ['evening', 'arch'],
 ];
 const routes = ROUTES.map(([dream, place]) => ({
   id: `jo-route-${dream}`,
