@@ -256,13 +256,20 @@ export default class JoLight {
     } else {
       this.glow.setPosition(lx, ly).setScale((R * 2) / 128).setAlpha(str);
     }
-    // the pool on the floor: wide and flat, under the lamp
+    // the pool on the floor: wide and flat, under the lamp. It stays on the
+    // ground Jo's shadow found (it doesn't jump with him): the higher the lamp,
+    // the wider and fainter the pool, gone over a drop with no floor in reach
+    const sh = p.shadow && p.shadow.state();
+    const gy = sh && sh.groundY !== null && sh.groundY !== undefined ? sh.groundY : f.y;
+    const lift = Math.max(0, gy - f.y);
+    const reach = sh && !sh.visible && lift > 0 ? 0 : Math.max(0, 1 - lift / 220);
+    const spread = 1 + Math.min(1, lift / 220) * 0.5;
     this.floor
-      .setPosition(lx + (this.def.light === 'cone' ? dir * R * 0.35 : 0), f.y - 2)
-      .setScale((R * 1.6) / 128, (R * 0.32) / 128)
-      .setAlpha(str * 0.8);
+      .setPosition(lx + (this.def.light === 'cone' ? dir * R * 0.35 : 0), gy - 2)
+      .setScale((R * 1.6 * spread) / 128, (R * 0.32) / 128)
+      .setAlpha(str * 0.8 * reach);
     if (this.spill) this.spill.setPosition(lx, ly).setScale((R * 1.1) / 128).setAlpha(str * 0.75).setVisible(str > 0.004);
     this.glow.setVisible(str > 0.004);
-    this.floor.setVisible(str > 0.004);
+    this.floor.setVisible(str * reach > 0.004);
   }
 }
