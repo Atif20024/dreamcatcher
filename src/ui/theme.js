@@ -33,14 +33,14 @@ export const IDENTITY = Object.freeze({
 // per place: the shadow field's indigo, the warm practicals, the one accent
 // (the train livery, the wipe, CAUGHT, the strand on the hall's dreamcatcher)
 export const PLACES = Object.freeze({
-  hub: { name: 'CROSSROADS', shadow: 0x1c1a3a, warm: 0xf2c078, accent: 0xc8a24a, grade: 0x9894c8, halo: 0.7 },
-  chef: { name: 'FIVE-STAR DREAM', shadow: 0x1e1832, warm: 0xf2a860, accent: 0xc0392b, grade: 0xdcd6ee, halo: 0.6 },
-  musician: { name: 'THE BIG STAGE', shadow: 0x161c3a, warm: 0xf2c078, accent: 0x2e7d9a, grade: 0xe2def2, halo: 0.65 },
-  astronaut: { name: 'THE QUIET ABOVE', shadow: 0x16203a, warm: 0xf0c890, accent: 0xbfe6ef, grade: 0xdcdcf0, halo: 0.65 },
-  writer: { name: 'THE SECOND DRAFT', shadow: 0x1a1a36, warm: 0xf2d590, accent: 0x2c3e75, grade: 0xd8d6ec, halo: 0.75 },
-  painter: { name: "THE MASTER'S LADDER", shadow: 0x1e2040, warm: 0xf2c070, accent: 0xe8b830, grade: 0xe4dff0, halo: 0.5 },
-  gambler: { name: 'THE LAST HAND', shadow: 0x1c1430, warm: 0xf2b868, accent: 0x2f7a4a, grade: 0xe0d8ec, halo: 1 },
-  clockmaker: { name: 'THE STOPPED HOUR', shadow: 0x1a1c3a, warm: 0xffc870, accent: 0x6fae8c, grade: 0xd4d2ec, halo: 0.55 },
+  hub: { name: 'CROSSROADS', shadow: 0x1c1a3a, warm: 0xf2c078, accent: 0xc8a24a, grade: 0x9894c8, outline: 'light', line: 0.8 },
+  chef: { name: 'FIVE-STAR DREAM', shadow: 0x1e1832, warm: 0xf2a860, accent: 0xc0392b, grade: 0xdcd6ee, outline: 'light', line: 0.8 },
+  musician: { name: 'THE BIG STAGE', shadow: 0x161c3a, warm: 0xf2c078, accent: 0x2e7d9a, grade: 0xe2def2, outline: 'dark', line: 0.45 },
+  astronaut: { name: 'THE QUIET ABOVE', shadow: 0x16203a, warm: 0xf0c890, accent: 0xbfe6ef, grade: 0xdcdcf0, outline: 'light', line: 0.8 },
+  writer: { name: 'THE SECOND DRAFT', shadow: 0x1a1a36, warm: 0xf2d590, accent: 0x2c3e75, grade: 0xd8d6ec, outline: 'light', line: 0.85 },
+  painter: { name: "THE MASTER'S LADDER", shadow: 0x1e2040, warm: 0xf2c070, accent: 0xe8b830, grade: 0xe4dff0, outline: 'light', line: 0.9 },
+  gambler: { name: 'THE LAST HAND', shadow: 0x1c1430, warm: 0xf2b868, accent: 0x2f7a4a, grade: 0xe0d8ec, outline: 'light', line: 0.85 },
+  clockmaker: { name: 'THE STOPPED HOUR', shadow: 0x1a1c3a, warm: 0xffc870, accent: 0x6fae8c, grade: 0xd4d2ec, outline: 'light', line: 0.9 },
   evening: { name: 'THE LONG EVENING', shadow: 0x2a1e30, warm: 0xf0b45a, accent: 0xf0b45a, inverted: true },
 });
 
@@ -56,6 +56,15 @@ export function placeOf(sceneOrId) {
   return SCENE_PLACE[key] || 'hub';
 }
 export const accentOf = (sceneOrId) => PLACES[placeOf(sceneOrId)].accent;
+
+// the place's light on Jo (feedback 3): half its night grade, so he is lit
+// like the world around him and never brighter than it
+export function joLightOf(place) {
+  const g = (PLACES[place] || PLACES.hub).grade;
+  if (g === undefined) return 0xffffff;
+  const m = (s) => Math.round((255 + ((g >> s) & 255)) / 2);
+  return (m(16) << 16) | (m(8) << 8) | m(0);
+}
 
 // Jo's rim in a place: its warm practical, lifted halfway to cream
 export function rimOf(place) {

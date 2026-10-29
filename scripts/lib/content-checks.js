@@ -181,6 +181,13 @@ export function readabilityIssues(src, file) {
     if (/uiText\(/.test(l) && /scale:\s*1\b/.test(l) && /setScrollFactor\(0\)/.test(l)) out.push(`${at}: text-min-size: screen text at scale 1 (cap < 14)`);
     if (/uiText\(/.test(l) && /size:\s*'small'/.test(l) && /scale:\s*1\b/.test(l) && !/decor:\s*true/.test(l) && !/setScrollFactor\(0\)/.test(l)) out.push(`${at}: text-min-size: world small ×1 (cap 7) without decor: true`);
     if (/add\.rectangle\(/.test(l) && /setScrollFactor\(0\)/.test(l) && /setDepth\(1(49|50|51)\)/.test(l)) out.push(`${at}: hud-slot: a HUD bar outside the HudGrid (use hud.meter / hud.region)`);
+    // feedback 3 ("text written in notes and stuff is not very readable"):
+    // information text is never tilted (a letter, a sign, a label); a
+    // document Jo reads opens on the reading panel (src/ui/ReadingPanel.js)
+    if (/uiText\(/.test(l) && /\.setAngle\((?!0\))/.test(l) && !/decor:\s*true/.test(l)) out.push(`${at}: text-tilted: information text set at an angle (keep it level, or read it on the reading panel)`);
+    // words painted into a texture at small ×1 are cap 7, under the §8 world
+    // minimum: paint them at scale 2, or mark them as decoration
+    if (/paintGlyphs\(/.test(l) && /size:\s*'small'/.test(l) && !/scale:\s*[2-9]/.test(l) && /paintGlyphs\(ctx,\s*'[^']*[A-Za-z0-9][^']*[A-Za-z0-9]/.test(l)) out.push(`${at}: text-min-size: painted small ×1 (cap 7): paint at scale 2 or mark it decoration`);
   });
   return out;
 }

@@ -39,6 +39,23 @@ export async function joContrast(dc, sc) {
   p.setAlpha(0);
   const B = await pixels(dc);
   p.setAlpha(alphaWas);
+  // feedback 3: his silhouette is found by its shape, not by colour. With no
+  // pool of light behind him, a dark coat on a dark wall differs by little,
+  // and those inner pixels were counted as his "edge". A third snapshot
+  // with every visible part of him filled flat magenta is the mask.
+  // (their own alpha is still 0 from the hidden frame: judge by the style)
+  const st = p.rimStyle || {};
+  const parts = [p.art, p.hat, p.tool, st.alpha > 0.05 ? p.rim : null, ...(st.ink > 0.05 ? p.ink || [] : [])].filter((o) => o && o.scene && o.visible);
+  const was = parts.map((o) => ({ o, fill: o.tintFill, tint: o.tintTopLeft, alpha: o.alpha }));
+  parts.forEach((o) => o.setTintFill(0xff00ff).setAlpha(1));
+  p.probeMask = true;
+  const M = await pixels(dc);
+  p.probeMask = false;
+  for (const w of was) {
+    if (w.fill) w.o.setTintFill(w.tint);
+    else w.o.setTint(w.tint);
+    w.o.setAlpha(w.alpha);
+  }
   if (grain) grain.setVisible(grainWas);
   dc.step(1);
   // Jo's body centre on the canvas (the canvas is 960 × 540 at zoom 1)
@@ -80,7 +97,7 @@ export async function joContrast(dc, sc) {
   // place's mean behind him (what the eye reads at speed is his outline)
   const isJo = (x, y) => {
     const i = (y * A.w + x) * 4;
-    return inJo(x, y) && Math.abs(A.data[i] - B.data[i]) + Math.abs(A.data[i + 1] - B.data[i + 1]) + Math.abs(A.data[i + 2] - B.data[i + 2]) > 24;
+    return inJo(x, y) && M.data[i] > 130 && M.data[i + 2] > 130 && M.data[i + 1] < M.data[i] - 70 && Math.abs(M.data[i] - B.data[i]) + Math.abs(M.data[i + 1] - B.data[i + 1]) + Math.abs(M.data[i + 2] - B.data[i + 2]) > 60;
   };
   const edge = [];
   const local = [];

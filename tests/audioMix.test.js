@@ -9,7 +9,8 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { FakeAudioContext, rms, peak, dbfs, spectrum, bandDb } from './helpers/fakeAudio.js';
 import { installAudioContext, audioTap, musicDirector, masterChain, sting, trumpet, sfx, chime } from '../src/systems/audio.js';
-import { buses, ACOUSTICS } from '../src/audio/AudioBus.js';
+import { buses, ACOUSTICS, BUS_DEFAULTS, BUS_REFERENCE, VOLUME_KEYS } from '../src/audio/AudioBus.js';
+import { CHATTER } from '../src/audio/chatter.js';
 import { StemMusic, STEM_MIX } from '../src/audio/MusicDirector.js';
 import { Ambience } from '../src/audio/Ambience.js';
 import { LOOPS, LOOP_LAYERS } from '../src/audio/synthLoops.js';
@@ -196,27 +197,55 @@ describe('every place, mixed and measured (offline)', () => {
     }
   });
 
-  it('sits near the target loudness (output RMS -34…-16 dBFS; pre-master music -30…-12, ambience -40…-18, a voice -32…-20)', () => {
+  // feedback 3 ("way too noisy, keep the background music subtle"): the
+  // music bus is 8 dB under the audio pass (-18…-22 → -26…-30 pre-master),
+  // ambience 2 dB, chatter 4.4 dB; sfx and ui (dialogue, stingers,
+  // footsteps) are where they were, so they read over the bed
+  it('sits near the target loudness (output RMS -40…-24 dBFS; pre-master music -38…-23, ambience -40…-20, a voice -36…-24)', () => {
     for (const r of Object.values(results)) {
-      expect(r.rms, r.name).toBeGreaterThan(-34);
-      expect(r.rms, r.name).toBeLessThan(-16);
+      expect(r.rms, r.name).toBeGreaterThan(-40);
+      expect(r.rms, r.name).toBeLessThan(-24);
       if (!PLACES[r.name].evening) {
-        expect(r.music, `${r.name} music`).toBeGreaterThan(-30);
-        expect(r.music, `${r.name} music`).toBeLessThan(-12);
+        expect(r.music, `${r.name} music`).toBeGreaterThan(-38);
+        expect(r.music, `${r.name} music`).toBeLessThan(-23);
       }
-      // (the Evening's air keeps the level it was written at)
       if (!PLACES[r.name].evening) {
         expect(r.ambience, `${r.name} ambience`).toBeGreaterThan(-40);
-        expect(r.ambience, `${r.name} ambience`).toBeLessThan(-18);
+        expect(r.ambience, `${r.name} ambience`).toBeLessThan(-20);
       }
     }
     for (const r of Object.values(results)) {
-      expect(r.talking, `${r.name} talking`).toBeGreaterThan(-32);
-      expect(r.talking, `${r.name} talking`).toBeLessThan(-20);
+      expect(r.talking, `${r.name} talking`).toBeGreaterThan(-36);
+      expect(r.talking, `${r.name} talking`).toBeLessThan(-24);
     }
     // the places sit together: their music within 12 dB of each other
     const ms = Object.values(results).filter((r) => !PLACES[r.name].evening).map((r) => r.music);
     expect(Math.max(...ms) - Math.min(...ms)).toBeLessThan(12);
+  });
+
+  it('the background music is subtle: 6–9 dB under the audio pass, the Evening too; sfx and ui untouched', () => {
+    const dB = (a, b) => 20 * Math.log10(a / b);
+    expect(dB(BUS_DEFAULTS.music, BUS_REFERENCE.music)).toBeLessThanOrEqual(-6);
+    expect(dB(BUS_DEFAULTS.music, BUS_REFERENCE.music)).toBeGreaterThanOrEqual(-9);
+    expect(dB(BUS_DEFAULTS.ambience, BUS_REFERENCE.ambience)).toBeLessThan(-1);
+    expect(dB(BUS_DEFAULTS.chatter, BUS_REFERENCE.chatter)).toBeLessThan(-3);
+    expect(BUS_DEFAULTS.sfx).toBe(BUS_REFERENCE.sfx);
+    expect(BUS_DEFAULTS.ui).toBe(BUS_REFERENCE.ui);
+    // the median place's music is under -25 dBFS pre-master
+    const ms = Object.values(results).filter((r) => !PLACES[r.name].evening).map((r) => r.music).sort((a, b) => a - b);
+    expect(ms[Math.floor(ms.length / 2)]).toBeLessThan(-25);
+    // the Evening's direct voices follow the buses down
+    expect(results.evening.music).toBeLessThan(-40);
+    expect(results.evening.ambience).toBeLessThan(-19);
+  });
+
+  it('chatter stays sparse: a 20 s cooldown or more, at most two at once', () => {
+    expect(CHATTER.cooldown[0]).toBeGreaterThanOrEqual(20);
+    expect(CHATTER.max).toBeLessThanOrEqual(2);
+  });
+
+  it('the Music and Ambience sliders scale their buses (a fraction of the default)', () => {
+    expect(VOLUME_KEYS).toEqual(['music', 'ambience']);
   });
 
   it('fires its one-shots and its people talk', () => {

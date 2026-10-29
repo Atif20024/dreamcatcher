@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { Modal } from './puzzles.js';
+import { readDocument } from '../ui/ReadingPanel.js';
 import { sfx } from './audio.js';
 import { NAPKIN, SCENES, HERRINGS, PAGE_THREE } from '../data/writer/cast.js';
 
@@ -239,13 +240,21 @@ export function memory(scene, solved, fragments) {
 }
 
 // P4 — page three, in full. Keep it or cut it.
-export function pageThree(scene) {
+// Feedback 3: the paragraph is read first on the reading panel (large,
+// paged); the choice follows, with [R] to read it again.
+export async function pageThree(scene) {
+  await readDocument(scene, { title: 'Page three', text: PAGE_THREE.join(' '), ink: 0x1a1a36, name: 'page-three' });
+  return pageThreeChoice(scene);
+}
+
+function pageThreeChoice(scene) {
   return new Promise((resolve) => {
     const cam = scene.cameras.main;
-    const m = new Modal(scene, 'PAGE THREE', 'The paragraph Emmerich told you to cut, in Chapter Two. Read it.');
+    const m = new Modal(scene, 'PAGE THREE', 'The paragraph Emmerich told you to cut, in Chapter Two.');
     const cx = cam.width / 2;
     const cy = cam.height / 2;
-    m.text(cx, cy - 20, PAGE_THREE.join('\n'), 12, '#e8dcc8');
+    m.text(cx, cy - 40, `"${PAGE_THREE[0].split(' ').slice(0, 6).join(' ')}…"`, 15, '#e8dcc8');
+    m.text(cx, cy + 10, '[R] read it again', 12, '#c8c0b0');
     let choice = 1; // 0 keep, 1 cut
     const keep = m.text(cx - 90, cy + 110, 'KEEP', 18);
     const cut = m.text(cx + 90, cy + 110, 'CUT', 18);
@@ -261,6 +270,8 @@ export function pageThree(scene) {
         choice = 1 - choice;
         sfx('click');
         render();
+      } else if (code === 'KeyR') {
+        readDocument(scene, { title: 'Page three', text: PAGE_THREE.join(' '), ink: 0x1a1a36, name: 'page-three' });
       } else if (code === 'Enter' || code === 'KeyE' || code === 'Space') {
         sfx(choice ? 'scratch' : 'chime');
         m.close(choice ? 'cut' : 'kept', resolve);

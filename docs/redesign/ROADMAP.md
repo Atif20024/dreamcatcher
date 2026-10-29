@@ -20,6 +20,7 @@ Updated 2026-10-29 after the owner's change of direction. The owner's words over
 - The station: full-scale trains and THE LAST STOP train. Jo walks there by default.
 - THE STOPPED HOUR, the clockmaker dream, on platform 9. This is the pattern the owner likes.
 - THE BIG STAGE, the Musician, on platform 2. This is the reference rebuild.
+- Feedback 3: Jo carries a light per dream in dark rooms (no glow); a quieter mix with Music/Ambience sliders; restart from checkpoint or from the dream's start; a reading panel for notes and letters; ladder jumps. See `round2/FEEDBACK3_REPORT.md`.
 
 ## Done since
 - Painter: THE MASTER'S LADDER (Renaissance) on platform 5.

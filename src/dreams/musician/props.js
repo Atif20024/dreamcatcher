@@ -113,7 +113,7 @@ const horn_shop = {
     const wx = 26;
     const wy = h - 0.5 * K - wh;
     box(ctx, wx - 6, wy - 30, ww + 110, 26, 0x1e2a3a);
-    paintGlyphs(ctx, 'HORNS & REPAIRS', wx + (ww + 98) / 2, wy - 17, { size: 'small', scale: 1, color: 0xf2d580, align: 'center', baseline: 'middle' });
+    paintGlyphs(ctx, 'HORNS & REPAIRS', wx + (ww + 98) / 2, wy - 17, { size: 'small', scale: 2, color: 0xf2d580, align: 'center', baseline: 'middle' });
     box(ctx, wx - 4, wy - 4, ww + 8, wh + 8, 0x2a2028);
     gradientV(ctx, wx, wy, ww, wh, [[0, 0x3a3048, 1], [1, 0x6a5040, 1]]);
     glow(ctx, wx + ww / 2, wy + wh * 0.55, 70, WARM, 0.55);
@@ -197,6 +197,7 @@ const bus_shelter = {
     ctx.fillRect(9, 10, w - 18, h - 30);
     box(ctx, w - 50, 16, 36, 64, 0xf2e6cc, 0.1, 0.1);
     gradientV(ctx, w - 48, 18, 32, 60, [[0, TEAL, 1], [1, 0x14303a, 1]]);
+    // lint-allow readability: decoration (the maker's mark on the drum)
     paintGlyphs(ctx, 'JAZZ', w - 32, 40, { size: 'small', color: 0xf2d580, align: 'center', baseline: 'middle' });
     box(ctx, 16, h - 26, w - 70, 6, 0x5a4a3a);
   },
@@ -483,6 +484,7 @@ const drum_kit = {
     ctx.beginPath();
     ctx.arc(w / 2, h - 22, 17, 0, Math.PI * 2);
     ctx.fill();
+    // lint-allow readability: decoration (initials stencilled on a case)
     paintGlyphs(ctx, 'BC', w / 2, h - 22, { size: 'small', color: shell, align: 'center', baseline: 'middle' });
     box(ctx, 8, h - 38, 22, 12, shell);
     box(ctx, w - 30, h - 46, 20, 14, shell);
@@ -604,6 +606,7 @@ const road_case = {
     ctx.lineWidth = 2;
     ctx.strokeRect(1, 1, w - 2, h - 2);
     for (const [x, y] of [[1, 1], [w - 7, 1], [1, h - 7], [w - 7, h - 7]]) box(ctx, x, y, 6, 6, 0xc8c8d0);
+    // lint-allow readability: decoration (a crate's stencil)
     paintGlyphs(ctx, 'FRAGILE', w / 2, h / 2, { size: 'small', color: 0xd8a840, align: 'center', baseline: 'middle' });
   },
 };

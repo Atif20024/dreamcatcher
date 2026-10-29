@@ -19,6 +19,7 @@ import { completeDream, recordMoment, markMet, updateSave } from '../utils/save.
 import { sfx, music, sting, musicDirector, playTone, trumpet } from '../systems/audio.js';
 import { showTutorial } from '../systems/tutorial.js';
 import { coinWorth, deductWorth, setPending, addMarker, getMarker, cash, voidPending } from '../systems/wallet.js';
+import { readDocument } from '../ui/ReadingPanel.js';
 import { uiText } from '../ui/text.js';
 import { hud } from '../ui/hud.js';
 
@@ -1441,14 +1442,13 @@ export default class GamblerScene extends BaseLevel {
   buildBox(o, floor, img) {
     uiText(this, o.wx, floor - 36, 'LOST & FOUND', { fontSize: '8px', color: '#3a3a44' }).setOrigin(0.5).setDepth(10);
     this.addInteract(o.wx, floor - 16, 'the box', async () => {
+      // feedback 3: the note is read on paper, not as text that fades away
       if (this.F.took_marker || this.orbCaught) {
-        this.floatText(o.wx, floor - 60, 'an empty box. a note, in pencil.', '#c8c0b0');
-        this.time.delayedCall(900, () => this.floatText(o.wx, floor - 80, `"${LOU_NOTE}"`, '#e8dcc8'));
+        await readDocument(this, { title: 'An empty box. A note, in pencil.', text: LOU_NOTE, ink: 0x3a3030, name: 'lou-note' });
         return;
       }
       const note = this.add.image(o.wx + 20, floor - 40, 'gm-note').setDepth(20);
-      this.floatText(o.wx, floor - 80, `a note in Lou's hand: "${LOU_NOTE}"`, '#e8dcc8');
-      await new Promise((r) => this.time.delayedCall(1400, r));
+      await readDocument(this, { title: "A note in Lou's hand", text: LOU_NOTE, ink: 0x3a3030, name: 'lou-note' });
       note.destroy();
       this.setFlag('trumpet_back');
       this.setTrumpet(true, 'the trumpet. in the box. one note — it cracks nothing.');
@@ -1849,6 +1849,13 @@ export default class GamblerScene extends BaseLevel {
   // ---------- dev warp -----------------------------------------------------------------------
 
   // ---- the run (plan §2.8): chips, the marker, the horn, the lift
+  // restarting the dream (feedback 3): chips not yet cashed belong to the
+  // run, so they go with it (the marker is a debt and stays)
+  onRestartDream() {
+    this.pending = 0;
+    setPending(0);
+  }
+
   runExtra() {
     return {
       pending: this.pending,

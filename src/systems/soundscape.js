@@ -77,7 +77,8 @@ export class Soundscape {
     // the ambience bus sits under everything else
     this.bus = this.c.createGain();
     // (the level it was written for, direct to the master)
-    this.bus.gain.value = 0.9 * (this.out === audioOut() ? 1 : flatGain('ambience'));
+    // (feedback 3: 0.9 → 0.6, -3.5 dB; it sat hot, near -16 dBFS)
+    this.bus.gain.value = 0.6 * (this.out === audioOut() ? 1 : flatGain('ambience'));
     this.bus.connect(this.out);
     const L = (k, type, f, q) => (this.loops[k] = new Loop(this.c, this.bus, type, f, q));
     L('wind', 'lowpass', 500, 0.5);

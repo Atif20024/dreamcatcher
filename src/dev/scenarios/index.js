@@ -31,3 +31,6 @@ SCENARIOS.push(...musician);
 // THE MASTER'S LADDER on the framework (the painter rebuilt)
 import painter from './painter.js';
 SCENARIOS.push(...painter);
+// feedback 3: restarts, volumes, the reading panel, Jo's light and locator, ladder jumps
+import feedback3 from './feedback3.js';
+SCENARIOS.push(...feedback3);

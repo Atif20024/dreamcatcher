@@ -26,6 +26,7 @@ import { dreamcatcherTexture, caughtRounds, WEB_ORDER, glowTexture } from '../ar
 import { PLACES } from '../ui/theme.js';
 import { trainWipe } from '../ui/TrainWipe.js';
 import { boardTitle } from '../ui/BoardTitle.js';
+import { readDocument } from '../ui/ReadingPanel.js';
 import { uiText } from '../ui/text.js';
 import { hud } from '../ui/hud.js';
 
@@ -236,7 +237,8 @@ export default class HubScene extends BaseLevel {
     uiText(this, k.wx, street - 110 - 25, HEADLINES[this.N], { size: 'body', color: '#f2e6cc', wordWrap: { width: 104 }, align: 'center', backing: 0x1a1a22 })
       .setOrigin(0.5)
       .setDepth(D.INTERACT - 1);
-    this.addInteract(k.wx, street - 20, 'paper', () => this.floatText(k.wx, street - 124, `"${HEADLINES[this.N]}"`, '#c8c0b0'));
+    // feedback 3: [E] reads the paper on a page, large
+    this.addInteract(k.wx, street - 20, 'read the paper', () => readDocument(this, { title: 'The Evening Crossroads', text: HEADLINES[this.N], name: 'paper' }));
 
     // three station doors at full size (2.6 m pairs, a 2.4 m revolving door
     // in the middle); only the middle one turns
@@ -609,7 +611,7 @@ export default class HubScene extends BaseLevel {
     this.drawTally(this.state.tally);
     const sign = this.obj('sign');
     this.add.image(sign.wx + 16, sign.wy, hubTex(this, 'creamsign', 120, 28)).setDepth(D.INTERACT - 2).setAngle(-2);
-    uiText(this, sign.wx + 16, sign.wy - 1, sign.text, { fontSize: '11px', color: '#2a2230', backing: 0xf2e6cc }).setOrigin(0.5).setDepth(D.INTERACT - 1).setAngle(-2);
+    uiText(this, sign.wx + 16, sign.wy - 1, sign.text, { fontSize: '11px', color: '#2a2230', backing: 0xf2e6cc }).setOrigin(0.5).setDepth(D.INTERACT - 1); // level (feedback 3)
 
     // a bar of cold blue light between the leaves once it is ajar
     this.gateLight = this.add.image(gx, (top + bottom) / 2, hubTex(this, 'lightbar', 10, 8)).setDisplaySize(10, bottom - top).setAlpha(0).setDepth(D.INTERACT + 2);

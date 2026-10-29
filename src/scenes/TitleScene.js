@@ -7,10 +7,11 @@
 // (?warp=, ?wr=, ?at= ...) boot their scene directly and never see this.
 import Phaser from 'phaser';
 import { uiText } from '../ui/text.js';
+import { settingsItems } from '../ui/settingsItems.js';
 import PauseMenu from '../ui/PauseMenu.js';
 import { saveStore } from '../meta/SaveStore.js';
 import { getSave } from '../utils/save.js';
-import { isMusicOff, toggleMusic, sfx } from '../systems/audio.js';
+import { toggleMusic, sfx } from '../systems/audio.js';
 import { drawPanel } from '../ui/Panel.js';
 import { IDENTITY } from '../ui/theme.js';
 import { dreamcatcherTexture, caughtRounds, WEB_ORDER } from '../art/identityArt.js';
@@ -124,18 +125,8 @@ export default class TitleScene extends Phaser.Scene {
   }
 
   settings() {
-    const items = () => [
-      {
-        id: 'music',
-        label: `Music: ${isMusicOff() ? 'off' : 'on'}`,
-        action: (m) => {
-          toggleMusic();
-          m.setItems(items(), { keepIndex: true });
-        },
-      },
-      { id: 'back', label: 'Back', action: (m) => m.close() },
-    ];
-    this.menu.open({ title: 'Settings', lines: [], items: items(), canClose: true });
+    const items = () => settingsItems({ back: { id: 'back', label: 'Back', action: (m) => m.close() } });
+    this.menu.open({ title: 'Settings', lines: ['←/→ change a volume'], items: items(), canClose: true });
   }
 
   // ---- the painting: the station at night, a train waiting, the hoop -------

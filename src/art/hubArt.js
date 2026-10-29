@@ -604,7 +604,7 @@ const LAYER_PAINTERS = {
       letters(ctx, String(i + 1), x + 22, 86, 7, 0x2a2230, { shadow: 0 });
     }
     letters(ctx, 'TICKETS', 128, 56, 15, BRASS, { spacing: 4, shadow: 0.55 });
-    letters(ctx, 'ENQUIRIES', 384, 56, 13, BRASS, { spacing: 3, shadow: 0.55 });
+    letters(ctx, 'ENQUIRIES', 384, 56, 14, BRASS, { spacing: 2, shadow: 0.55 });
     // the light: the west is warm, the office throws a shadow at its foot
     const gl = ctx.createLinearGradient(0, 0, W, 0);
     gl.addColorStop(0, rgba(SUN, 0.12));
@@ -771,14 +771,15 @@ const LAYER_PAINTERS = {
       const x = i * 128 + 64 + rand.between(-10, 10);
       pendant(ctx, x, 19, rand.between(14, 30), { r: 15 });
     }
-    // a couple of hanging enamel signs between them
-    for (const x of [16, 300]) {
+    // a couple of hanging enamel signs between them (feedback 3: big
+    // enough for their lettering to be read at a glance, cap 14)
+    for (const x of [8, 292]) {
       ctx.fillStyle = rgba(IRON, 0.9);
-      ctx.fillRect(x + 6, 19, 2, 14);
-      ctx.fillRect(x + 50, 19, 2, 14);
-      block(ctx, x, 33, 58, 16, 0x2e3a52, { r: 1 });
-      bar(ctx, x + 1, 34, 56, 1, BRASS);
-      letters(ctx, x < 100 ? 'WAY OUT' : 'TEA ROOM', x + 29, 42, 8, 0xf2e6cc, { spacing: 1 });
+      ctx.fillRect(x + 8, 19, 2, 12);
+      ctx.fillRect(x + 118, 19, 2, 12);
+      block(ctx, x, 31, 128, 24, 0x2e3a52, { r: 1 });
+      bar(ctx, x + 1, 32, 126, 1, BRASS);
+      letters(ctx, x < 100 ? 'WAY OUT' : 'TEA ROOM', x + 64, 44, 14, 0xf2e6cc, { spacing: 1 });
     }
     grain(ctx, 0, 0, W, H, 0.04, 43);
   }],

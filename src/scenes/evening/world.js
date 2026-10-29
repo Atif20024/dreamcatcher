@@ -226,7 +226,7 @@ export function buildWorld(scene, objects) {
         scene.add.rectangle(o.wx, y - 20, 4, 40, 0x6a4a32).setDepth(6);
         const w = o.text.length * 8 + 16;
         scene.add.rectangle(o.wx, y - 40, w, 18, 0xe8dcc0).setDepth(6).setStrokeStyle(2, 0x6a4a32).setAngle(-2);
-        uiText(scene, o.wx, y - 40, o.text, { fontSize: '11px', color: '#3a2a22', backing: 0xe8dcc0 }).setOrigin(0.5).setDepth(6.1).setAngle(-2);
+        uiText(scene, o.wx, y - 40, o.text, { fontSize: '11px', color: '#3a2a22', backing: 0xe8dcc0 }).setOrigin(0.5).setDepth(6.1); // level (feedback 3)
         break;
       }
       case 'bench': {

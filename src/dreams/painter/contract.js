@@ -8,6 +8,23 @@ import { hud } from '../../ui/hud.js';
 
 export const CONTRACT = { ultramarine: 2, gold: 10 };
 
+// the contract itself, as Jo reads it at the notary's (feedback 3: the
+// commission was only ever two HUD lines; now it is a page)
+export const CONTRACT_DOC = {
+  title: 'The commission',
+  name: 'contract',
+  ink: 0x2a1c14,
+  text: [
+    'In the name of God, this day, before the notary of the guild:',
+    'Messer Corso commissions of the painter Jo the vault of his chapel: the sky, the stars and the Virgin in her mantle.',
+    'The mantle and the sky in ultramarine, not azurite.\nOf ultramarine: two ounces. II.',
+    'The stars in gold leaf.\nOf gold leaf: ten books. X.',
+    'The face is the master\'s hand.',
+    'To be shown at the bell, beside the work of Maestro Dori, and judged by the consuls of the guild.',
+    '— sealed, and written in Roman numbers',
+  ].join('\n\n'),
+};
+
 // the giornata, in sections of wet plaster (the clock refills for each);
 // `uses` spends the contract's materials
 export const GIORNATA_STEPS = [

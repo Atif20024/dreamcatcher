@@ -22,6 +22,7 @@ import { HealthModel } from '../play/Health.js';
 import CheckpointService from '../play/Checkpoints.js';
 import { RunState } from '../play/RunState.js';
 import PauseMenu from '../ui/PauseMenu.js';
+import { settingsItems } from '../ui/settingsItems.js';
 import ModalManager from '../ui/ModalManager.js';
 import { hud } from '../ui/hud.js';
 import { uiText, PLATE } from '../ui/text.js';
@@ -32,7 +33,8 @@ import { buses } from '../audio/AudioBus.js';
 import { PlaceAudio } from '../audio/PlaceAudio.js';
 import { PLACE_BED, legacyRoom } from '../audio/places.js';
 import { bandFor } from '../audio/bands.js';
-import { PLACES, placeOf, rimOf } from '../ui/theme.js';
+import { PLACES, IDENTITY, placeOf, rimOf, joLightOf } from '../ui/theme.js';
+import { mulColor } from '../entities/Player.js';
 import { createLampTextures } from '../art/identityArt.js';
 import { boardTitle } from '../ui/BoardTitle.js';
 import { trainWipe, wipeActive } from '../ui/TrainWipe.js';
@@ -139,8 +141,17 @@ export default class BaseLevel extends Phaser.Scene {
     // arriving by train, the passing-train wipe uncovers the scene (WP6);
     // otherwise it fades up from the night indigo, never from black
     if (!wipeActive()) cam.fadeIn(400, 0x14, 0x12, 0x2a);
-    // Jo's warm rim, in this place's light (§9 "Jo anchor")
-    if (this.player && this.player.setRim) this.player.setRim({ color: rimOf(placeOf(this)), halo: PLACES[placeOf(this)].halo || 0, haloColor: PLACES[placeOf(this)].warm });
+    // Jo in this place's light (feedback 3): lit like the world, a 1 px rim,
+    // no pool of light; a brief locator once the scene is uncovered
+    if (this.player && this.player.setRim) {
+      // the outline is the place's opposite: a pale line where the place is
+      // dark, the night ink (plus a faint 1 px rim) where it is light
+      const pl = PLACES[placeOf(this)];
+      if (pl.outline === 'light') this.player.setRim({ color: rimOf(placeOf(this)), alpha: 0, dx: -1, ink: pl.line ?? 0.8, inkColor: mulColor(IDENTITY.cream, joLightOf(placeOf(this))) });
+      else this.player.setRim({ color: rimOf(placeOf(this)), alpha: pl.line ?? 0.4, dx: -1, ink: 1, inkColor: 0x14122a });
+      this.player.setLight(joLightOf(placeOf(this)));
+      this.time.delayedCall(wipeActive() ? 800 : 450, () => this.player && this.player.locate && this.player.locate('enter'));
+    }
     // the look: a painted vignette and a moving grain, as in the Evening
     this.look = setupLook(this, { vignette: 0.85, grain: 0.04 });
     // the place's night grade, under Jo (WP6, §9 "Light")
@@ -621,17 +632,82 @@ export default class BaseLevel extends Phaser.Scene {
   openDeathCard() {
     const label = this.checkpoint.label;
     this.freezeWorld(true);
-    this.pauseMenu.open({
-      title: 'You gave everything… and it slipped away.',
-      lines: [label ? `The last flag: ${label}` : 'Back to where this dream began.'],
-      items: [
-        { id: 'retry', label: label ? `Back to the flag — ${label}` : 'Try again from here', action: () => this.respawnAtCheckpoint() },
-        { id: 'pause', label: 'Pause menu', action: () => this.openPauseMenu({ fromDeath: true }) },
+    const title = 'You gave everything… and it slipped away.';
+    const lines = [label ? `The last lamp: ${label}` : 'Back to where this dream began.'];
+    // feedback 3: the three ways on from here, as in the pause menu
+    const items = () => [
+      { id: 'retry', label: label ? `Restart from checkpoint — ${label}` : 'Restart from checkpoint', action: () => this.respawnAtCheckpoint() },
+      ...(this.canRestartDream() ? [{ id: 'restartDream', label: 'Restart dream from the start', action: (m) => this.confirmRestartDream(m, () => m.setItems(items(), { title, lines })) }] : []),
+      { id: 'station', label: 'Back to station', action: () => this.returnToStation() },
+      { id: 'pause', label: 'Pause menu', action: () => this.openPauseMenu({ fromDeath: true }) },
+    ];
+    this.pauseMenu.open({ title, lines, items: items(), canClose: false, guardMs: 700 });
+  }
+
+  // ---- restarting a dream from its start (feedback 3) ----------------------------
+  // "there is no option to restart a level; it can only restart from the
+  // last checkpoint". A dream (its scene and its run) can be restarted from
+  // the beginning; the station and the Evening's own pause have their own.
+  canRestartDream() {
+    return !!this.dreamId && this.scene.key !== 'Hub';
+  }
+
+  // a yes/no in the same menu; `back` redraws the menu it came from
+  confirmRestartDream(m, back) {
+    m.setItems(
+      [
+        { id: 'restartNo', label: 'No, keep playing', action: () => back() },
+        { id: 'restartYes', label: 'Yes, start this dream again', action: () => this.restartDream() },
       ],
-      canClose: false,
-      guardMs: 700,
+      { title: 'Start this dream again?', lines: ['The coins and items from this run are lost.', 'Dreams you have caught stay caught.'] }
+    );
+  }
+
+  // undo this run (its coins come out of the wallet, its heart shards out
+  // of the tally, its saved run is cleared) and start the scene afresh.
+  // Permanent progress (other dreams, the hub, the Evening) is untouched.
+  restartDream() {
+    if (this._restarting) return;
+    this._restarting = true;
+    const id = this.dreamId;
+    const coins = this.levelCoins || 0;
+    if (id && coins > 0) deductWorth(id, coins * coinWorth(id));
+    const shards = (this.shardItems || []).filter((i) => !i.active).length;
+    if (shards) updateSave((s) => (s.shards = Math.max(0, (s.shards || 0) - shards)));
+    this.onRestartDream();
+    if (id) clearRun(id);
+    this.restartLog = { dreamId: id, coins, shards, at: Date.now() };
+    events.emit('dream:restart', this.restartLog);
+    if (this.pauseMenu) this.pauseMenu.destroy();
+    this.freezeWorld(false);
+    this.respawning = false;
+    if (this.player) this.player.controlLockUntil = this.time.now + 99999;
+    music.stop();
+    // a dev warp in the address bar would warp the restart back into the
+    // middle: the restart is from the dream's own start
+    try {
+      const u = new URL(window.location.href);
+      ['at', 'wr', 'pt', 'gm', 'ev'].forEach((k) => u.searchParams.delete(k));
+      if (u.searchParams.get('warp') && id) u.searchParams.set('warp', id);
+      window.history.replaceState(null, '', u);
+    } catch {
+      /* no window */
+    }
+    const data = { ...(this.sys.settings.data || {}) };
+    delete data.resume;
+    delete data.warp;
+    data.keepRun = false;
+    data.restarted = true;
+    if (this.scene.key === 'Dream') data.dreamId = id;
+    this.cameras.main.fadeOut(300, 0x14, 0x12, 0x2a);
+    this.time.delayedCall(320, () => {
+      this._restarting = false;
+      this.scene.restart(data);
     });
   }
+
+  // per-dream: what else a restart undoes (the gambler's chips at the cage)
+  onRestartDream() {}
 
   // zero hearts → the last checkpoint, hearts refilled; the world is NOT
   // restarted, so nothing already seen or done is replayed
@@ -653,6 +729,10 @@ export default class BaseLevel extends Phaser.Scene {
     this.cameras.main.centerOn(this.player.x, this.player.y);
     this.cameras.main.fadeIn(350, 0x14, 0x12, 0x2a); // death fades through the night indigo (§9)
     this.flashInvulnerable();
+    if (this.player.locate) {
+      if (this.player.locator) this.player.locator.lastAt = -1e9;
+      this.player.locate('respawn');
+    }
   }
 
   // per-dream reset hook when Jo wakes at the flag (chases, timers)
@@ -789,6 +869,7 @@ export default class BaseLevel extends Phaser.Scene {
       this._resumeObjective = r.extra.objective;
     }
     this.showCheckpointLabel(r.checkpointLabel || 'the dream', 'continued from the last flag');
+    if (this.player && this.player.locate) this.time.delayedCall(500, () => this.player.locate('continue'));
   }
 
   // ---- pause menu (Esc) -------------------------------------------------------------
@@ -814,11 +895,12 @@ export default class BaseLevel extends Phaser.Scene {
       }
     };
     const main = () => [
-      { id: 'resume', label: fromDeath ? 'Back to the flag' : 'Resume', action: resume },
-      { id: 'restart', label: label ? `Restart from the flag — ${label}` : 'Restart from the flag', action: () => this.respawnAtCheckpoint() },
-      { id: 'station', label: 'Return to station', action: () => this.returnToStation() },
+      { id: 'resume', label: fromDeath ? 'Back to the lamp' : 'Resume', action: resume },
+      { id: 'restart', label: label ? `Restart from checkpoint — ${label}` : 'Restart from checkpoint', action: () => this.respawnAtCheckpoint() },
+      ...(this.canRestartDream() ? [{ id: 'restartDream', label: 'Restart dream from the start', action: (m) => this.confirmRestartDream(m, () => m.setItems(main(), { title: 'Paused', lines: info() })) }] : []),
+      { id: 'station', label: 'Back to station', action: () => this.returnToStation() },
       { id: 'tutorials', label: 'Replay tutorials', action: (m) => m.setItems(tutorials(), { title: 'Replay tutorials', lines: tutorials().length > 1 ? [] : ['No cards in this dream yet.'] }) },
-      { id: 'settings', label: 'Settings', action: (m) => m.setItems(settings(), { title: 'Settings', lines: [] }) },
+      { id: 'settings', label: 'Settings', action: (m) => m.setItems(settings(), { title: 'Settings', lines: ['←/→ change a volume'] }) },
     ];
     // F§5.8: every card this dream has shown can be shown again
     const tutorials = () => [
@@ -834,17 +916,8 @@ export default class BaseLevel extends Phaser.Scene {
       })),
       { id: 'back', label: 'Back', action: (m) => m.setItems(main(), { title: 'Paused', lines: info() }) },
     ];
-    const settings = () => [
-      {
-        id: 'music',
-        label: `Music: ${isMusicOff() ? 'off' : 'on'}`,
-        action: (m) => {
-          this.setMusicLabel(toggleMusic());
-          m.setItems(settings(), { keepIndex: true });
-        },
-      },
-      { id: 'back', label: 'Back', action: (m) => m.setItems(main(), { title: 'Paused', lines: info() }) },
-    ];
+    // music on/off and the Music / Ambience sliders (feedback 3)
+    const settings = () => settingsItems({ back: { id: 'back', label: 'Back', action: (m) => m.setItems(main(), { title: 'Paused', lines: info() }) }, onMusic: (off) => this.setMusicLabel(off) });
     const info = () => [label ? `Last flag: ${label}` : 'No flag yet: you would wake where the dream began.', this.run ? 'The dream is saved at its last flag.' : ''].filter(Boolean);
     this.pauseMenu.open({
       title: 'Paused',
@@ -885,8 +958,10 @@ export default class BaseLevel extends Phaser.Scene {
     if (!this._room) this._blendZoom = undefined;
     const room = this._room ? RoomBuilder.roomAtCamera(rooms, cam.scrollX + cam.width / 2, this._room) : RoomBuilder.roomAt(rooms, this.player.x);
     if (room !== this._room) {
+      const was = this._room;
       this._room = room;
       this.enterAudioRoom(room);
+      if (was && this.player && this.player.locate) this.player.locate('room', room.id ?? rooms.indexOf(room));
       if (room.music) this._roomState = room.music.state || 'explore';
     }
     if (this.placeAudio) this.placeAudio.update(this.time.now);

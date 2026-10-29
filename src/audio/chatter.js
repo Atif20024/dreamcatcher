@@ -11,7 +11,9 @@
 import { renderBabble, hashId } from './babble.js';
 import { busNode, PRIO, pool } from './synth.js';
 
-export const CHATTER = Object.freeze({ near: 220, far: 320, cooldown: [8, 12], max: 3, level: 0.6, check: 0.25 });
+// feedback 3: sparse — a 20–32 s cooldown per person, at most two at once,
+// and a shorter reach (200 px)
+export const CHATTER = Object.freeze({ near: 200, far: 320, cooldown: [20, 32], max: 2, level: 0.6, check: 0.25 });
 
 const banks = new WeakMap();
 // a cached babble buffer for this context

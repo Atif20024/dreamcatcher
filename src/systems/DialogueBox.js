@@ -1,7 +1,7 @@
 import { sfx } from './audio.js';
 import { convKey } from '../play/RunState.js';
 import ModalManager from '../ui/ModalManager.js';
-import { uiText } from '../ui/text.js';
+import { uiText, CONVERSATION_SCALE } from '../ui/text.js';
 import { resolveArt } from '../art/baked.js';
 import { panel, drawPanel } from '../ui/Panel.js';
 
@@ -45,7 +45,7 @@ export default class DialogueBox {
       this.box = add(panel(s, cam.width / 2, boxY, cam.width - 48, boxH, { depth }));
       this.nameText = add(uiText(s, 152, boxY - boxH / 2 + 14, '', { size: 'small', color: 'accent' }).setScrollFactor(0).setDepth(depth + 1));
       this.bodyText = add(
-        uiText(s, 152, boxY - boxH / 2 + 38, '', { size: 'body', color: 'ink', wrap: cam.width - 48 - 152 - 40, lineSpacing: 4 })
+        uiText(s, 152, boxY - boxH / 2 + 38, '', { size: 'body', scale: CONVERSATION_SCALE, color: 'ink', wrap: cam.width - 48 - 152 - 40, lineSpacing: 4 })
           .setScrollFactor(0)
           .setDepth(depth + 1)
       );

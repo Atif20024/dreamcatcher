@@ -34,6 +34,7 @@ import { wipeActive } from '../ui/TrainWipe.js';
 import DialogueBox from '../systems/DialogueBox.js';
 import { buildWorld, buildArchitecture, makeGround, bucketTerrain, bakeTerrain, zoneTint, mulC } from './evening/world.js';
 import { paintRoofBlock, paintRidgeRock } from '../art/eveningArt.js';
+import { readDocument } from '../ui/ReadingPanel.js';
 import { uiText, PLATE } from '../ui/text.js';
 
 // THE LONG EVENING — the last place in the game, and the only fully
@@ -691,7 +692,7 @@ export default class EveningScene extends BaseLevel {
       shadowAlpha: (0.34 - this.weather.rain * 0.2) * (1 - night * 0.5),
       shadowLen: night > 0.6 ? 0.6 : 1.1 - this.weather.rain * 0.4,
       aurora: this.sky.aurora,
-      night,
+      night, // (Jo's jar of fireflies comes out past 0.3: src/data/joLights.js)
     };
     return this.lightCache;
   }
@@ -743,8 +744,8 @@ export default class EveningScene extends BaseLevel {
     p.carrying = !!this.carrying;
     const wet = now < this.wetUntil || this.weather.rain > 0.2;
     const tint = mulC(wet ? 0xb4bccc : 0xffffff, L.ambient);
-    p.art.setTint(tint);
-    p.hat.setTint(mulC(this.hatBase === undefined ? 0xffffff : this.hatBase, tint));
+    if (!p.probeMask) p.art.setTint(tint); // (the contrast probe's flat frame)
+    if (!p.probeMask) p.hat.setTint(mulC(this.hatBase === undefined ? 0xffffff : this.hatBase, tint));
     p.setRim({ color: L.rim, alpha: L.rimAlpha, dx: -1.5 });
     // the light's colour and length; on a bench the shadow lies on the seat
     p.shadow.set({ tint: L.shadow, alpha: L.shadowAlpha, length: L.shadowLen * (this.joSitting ? 0.7 : 1), groundY: this.joSitting && this.sitBench ? this.sitBench.y : null });
@@ -2612,18 +2613,20 @@ export default class EveningScene extends BaseLevel {
     add(this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x0e0b14, 0.6));
     this.drawMap(add);
     this.drawThingsToDo(add);
-    add(uiText(this, cam.width / 2, cam.height - 40, '[E] stay     [A] the photos     [Q] back to the station', { fontSize: '12px', color: '#c8c0b0' }).setOrigin(0.5));
-    this.paused = { objs, album: null, openedAt: this.game.loop.time };
+    add(uiText(this, cam.width / 2, cam.height - 40, '[E] stay   [A] the photos   [L] read the list   [R] start over   [Q] back to the station', { fontSize: '12px', color: '#c8c0b0' }).setOrigin(0.5));
+    this.keyR = this.input.keyboard.addKey('R'); // (fresh each time: a restarted scene drops its keys)
+    this.keyL = this.input.keyboard.addKey('L');
+    this.keyY = this.input.keyboard.addKey('Y');
+    this.keyN = this.input.keyboard.addKey('N');
+    [this.keyR, this.keyL, this.keyY, this.keyN].forEach((k) => Phaser.Input.Keyboard.JustDown(k));
+    this.paused = { objs, album: null, confirm: null, openedAt: this.game.loop.time };
   }
 
   // a note pinned beside the map: what there is to do here, ticked as he
   // does it, and the pocket of lost things. Nothing is required; it is a
   // list for a player who might only come once.
-  drawThingsToDo(add) {
-    const cam = this.cameras.main;
-    const x = cam.width / 2 + 345;
-    const y0 = cam.height / 2 - 172;
-    const lines = ['things you could do'];
+  thingsToDo() {
+    const items = [];
     const order = ['laundry', 'bo', 'skip', 'bike', 'fishing', 'chess', 'bread', 'kite', 'tea', 'ball', 'shootout', 'sweep', 'stones', 'sheets', 'snowman', 'swing', 'boat', 'shoes'];
     for (const id of order) {
       const a = this.activities[id];
@@ -2631,14 +2634,32 @@ export default class EveningScene extends BaseLevel {
       const who = a.npc && this.folk[a.npc] ? this.folk[a.npc].def.name : null;
       const doneIt = a.npc ? this.helped.has(a.npc) && !(id === 'ball' && !this.helped.has('waiting_kid')) : this.helped.has(id);
       const note = id === 'sheets' ? ' (in the rain)' : id === 'snowman' ? ' (in the snow)' : '';
-      lines.push(`${doneIt ? '✓' : '·'} ${a.verb}${who ? ' — ' + who : ''}${note}`);
+      items.push({ done: doneIt, line: `${doneIt ? '✓' : '·'} ${a.verb}${who ? ' — ' + who : ''}${note}` });
     }
     const finds = getSave().evening.finds || {};
-    const n = Object.keys(finds).length;
-    lines.push('', `pocket: ${n}/${FINDS.length} lost things`);
-    for (const f of FINDS) if (finds[f.id]) lines.push(`  ${f.name}`);
-    add(this.add.rectangle(x, cam.height / 2 - 20, 214, 340, 0xf6efe0, 0.92).setAngle(1.5));
-    add(uiText(this, x - 96, y0, lines.join('\n'), { fontSize: '9px', color: '#3a2a22', lineSpacing: 1, wordWrap: { width: 196 } }).setAngle(1.5));
+    const found = FINDS.filter((f) => finds[f.id]).map((f) => f.name);
+    return { items, found, n: Object.keys(finds).length };
+  }
+
+  // feedback 3: the note on the map is short and level (it held 20+ lines
+  // at the smallest size, tilted, on a 214 px scrap); the whole list opens
+  // on the reading panel with [L]
+  drawThingsToDo(add) {
+    const cam = this.cameras.main;
+    const x = cam.width / 2 + 345;
+    const { items, n } = this.thingsToDo();
+    const done = items.filter((i) => i.done).length;
+    add(this.add.rectangle(x, cam.height / 2 - 60, 214, 200, 0xf6efe0, 0.96));
+    const lines = ['things to do', `${done} of ${items.length} done`, `pocket: ${n}/${FINDS.length}`, '', '[L] the list'];
+    add(uiText(this, x, cam.height / 2 - 60, lines.join('\n'), { size: 'body', color: '#3a2a22', align: 'center', backing: 0xf6efe0 }).setOrigin(0.5));
+  }
+
+  async readThingsToDo() {
+    const { items, found, n } = this.thingsToDo();
+    const text = [...items.map((i) => i.line), '', `pocket: ${n}/${FINDS.length} lost things`, ...found.map((f) => `  ${f}`)].join('\n');
+    await readDocument(this, { title: 'things you could do', text, ink: 0x3a2a22, paper: 0xf6efe0, name: 'evening-list', freeze: 'none' });
+    // the key that closed the page must not close the pause too
+    [this.keyEsc, this.keyA, this.keyQ, this.keyR, this.keyL, this.player.keys.X].forEach((k) => k && Phaser.Input.Keyboard.JustDown(k));
   }
 
   // A4.4 — wobbly lines, wrong proportions, labels in a child's hand; it gets
@@ -2694,6 +2715,7 @@ export default class EveningScene extends BaseLevel {
       if (visits >= 5) g.fillStyle(0xf2d580, 0.35).fillCircle(x, y - 14, 16);
       // the label, in wobbly handwriting
       const name = { allotments: 'gardns', rooftops: 'roofs', laundry: 'washing', steep: 'hill st' }[id] || id;
+      // lint-allow readability: a child's crayon letters, one at a time (the list reads on the reading panel)
       [...name].forEach((ch, k) => add(uiText(this, x - name.length * 3.5 + k * 7, y + 12 + rand.between(-2, 2), ch, { fontSize: '11px', color: '#3a3050' }).setAngle(rand.between(-10, 10))));
     });
     // the road off the edge, going up, if he has been
@@ -2705,6 +2727,7 @@ export default class EveningScene extends BaseLevel {
       g.strokePath();
       if (map.ridge) g.fillStyle(0x60e8a0, 0.6).fillRect(x0 + places.length * step + 70, cy - H / 2 + 30, 60, 8);
     }
+    // lint-allow readability: the child's title on his drawing, in crayon
     add(uiText(this, cx + W / 2 - 60, cy + H / 2 - 30, 'my town', { fontSize: '12px', color: '#c03a2a' }).setAngle(-6));
   }
 
@@ -2732,6 +2755,34 @@ export default class EveningScene extends BaseLevel {
     });
   }
 
+  // feedback 3: the Evening can be started over from the arch. What the
+  // town remembers (the map he drew, the lost things in his pocket) stays.
+  confirmRestart() {
+    const pz = this.paused;
+    const cam = this.cameras.main;
+    const objs = [];
+    const add = (o) => (objs.push(o.setScrollFactor(0).setDepth(280)), this.pinUI(o, o.x, o.y, o.scaleX), o);
+    add(this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x14122a, 0.8));
+    add(uiText(this, cam.width / 2, cam.height / 2 - 30, 'Start the evening over, from the arch?', { size: 'body', color: 'ink', align: 'center' }).setOrigin(0.5));
+    add(uiText(this, cam.width / 2, cam.height / 2 + 4, 'The map and the lost things stay with you.', { size: 'small', color: 'ink-dim', align: 'center' }).setOrigin(0.5));
+    add(uiText(this, cam.width / 2, cam.height / 2 + 40, '[Y] yes, start over     [N] no', { size: 'body', color: 'accent', align: 'center' }).setOrigin(0.5));
+    pz.confirm = objs;
+  }
+
+  restartEvening() {
+    this.restartLog = { scene: 'Evening', at: Date.now() };
+    if (this.soundscape) this.soundscape.stop();
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.delete('ev');
+      window.history.replaceState(null, '', u);
+    } catch {
+      /* no window */
+    }
+    this.cameras.main.fadeOut(400, 20, 14, 8);
+    this.time.delayedCall(420, () => this.scene.restart({}));
+  }
+
   updatePause() {
     this.updateUIPins();
     const pz = this.paused;
@@ -2739,11 +2790,26 @@ export default class EveningScene extends BaseLevel {
     const close = () => {
       pz.objs.forEach((o) => o.destroy());
       (pz.album || []).forEach((o) => o.destroy());
+      (pz.confirm || []).forEach((o) => o.destroy());
+      if (this.reader) this.reader.close();
       this.paused = null;
       this.physics.resume();
       this.tweens.resumeAll();
       this.time.paused = false;
     };
+    if (this.reader && this.reader.isOpen) return;
+    if (pz.confirm) {
+      if (Phaser.Input.Keyboard.JustDown(this.keyY)) {
+        close();
+        this.restartEvening();
+      } else if (Phaser.Input.Keyboard.JustDown(this.keyN) || Phaser.Input.Keyboard.JustDown(this.keyEsc)) {
+        pz.confirm.forEach((o) => o.destroy());
+        pz.confirm = null;
+      }
+      return;
+    }
+    if (Phaser.Input.Keyboard.JustDown(this.keyR)) return this.confirmRestart();
+    if (Phaser.Input.Keyboard.JustDown(this.keyL)) return this.readThingsToDo();
     if (pz.album && (Phaser.Input.Keyboard.JustDown(this.keyEsc) || Phaser.Input.Keyboard.JustDown(this.player.keys.X))) {
       pz.album.forEach((o) => o.destroy());
       pz.album = null;

@@ -7,7 +7,7 @@
 //
 //   const r = await box.run(conv, { flags, onSet, onEffect })   → { chosen, trail }
 import ModalManager from '../ui/ModalManager.js';
-import { uiText } from '../ui/text.js';
+import { uiText, CONVERSATION_SCALE } from '../ui/text.js';
 import { drawPanel } from '../ui/Panel.js';
 import { resolveArt } from '../art/baked.js';
 import { DialogueRunner } from './DialogueRunner.js';
@@ -47,7 +47,7 @@ export class SceneBox {
       this.box = add(s.add.graphics().setScrollFactor(0).setDepth(DEPTH));
       this.portrait = add(s.add.image(0, 0, '__WHITE').setScrollFactor(0).setDepth(DEPTH + 1).setVisible(false));
       this.nameText = add(uiText(s, 0, 0, '', { size: 'small', color: 'accent' }).setScrollFactor(0).setDepth(DEPTH + 1));
-      this.bodyText = add(uiText(s, 0, 0, '', { size: 'body', color: 'ink', wrap: 640, lineSpacing: 4 }).setScrollFactor(0).setDepth(DEPTH + 1));
+      this.bodyText = add(uiText(s, 0, 0, '', { size: 'body', scale: CONVERSATION_SCALE, color: 'ink', wrap: 640, lineSpacing: 4 }).setScrollFactor(0).setDepth(DEPTH + 1));
       this.more = add(uiText(s, 0, 0, '▼', { size: 'small', color: 'ink-dim' }).setScrollFactor(0).setDepth(DEPTH + 1));
       this.choiceTexts = [];
       this.t = 0;

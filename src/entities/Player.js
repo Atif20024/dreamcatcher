@@ -10,6 +10,14 @@ import { JO_DUST } from './jo.js';
 import { dreamDust } from '../systems/effects.js';
 import { getSave } from '../utils/save.js';
 import { hatById } from '../data/hats.js';
+import JoLocator from './JoLocator.js';
+import JoLight from './JoLight.js';
+
+// multiply two 0xrrggbb colours (a light on a colour)
+export function mulColor(a, b) {
+  const m = (s) => Math.round((((a >> s) & 255) * ((b >> s) & 255)) / 255);
+  return (m(16) << 16) | (m(8) << 8) | m(0);
+}
 
 // D1: px figures from the other docs are doubled for the 32px scale
 // (run 140 -> 280, jump 300 -> 600, look-ahead 48 -> 96).
@@ -20,7 +28,15 @@ const SPEED = 280;
 // run, and every dream's jumps are tuned to it, so it stays the default.
 export const WALK_SPEED = 80;
 const JUMP = 600;
+// Jo's anchor (feedback 3). The owner saw the WP6 glow ("unnatural") and
+// then the outline that replaced it ("looks worse"), and chose: Jo is drawn
+// plain (no light pool, rim or outline) and carries a real light of the
+// place in dark rooms (src/entities/JoLight.js, src/data/joLights.js).
+// The outline/rim machinery stays here, switched off.
+export const JO_ANCHOR = { outline: false, rim: false, light: false };
 const COYOTE_MS = 100;
+// after a jump off a ladder, the same ladder cannot catch him for this long
+export const LADDER_REGRAB_MS = 150;
 // Phase 2: Jo is drawn about 82 px tall (a 2× rig, see src/data/rigs/jo.js)
 // but keeps the legacy 24×44 body, so every dream built for the old ~44 px
 // Jo stays completable. Under a ceiling lower than the drawing he ducks
@@ -111,18 +127,23 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.art = this.hasAtlas
       ? scene.add.image(x, y, 'jo', this.anim.frameName()).setDepth(12)
       : scene.add.image(x, y, 'jo-stand').setDepth(12);
-    // round 2 WP6 (critique §9 "Jo anchor"): Jo is the highest-contrast thing
-    // on screen. A copy of his frame, tint-filled warm and set 1.5 px toward
-    // the light, peeks out on his lit side as a rim in every place (the
-    // Evening drives its colour and strength from its sky).
-    // On the shadow side a 1 px line of the night indigo closes his outline,
-    // and a soft pool of warm light behind him (`halo`, 0 = off) lifts the
-    // place's dark around him where a place needs it.
-    this.rimStyle = { color: 0xffd890, alpha: 0.5, dx: -1.5, on: true, ink: 0.85, halo: 0, haloColor: 0xf2c890 };
-    this.rim = scene.add.image(x, y, this.art.texture.key, this.art.frame.name).setDepth(11.95).setTintFill(0xffd890).setAlpha(0.5);
+    // Jo's anchor (feedback 3, replacing WP6's warm rim and light pool: "why
+    // does Jo glow?"). Jo is lit like the world he stands in and found by
+    // the drawing, not by light:
+    //  - a crisp 1 px outline in the night indigo all round his silhouette
+    //  - a 1 px rim on his lit side, faint (alpha ≤ 0.6), in the place's light
+    //  - the place's light on his clothes (`lightTint`, half the night grade)
+    //  - no pool of light, no halo, nothing additive
+    // A short locator (src/entities/JoLocator.js) marks him on entering a
+    // place, after a respawn, and shows his silhouette through foreground.
+    this.rimStyle = { color: 0xffd890, alpha: 0.35, dx: -1, on: true, ink: 1, inkColor: 0x14122a };
+    this.lightTint = 0xffffff;
+    this.hatBase = 0xffffff;
+    this.rim = scene.add.image(x, y, this.art.texture.key, this.art.frame.name).setDepth(11.95).setTintFill(0xffd890).setAlpha(0.35);
     this.rim.dcRimColor = 0xffd890;
     this.ink = [
       [1, 0],
+      [-1, 0],
       [0, 1],
       [0, -1],
     ].map(([dx, dy]) => {
@@ -130,7 +151,6 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       o.inkOff = { dx, dy };
       return o;
     });
-    this.halo = scene.add.image(x, y, '__DEFAULT').setVisible(false);
 
     // D5 — hat and tool are separate sprites that trail the body by one
     // frame, so Jo bobbles instead of moving like a decal. The hat wears
@@ -138,7 +158,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.hat = this.hasAtlas ? scene.add.image(x, y, 'jo', this.anim.hatFrame()).setDepth(13) : scene.add.image(x, y, 'jo-hat').setDepth(13);
     try {
       const worn = hatById(getSave().shop.hat);
-      if (worn) this.hat.setTint(worn.tint);
+      if (worn) {
+        this.hatBase = worn.tint;
+        this.hat.setTint(worn.tint);
+      }
     } catch {
       /* no save */
     }
@@ -158,6 +181,9 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     // round 2 §10.1: the ground shadow (after the sync above: it reads the
     // final position). Scenes style it with player.shadow.set({...}).
     this.shadow = new PlayerShadow(scene, this, scene.joShadowStyle || {});
+    this.locator = new JoLocator(scene, this);
+    // the light he carries in dark rooms (feedback 3, src/data/joLights.js)
+    this.light = new JoLight(scene, this);
   }
 
   // D5 — Jo bursting into dream-dust, not vanishing
@@ -221,9 +247,15 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.syncRim();
   }
 
-  // the warm rim (WP6): Jo's frame, tint-filled, just behind him toward the light
+  // the rim: Jo's frame, tint-filled, 1 px behind him toward the light.
+  // Never more than 1 px, never brighter than 0.6 (feedback 3: no glow).
   setRim(o = {}) {
-    Object.assign(this.rimStyle, o);
+    const { halo, haloColor, ...rest } = o; // the WP6 pool is gone
+    Object.assign(this.rimStyle, rest);
+    const st = this.rimStyle;
+    st.dx = Math.sign(st.dx || -1) * Math.min(1, Math.abs(st.dx || 1));
+    st.alpha = Math.min(0.6, Math.max(0, st.alpha));
+    st.ink = Math.min(1, Math.max(0, st.ink));
     this.syncRim();
     return this;
   }
@@ -245,31 +277,40 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       .setAngle(a.angle)
       .setDepth(a.depth - 0.05)
       .setAlpha(st.alpha * a.alpha)
-      .setVisible(st.on && a.visible && st.alpha > 0);
-    // the ink line on the shadow side (the light comes from st.dx's side)
-    const away = st.dx < 0 ? 1 : -1;
+      .setVisible(JO_ANCHOR.rim && st.on && a.visible && st.alpha > 0);
+    // the outline: all round him, 1 px, under the rim
     for (const o of this.ink || []) {
       if (!o.scene) continue;
+      if (o.dcInkColor !== st.inkColor) {
+        o.setTintFill(st.inkColor);
+        o.dcInkColor = st.inkColor;
+      }
       if (o.texture.key !== a.texture.key || o.frame.name !== a.frame.name) o.setTexture(a.texture.key, a.frame.name);
       o.setOrigin(a.originX, a.originY)
-        .setPosition(a.x + o.inkOff.dx * away, a.y + o.inkOff.dy)
+        .setPosition(a.x + o.inkOff.dx, a.y + o.inkOff.dy)
         .setScale(a.scaleX, a.scaleY)
         .setFlipX(a.flipX)
         .setAngle(a.angle)
         .setDepth(a.depth - 0.06)
         .setAlpha(st.ink * a.alpha)
-        .setVisible(st.on && a.visible && st.ink > 0);
+        .setVisible(JO_ANCHOR.outline && st.on && a.visible && st.ink > 0);
     }
-    // the pool of light he stands in
-    const h = this.halo;
-    if (h && h.scene) {
-      const on = st.on && this.shown && st.halo > 0 && this.scene.textures.exists('dc-id-glow');
-      if (on) {
-        if (h.texture.key !== 'dc-id-glow') h.setTexture('dc-id-glow').setBlendMode('ADD');
-        h.setPosition(a.x, a.y - 38 * a.scaleY).setScale(1.25, 1.55).setTint(st.haloColor).setAlpha(st.halo).setDepth(a.depth - 0.4);
-      }
-      h.setVisible(on);
-    }
+    if (this.locator) this.locator.sync();
+    if (this.light) this.light.sync();
+  }
+
+  // the place's light on Jo (half its night grade): he is lit like the
+  // world around him instead of standing out of it
+  setLight(color = 0xffffff) {
+    if (!JO_ANCHOR.light) color = 0xffffff;
+    this.lightTint = color;
+    this.hat.setTint(mulColor(this.hatBase, color));
+    return this;
+  }
+
+  // a brief marker over Jo (entering a place, a respawn); see JoLocator
+  locate(reason = 'enter', room = null) {
+    return this.locator ? this.locator.pulse(reason, room) : false;
   }
 
   // no atlas (a broken build): the old string-art Jo, 48 px, centred
@@ -450,9 +491,15 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     if (rev) [left, right] = [right, left];
     const upJ = this.upJumps;
     const jumpDown = I ? I.isDown('jump') || (upJ && I.isDown('up')) : (upJ && this.cursors.up.isDown) || this.keys.W.isDown || this.keys.SPACE.isDown;
+    // (the jump key's own press, read once: on a ladder Up and W climb, so
+    // only Space / A is a jump there. JustDown is one-shot, so reading it
+    // again inside the ladder block always came back false: Jo could not
+    // jump off a ladder from between its ends.)
+    // (W is both jump and up in the InputMap: a W press is a climb, not a jump)
+    const spaceJust = I ? I.justDown('jump') && !I.justDown('up') : Phaser.Input.Keyboard.JustDown(this.keys.SPACE);
     const jumpJust = I
       ? I.justDown('jump') || (upJ && I.justDown('up'))
-      : (upJ && Phaser.Input.Keyboard.JustDown(this.cursors.up)) || Phaser.Input.Keyboard.JustDown(this.keys.W) || Phaser.Input.Keyboard.JustDown(this.keys.SPACE);
+      : (upJ && Phaser.Input.Keyboard.JustDown(this.cursors.up)) || Phaser.Input.Keyboard.JustDown(this.keys.W) || spaceJust;
     const crouch = this.inDown();
     const locked = time < this.controlLockUntil;
     // a held walk (Shift / LB): the true walk cycle at a walking pace
@@ -476,7 +523,9 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     const wantsClimb = this.inUp() || crouch;
     // (+40 = the tile under the one Jo stands on: pressing DOWN on a floor
     // tile that has a ladder beneath it climbs down through the floor)
-    if (!this.climbing && wantsClimb && !locked && (onLadderTile(0) || onLadderTile(20) || (crouch && (onLadderTile(40) || onLadderTile(56))))) {
+    // (a jump off a ladder cannot be caught by the same ladder for 150 ms)
+    const regrabOk = time >= (this.noLadderUntil || 0);
+    if (!this.climbing && wantsClimb && !locked && regrabOk && (onLadderTile(0) || onLadderTile(20) || (crouch && (onLadderTile(40) || onLadderTile(56))))) {
       this.climbing = true;
       body.setAllowGravity(false);
       body.setVelocity(0, 0);
@@ -484,8 +533,25 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.climbing) {
       const stillOn = onLadderTile(0) || onLadderTile(20) || onLadderTile(-20) || onLadderTile(40) || onLadderTile(56);
       const up = this.inUp();
-      const jumpOff = I ? I.justDown('jump') && !I.isDown('up') : Phaser.Input.Keyboard.JustDown(this.keys.SPACE);
-      if (!stillOn || (jumpOff && !up)) {
+      // feedback 3: a jump from anywhere on a ladder. Holding a direction
+      // sends him that way at run speed, like the classic platformers;
+      // without one he hops up and a little off it.
+      const jumpOff = spaceJust && !locked;
+      if (jumpOff) {
+        this.climbing = false;
+        body.setAllowGravity(true);
+        const dir = left ? -1 : right ? 1 : 0;
+        if (dir) this.setFlipX(dir < 0);
+        body.setVelocity(dir ? dir * this.speed : (this.flipX ? -1 : 1) * 40, -JUMP * (dir ? 0.85 : 0.7));
+        this.noLadderUntil = time + LADDER_REGRAB_MS;
+        this.lastJumpPressed = -9999;
+        this.lastGrounded = -9999;
+        this.ladderJumps = (this.ladderJumps || 0) + 1;
+        sfx('jump');
+        this.driveAnim(time, delta, { grounded: false, inputX: dir, ev: { jumped: true } });
+        return;
+      }
+      if (!stillOn) {
         this.climbing = false;
         body.setAllowGravity(true);
       } else {
@@ -618,7 +684,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     // `bodyTint` is what Jo is wearing (the astronaut's flight suit, say);
     // the pepper-cloud green is a temporary override on top of it. Resetting
     // to white here unconditionally used to wipe the suit every frame.
-    this.art.setTint(rev ? 0xd8f0a0 : this.bodyTint);
+    // (the contrast probe fills him flat for one frame: leave it be)
+    if (!this.probeMask) this.art.setTint(mulColor(rev ? 0xd8f0a0 : this.bodyTint, this.lightTint));
     this.reversed = rev;
 
     // Crouch hitbox. Both bodies keep their bottom at y+22, so ducking never

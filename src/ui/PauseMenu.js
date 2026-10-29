@@ -14,6 +14,9 @@
 const NAV_UP = ['ArrowUp', 'KeyW'];
 const NAV_DOWN = ['ArrowDown', 'KeyS'];
 const CHOOSE = ['KeyX', 'KeyE', 'Enter', 'Space'];
+// a slider item ({ adjust(dir, menu) }) steps with Left/Right (A/D)
+const NAV_LEFT = ['ArrowLeft', 'KeyA'];
+const NAV_RIGHT = ['ArrowRight', 'KeyD'];
 
 import ModalManager from './ModalManager.js';
 import { uiText } from './text.js';
@@ -93,6 +96,15 @@ export default class PauseMenu {
     this.close();
   }
 
+  // step a slider item by id (harness / tests)
+  adjust(id, dir) {
+    const i = this.items.findIndex((it) => it.id === id);
+    if (i < 0 || !this.items[i].adjust) return false;
+    this.idx = i;
+    this.items[i].adjust(dir, this);
+    return true;
+  }
+
   // choose an item by id (harness / tests)
   choose(id) {
     const i = this.items.findIndex((it) => it.id === id);
@@ -112,6 +124,10 @@ export default class PauseMenu {
     if (NAV_UP.includes(e.code)) this._move(-1);
     else if (NAV_DOWN.includes(e.code)) this._move(1);
     else if (CHOOSE.includes(e.code)) this._choose();
+    else if (NAV_LEFT.includes(e.code) || NAV_RIGHT.includes(e.code)) {
+      const it = this.items[this.idx];
+      if (it && it.adjust) it.adjust(NAV_LEFT.includes(e.code) ? -1 : 1, this);
+    }
     else if (e.code === 'Escape' && this.canClose) this.close(true);
   }
 
