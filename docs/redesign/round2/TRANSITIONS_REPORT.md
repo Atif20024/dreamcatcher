@@ -171,7 +171,26 @@ Results:
 - `npm run lint:rooms`: 0 failures (37 warnings, as before).
 - `npm run lint:scale`: clean.
 - `npx vite build`: built.
-- Full scenario run: see the end of this file.
+- Full scenario run (`__dc.runScenarios`, once): 116 passed, 5 failed.
+  Four of the five were caused by this work. I fixed them and re-ran each
+  one alone, and all four now pass:
+  - `hub-thresholds-dip` and `jo-contrast` (the hub was "undefined").
+    Phaser reuses the scene instance, so the station kept the last visit's
+    `_room` and a `dipping` flag that a warp had cut short. That left the
+    wrong face of the front wall over Jo. `buildThresholds()` now resets
+    them.
+  - `readability-hub`. Two of the wall signs overlapped boards and plaques
+    that the other face hides, and the text audit cannot see that occlusion.
+    The signs now hang 6.6 m up the wall, clear of all of them.
+  - `clockmaker-perf`. A warp to a room with no spawn put Jo on its first
+    portal. For the green, that is the seam portal on the lane side of the
+    hedge arch, so he dipped back into the lane. A warp now prefers a door,
+    then a checkpoint, before a seam portal.
+- The fifth failure, `readability-chef`, is not caused by this work. It is a
+  9 px minimum-size miss on the legacy Chef's "ROOF · survive service"
+  label, and nothing here touches the Chef.
+- `dream-seams-dip` and `clockmaker-seam-dip` passed in the full run, and
+  `dream-seams-dip` was re-run after the fixes above.
 
 ## Known issues
 - The legacy scenes (Chef, Astronaut, Writer, Gambler, Evening, and the old

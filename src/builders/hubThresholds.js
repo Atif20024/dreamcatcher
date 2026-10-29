@@ -198,7 +198,9 @@ export function doorway(scene, { x, top, bottom, openings, left, right }) {
     const objs = [fr, bk];
     if (f.sign) {
       const sx = side === 'left' ? x0 + f.signX : x1 - f.signX;
-      const t = uiText(scene, sx, floor - 200, f.sign, { size: 'small', color: '#f2e6cc', backing: 0x1a1a22 }).setOrigin(0.5).setDepth(front + 0.1);
+      // 6.6 m up the wall, a station sign: clear of the boards and plaques
+      // on either side (the text audit cannot see a face hide them)
+      const t = uiText(scene, sx, floor - 290, f.sign, { size: 'small', color: '#f2e6cc', backing: 0x1a1a22 }).setOrigin(0.5).setDepth(front + 0.1);
       objs.push(t);
     }
     sides[side] = objs;

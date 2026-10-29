@@ -107,7 +107,9 @@ export default class DreamScene extends BaseLevel {
     }
     const r = this.graph.room(roomId);
     const ents = r.data.entities || [];
-    const e = ents.find((x) => x.id === spawnId && (x.type === 'spawn' || x.type === 'checkpoint' || x.type === 'portal')) || ents.find((x) => x.type === 'spawn') || ents.find((x) => x.type === 'portal') || { x: 2, y: r.h - 5 };
+    // (a room with no spawn: a door, else its checkpoint, before a seam's
+    // portal, which sits at the room's edge on the far side of the seam's frame)
+    const e = ents.find((x) => x.id === spawnId && (x.type === 'spawn' || x.type === 'checkpoint' || x.type === 'portal')) || ents.find((x) => x.type === 'spawn') || ents.find((x) => x.type === 'portal' && x.kind !== 'seam') || ents.find((x) => x.type === 'checkpoint') || ents.find((x) => x.type === 'portal') || { x: 2, y: r.h - 5 };
     return { room: roomId, x: (r.tx + e.x) * T + T / 2, y: (r.ty + e.y) * T + T - 22 };
   }
 
@@ -257,6 +259,7 @@ export default class DreamScene extends BaseLevel {
     for (const v of this.verbs) if (v.mod.create) v.mod.create(v.ctx);
 
     this.roomId = null;
+    this._lastJo = null;
     this.commit(sp.room, { teleport: true });
     this.events.once('shutdown', () => this.teardown());
     if (def.onStart && this.beats.has(def.onStart)) this.beats.play(def.onStart).catch((e) => console.warn('[dream] beat', e));

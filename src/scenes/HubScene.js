@@ -202,6 +202,11 @@ export default class HubScene extends BaseLevel {
       { frame: this.hubFrames[3], d: doorway(this, { x: gate, top, bottom, openings: [door1, under], left: 'shedGate', right: 'gateBack' }) },
     ];
     this.dips = 0;
+    // Phaser reuses the scene: nothing from the last visit (its rooms, a dip
+    // cut short by a warp) carries over
+    this._room = null;
+    this._lastJo = null;
+    this.dipping = null;
   }
 
   // the room on screen (its backdrop, its sound, which face of each wall
