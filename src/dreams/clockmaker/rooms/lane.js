@@ -44,7 +44,9 @@ export default {
   enclosure: { fgFoliage: [{ x: -2, w: 5 }, { x: 19, w: 4 }] },
   backdrop: { set: 'dusk_town', horizon: 16 },
   ambience: 'dusk_lane',
-  music: { state: 'quiet' },
+  acoustics: 'open',
+  events: 'dusk',
+  music: { state: 'quiet', key: 'lane' },
   objective: 'find_lamplighter',
   titleCard: 'THE LANE, AFTER SIX',
   entities: [

@@ -22,6 +22,7 @@ import cellar from './rooms/cellar.js';
 import backstage from './rooms/backstage.js';
 import escape from './rooms/escape.js';
 import stage from './rooms/stage.js';
+import { MUSIC_KEYS } from './music.js';
 import beats from './beats.js';
 import { CAST, CONVERSATIONS, BARKS } from './dialogue.js';
 import { neon, cellarGig, bigSet } from './encounters/sets.js';
@@ -136,7 +137,9 @@ export default {
       moteCount: 26,
     },
   },
-  music: { bpm: 96, root: 110, motif: [0, 3, 5, 7, 10, 7, 5, 3] },
+  // jazz noir outside, a trio in the cellar, rock through the stage door,
+  // the arena (src/dreams/musician/music.js; the audio pass)
+  music: { bpm: 96, root: 73.42, motif: [12, 15, 17, null, 15, 12, 10, null], mode: 'dorian', voices: { base: 'upright', pulse: 'brush', lead: 'muted_trumpet', danger: 'throb' }, leadOctave: 2, keys: MUSIC_KEYS },
   ambientLoop: 'rain_street',
   ending: {
     orb: true,

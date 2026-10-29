@@ -47,7 +47,9 @@ export default {
   light: { tint: 0xdce0f4 },
   backdrop: { set: 'roofs_night', horizon: 40 },
   ambience: 'rain_street',
-  music: { state: 'tense', bpm: 110 },
+  acoustics: 'hall',
+  events: 'rain',
+  music: { state: 'tense', bpm: 110, key: 'backstage', wall: 900 },
   objective: 'climb',
   titleCard: 'THE FIRE STAIRS',
   entities: [

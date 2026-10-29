@@ -45,7 +45,9 @@ export default {
   light: { tint: 0xf0e8ff },
   backdrop: { set: 'festival', horizon: 16 },
   ambience: 'festival',
-  music: { state: 'setpiece', bpm: 120 },
+  acoustics: 'hall',
+  events: 'arena',
+  music: { state: 'setpiece', bpm: 120, key: 'stage' },
   objective: [
     { text: 'play_set' },
     { text: 'after', flag: 'set_done' },

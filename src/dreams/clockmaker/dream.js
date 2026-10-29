@@ -14,6 +14,7 @@ import lane from './rooms/lane.js';
 import green from './rooms/green.js';
 import clockhouse from './rooms/clockhouse.js';
 import yard from './rooms/yard.js';
+import { MUSIC_KEYS } from './music.js';
 import beats from './beats.js';
 import { CAST, CONVERSATIONS, BARKS } from './dialogue.js';
 import clockworkEnc from './encounters/clockwork.js';
@@ -84,7 +85,8 @@ export default {
       moteCount: 22,
     },
   },
-  music: { bpm: 80, root: 98, motif: [0, 4, 7, 9, 7, 4, 2, 4] },
+  // a folk waltz by place (src/dreams/clockmaker/music.js; the audio pass)
+  music: { bpm: 78, root: 98, motif: [0, 4, 7, 9, 7, 4, 2, 4], mode: 'ionian', meter: 3, voices: { base: 'pizz', pulse: 'pizz', lead: 'music_box', danger: 'throb' }, keys: MUSIC_KEYS },
   ambientLoop: 'dusk_lane',
   ending: {
     orb: true,
