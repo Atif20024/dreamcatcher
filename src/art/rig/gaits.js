@@ -124,6 +124,11 @@ export const FOE_GAITS = {
   'foe-talker': 'plain',
   'foe-petitioner': 'plain',
   'foe-shopkeeper': 'busy',
+  // THE MASTER'S LADDER: the rival's apprentices skulk then sprint, the
+  // guild's inspectors walk hands behind the back, the foreman rolls his weight
+  'foe-rn-rival': 'skulk',
+  'foe-rn-inspector': 'measured',
+  'foe-rn-foreman': 'heavy',
 };
 // people who stand still for a living get no run (saves atlas space)
 export const NO_RUN = new Set(['foe-heckler', 'foe-talker']);

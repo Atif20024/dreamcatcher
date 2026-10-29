@@ -41,6 +41,10 @@ export async function bakeCast(ROOT, store) {
   list.push(['hub-traveler', { hat: 'cap', held: 'case', pal: { H: 0x3a3a44, S: 0x9a8a80, T: 0x4a4a56, P: 0x3a3a44, B: 0x1e1e28, A: 0x5a4a3a } }, 'traveler']);
   for (const [key, def] of Object.entries(FOE_PEOPLE)) list.push([key, { ...def.art.look, pal: def.pal }, 'foe']);
   for (const [key, pal] of Object.entries({ ...MUS, ...AST })) list.push([key, { pal: { ...pal, B: pal.B ?? 0x1e1e28 } }, 'npc']);
+  // THE MASTER'S LADDER: Fioralba's people in era costume (src/dreams/painter/people.js)
+  const rn = await imp('src/dreams/painter/people.js');
+  // (a foot pivot: DreamScene's Npc stands a cast person on its feet)
+  for (const [key, look] of Object.entries(rn.PEOPLE)) list.push([key, look, 'people']);
   list.push(['npc-kid', { kid: true, pal: { H: 0xc03a2a, S: 0x8a5a3b, T: 0xe8a030, t: 0xb87820, P: 0x3a5a80, B: 0x2a2a32 } }, 'npc']);
   list.push(['mus-critic', { pal: { H: 0x9a9aa8, S: 0xc8a888, T: 0x4a4a5a, t: 0xd8d8d8, P: 0x2a2a34, B: 0x1e1e28 } }, 'npc']);
 

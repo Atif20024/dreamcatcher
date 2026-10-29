@@ -1,4 +1,5 @@
 import { createFrames } from '../utils/pixelart.js';
+import { FOE_LOOKS } from '../dreams/painter/people.js';
 
 // D4/C1.2 — every foe gets a silhouette you can name at a glance and frames
 // that move when it moves. Before this, seven of the fifteen kinds shared one
@@ -148,6 +149,9 @@ export const PEOPLE = {
   'foe-gardener': { art: person('bandana', 'coil'), pal: P(0xd8b858, 0xb08868, 0x5a7a4a, 0x3e5a34, 0x6b4e2e, 0x1f3a5f, 0x3a7a5a) },
   'foe-farmer': { art: person('bandana', 'ladle'), pal: P(0xb8903a, 0xb08868, 0x8a7a5a, 0x5a4e3a, 0x6b4e2e, 0x1f3a5f, 0x8a6a3a) },
   'foe-shopkeeper': { art: person('crop', 'clipboard'), pal: P(0x3a5a6a, 0xd8b090, 0x5a8a9a, 0x3a5a6a, 0x3a3a44, 0x1f3a5f, 0xe8e4d8) },
+  // THE MASTER'S LADDER (src/dreams/painter/people.js): the rival's
+  // apprentices, the guild's inspectors, the foreman
+  ...Object.fromEntries(Object.entries(FOE_LOOKS).map(([k, l]) => [k, { art: person(l.hat, l.held), pal: P(...l.pal) }])),
 };
 
 // --- creatures: things, not people -----------------------------------------

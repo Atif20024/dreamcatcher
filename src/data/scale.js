@@ -368,3 +368,29 @@ Object.assign(BACKDROP_ROWS, {
   'painted.theatre': { s: 0.3, groundLine: true },
   'painted.fire_escape': { s: 0.5, groundLine: true },
 });
+
+// THE MASTER'S LADDER (the painter's dream on the framework): its people in
+// era costume (looks in src/dreams/painter/people.js). A lucco or a gown is
+// the skirt layer (dress); tunics stop at the thigh over coloured hose. And
+// Fioralba's rows: the far roofs and towers, the near street of workshops.
+Object.assign(CAST_BODIES, {
+  'npc-rn-gualtiero': { body: 'elderly', sex: 'm', hair: 'grey', beard: true, dress: true },
+  'npc-rn-bice': { sex: 'f', hair: 'long', dress: true },
+  'npc-rn-orazio': { sex: 'm', beard: true, apron: true },
+  'npc-rn-folco': { body: 'elderly', sex: 'm', hair: 'grey', dress: true },
+  'npc-rn-consul': { body: 'elderly', sex: 'm', hair: 'bald', dress: true, beard: true },
+  'npc-rn-corso': { sex: 'm', dress: true },
+  'npc-rn-dori': { body: 'big', sex: 'm', beard: true, dress: true },
+  'npc-rn-tonio': { body: 'teen', sex: 'm' },
+  'npc-rn-woman': { sex: 'f', dress: true },
+  'npc-rn-friar': { sex: 'm', dress: true, hair: 'bald' },
+  'npc-rn-beggar': { body: 'elderly', sex: 'm', hair: 'grey', beard: true },
+  'npc-rn-steward': { sex: 'm' },
+  'foe-rn-rival': { body: 'teen', hat: 'berretta' },
+  'foe-rn-inspector': { hat: 'toque', held: 'ledger', dress: true },
+  'foe-rn-foreman': { body: 'big', hat: 'bandana' },
+});
+Object.assign(BACKDROP_ROWS, {
+  'painted.rn_skyline': { s: 0.12, groundLine: false },
+  'painted.rn_row': { s: 0.3, groundLine: true },
+});
