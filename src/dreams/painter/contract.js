@@ -38,15 +38,16 @@ export function contractLines(left) {
   return [`ULTRAMARINE ${ROMAN[left.blue]}`, `GOLD LEAF ${ROMAN[left.gold]}`];
 }
 
-// show (or hide) the two contract lines on the HUD's tool slot
+// show (or hide) the two contract lines on the HUD's tool slot (lines 5–6:
+// 1 is a key item's HAVE:, 3 the craft job's step count)
 let shown = null;
 export function showContract(left) {
   const lines = left ? contractLines(left) : ['', ''];
   const key = lines.join('|');
   if (key === shown) return;
   shown = key;
-  hud.toolLine(1, 'accent').setText(lines[0]).setVisible(!!lines[0]);
-  hud.toolLine(2, 'accent').setText(lines[1]).setVisible(!!lines[1]);
+  hud.toolLine(5, 'accent').setText(lines[0]).setVisible(!!lines[0]);
+  hud.toolLine(6, 'accent').setText(lines[1]).setVisible(!!lines[1]);
 }
 export function resetContract() {
   shown = null;

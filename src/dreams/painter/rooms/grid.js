@@ -18,6 +18,13 @@ export function grid(w, h) {
       });
       return api;
     },
+    // a ladder up column x from y1 (its foot) to y0; a row in `decks` stays a
+    // plank ('=') over the ladder's head: Jo climbs up through it and, past
+    // the top rung, stands on the deck (and [down] on the deck climbs down)
+    ladder(x, y0, y1, decks = []) {
+      for (let y = y0; y <= y1; y++) api.put(x, y, decks.includes(y) ? '=' : 'H');
+      return api;
+    },
     clear(x0, y0, x1, y1) {
       return api.fill(x0, y0, x1, y1, '.');
     },

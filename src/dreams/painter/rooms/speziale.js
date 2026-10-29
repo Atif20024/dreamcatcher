@@ -15,9 +15,9 @@ g.put(14, 14, '===========');  // the low shelf (x 14–24)
 g.put(25, 10, '============');  // the middle shelf (x 25–36)
 g.put(4, 6, '===================');  // the long top shelf over the still (x 4–22)
 g.put(28, 6, '=========');  // the top shelf with the lapis (x 28–36)
-for (let y = 13; y <= 17; y++) g.put(13, y, 'H'); // floor → low shelf
-for (let y = 9; y <= 13; y++) g.put(24, y, 'H'); // low → middle
-for (let y = 5; y <= 9; y++) g.put(27, y, 'H'); // middle → top
+g.ladder(13, 14, 17, [14]); // floor → low shelf
+g.ladder(24, 10, 13, [10]); // low → middle
+g.ladder(27, 6, 9, [6]); // middle → top
 
 export default {
   id: 'speziale',

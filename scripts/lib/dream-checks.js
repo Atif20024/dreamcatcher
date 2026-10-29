@@ -64,8 +64,12 @@ export function reachableTiles(grid, starts) {
     if (seen.has(k)) continue;
     seen.add(k);
     const next = [];
-    if (ladder(x, y) || ladder(x, y + 1)) {
-      for (const ny of [y - 1, y + 1]) if (ny >= 0 && ny < v.h && !v.solid(x, ny) && (ladder(x, ny) || ladder(x, ny + 1))) next.push([x, ny]);
+    if (ladder(x, y) || ladder(x, y + 1) || ladder(x, y + 2)) {
+      // up a rung; out of the top through a deck plank, standing on it
+      if (ladder(x, y) && y > 0 && !v.solid(x, y - 1)) next.push(v.role(x, y - 1) === 'oneway' && standable(v, x, y - 2) ? [x, y - 2] : [x, y - 1]);
+      // down a rung, or down through the deck plank Jo stands on
+      if (ladder(x, y + 1)) next.push([x, y + 1]);
+      else if (v.role(x, y + 1) === 'oneway' && ladder(x, y + 2)) next.push([x, y + 2]);
       for (const dx of [-1, 1]) {
         if (v.solid(x + dx, y)) continue;
         if (standable(v, x + dx, y)) next.push([x + dx, y]);

@@ -171,7 +171,7 @@ export default class DreamScene extends BaseLevel {
     const wr = this.graph.worldRect();
     // the dream's own coin (data/dreams.js), when it is a train on the board
     if (dreamById(this.dreamId)) this.dreamCoinId = this.dreamId;
-    this.setupCommon({ worldW: wr.x1, worldH: wr.y1, levelName: `DREAM — ${def.title}`, spawn: { x: sp.x, y: sp.y } });
+    this.setupCommon({ worldW: wr.x1, worldH: wr.y1, levelName: def.hudName || `DREAM — ${def.title}`, spawn: { x: sp.x, y: sp.y } });
     const cam = this.cameras.main;
     cam.stopFollow();
     cam.removeBounds();

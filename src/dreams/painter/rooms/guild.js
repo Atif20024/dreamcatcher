@@ -15,7 +15,7 @@ g.fill(44, 2, 45, 13);
 g.fill(34, 13, 43, 13); // the dais, one step up
 g.put(33, 13, '/');
 g.put(10, 9, '=====================');  // the gallery (x 10–30)
-for (let y = 8; y <= 13; y++) g.put(9, y, 'H'); // its ladder
+g.ladder(9, 9, 13, [9]); // its ladder, through the gallery's end
 
 export default {
   id: 'guild',

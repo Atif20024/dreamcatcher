@@ -13,7 +13,7 @@ g.fill(0, 12, 49, 13); // the tiled floor
 g.fill(0, 2, 1, 11); // the walls
 g.fill(48, 2, 49, 11);
 g.put(36, 8, '============'); // the loft at the back
-for (let y = 7; y <= 11; y++) g.put(35, y, 'H'); // its ladder
+g.ladder(35, 8, 11, [8]); // its ladder, through the loft's edge
 g.put(20, 8, '=====');  // the pattern-book shelf (a high reach)
 
 export const BOTTEGA_ALTAR_X = 17;

@@ -17,7 +17,7 @@ g.fill(38, 2, 39, 37);
 for (const row of [33, 28, 23, 18, 13]) g.put(20, row, '==================');
 g.put(2, 8, '====================================');  // the top deck under the vault (x 2–37)
 const ladder = (x, y0, y1) => {
-  for (let y = y0; y <= y1; y++) g.put(x, y, 'H');
+  g.ladder(x, y0 + 1, y1, [y0 + 1]); // the plank stays a plank over the ladder's head
 };
 ladder(21, 32, 37); // the floor → plank 1
 ladder(36, 27, 32); // 1 → 2
