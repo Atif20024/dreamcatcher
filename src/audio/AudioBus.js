@@ -6,16 +6,29 @@ import { audioCtx, audioOut, isMusicOff } from '../systems/audio.js';
 import { getSettings } from '../utils/save.js';
 import { voice, noiseVoice, audioHooks, PRIO } from './synth.js';
 
-// chatter (NPC babble, src/audio/chatter.js) follows the ambience slider
-export const BUS_DEFAULTS = Object.freeze({ music: 0.8, ambience: 0.55, sfx: 0.9, ui: 0.8, chatter: 0.5 });
+// chatter (NPC babble, src/audio/chatter.js) follows the ambience slider.
+// Feedback 3 ("way too noisy, keep the background music subtle"): music
+// 0.8 → 0.32 (-8 dB), ambience 0.55 → 0.43 (-2.1 dB), chatter 0.5 → 0.3
+// (-4.4 dB). Dialogue (ui), stingers and footsteps (sfx) are unchanged,
+// so they now sit clearly over the bed.
+export const BUS_DEFAULTS = Object.freeze({ music: 0.32, ambience: 0.43, sfx: 0.9, ui: 0.8, chatter: 0.3 });
+// the levels the audio pass calibrated against (flatGain below: the
+// Evening's direct-to-master voices drop with the buses, not around them)
+export const BUS_REFERENCE = Object.freeze({ music: 0.8, ambience: 0.55, sfx: 0.9, ui: 0.8, chatter: 0.5 });
 const SETTING_OF = { chatter: 'ambience' };
+// the player's sliders (Settings, the pause menu): a fraction of the bus's
+// default level, 0…1, in steps of 0.1; stored in settings.volumes
+export const VOLUME_KEYS = Object.freeze(['music', 'ambience']);
+export const VOLUME_STEP = 0.1;
 // calibration (audio pass, measured offline in tests/audioMix.test.js): the
 // synth voices were written quiet; these bring each bus to its target level
 // before the master (music -18 dBFS, ambience -26, chatter -26 while
 // someone talks), separately from the player's volume settings
 export const BUS_TRIM = Object.freeze({ music: 8, ambience: 4, sfx: 1, ui: 1, chatter: 3.5 });
-// for callers written against the old direct-to-master level (the Evening)
-export const flatGain = (bus) => 1 / ((BUS_DEFAULTS[bus] || 1) * (BUS_TRIM[bus] || 1));
+// for callers written against the old direct-to-master level (the Evening):
+// undoes the reference level and trim, so those voices follow the buses'
+// feedback-3 drop like everything else (and the player's sliders)
+export const flatGain = (bus) => 1 / ((BUS_REFERENCE[bus] || 1) * (BUS_TRIM[bus] || 1));
 
 // Ducking (advice §4): music -4 dB under dialogue (150 ms in, 600 ms out),
 // -6 dB under a stinger (50 ms in, 800 ms out); ambience -3 dB under
@@ -209,7 +222,7 @@ class Buses {
     try {
       const s = getSettings();
       const key = SETTING_OF[name] || name;
-      if (s && s.volumes && typeof s.volumes[key] === 'number') v = s.volumes[key] * (SETTING_OF[name] ? BUS_DEFAULTS[name] / BUS_DEFAULTS[key] : 1);
+      if (s && s.volumes && typeof s.volumes[key] === 'number') v = BUS_DEFAULTS[name] * Math.max(0, Math.min(1, s.volumes[key]));
     } catch {
       /* no save */
     }

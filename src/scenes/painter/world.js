@@ -7,6 +7,7 @@ import { sfx } from '../../systems/audio.js';
 import { showTutorial } from '../../systems/tutorial.js';
 import { recordMoment } from '../../utils/save.js';
 import { T, px, overlaps, hex } from './util.js';
+import { readDocument } from '../../ui/ReadingPanel.js';
 import { uiText } from '../../ui/text.js';
 import { arrivalTrain } from '../../entities/Train.js';
 import { dreamById } from '../../data/dreams.js';
@@ -209,34 +210,19 @@ export default {
     }, { when: () => !letter.read });
   },
 
-  // §5.9 — a letter, in his hand: blue ink, a slant, a jitter
-  showLetter(id) {
-    return new Promise((resolve) => {
-      const cam = this.cameras.main;
-      this.puzzleActive = true;
-      const lines = LETTERS[id] || ['—'];
-      const handle = ModalManager.for(this).open({ kind: 'card', name: `letter:${id}`, freeze: 'physics', guardMs: 300, onKey: () => close() });
-      const LH = 30;
-      handle.add(this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x000000, 0.55).setScrollFactor(0).setDepth(300));
-      const texts = lines.map((l) => uiText(this, 0, 0, l, { size: 'body', color: '#1f3a5f', wrap: 620 }).setScrollFactor(0).setDepth(302).setAngle(-1.5));
-      const W = Math.max(...texts.map((t) => t.width)) + 60;
-      const H = texts.reduce((h, t) => h + Math.max(LH, t.height + 6), 0) + 50;
-      handle.add(this.add.rectangle(cam.width / 2, cam.height / 2, W, H, 0xf2ece0, 0.98).setScrollFactor(0).setDepth(301).setStrokeStyle(2, 0x1f3a5f).setAngle(-1.5));
-      let y = cam.height / 2 - H / 2 + 25;
-      texts.forEach((t, i) => {
-        t.setPosition(Math.round(cam.width / 2 - W / 2 + 30), Math.round(y));
-        y += Math.max(LH, t.height + 6);
-        this.tweens.add({ targets: t, y: t.y + 1, duration: 300 + i * 40, yoyo: true, repeat: -1 });
-        handle.add(t);
-      });
-      handle.add(uiText(this, cam.width / 2, cam.height / 2 + H / 2 + 22, '[any key]', { size: 'small', color: 'ink-dim' }).setOrigin(0.5).setScrollFactor(0).setDepth(302));
-      sfx('clack');
-      const close = () => {
-        handle.close();
-        this.puzzleActive = !!this.modals.has('encounter');
-        resolve();
-      };
-    });
+  // §5.9 — a letter, in his hand: blue ink. Feedback 3: read on the
+  // reading panel, large and level (it was tilted and bobbing, at the
+  // size of a world label)
+  async showLetter(id) {
+    this.puzzleActive = true;
+    const lines = LETTERS[id] || ['—'];
+    sfx('clack');
+    // the letter's own line breaks are where his pen ran out of paper:
+    // one paragraph, except the greeting and the signature
+    const body = lines.slice(1, -1).join(' ');
+    const text = [lines[0], body, lines[lines.length - 1]].filter(Boolean).join('\n\n');
+    await readDocument(this, { title: 'A letter from the north', text, ink: 0x1f3a5f, name: `letter:${id}` });
+    this.puzzleActive = !!this.modals.has('encounter');
   },
 
   // §3.2 — a paintable rectangle of the world

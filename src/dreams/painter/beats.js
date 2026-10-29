@@ -1,4 +1,5 @@
 // THE MASTER'S LADDER's beats (plan 2.1 BeatRunner): data, run on events.
+import { CONTRACT_DOC } from './contract.js';
 export default {
   // the arrival: the bottega, the smell of it
   start: [
@@ -51,6 +52,7 @@ export default {
   got_seal: [{ objective: 'to_palazzo' }, { sting: 'gate' }],
   // the contract: what the finale will spend
   contract_signed: [
+    { read: CONTRACT_DOC },
     { say: { who: 'jo', text: 'The notary writes it in Roman numbers. Ultramarine, two. Gold leaf, ten.' } },
     { objective: 'get_gold' },
   ],

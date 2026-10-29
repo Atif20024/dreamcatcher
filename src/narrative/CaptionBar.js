@@ -3,7 +3,7 @@
 // bottom centre with a small portrait chip and the speaker's name, shown
 // for a time that grows with its length, then the next. Screen space on
 // UIScene (depth ≥ 100 is adopted by src/ui/ui.js).
-import { uiText } from '../ui/text.js';
+import { uiText, CONVERSATION_SCALE } from '../ui/text.js';
 import { drawPanel } from '../ui/Panel.js';
 import { resolveArt } from '../art/baked.js';
 
@@ -22,7 +22,7 @@ export class CaptionBar {
     this.bg = scene.add.graphics().setScrollFactor(0).setDepth(DEPTH);
     this.chip = scene.add.image(0, 0, '__WHITE').setScrollFactor(0).setDepth(DEPTH + 1).setVisible(false);
     this.name = uiText(scene, 0, 0, '', { size: 'small', color: 'accent' }).setScrollFactor(0).setDepth(DEPTH + 1);
-    this.text = uiText(scene, 0, 0, '', { size: 'body', color: 'ink', wrap: 560 }).setScrollFactor(0).setDepth(DEPTH + 1);
+    this.text = uiText(scene, 0, 0, '', { size: 'body', scale: CONVERSATION_SCALE, color: 'ink', wrap: 560 }).setScrollFactor(0).setDepth(DEPTH + 1);
     this.objs = [this.bg, this.chip, this.name, this.text];
     this.setAlpha(0);
     scene.events.once('shutdown', () => this.objs.forEach((o) => o.destroy()));

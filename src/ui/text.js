@@ -20,6 +20,13 @@ import { ensureFonts, fontKey, sanitize, FONT_DEFS } from './BitmapFonts.js';
 import { toColor, toAlpha, THEME } from './theme.js';
 
 export const CAP = { small: 7, body: 9, display: 14 };
+// Conversation (captions, the scene box, the dialogue box): body at 1.6×,
+// cap 14.4 on the 960 × 540 canvas (the §8 screen minimum is 14). The game
+// now fills the browser (FIT), so on a laptop this reads at 20–28 px; at
+// 2× it was oversized (feedback 3: "now that we have full screen, you can
+// reduce the font size of conversation"). Notes and letters keep 2×
+// (src/ui/ReadingPanel.js).
+export const CONVERSATION_SCALE = 1.6;
 
 // Readability (round 2 §8). Canvas px at 960×540, measured on screen (the
 // world camera's zoom included).

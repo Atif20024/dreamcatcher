@@ -44,10 +44,13 @@ export class Modal {
     return o;
   }
 
-  text(x, y, str, size = 15, color = '#e8dcc8') {
+  // `backing`: what the line is printed on (the panel, or a paper ticket
+  // or card drawn on it: feedback 3, dark ink on cream was being lifted
+  // toward white as if it sat on the dark panel)
+  text(x, y, str, size = 15, color = '#e8dcc8', backing = THEME.panel) {
     return this.add(
-      // §8: every panel line reads at 4.5:1 on the panel (dim greys are lifted)
-      uiText(this.scene, x, y, str, { fontSize: size, color, align: 'center', screen: true, backing: THEME.panel })
+      // §8: every panel line reads at 4.5:1 on what it sits on
+      uiText(this.scene, x, y, str, { fontSize: size, color, align: 'center', screen: true, backing })
         .setOrigin(0.5)
         .setScrollFactor(0)
         .setDepth(this.depth + 2)
@@ -161,8 +164,8 @@ export function ticketRail(scene) {
     const cards = order.map((_, i) =>
       m.add(scene.add.rectangle(cx - 250 + i * 100, cy, 88, 110, 0xe8e0d0).setScrollFactor(0).setDepth(m.depth + 1))
     );
-    const labels = order.map((_, i) => m.text(cx - 250 + i * 100, cy - 15, '', 12, '#2a2218'));
-    const times = order.map((_, i) => m.text(cx - 250 + i * 100, cy + 25, '', 14, '#8a4a2a'));
+    const labels = order.map((_, i) => m.text(cx - 250 + i * 100, cy - 15, '', 12, '#2a2218', 0xe8e0d0));
+    const times = order.map((_, i) => m.text(cx - 250 + i * 100, cy + 25, '', 12, '#8a4a2a', 0xe8e0d0));
     const status = m.text(cx, cy + 110, '', 14);
     const render = () => {
       order.forEach((dish, i) => {

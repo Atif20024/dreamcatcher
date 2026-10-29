@@ -13,6 +13,9 @@
 // world camera. Profiles: 'default', 'hub' (no hearts), 'none' (hidden).
 import { hud, SLOTS, TOOL_BARS, fitToBudget } from './hud.js';
 import { uiText, PLATE } from './text.js';
+
+// HUD lines drawn on a quiet plate (no brass line)
+const QUIET = new Set(['level', 'shards', 'tool', 'context', 'caption', 'footer']);
 import { measure } from './BitmapFonts.js';
 import { THEME, toColor } from './theme.js';
 
@@ -34,6 +37,10 @@ export default class HudGrid {
       if (key === 'objective') t.setMaxWidth(s.maxW);
       // §8: every HUD line sits on the ink plate (it is drawn over art)
       t.setBackgroundColor(PLATE.dark);
+      // feedback 3 (the game now fills the screen; the HUD read heavy): the
+      // secondary lines keep their plate but lose the brass line, so only
+      // the goal, the coins and the prompt are framed
+      if (QUIET.has(key) && t._bg) t._bg.setStrokeStyle();
       this.texts[key] = t;
     }
     this.texts.prompt.setOrigin(0.5, 1);
@@ -103,7 +110,8 @@ export default class HudGrid {
     for (const m of list) {
       let r = this.meterRows.get(m.id);
       if (!r) {
-        const plate = this.ui.add.rectangle(0, 0, 10, 10, PLATE.dark, PLATE.alpha).setOrigin(0, 0).setStrokeStyle(1, PLATE.edge, 1).setDepth(DEPTH - 0.01);
+        // (a quiet plate: no brass line, feedback 3)
+        const plate = this.ui.add.rectangle(0, 0, 10, 10, PLATE.dark, PLATE.alpha).setOrigin(0, 0).setDepth(DEPTH - 0.01);
         plate.name = `hud-meter-${m.id}`;
         const label = uiText(this.ui, 0, 0, '', { size: 'small', scale: 2, align: 'right' }).setOrigin(1, 0).setDepth(DEPTH);
         label.name = `hud-meter-label-${m.id}`;

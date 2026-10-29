@@ -15,6 +15,7 @@ import { systemsCards, selectionBoard, docking, hinge, BOLT_ORDER } from '../sys
 import { completeDream, recordMoment, markMet } from '../utils/save.js';
 import { sfx, music, sting } from '../systems/audio.js';
 import { showTutorial } from '../systems/tutorial.js';
+import { readDocument } from '../ui/ReadingPanel.js';
 import { uiText } from '../ui/text.js';
 import { hud } from '../ui/hud.js';
 
@@ -450,10 +451,11 @@ export default class AstronautScene extends BaseLevel {
       else this.gainStat('grip', this.stats.grip + 1, `GRIP ${Math.min(5, this.stats.grip + 1)}/5 — again, faster`);
     }, { once: false });
     const plaque = this.obj('plaque');
-    this.add.rectangle(plaque.wx + 26, plaque.wy, 92, 30, 0x6a5a3a).setDepth(D.INTERACT - 1);
-    uiText(this, plaque.wx + 26, plaque.wy, 'FIRST MERIDIAN CREW\nOKONKWO · VANCE · LIU', { fontSize: '7px', color: '#f2e0a0', align: 'center' })
+    // (feedback 3: the plaque is as wide as its words, so they sit on it)
+    const crew = uiText(this, plaque.wx + 26, plaque.wy, 'FIRST MERIDIAN CREW\nOKONKWO · VANCE · LIU', { size: 'body', color: '#f2e0a0', align: 'center', backing: 0x6a5a3a })
       .setOrigin(0.5)
       .setDepth(D.INTERACT);
+    this.add.rectangle(plaque.wx + 26, plaque.wy, Math.ceil(crew.width) + 16, Math.ceil(crew.height) + 10, 0x6a5a3a).setStrokeStyle(1, 0xc8a24a).setDepth(D.INTERACT - 1);
 
     // -- the Ring (Nerve): three rounds, then Priya
     const ring = this.obj('ring');
@@ -476,12 +478,10 @@ export default class AstronautScene extends BaseLevel {
     const nb = this.obj('notebook');
     this.add.image(nb.wx, nb.wy + 8, 'astro-notebook').setDepth(D.INTERACT);
     this.notebookPage = 0;
-    this.addInteract(nb.wx, nb.wy, "Priya's notebook", async () => {
-      for (let i = this.notebookPage; i < NOTEBOOK.length; i++) {
-        const r = await this.dialog.show([{ name: "Priya's notebook", text: NOTEBOOK[i], choices: i < NOTEBOOK.length - 1 ? [{ label: 'keep reading', value: 'on' }, { label: 'enough', value: 'stop' }] : undefined }]);
-        this.notebookPage = i + 1;
-        if (r === 'stop') return;
-      }
+    this.addInteract(nb.wx, nb.wy, "read Priya's notebook", async () => {
+      // feedback 3: on paper, large, a page at a time ([Esc] puts it down)
+      const how = await readDocument(this, { title: "Priya's notebook", pages: NOTEBOOK, ink: 0x1f2a4a, name: 'notebook' });
+      this.notebookPage = how === 'done' ? NOTEBOOK.length : 0;
       if (this.notebookPage >= NOTEBOOK.length && !this.F.notebook_read) {
         this.setFlag('notebook_read');
         this.floatText(nb.wx, nb.wy - 50, 'every page. her handwriting slants left.', '#f2e0a0');

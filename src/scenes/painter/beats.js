@@ -759,7 +759,7 @@ export default {
     // the stacks carry his pictures, backs showing, titles chalked
     if (this.stack) this.stack.imgs.forEach((img, i) => {
       const c = this.canvases[i];
-      if (c) uiText(this, img.x, img.y - 50 - (i % 3) * 2, c.title.split(' ').slice(-1)[0], { fontSize: '8px', color: '#e8e4d8' }).setOrigin(0.5).setDepth(6.1).setAngle(78);
+      if (c) uiText(this, img.x, img.y - 50 - (i % 3) * 2, c.title.split(' ').slice(-1)[0], { fontSize: '8px', color: '#e8e4d8' }).setOrigin(0.5).setDepth(6.1); // level (feedback 3: it was turned 78°)
     });
     // the one that hangs over the stove
     const hung = this.add.image(this.frame.wx, this.frame.wy, this.chosen.thumb).setDepth(8.5).setDisplaySize(48, 36).setAngle(-2);

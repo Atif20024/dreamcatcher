@@ -112,7 +112,8 @@ export const zeroHeartsCheckpoint = {
       const same = now === sc && sc.__sameRun === true;
       const at = dist(sc.player, cp);
       const full = sc.lives === sc.maxLives;
-      const ok = card.open && items === 'retry,pause' && same && at < 60 && full && !sc.dialogActive;
+      // feedback 3: the card offers the checkpoint first, then the dream from its start and the station
+      const ok = card.open && items === 'retry,restartDream,station,pause' && same && at < 60 && full && !sc.dialogActive;
       return { pass: ok, detail: `card [${items}] ${card.open ? 'open' : 'closed'}; same scene ${same}; ${at}px from ${cp.label}; hearts ${sc.lives}/${sc.maxLives}; dialog ${!!sc.dialogActive}` };
     });
   },

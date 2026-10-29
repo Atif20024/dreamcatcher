@@ -913,8 +913,8 @@ function drawLandmark(scene, name) {
       break;
     case 'fight_poster':
       add(scene.add.rectangle(0, -84, 120, 150, 0x4a2020).setAngle(-2));
-      add(uiText(scene, 0, -108, 'ADAEZE', { fontSize: '16px', color: '#f2d580' }).setOrigin(0.5).setAngle(-2));
-      add(uiText(scene, 0, -72, '31 — 2', { fontSize: '20px', color: '#e8dcc8' }).setOrigin(0.5).setAngle(-2));
+      add(uiText(scene, 0, -108, 'ADAEZE', { fontSize: '16px', color: '#f2d580' }).setOrigin(0.5));
+      add(uiText(scene, 0, -72, '31 — 2', { fontSize: '20px', color: '#e8dcc8' }).setOrigin(0.5));
       break;
     case 'study_lamp':
       add(scene.add.rectangle(0, -50, 4, 60, 0x3a3a44));

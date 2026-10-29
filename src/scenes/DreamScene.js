@@ -11,6 +11,7 @@
 //   this.scene.start('Dream', { dreamId: 'clockmaker', warp?: 'room' | 'room:spawnId', resume?: true })
 // Dev: ?warp=clockmaker:start (or the old alias ?warp=proof:start; src/dev/warp.js).
 import BaseLevel from './BaseLevel.js';
+import { readDocument } from '../ui/ReadingPanel.js';
 import Player from '../entities/Player.js';
 import { frameworkDream } from '../dreams/index.js';
 import { RoomGraph } from '../world/RoomGraph.js';
@@ -373,6 +374,9 @@ export default class DreamScene extends BaseLevel {
     // the room's one-shots (room.events, else the place's own)
     if (this.placeAudio) this.placeAudio.setBed(r.data.events !== undefined ? r.data.events : PLACE_BED[placeOf(this)]);
     if (teleport) this.camDir.snap();
+    // entering a room: the brief locator over Jo (feedback 3), not again
+    // for a room he was in a moment ago
+    if (prev && this.player && this.player.locate) this.player.locate('room', id);
     if (r.data.titleCard && !this.F[`_title:${id}`]) {
       this.F[`_title:${id}`] = true;
       this.titleCard(r.data.titleCard);
@@ -649,6 +653,8 @@ export default class DreamScene extends BaseLevel {
   beatHandlers() {
     return {
       say: (v) => this.caption.say(v.who, v.text, v),
+      // a document Jo reads (feedback 3): the reading panel, large, paged
+      read: (v) => readDocument(this, typeof v === 'string' ? { text: v } : v),
       talk: (id) => this.runConversation(id, null),
       camera: (v) => {
         if (v === 'pop') {
