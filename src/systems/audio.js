@@ -36,7 +36,11 @@ export function toggleMusic() {
 const DEV_SILENT = (() => {
   if (!(import.meta.env && import.meta.env.DEV)) return false; // (node lint: no env)
   try {
-    if (new URLSearchParams(window.location.search).get('sound') === '1') return false;
+    // ?sound=1 turns sound on for this origin until ?sound=0 (agents test on
+    // other ports, so their origins stay silent)
+    const q = new URLSearchParams(window.location.search).get('sound');
+    if (q === '1') localStorage.setItem('dreamcatcher.devSound', '1');
+    if (q === '0') localStorage.removeItem('dreamcatcher.devSound');
     return localStorage.getItem('dreamcatcher.devSound') !== '1';
   } catch {
     return true;
