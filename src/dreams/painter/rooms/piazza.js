@@ -39,6 +39,7 @@ export default {
   backdrop: { set: 'fioralba_piazza', horizon: 16 },
   ambience: 'rn_piazza',
   acoustics: 'open',
+  events: 'piazza',
   music: { state: 'explore', bpm: 90, key: 'piazza' },
   objective: [
     { text: 'to_guild' },

@@ -48,7 +48,9 @@ export default {
   light: { tint: 0xfff0e0 },
   backdrop: null,
   ambience: 'clock_room',
-  music: { state: 'quiet' },
+  acoustics: 'room',
+  events: 'clockhouse',
+  music: { state: 'quiet', key: 'clockhouse' },
   objective: [
     { text: 'wind_clock' },
     { text: 'back_out', flag: 'clock_wound' },

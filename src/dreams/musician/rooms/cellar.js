@@ -61,7 +61,9 @@ export default {
   light: { tint: 0xfff0e0 },
   backdrop: null,
   ambience: 'club_room',
-  music: { state: 'quiet', bpm: 96 },
+  acoustics: 'club',
+  events: 'cellar',
+  music: { state: 'quiet', bpm: 86, key: 'cellar' },
   objective: [
     { text: 'cellar_signup' },
     { text: 'cellar_play', flag: 'signed_up' },

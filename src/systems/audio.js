@@ -1,8 +1,22 @@
 // All audio is synthesized with WebAudio — no asset files.
-// sfx(name) fires one-shots; stems are generative jazz-ish loops.
+// sfx(name) fires one-shots; the bands and stems are generative.
+//
+// The master chain (audio pass, advice §4): every sound in the game goes
+//   source → (bus) → master (0.35) → compressor (-14 dB, 4:1) → trim →
+//   limiter (-3 dB, 20:1) → trim → soft ceiling (-1 dBFS) → mute → speakers
+// and the mute is the switch DEV_SILENT holds at 0. In development there is
+// no AudioContext at all (nothing is scheduled, no audio thread runs on the
+// 8 GB laptop); the offline tests install their own rendering context and
+// listen at the ceiling, before the mute (tests/helpers/fakeAudio.js).
+import { voice, noiseVoice, PRIO, pool, ceilingCurve, compressorMakeup, audioHooks } from '../audio/synth.js';
+import { BeatClock, audioNow } from '../audio/clock.js';
+import { VOICES, setMusicDest } from '../audio/instruments.js';
+import { BANDS, bandBpm } from '../audio/bands.js';
+import { degree } from '../audio/modes.js';
+
 let ctx = null;
 let master = null;
-const stems = {};
+let chain = null;
 
 // Music can be switched off ([M] or the HUD button); one-shot SFX and the
 // instruments Jo plays himself stay audible. Remembered between sessions.
@@ -30,9 +44,10 @@ export function toggleMusic() {
 }
 
 // Development is silent: every sound (music, effects, ambience, every bus)
-// flows through `master`, so one switch mutes the lot. Opt back in with
-// ?sound=1 in the URL or localStorage['dreamcatcher.devSound'] = '1'.
-// Production builds are unaffected.
+// flows through `master` and the mute after it, so one switch mutes the
+// lot. Opt back in with ?sound=1 in the URL or
+// localStorage['dreamcatcher.devSound'] = '1'. Production builds are
+// unaffected.
 const DEV_SILENT = (() => {
   if (!(import.meta.env && import.meta.env.DEV)) return false; // (node lint: no env)
   try {
@@ -50,50 +65,94 @@ export function isDevSilent() {
   return DEV_SILENT;
 }
 
-function ac() {
-  if (!ctx) {
-    ctx = new (window.AudioContext || window.webkitAudioContext)();
-    master = ctx.createGain();
-    master.gain.value = DEV_SILENT ? 0 : 0.35;
-    master.connect(ctx.destination);
-    if (DEV_SILENT) ctx.suspend();
+export const MASTER = Object.freeze({
+  gain: 0.35,
+  comp: { threshold: -14, knee: 0, ratio: 4, attack: 0.005, release: 0.2 },
+  limit: { threshold: -3, knee: 0, ratio: 20, attack: 0.001, release: 0.1 },
+  ceiling: 0.891, // -1 dBFS
+});
+
+function buildChain(c, muted) {
+  master = c.createGain();
+  master.gain.value = MASTER.gain;
+  const comp = c.createDynamicsCompressor();
+  const lim = c.createDynamicsCompressor();
+  for (const [node, p] of [
+    [comp, MASTER.comp],
+    [lim, MASTER.limit],
+  ]) {
+    node.threshold.value = p.threshold;
+    node.knee.value = p.knee;
+    node.ratio.value = p.ratio;
+    node.attack.value = p.attack;
+    node.release.value = p.release;
   }
-  if (ctx.state === 'suspended' && !DEV_SILENT) ctx.resume();
+  // the browser's compressor adds make-up gain; take it off again, so the
+  // chain only ever turns things down
+  const trim1 = c.createGain();
+  trim1.gain.value = 1 / compressorMakeup(MASTER.comp.threshold, MASTER.comp.ratio);
+  const trim2 = c.createGain();
+  trim2.gain.value = 1 / compressorMakeup(MASTER.limit.threshold, MASTER.limit.ratio);
+  const ceil = c.createWaveShaper();
+  ceil.curve = ceilingCurve(MASTER.ceiling);
+  const mute = c.createGain();
+  mute.gain.value = muted ? 0 : 1;
+  master.connect(comp).connect(trim1).connect(lim).connect(trim2).connect(ceil).connect(mute).connect(c.destination);
+  chain = { master, comp, trim1, lim, trim2, ceil, mute };
+}
+
+function ac() {
+  if (ctx) {
+    if (ctx.state === 'suspended' && !DEV_SILENT && !ctx.offline) ctx.resume();
+    return ctx;
+  }
+  // dev is silent: no context, no nodes, no audio thread
+  if (DEV_SILENT) return null;
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  buildChain(ctx, false);
   return ctx;
 }
 
-function tone(freq, dur, type = 'sine', vol = 0.5, when = 0, glideTo = null) {
+// tests only: render the game's audio into an offline context. The mute
+// stays shut; the test listens at the ceiling instead (audioTap).
+export function installAudioContext(c) {
+  ctx = c || null;
+  pool.reset();
+  if (c) {
+    c.offline = true;
+    buildChain(c, true);
+  } else {
+    master = null;
+    chain = null;
+  }
+  return chain;
+}
+export function audioTap() {
+  return chain ? chain.ceil : null;
+}
+export function masterChain() {
+  return chain;
+}
+
+function tone(freq, dur, type = 'sine', vol = 0.5, when = 0, glideTo = null, extra = null) {
   const c = ac();
-  const o = c.createOscillator();
-  const g = c.createGain();
-  o.type = type;
-  o.frequency.value = freq;
-  const t = c.currentTime + when;
-  if (glideTo) o.frequency.linearRampToValueAtTime(glideTo, t + dur);
-  g.gain.setValueAtTime(vol, t);
-  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-  o.connect(g).connect(master);
-  o.start(t);
-  o.stop(t + dur + 0.05);
+  if (!c) return;
+  voice(c, master, { freq, dur, type, vol, when, glide: glideTo, prio: PRIO.sfx, ...(extra || {}) });
 }
 
 function noise(dur, vol = 0.3, freq = 1000, when = 0) {
   const c = ac();
-  const len = Math.max(1, Math.floor(c.sampleRate * dur));
-  const buf = c.createBuffer(1, len, c.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-  const src = c.createBufferSource();
-  src.buffer = buf;
-  const f = c.createBiquadFilter();
-  f.type = 'bandpass';
-  f.frequency.value = freq;
-  const g = c.createGain();
-  const t = c.currentTime + when;
-  g.gain.setValueAtTime(vol, t);
-  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-  src.connect(f).connect(g).connect(master);
-  src.start(t);
+  if (!c) return;
+  noiseVoice(c, master, { dur, vol, f: freq, when, env: 'exp', prio: PRIO.sfx });
+}
+
+// a stinger ducks the music (-6 dB, 50 ms in, 800 ms out) — AudioBus
+function duckSting() {
+  try {
+    if (audioHooks.sting) audioHooks.sting();
+  } catch {
+    /* no buses */
+  }
 }
 
 const SFX = {
@@ -161,7 +220,8 @@ const SFX = {
   flap: () => [0, 0.08, 0.16].forEach((w) => noise(0.05, 0.12, 900, w)),
   purr_soft: () => tone(62, 1.2, 'sine', 0.1),
   meow: () => tone(700, 0.3, 'triangle', 0.08, 0, 520),
-  woof: () => tone(180, 0.18, 'square', 0.12, 0, 120),
+  // no square woof: a saw through a 600 Hz low-pass (advice §3)
+  woof: () => tone(180, 0.18, 'sawtooth', 0.14, 0, 120, { filter: { type: 'lowpass', f: 600 } }),
   crackle: () => [0, 0.05, 0.12].forEach((w) => noise(0.03, 0.1, 2800, w)),
 };
 
@@ -172,9 +232,11 @@ const BASS_SCALE = [65, 73, 82, 87, 98, 110];
 export function trumpet(pitchIdx = 4, dur = 0.35, vol = 0.3) {
   try {
     const f = TRUMPET_SCALE[((pitchIdx % 12) + 12) % 12];
-    tone(f, dur, 'square', vol * 0.55);
-    tone(f, dur, 'sawtooth', vol * 0.25);
-    tone(f * 2, dur * 0.7, 'sine', vol * 0.15);
+    // brass, not a buzzer: a 15 ms breath in and a 2.5 kHz low-pass
+    const brass = { attack: 0.015, filter: { type: 'lowpass', f: 2500 } };
+    tone(f, dur, 'square', vol * 0.55, 0, null, brass);
+    tone(f, dur, 'sawtooth', vol * 0.25, 0, null, brass);
+    tone(f * 2, dur * 0.7, 'sine', vol * 0.15, 0, null, { attack: 0.015 });
   } catch {
     /* silent */
   }
@@ -184,8 +246,9 @@ export function trumpet(pitchIdx = 4, dur = 0.35, vol = 0.3) {
 export function accordion(pitchIdx = 4, dur = 0.4, vol = 0.22) {
   const scale = [262, 294, 330, 349, 392, 440, 494, 523, 587, 659, 698, 784];
   const f = scale[Math.max(0, Math.min(11, pitchIdx))];
-  tone(f, dur, 'square', vol * 0.45);
-  tone(f * 1.006, dur, 'sawtooth', vol * 0.25);
+  const reed = { attack: 0.02, filter: { type: 'lowpass', f: 2200 } };
+  tone(f, dur, 'square', vol * 0.45, 0, null, reed);
+  tone(f * 1.006, dur, 'sawtooth', vol * 0.25, 0, null, reed);
   tone(f / 2, dur, 'triangle', vol * 0.3);
 }
 
@@ -217,7 +280,12 @@ export function coinSfx(combo = 0) {
 export function playTone(freq, dur, type = 'sine', vol = 0.5, when = 0, glideTo = null) {
   if (musicOff) return;
   try {
-    tone(freq, dur, type, vol, when, glideTo);
+    // music: on the music bus when the buses are up (ducking, the room)
+    const out = busNode('music');
+    // (at the level it was written for, direct to the master)
+    const k = audioHooks.flat ? audioHooks.flat('music') : 1;
+    if (out) voice(out.context, out, { freq, dur, type, vol: vol * k, when, glide: glideTo, prio: PRIO.music });
+    else tone(freq, dur, type, vol, when, glideTo);
   } catch {
     /* silent */
   }
@@ -321,6 +389,7 @@ export function chime(event = 'chime', place = 'hub') {
   const v = known ? CHIME_VOICES[place] : CHIME_VOICES.hub;
   chimeLog.push({ event, place: known ? place : 'hub', at: Date.now(), seq: ++chimeSeq });
   if (chimeLog.length > 64) chimeLog.shift();
+  duckSting();
   try {
     v.voice(v.f, 0);
     v.voice(v.f * FOURTH, v.gap);
@@ -338,37 +407,91 @@ export function sfx(name) {
 }
 
 // --- D7 MusicDirector ----------------------------------------------------
-// Five states; each stem has its own gain that crossfades over one beat when
-// the state changes. The beat clock is derived from audioCtx.currentTime and
-// the current room's bpm, and is emitted on the scene so periodic hazards can
-// fire on the beat instead of on their own timers.
+// The station's and the legacy dreams' music: one BAND per place
+// (src/audio/bands.js), its parts mixed by state; each part's level eases
+// over one beat when the state changes. The beat clock runs on the audio
+// clock with a look-ahead (src/audio/clock.js) and is emitted on the scene
+// as 'beat', so periodic hazards fire on the beat. Framework dreams use
+// StemMusic (src/audio/MusicDirector.js) instead and stop this one.
 const STATE_MIX = {
-  quiet: { bass: 0.45, brushes: 0.0, piano: 0.25, trumpet: 0.0, pad: 0.35 },
-  explore: { bass: 1.0, brushes: 0.55, piano: 0.5, trumpet: 0.0, pad: 0.0 },
-  danger: { bass: 1.0, brushes: 1.0, piano: 0.3, trumpet: 0.45, pad: 0.0 },
-  setpiece: { bass: 1.0, brushes: 1.0, piano: 0.7, trumpet: 1.0, pad: 0.0 },
-  caught: { bass: 0.2, brushes: 0.0, piano: 0.0, trumpet: 0.0, pad: 0.7 },
+  quiet: { bass: 0.45, brushes: 0.0, piano: 0.25, trumpet: 0.0, pad: 0.35, danger: 0 },
+  explore: { bass: 1.0, brushes: 0.55, piano: 0.5, trumpet: 0.0, pad: 0.0, danger: 0 },
+  danger: { bass: 1.0, brushes: 1.0, piano: 0.3, trumpet: 0.25, pad: 0.0, danger: 0.7 },
+  setpiece: { bass: 1.0, brushes: 1.0, piano: 0.7, trumpet: 1.0, pad: 0.0, danger: 0 },
+  caught: { bass: 0.2, brushes: 0.0, piano: 0.0, trumpet: 0.0, pad: 0.7, danger: 0 },
 };
+const PARTS = ['bass', 'brushes', 'piano', 'trumpet', 'pad', 'hum', 'danger'];
+const SOLO = [392, 440, 494, 523, 440, 392];
 
-const WALK = [98, 110, 123, 131, 147, 131, 123, 110];
-const CHORD = [262, 330, 392, 494];
+// the kitchen's wireless: a band-pass insert in front of the music bus
+const inserts = new WeakMap();
+function insertFor(kind, out) {
+  if (!out || kind !== 'radio') return null;
+  let m = inserts.get(out);
+  if (!m) {
+    m = {};
+    inserts.set(out, m);
+  }
+  if (m[kind]) return m[kind];
+  const c = out.context;
+  const hp = c.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 400;
+  const lp = c.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 3400;
+  hp.connect(lp).connect(out);
+  m[kind] = hp;
+  return hp;
+}
+
+// a part's pitch(es) for a beat
+export function partNotes(band, part, b) {
+  const p = band.parts[part];
+  if (!p) return [];
+  const every = p.every || 1;
+  const i = Math.floor(b / every);
+  const root = band.root * (p.oct || 1);
+  const s = (n) => root * 2 ** (n / 12);
+  if (p.freqs) return [p.freqs[i % p.freqs.length]];
+  if (p.walk) return [s(degree(band.mode, p.walk[i % p.walk.length]))];
+  if (p.chord) return p.chord.map((d) => s(degree(band.mode, d)));
+  if (p.motif) {
+    const n = p.motif[i % p.motif.length];
+    return n === null || n === undefined ? [] : [s(n)];
+  }
+  return [band.root];
+}
 
 export class MusicDirector {
   constructor() {
     this.state = 'quiet';
-    this.bpm = 100;
+    this.band = 'hub';
+    this.bpm = BANDS.hub.bpm;
     this.beat = 0;
     this.scene = null;
-    this.timer = null;
-    this.gains = {};
-    this.level = { bass: 0, brushes: 0, piano: 0, trumpet: 0, pad: 0, hum: 0 };
+    this.clock = null;
+    this.level = { bass: 0, brushes: 0, piano: 0, trumpet: 0, pad: 0, hum: 0, danger: 0 };
     this.custom = null;
+    this.boost = {}; // the gig helpers below (music.bass() …) push a part up
+  }
+
+  // the place's band (src/audio/bands.js); its own tempo
+  setBand(name) {
+    this.band = BANDS[name] ? name : 'hub';
+    this.setBpm(BANDS[this.band].bpm);
+    return this.band;
+  }
+
+  // a room's tempo, scaled to the band (inside: 10% slower)
+  setRoomTempo(roomBpm, inside = false) {
+    this.setBpm(bandBpm(this.band, roomBpm, inside));
   }
 
   // The station drives its own mix from the HubState table rather than from
   // a named state; `custom` wins over `state` while set.
   setMix(mix) {
-    this.custom = { bass: 0, brushes: 0, piano: 0, trumpet: 0, pad: 0, hum: 0, ...mix };
+    this.custom = { bass: 0, brushes: 0, piano: 0, trumpet: 0, pad: 0, hum: 0, danger: 0, ...mix };
   }
 
   clearMix() {
@@ -383,7 +506,7 @@ export class MusicDirector {
   setBpm(bpm) {
     if (bpm && bpm !== this.bpm) {
       this.bpm = bpm;
-      this.start();
+      if (this.clock) this.clock.setBpm(bpm);
     }
   }
 
@@ -394,116 +517,124 @@ export class MusicDirector {
 
   start() {
     this.stop();
-    const beatMs = 60000 / this.bpm;
+    let c = null;
     try {
-      ac();
+      c = ac();
     } catch {
       /* no audio */
     }
-    this.timer = setInterval(() => this.tick(), beatMs);
+    this.clock = new BeatClock({
+      now: () => audioNow(c),
+      bpm: this.bpm,
+      onBeat: (b, at) => this.tick(b, at),
+      emit: (b, ms) => {
+        const sc = this.scene;
+        setTimeout(() => {
+          if (sc && sc.events && sc === this.scene) sc.events.emit('beat', b);
+        }, ms);
+      },
+    });
+    this.clock.start();
   }
 
-  tick() {
+  // one beat of the band at time `at` (seconds on the audio clock)
+  tick(b, at = null) {
+    this.beat = b + 1;
+    if (musicOff) return;
+    const band = BANDS[this.band] || BANDS.hub;
     const target = this.custom || { ...STATE_MIX[this.state], hum: 0 };
-    if (musicOff) {
-      // keep the beat clock alive for hazards; just don't sound it
-      const b = this.beat++;
-      if (this.scene && this.scene.events) this.scene.events.emit('beat', b);
-      return;
+    for (const k of PARTS) {
+      const want = Math.max(target[k] || 0, this.boost[k] || 0);
+      this.level[k] += (want - this.level[k]) * 0.5;
     }
-    // crossfade one beat's worth toward the target mix
-    for (const k of Object.keys(this.level)) {
-      this.level[k] += (target[k] - this.level[k]) * 0.5;
-    }
-    const b = this.beat++;
+    const out = busNode('music');
+    if (!out) return;
+    setMusicDest(insertFor(band.insert, out));
+    const beatMs = 60000 / this.bpm;
+    const meter = band.meter || 4;
     try {
-      if (this.level.bass > 0.05) tone(WALK[b % 8], 0.3, 'triangle', 0.2 * this.level.bass);
-      if (this.level.brushes > 0.05 && b % 2 === 1) noise(0.09, 0.09 * this.level.brushes, 6000);
-      if (this.level.piano > 0.05 && b % 4 === 0) {
-        CHORD.forEach((f, i) => tone(f, 0.5, 'sine', 0.05 * this.level.piano, i * 0.03));
+      for (const k of PARTS) {
+        const p = band.parts[k];
+        const lv = this.level[k];
+        if (!p || lv <= 0.05) continue;
+        const every = p.every || 1;
+        if (b % every !== (p.offset || 0) % every) continue;
+        if (p.chance !== undefined && hash01(b * 31 + k.length) > p.chance) continue;
+        const v = VOICES[p.voice];
+        if (!v) continue;
+        const t = at === null ? null : at + (p.swing || 0) * (beatMs / 1000);
+        for (const f of partNotes(band, k, b)) v(f, beatMs, p.vol * lv * (band.gain ?? 1), beatMs * meter, t);
       }
-      if (this.level.trumpet > 0.05 && b % 2 === 0) {
-        tone([392, 440, 523, 587][(b >> 1) % 4], 0.25, 'square', 0.05 * this.level.trumpet);
+      // the end-of-dream solo (music.soloPiano): the band's piano, alone
+      if (this.boost.solo && b % 2 === 0) {
+        const v = VOICES[(band.parts.piano && band.parts.piano.voice) || 'piano'] || VOICES.piano;
+        v(SOLO[(b >> 1) % SOLO.length], beatMs, 0.09, beatMs * meter, at);
       }
-      if (this.level.pad > 0.05 && b % 8 === 0) tone(131, 3.2, 'sine', 0.06 * this.level.pad);
-      // the sweeper humming the Orb melody, unaccompanied
-      if (this.level.hum > 0.05 && b % 2 === 0) {
-        tone([659, 784, 988, 1319, 988, 784][(b >> 1) % 6] / 2, 0.9, 'sine', 0.05 * this.level.hum);
-      }
-    } catch {
-      /* silent */
+    } finally {
+      setMusicDest(null);
     }
-    if (this.scene && this.scene.events) this.scene.events.emit('beat', b);
   }
 
   stop() {
-    if (this.timer) clearInterval(this.timer);
-    this.timer = null;
+    if (this.clock) this.clock.stop();
+    this.clock = null;
     this.custom = null;
+  }
+}
+
+// a cheap deterministic 0..1 per beat (a part's `chance`)
+function hash01(n) {
+  let x = (n * 2654435761) >>> 0;
+  x ^= x >>> 15;
+  return (x % 1000) / 1000;
+}
+
+function busNode(name) {
+  try {
+    return audioHooks.bus ? audioHooks.bus(name) : null;
+  } catch {
+    return null;
   }
 }
 
 export const musicDirector = new MusicDirector();
 
-// D7 — stingers
+// D7 — stingers (they duck the music: -6 dB for 800 ms)
+const stung = (fn) => () => {
+  duckSting();
+  fn();
+};
 export const sting = {
-  checkpoint: () => [784, 1047].forEach((f, i) => tone(f, 0.35, 'sine', 0.25, i * 0.08)),
-  gate: () => {
+  checkpoint: stung(() => [784, 1047].forEach((f, i) => tone(f, 0.35, 'sine', 0.25, i * 0.08))),
+  gate: stung(() => {
     tone(150, 0.5, 'square', 0.18);
     noise(0.35, 0.2, 400);
-  },
-  secret: () => [659, 880, 1319].forEach((f, i) => tone(f, 0.4, 'triangle', 0.2, i * 0.1)),
-  foeOut: () => tone(180, 0.4, 'sawtooth', 0.2, 0, 70),
-  death: () => [330, 262, 196, 147].forEach((f, i) => tone(f, 0.7, 'triangle', 0.22, i * 0.12)),
+  }),
+  secret: stung(() => [659, 880, 1319].forEach((f, i) => tone(f, 0.4, 'triangle', 0.2, i * 0.1))),
+  foeOut: stung(() => tone(180, 0.4, 'sawtooth', 0.2, 0, 70)),
+  death: stung(() => [330, 262, 196, 147].forEach((f, i) => tone(f, 0.7, 'triangle', 0.22, i * 0.12))),
 };
 
-// --- generative stems (legacy helpers kept for the gig sequences) --------
-const BASS_WALK = [98, 110, 123, 131, 147, 131, 123, 110];
-const PIANO_CHORD = [262, 330, 392, 494];
-
-function startStem(name, intervalMs, fire) {
-  if (stems[name]) return;
-  ac();
-  stems[name] = {
-    step: 0,
-    id: setInterval(() => {
-      const st = stems[name];
-      if (!st) return;
-      const step = st.step++;
-      if (!musicOff) fire(step);
-    }, intervalMs),
-  };
-}
-
+// --- the gig helpers (legacy scenes) ---------------------------------------
+// Once their own setInterval swing band; now they push a part of the
+// place's band up to full (on the director's audio clock), so a kitchen's
+// "bass comes in" is the kitchen's bass. soloPiano is the band's piano alone.
 export const music = {
   bass(on = true) {
-    if (!on) return this.stop('bass');
-    startStem('bass', 420, (s) => tone(BASS_WALK[s % 8], 0.3, 'triangle', 0.22));
+    musicDirector.boost.bass = on ? 1 : 0;
   },
   piano(on = true) {
-    if (!on) return this.stop('piano');
-    startStem('piano', 1680, () => {
-      PIANO_CHORD.forEach((f, i) => tone(f * (Math.random() < 0.2 ? 1.12 : 1), 0.5, 'sine', 0.06, i * 0.03));
-    });
+    musicDirector.boost.piano = on ? 1 : 0;
   },
   trumpet(on = true) {
-    if (!on) return this.stop('trumpet');
-    startStem('trumpet', 840, (s) => {
-      if (s % 3 !== 2) tone([392, 440, 523, 587][s % 4], 0.25, 'square', 0.05);
-    });
+    musicDirector.boost.trumpet = on ? 1 : 0;
   },
   soloPiano(on = true) {
-    if (!on) return this.stop('solo');
-    startStem('solo', 2200, (s) => {
-      tone([392, 440, 494, 523, 440, 392][s % 6], 1.4, 'sine', 0.14);
-    });
+    musicDirector.boost.solo = on ? 1 : 0;
   },
   stop(name) {
-    if (name) {
-      if (stems[name]) clearInterval(stems[name].id);
-      delete stems[name];
-    } else {
-      Object.keys(stems).forEach((k) => this.stop(k));
-    }
+    if (name === 'solo') musicDirector.boost.solo = 0;
+    else if (name) musicDirector.boost[name] = 0;
+    else musicDirector.boost = {};
   },
 };

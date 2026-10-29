@@ -47,7 +47,9 @@ export default {
   enclosure: { fgFoliage: [{ x: 50, w: 6 }], frames: [] },
   backdrop: { set: 'dusk_green', horizon: 16 },
   ambience: 'meadow_dusk',
-  music: { state: 'explore' },
+  acoustics: 'open',
+  events: 'green',
+  music: { state: 'explore', key: 'green' },
   objective: [
     { text: 'find_lamplighter' },
     { text: 'wind_clock', flag: 'met_wren' },

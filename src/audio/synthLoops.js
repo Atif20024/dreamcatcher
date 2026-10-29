@@ -213,3 +213,14 @@ export const LOOPS = {
 Object.assign(LOOPS, ERA_LOOPS);
 
 export const LOOP_NAMES = Object.keys(LOOPS);
+
+// a loop's extra layers, of other lengths (src/audio/Ambience.js plays them
+// under the same gain): the bed never lines up the same way twice
+export const LOOP_LAYERS = {
+  rain_street: ['rain_far'],
+  clock_room: ['clock_slow'],
+  slots: ['casino_murmur'],
+  engines: ['station_vent'],
+  typewriter: ['rain_window'],
+  sizzle: ['kitchen_fan'],
+};

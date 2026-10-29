@@ -42,7 +42,10 @@ export default {
   light: { tint: 0xd8dcf2 },
   backdrop: { set: 'alley_night', horizon: 22 },
   ambience: 'rain_street',
-  music: { state: 'explore', bpm: 96 },
+  acoustics: 'open',
+  events: 'rain',
+  // the Blue Cellar's trio, through the wall
+  music: { state: 'explore', bpm: 86, key: 'cellar', wall: true },
   objective: [
     { text: 'alley_neon' },
     { text: 'alley_in', flag: 'neon_lit' },

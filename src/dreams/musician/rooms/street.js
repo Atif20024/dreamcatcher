@@ -41,7 +41,9 @@ export default {
   light: { tint: 0xe0e4f8 },
   backdrop: { set: 'rain_street', horizon: 16 },
   ambience: 'rain_street',
-  music: { state: 'quiet', bpm: 96 },
+  acoustics: 'open',
+  events: 'rain',
+  music: { state: 'quiet', bpm: 96, key: 'street' },
   objective: 'arrive',
   titleCard: 'RAIN ON THE MARQUEE',
   entities: [

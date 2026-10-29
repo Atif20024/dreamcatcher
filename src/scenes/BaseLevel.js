@@ -28,6 +28,10 @@ import { uiText, PLATE } from '../ui/text.js';
 import { barkMs, claimBark } from '../ui/barks.js';
 import { panel, dim } from '../ui/Panel.js';
 import { ambience } from '../audio/Ambience.js';
+import { buses } from '../audio/AudioBus.js';
+import { PlaceAudio } from '../audio/PlaceAudio.js';
+import { PLACE_BED, legacyRoom } from '../audio/places.js';
+import { bandFor } from '../audio/bands.js';
 import { PLACES, placeOf, rimOf } from '../ui/theme.js';
 import { createLampTextures } from '../art/identityArt.js';
 import { boardTitle } from '../ui/BoardTitle.js';
@@ -181,8 +185,22 @@ export default class BaseLevel extends Phaser.Scene {
       ambience.blend(this.dream.ambientLoop, null, 0);
       this.events.once('shutdown', () => ambience.stop());
     }
-    // D7 — the director drives the mix and the beat clock for this level
+    // D7 — the director drives the mix and the beat clock for this level,
+    // with the place's own band (src/audio/bands.js; the audio pass)
+    musicDirector.setBand(bandFor(placeOf(this)));
     musicDirector.attach(this);
+    // the place's one-shots and its people talking (not the Dream scene: it
+    // runs its own per room; not the Evening: its Soundscape has its own)
+    if (this.scene.key !== 'Dream' && this.scene.key !== 'Evening') {
+      const place = placeOf(this);
+      this.placeAudio = new PlaceAudio(this, { speakers: () => this.audioSpeakers(), listener: () => this.player });
+      this.placeAudio.setBed(PLACE_BED[place] || null);
+      this.events.once('shutdown', () => {
+        this.placeAudio.destroy();
+        buses.setAcoustics('open', true);
+        buses.setWall(false, true);
+      });
+    }
     this.beatNum = 0;
     this.events.on('beat', (b) => {
       this.beatNum = b;
@@ -270,6 +288,8 @@ export default class BaseLevel extends Phaser.Scene {
     this.thrownOut = true;
     this.scatterCoins();
     sfx('fail');
+    // the catch (advice §2): the band stops for a breath, one low note
+    if (this.music && this.music.catch) this.music.catch();
     this.cameras.main.shake(200, 0.008);
     this.player.controlLockUntil = this.time.now + 1500;
     this.player.body.setVelocity(0, 0);
@@ -866,11 +886,10 @@ export default class BaseLevel extends Phaser.Scene {
     const room = this._room ? RoomBuilder.roomAtCamera(rooms, cam.scrollX + cam.width / 2, this._room) : RoomBuilder.roomAt(rooms, this.player.x);
     if (room !== this._room) {
       this._room = room;
-      if (room.music) {
-        musicDirector.setBpm(room.music.bpm);
-        this._roomState = room.music.state || 'explore';
-      }
+      this.enterAudioRoom(room);
+      if (room.music) this._roomState = room.music.state || 'explore';
     }
+    if (this.placeAudio) this.placeAudio.update(this.time.now);
     if (this.parallax) {
       this.parallax.update();
       // vista zoom on the same t; written only while it changes, so other
@@ -887,6 +906,28 @@ export default class BaseLevel extends Phaser.Scene {
     this.updateRoomServices();
     const hunted = (this.foes || []).some((f) => f.human && (f.state === 'alert' || f.state === 'windup'));
     musicDirector.setState(this.thrownOut ? 'caught' : hunted ? 'danger' : this._roomState || 'explore');
+  }
+
+  // a legacy room's sound (src/audio/places.js LEGACY_ROOMS): inside or
+  // outside, the music through a wall, the room's one-shots, the band's tempo
+  enterAudioRoom(room) {
+    const la = room ? legacyRoom(placeOf(this), room.id) : null;
+    const inside = !!(la && la.acoustics !== 'open');
+    buses.setAcoustics(la ? la.acoustics : 'open', false, this.acousticsTweak ? this.acousticsTweak() : null);
+    buses.setWall(la ? la.wall : false);
+    if (this.placeAudio && la) this.placeAudio.setBed(la.events);
+    if (room && room.music && room.music.bpm) musicDirector.setRoomTempo(room.music.bpm, inside);
+  }
+
+  // who can be heard talking: the scene's people (the built level's npc
+  // objects, or a map of named sprites)
+  audioSpeakers() {
+    const out = [];
+    const objs = (this.built && this.built.objects) || [];
+    for (const o of objs) if (o.type === 'npc' && o.wx !== undefined) out.push({ id: o.who || o.id, x: o.wx, y: (o.wy || 0) - 30 });
+    const n = this.npcs;
+    if (n && !(n instanceof Map)) for (const [id, s] of Object.entries(n)) if (s && s.active !== false && typeof s.x === 'number') out.push({ id, x: s.x, y: s.y });
+    return out;
   }
 
   // Phase 1.4: objectives, teach zones and gate signs follow the room Jo

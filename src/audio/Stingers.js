@@ -1,7 +1,7 @@
 // Stingers (plan 2.13): short musical answers to the EventBus — a flag
 // saved, a gate opening, a goal changing, an encounter won, the dream
 // caught. They play on the sfx bus (heard with music off: they are feedback).
-import { busTone, busNoise } from './AudioBus.js';
+import { busTone, busNoise, buses } from './AudioBus.js';
 import { chime } from '../systems/audio.js';
 
 // round 2 WP6 (§9 "Sound"): a lamp lighting plays the station chime in the
@@ -25,6 +25,8 @@ export class Stingers {
     this.offs = Object.entries(STINGS).map(([ev, fn]) =>
       bus.on(ev, (p) => {
         try {
+          // a stinger ducks the music (-6 dB, back over 800 ms)
+          if (ev === 'gate:open' || ev === 'dream:complete' || ev === 'encounter:end') buses.duckSting();
           fn(p);
         } catch {
           /* no audio */

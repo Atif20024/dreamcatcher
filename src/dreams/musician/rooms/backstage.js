@@ -53,7 +53,10 @@ export default {
   light: { tint: 0xe8ecf8 },
   backdrop: null,
   ambience: 'festival',
-  music: { state: 'explore', bpm: 110 },
+  acoustics: 'room',
+  events: 'backstage',
+  // the PA through the stage door
+  music: { state: 'explore', bpm: 110, key: 'backstage', wall: 700 },
   objective: [
     { text: 'backstage' },
     { text: 'hear_tally', flag: 'laminate' },

@@ -37,7 +37,9 @@ export default {
   enclosure: { fgFoliage: [{ x: -1, w: 4 }] },
   backdrop: { set: 'night_yard', horizon: 14 },
   ambience: 'bell_yard',
-  music: { state: 'setpiece' },
+  acoustics: 'open',
+  events: 'green',
+  music: { state: 'setpiece', key: 'yard' },
   objective: 'catch_dream',
   titleCard: 'THE BELL YARD',
   entities: [
