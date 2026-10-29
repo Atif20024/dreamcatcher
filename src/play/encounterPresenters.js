@@ -10,6 +10,7 @@ import { panel, dim, drawPanel } from '../ui/Panel.js';
 import { uiText } from '../ui/text.js';
 import { hud } from '../ui/hud.js';
 import { playTone, trumpet, bassNote, sfx } from '../systems/audio.js';
+import { craftWorld } from './craftPresenter.js';
 
 const RAD = Math.PI / 180;
 
@@ -284,6 +285,8 @@ function rhythmWorld(scene, def, engine, ctx) {
 export const PRESENTERS = {
   clockwork: { world: clockworkWorld, modal: clockworkModal },
   rhythm: { world: rhythmWorld },
+  // THE MASTER'S LADDER: grind, drapery, the masterpiece, the giornata
+  craft: { world: craftWorld },
 };
 
 export function makePresenter(scene, def, engine, ctx) {
