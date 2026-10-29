@@ -22,7 +22,7 @@ Updated 2026-10-29 after the owner's change of direction. The owner's words over
 - THE BIG STAGE, the Musician, on platform 2. This is the reference rebuild.
 
 ## In progress
-1. **Painter: a Renaissance dream** that replaces THE YELLOW HOUSE on platform 5.
+1. **Painter: done.** THE MASTER'S LADDER is on platform 5. See round2/PAINTER_REPORT.md.
    - Jo goes from apprentice to the guild to a commission.
    - It ends in a public competition against an invented rival master.
    - It has era music and ambience per room.
