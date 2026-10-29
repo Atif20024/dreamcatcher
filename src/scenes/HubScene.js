@@ -21,6 +21,7 @@ import { getSave, updateSave, getRun } from '../utils/save.js';
 import { getWallet, spend } from '../systems/wallet.js';
 import { HATS, hatById } from '../data/hats.js';
 import { sfx, music, musicDirector, sting, accordion, chime } from '../systems/audio.js';
+import { ambience } from '../audio/Ambience.js';
 import { dreamcatcherTexture, caughtRounds, WEB_ORDER, glowTexture } from '../art/identityArt.js';
 import { PLACES } from '../ui/theme.js';
 import { trainWipe } from '../ui/TrainWipe.js';
@@ -143,8 +144,10 @@ export default class HubScene extends BaseLevel {
 
     this.promptText = hud.prompt(); // the HUD's interact prompt, pinned over the world point
 
-    musicDirector.setBpm(104);
-    musicDirector.setMix(this.state.music);
+    musicDirector.setMix(this.state.music); // the station's band (setupCommon)
+    // the hall's air and its crowd, thinner with every dream caught
+    ambience.set({ hub_hall: 1, hub_crowd: Math.min(1, 0.15 + this.state.travelers / 40) });
+    this.events.once('shutdown', () => ambience.stop());
     this.boardIdle = this.time.addEvent({ delay: this.state.boardIdleMs, loop: true, callback: () => this.board.idleClack() });
     this.clockTick = this.time.addEvent({ delay: 1000, loop: true, callback: () => this.tickClock() });
     this.events.once('shutdown', () => this.persistClock());
@@ -767,6 +770,12 @@ export default class HubScene extends BaseLevel {
   }
 
   // §4 applied in one place
+  // the hall grows larger and emptier as dreams are caught (advice §2)
+  acousticsTweak() {
+    const k = this.N / 5;
+    return this._room && this._room.id !== 'steps' ? { wet: 0.14 + 0.16 * k } : null;
+  }
+
   applyState() {
     const st = this.state;
     // desaturation: a cool grey wash over everything but the people and HUD
@@ -1376,9 +1385,12 @@ export default class HubScene extends BaseLevel {
     if (this.rain) this.rain.setVisible(p.x < px(40));
     if (this.updateMusicRoom) {
       const cam = this.cameras.main;
+      const was = this._room;
       this._room = this._room ? RoomBuilder.roomAtCamera(this.built.rooms, cam.scrollX + cam.width / 2, this._room) : RoomBuilder.roomAt(this.built.rooms, p.x);
+      if (this._room !== was) this.enterAudioRoom(this._room);
       this.parallax.update(); // continuous blend from the camera centre
     }
+    if (this.placeAudio) this.placeAudio.update(time);
     if (this.look) this.look.update(time, delta, null);
     musicDirector.setMix(this.state.music);
   }

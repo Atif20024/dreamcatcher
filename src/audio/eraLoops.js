@@ -223,6 +223,48 @@ export const SOUNDS = {
       buf[i] += vol * sw * (Math.sin(2 * Math.PI * f * t) + 0.6 * Math.sin(2 * Math.PI * f * 1.5 * t) + 0.25 * Math.sin(2 * Math.PI * f * 2 * t));
     }
   },
+  // --- audio pass: the station, the stadium, the ward, a second clock ---
+  // mains hum: a fundamental and its second harmonic, very low
+  hum(buf, sr, r, { f = 60, vol = 0.02 } = {}) {
+    for (let i = 0; i < buf.length; i++) {
+      const t = i / sr;
+      buf[i] += vol * (Math.sin(2 * Math.PI * f * t) + 0.4 * Math.sin(4 * Math.PI * f * t));
+    }
+  },
+  // a monitor's beep (or a console's): `f` Hz every `every` s
+  beeps(buf, sr, r, { f = 1000, every = 1, vol = 0.03, len = 0.09, offset = 0 } = {}) {
+    const dur = buf.length / sr;
+    for (let t = offset; t < dur; t += every) addAt(buf, tone(sr, len, f, { decay: 1, attack: 0.004 }), Math.floor(t * sr), vol, (x) => (x > 0.85 ? (1 - x) / 0.15 : 1));
+  },
+  // a clock's escapement: a tick every `every` s, tock a little lower
+  ticks(buf, sr, r, { every = 1, vol = 0.05, f = 1900 } = {}) {
+    const dur = buf.length / sr;
+    let k = 0;
+    for (let t = 0.05; t < dur - 0.02; t += every, k++) {
+      addAt(buf, bandpass(noise(Math.floor(0.01 * sr), r), sr, k % 2 ? f * 0.82 : f, 4), Math.floor(t * sr), vol * 3, (x) => (1 - x) ** 2);
+    }
+  },
+  // rain: a broad wash (1–6 kHz) and drops on hard things
+  rain(buf, sr, r, { vol = 0.05, f = 2600, q = 0.5, drops = 6 } = {}) {
+    const n = buf.length;
+    const w = bandpass(noise(n, r), sr, f, q);
+    for (let i = 0; i < n; i++) buf[i] += w[i] * vol * 2;
+    for (let k = 0; k < (n / sr) * drops; k++) addAt(buf, tone(sr, 0.02, 1600 + r() * 2200, { decay: 6 }), Math.floor(r() * n), vol * 0.5);
+  },
+  // a crowd in a big space: a band of noise that swells and settles
+  roar(buf, sr, r, { vol = 0.05, f = 700, swells = 2 } = {}) {
+    const n = buf.length;
+    const w = bandpass(noise(n, r), sr, f, 0.7);
+    for (let i = 0; i < n; i++) buf[i] += w[i] * vol * 2 * (0.65 + 0.35 * Math.sin((i / n) * Math.PI * 2 * swells) ** 2);
+  },
+  // a pump or a vent: low air that breathes at `hz`
+  pump(buf, sr, r, { vol = 0.04, hz = 0.2, k = 0.02 } = {}) {
+    const n = buf.length;
+    const w = lowpass1(noise(n, r), k);
+    // whole cycles only, so the loop still meets itself
+    const cycles = Math.max(1, Math.round((n / sr) * hz));
+    for (let i = 0; i < n; i++) buf[i] += w[i] * vol * 3 * (0.6 + 0.4 * Math.sin((i / n) * Math.PI * 2 * cycles));
+  },
   // a cheap baked echo: copies of the buffer, later and quieter (a stone room)
   echo(buf, sr, r, { delay = 0.11, taps = 4, fb = 0.45 } = {}) {
     const src = Float32Array.from(buf);
@@ -248,6 +290,23 @@ export const RECIPES = {
   // the chapel: the long echo, a trowel on plaster, the rival's chisel across
   // the nave, pigeons up in the vault, the church's open fifth under it all
   rn_chapel: { seconds: 12, seed: 47, rms: -37, layers: [['drone', { f: 73.4, vol: 0.018 }], ['scrape', { rate: 0.5, vol: 0.03, f: 1200, len: 0.4 }], ['chisel', { vol: 0.012, every: 0.5, runs: 1 }], ['swallows', { rate: 0.12, vol: 0.02, lo: 1500, hi: 2600 }], ['steps', { vol: 0.02, walks: 1 }], ['echo', { delay: 0.21, taps: 6, fb: 0.6 }]] },
+
+  // --- audio pass ------------------------------------------------------
+  // Crossroads: the hall's air (low noise, a 60 Hz hum), and its crowd
+  // (voices, feet, the hall's echo), mixed by how full the station is
+  hub_hall: { seconds: 9, seed: 51, rms: -40, layers: [['murmur', { vol: 0.05, k: 0.01 }], ['hum', { f: 60, vol: 0.01 }], ['echo', { delay: 0.17, taps: 4, fb: 0.5 }]] },
+  hub_crowd: { seconds: 11, seed: 52, rms: -37, layers: [['chatter', { voices: 6, vol: 0.03, pitch: 0.9 }], ['steps', { vol: 0.03, pace: 0.5, walks: 3 }], ['echo', { delay: 0.17, taps: 4, fb: 0.5 }]] },
+  // THE FINISH LINE (athlete, unlaunched): a stadium's crowd under the wind
+  pistol: { seconds: 12, seed: 53, rms: -35, layers: [['roar', { vol: 0.05, f: 800, swells: 2 }], ['chatter', { voices: 6, vol: 0.02 }], ['wind', { vol: 0.02 }], ['echo', { delay: 0.25, taps: 3, fb: 0.35 }]] },
+  // THE WHITE COAT (doctor, unlaunched): a ward's monitors, the vent
+  monitors: { seconds: 8, seed: 54, rms: -38, layers: [['pump', { vol: 0.03, hz: 0.25 }], ['beeps', { f: 988, every: 1, vol: 0.03 }], ['beeps', { f: 1319, every: 0.8, vol: 0.012, offset: 0.37 }], ['echo', { delay: 0.08, taps: 2, fb: 0.25 }]] },
+  // second layers (src/audio/synthLoops.js LOOP_LAYERS): other lengths
+  rain_far: { seconds: 9, seed: 55, rms: -38, layers: [['rain', { vol: 0.05, f: 1800, q: 0.6, drops: 3 }]] },
+  rain_window: { seconds: 9, seed: 56, rms: -42, layers: [['rain', { vol: 0.04, f: 1400, q: 0.7, drops: 5 }]] },
+  clock_slow: { seconds: 9.59, seed: 57, rms: -42, layers: [['ticks', { every: 1.37, vol: 0.05, f: 1500 }]] },
+  casino_murmur: { seconds: 10, seed: 58, rms: -38, layers: [['chatter', { voices: 5, vol: 0.03 }], ['clink', { vol: 0.02, count: 5 }], ['murmur', { vol: 0.02 }]] },
+  station_vent: { seconds: 10, seed: 59, rms: -42, layers: [['pump', { vol: 0.04, hz: 0.2, k: 0.01 }]] },
+  kitchen_fan: { seconds: 7, seed: 60, rms: -42, layers: [['pump', { vol: 0.03, hz: 0.43, k: 0.04 }], ['hum', { f: 120, vol: 0.006 }]] },
 };
 
 function seamless(buf, sr, fade = 0.3) {

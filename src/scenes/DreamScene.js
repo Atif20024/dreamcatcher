@@ -35,6 +35,8 @@ import { StemMusic } from '../audio/MusicDirector.js';
 import { ambience } from '../audio/Ambience.js';
 import { buses } from '../audio/AudioBus.js';
 import { Footsteps } from '../audio/Footsteps.js';
+import { PlaceAudio } from '../audio/PlaceAudio.js';
+import { PLACE_BED } from '../audio/places.js';
 import { Stingers, STINGS } from '../audio/Stingers.js';
 import { PerfMonitor } from '../core/PerfBudget.js';
 import { events } from '../core/events.js';
@@ -242,6 +244,11 @@ export default class DreamScene extends BaseLevel {
       if (ev === 'footstep') this.footsteps.step(this.player.feet(), Math.abs(this.player.body.velocity.x));
     };
     this.stingers = new Stingers(events, { place: placeOf(this) });
+    // the place's life: its one-shots by room, people talking as Jo passes
+    this.placeAudio = new PlaceAudio(this, {
+      speakers: () => [...this.npcs.values()].map((n) => ({ id: n.id, x: n.x, y: n.y - 30, talking: n.talking })),
+      listener: () => this.player,
+    });
     this.perf = new PerfMonitor(this);
     this.verbs = (def.verbs || []).map((v) => ({ mod: v, ctx: this.verbCtx() }));
     for (const v of this.verbs) if (v.mod.create) v.mod.create(v.ctx);
@@ -255,7 +262,9 @@ export default class DreamScene extends BaseLevel {
   teardown() {
     if (this.music) this.music.stop();
     ambience.stop();
-    buses.setAcoustics('open', true); // the station and legacy scenes are dry
+    if (this.placeAudio) this.placeAudio.destroy();
+    buses.setAcoustics('open', true); // a scene sets its own on entry
+    buses.setWall(false, true);
     if (this.stingers) this.stingers.destroy();
     if (this.beats) this.beats.cancelAll();
     if (this.encounters) this.encounters.abort();
@@ -356,12 +365,35 @@ export default class DreamScene extends BaseLevel {
       // a named key (the place's instruments, mode and tempo) wins over bpm
       if (!(m.key && this.music.setKey && this.music.setKey(m.key)) && m.bpm) this.music.setBpm(m.bpm);
     }
-    // the room's acoustics: inside is muffled and echoes (room.acoustics)
+    this._roomMusicState = (m && m.state) || null;
+    // the room's acoustics: inside is muffled and echoes (room.acoustics);
+    // music from next door comes through the wall (room.music.wall)
     buses.setAcoustics(r.data.acoustics || 'open', teleport);
+    buses.setWall((m && m.wall) || false, teleport);
+    // the room's one-shots (room.events, else the place's own)
+    if (this.placeAudio) this.placeAudio.setBed(r.data.events !== undefined ? r.data.events : PLACE_BED[placeOf(this)]);
     if (teleport) this.camDir.snap();
     if (r.data.titleCard && !this.F[`_title:${id}`]) {
       this.F[`_title:${id}`] = true;
       this.titleCard(r.data.titleCard);
+    }
+  }
+
+  // the chase layer (advice §2): a person who has seen Jo turns the music
+  // tense (the throb, a faster beat); 4 s after the last one loses him it
+  // goes back to the room's own state
+  updateChase(time) {
+    if (!this.music || (this._chaseTick = (this._chaseTick || 0) + 1) % 10) return;
+    const hunted = (this.foes || []).some((f) => f && f.active && f.human && (f.state === 'alert' || f.state === 'windup'));
+    if (hunted) {
+      this._huntedAt = time;
+      if (!this._chasing) {
+        this._chasing = true;
+        this.music.setState('tense');
+      }
+    } else if (this._chasing && time - (this._huntedAt || 0) > 4000) {
+      this._chasing = false;
+      this.music.setState(this._roomMusicState || 'explore');
     }
   }
 
@@ -738,6 +770,8 @@ export default class DreamScene extends BaseLevel {
       this.streamer.update(time);
       for (const w of [...this.watchers]) w();
       for (const n of this.npcs.values()) n.update(dt, this.player);
+      if (this.placeAudio) this.placeAudio.update(time);
+      this.updateChase(time);
       if (this.look) this.look.update(time, dt, null);
       if ((this._cullTick = (this._cullTick || 0) + 1) % 15 === 1) this.cullCoins();
       this.perf.update();
