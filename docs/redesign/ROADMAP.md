@@ -28,7 +28,7 @@ Updated 2026-10-29 after the owner's change of direction. The owner's words over
 - The game fills the browser window.
 
 ## In progress
-- Room transitions: no crossfades. Every room change is a short dip through dark behind a door, an arch or a gate, triggered by walking through it. See `advice/room_transitions_advice.md`. The owner said go on 2026-10-29.
+- (done) Room transitions: dips through dark at real doorways; see round2/TRANSITIONS_REPORT.md. Legacy scenes still blend until rebuilt.
 - The racer dream: design doc by a pro-gamer advisor (`docs/dream_racer.md`), then the build.
 - Open issue: on the painter's daylight street, Jo's contrast is 2.7:1, below the 3:1 target; recolouring his coat would fix it.
 
