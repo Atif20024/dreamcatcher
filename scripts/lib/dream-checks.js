@@ -55,12 +55,30 @@ export function reachableTiles(grid, starts) {
     }
     return standable(v, x, yy) ? [x, yy] : null;
   };
+  // ladders ('H', THE MASTER'S LADDER's scaffolds): Jo climbs a ladder column
+  // up and down, and steps or drops off it sideways
+  const ladder = (x, y) => v.role(x, y) === 'ladder';
   while (q.length) {
     const [x, y] = q.shift();
     const k = key(x, y);
     if (seen.has(k)) continue;
     seen.add(k);
     const next = [];
+    if (ladder(x, y) || ladder(x, y + 1)) {
+      for (const ny of [y - 1, y + 1]) if (ny >= 0 && ny < v.h && !v.solid(x, ny) && (ladder(x, ny) || ladder(x, ny + 1))) next.push([x, ny]);
+      for (const dx of [-1, 1]) {
+        if (v.solid(x + dx, y)) continue;
+        if (standable(v, x + dx, y)) next.push([x + dx, y]);
+        else {
+          const f = fall(x + dx, y);
+          if (f) next.push(f);
+        }
+      }
+      if (!standable(v, x, y)) {
+        for (const n of next) if (!seen.has(key(n[0], n[1]))) q.push(n);
+        continue;
+      }
+    }
     for (const dx of [-1, 1]) {
       if (!v.solid(x + dx, y)) {
         if (standable(v, x + dx, y)) next.push([x + dx, y]);

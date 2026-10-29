@@ -5,8 +5,11 @@
 // the old MusicianScene stays behind ?legacy=1 for comparison.
 import clockmaker from './clockmaker/dream.js';
 import musician from './musician/dream.js';
+// THE MASTER'S LADDER (painter, platform 5) replaces THE YELLOW HOUSE; the
+// old PainterScene stays behind ?legacy=1 / ?warp=painter_legacy
+import painter from './painter/dream.js';
 
-export const FRAMEWORK_DREAMS = { clockmaker, musician };
+export const FRAMEWORK_DREAMS = { clockmaker, musician, painter };
 
 // old ids that still resolve (?warp=proof:start)
 export const DREAM_ALIASES = { proof: 'clockmaker' };

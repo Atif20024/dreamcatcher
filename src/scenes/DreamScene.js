@@ -255,6 +255,7 @@ export default class DreamScene extends BaseLevel {
   teardown() {
     if (this.music) this.music.stop();
     ambience.stop();
+    buses.setAcoustics('open', true); // the station and legacy scenes are dry
     if (this.stingers) this.stingers.destroy();
     if (this.beats) this.beats.cancelAll();
     if (this.encounters) this.encounters.abort();
@@ -352,8 +353,11 @@ export default class DreamScene extends BaseLevel {
     const m = r.data.music;
     if (m) {
       if (m.state) this.music.setState(m.state);
-      if (m.bpm) this.music.setBpm(m.bpm);
+      // a named key (the place's instruments, mode and tempo) wins over bpm
+      if (!(m.key && this.music.setKey && this.music.setKey(m.key)) && m.bpm) this.music.setBpm(m.bpm);
     }
+    // the room's acoustics: inside is muffled and echoes (room.acoustics)
+    buses.setAcoustics(r.data.acoustics || 'open', teleport);
     if (teleport) this.camDir.snap();
     if (r.data.titleCard && !this.F[`_title:${id}`]) {
       this.F[`_title:${id}`] = true;
@@ -589,6 +593,11 @@ export default class DreamScene extends BaseLevel {
   encounterExit(def, result) {
     this.encounterActive = false;
     this.camDir.pop(this.encShot, 500);
+    // how it went, for the ending's lines (the craft engine: clean, dried, rival)
+    if (result && result.ok) {
+      this.F[`result:${def.id}`] = { clean: !!result.clean, misses: result.misses || 0, dried: result.dried || 0, rivalFirst: !!result.rivalFirst };
+      if (result.clean) this.F[`${def.id}_clean`] = true; // a flag beats can branch on
+    }
     if (result && result.ok && def.onWin && this.beats.has(def.onWin)) this.beats.play(def.onWin).catch((e) => console.warn('[dream] beat', e));
   }
 

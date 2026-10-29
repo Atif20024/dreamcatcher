@@ -11,7 +11,10 @@ export const DREAM_WARP = {
   musician_legacy: { scene: 'Musician', param: null },
   astronaut: { scene: 'Astronaut', param: 'at', fallback: 'gym' },
   writer: { scene: 'Writer', param: 'wr', fallback: 'attic' },
-  painter: { scene: 'Painter', param: 'pt', fallback: 'arrival' },
+  // THE MASTER'S LADDER on the framework; the old Yellow House stays
+  // reachable as painter_legacy (or ?warp=painter&legacy=1)
+  painter: { scene: 'Dream', param: null, framework: true },
+  painter_legacy: { scene: 'Painter', param: 'pt', fallback: 'arrival' },
   gambler: { scene: 'Gambler', param: 'gm', fallback: 'arrival' },
   evening: { scene: 'Evening', param: 'ev', fallback: 'arch' },
   // framework dreams (DreamScene reads ?warp= itself: dream:room[:spawn])
@@ -25,7 +28,8 @@ export function resolveWarp(search) {
   const w = sp.get('warp');
   if (!w) return null;
   const [dream, place] = w.split(':');
-  const d = dream === 'musician' && sp.get('legacy') === '1' ? DREAM_WARP.musician_legacy : DREAM_WARP[dream];
+  const legacy1 = sp.get('legacy') === '1';
+  const d = legacy1 && DREAM_WARP[`${dream}_legacy`] ? DREAM_WARP[`${dream}_legacy`] : DREAM_WARP[dream];
   if (!d) return null;
   const legacy = {};
   if (d.param && !sp.get(d.param)) legacy[d.param] = place || d.fallback;

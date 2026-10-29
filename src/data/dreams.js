@@ -9,6 +9,8 @@
 // Phase 3b: THE BIG STAGE plays on the framework (DreamScene, src/dreams/
 // musician/). ?legacy=1 boards the old MusicianScene instead, for comparison.
 export const LEGACY_MUSICIAN = typeof window !== 'undefined' && !!window.location && new URLSearchParams(window.location.search).get('legacy') === '1';
+// the painter likewise: THE MASTER'S LADDER, or with ?legacy=1 THE YELLOW HOUSE
+export const LEGACY_PAINTER = LEGACY_MUSICIAN;
 
 export const DREAMS = [
   {
@@ -39,11 +41,14 @@ export const DREAMS = [
     roLine: 'Ink on your fingers. And you look like you slept at a desk.',
   },
   {
-    id: 'painter', platform: 5, title: 'THE YELLOW HOUSE', scene: 'Painter', propsKind: 'easels', ambientLoop: 'cicadas',
-    coin: { name: 'tube cap', worth: 2, budget: [100, 120], pal: { c: 0xb8862c, C: 0xf2d060, h: 0xfff2a0 } },
-    livery: { body: 0xe8b830, trim: 0x1f3a5f, window: 0x5b3a7a, emblem: 'sun' },
-    conductor: 'The Yellow House. South, where the light is. Nobody there sees what you see.\nAre you ready to paint it anyway, and sell none of it?',
-    roLine: 'Paint under your nails. Yellow. You went somewhere bright.',
+    // THE MASTER'S LADDER (src/dreams/painter/, DreamScene) replaced THE
+    // YELLOW HOUSE; ?legacy=1 boards the old PainterScene. The save flag
+    // (dreams.painter) is the same id.
+    id: 'painter', platform: 5, title: LEGACY_PAINTER ? 'THE YELLOW HOUSE' : "THE MASTER'S LADDER", scene: LEGACY_PAINTER ? 'Painter' : 'Dream', propsKind: 'easels', ambientLoop: LEGACY_PAINTER ? 'cicadas' : 'rn_street',
+    coin: LEGACY_PAINTER ? { name: 'tube cap', worth: 2, budget: [100, 120], pal: { c: 0xb8862c, C: 0xf2d060, h: 0xfff2a0 } } : { name: 'giglio', worth: 3, budget: [80, 100], pal: { c: 0xa87a24, C: 0xe8c050, h: 0xfff0b0 } },
+    livery: { body: 0x22408a, trim: 0xd8a840, window: 0xf2d8a0, emblem: 'lily' },
+    conductor: "The Master's Ladder. A city of workshops, one chapel, and a contest at the bell.\nYou start by sweeping the floor, sir. Are you ready to climb?",
+    roLine: 'Gold under your nails. And lime. You were up a scaffold somewhere.',
   },
   {
     id: 'astronaut', platform: 6, title: 'THE QUIET ABOVE', scene: 'Astronaut', propsKind: 'crates', ambientLoop: 'engines',

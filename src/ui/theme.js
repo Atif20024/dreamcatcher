@@ -38,7 +38,7 @@ export const PLACES = Object.freeze({
   musician: { name: 'THE BIG STAGE', shadow: 0x161c3a, warm: 0xf2c078, accent: 0x2e7d9a, grade: 0xe2def2, halo: 0.65 },
   astronaut: { name: 'THE QUIET ABOVE', shadow: 0x16203a, warm: 0xf0c890, accent: 0xbfe6ef, grade: 0xdcdcf0, halo: 0.65 },
   writer: { name: 'THE SECOND DRAFT', shadow: 0x1a1a36, warm: 0xf2d590, accent: 0x2c3e75, grade: 0xd8d6ec, halo: 0.75 },
-  painter: { name: 'THE YELLOW HOUSE', shadow: 0x1e2040, warm: 0xf2c070, accent: 0xe8b830, grade: 0xe4dff0, halo: 0.5 },
+  painter: { name: "THE MASTER'S LADDER", shadow: 0x1e2040, warm: 0xf2c070, accent: 0xe8b830, grade: 0xe4dff0, halo: 0.5 },
   gambler: { name: 'THE LAST HAND', shadow: 0x1c1430, warm: 0xf2b868, accent: 0x2f7a4a, grade: 0xe0d8ec, halo: 1 },
   clockmaker: { name: 'THE STOPPED HOUR', shadow: 0x1a1c3a, warm: 0xffc870, accent: 0x6fae8c, grade: 0xd4d2ec, halo: 0.55 },
   evening: { name: 'THE LONG EVENING', shadow: 0x2a1e30, warm: 0xf0b45a, accent: 0xf0b45a, inverted: true },

@@ -2,7 +2,9 @@ import Phaser from 'phaser';
 import { createJoTextures } from '../entities/jo.js';
 import { drawCityBackdrop } from '../utils/backdrop.js';
 import { toggleMusic, sfx } from '../systems/audio.js';
-import { dreamById } from '../data/dreams.js';
+import { dreamById, LEGACY_PAINTER } from '../data/dreams.js';
+import { paintSky, paintBackdropLayer, paintLandmark } from '../art/backdrops/painted.js';
+import { FIORALBA } from '../dreams/painter/dream.js';
 import { arrivalTrain } from '../entities/Train.js';
 import { stationTex } from '../art/trainArt.js';
 import { hubTex } from '../art/hubArt.js';
@@ -53,7 +55,47 @@ const INTROS = {
       return { groundY: 470 };
     },
   },
-  painter: {
+  // THE MASTER'S LADDER: Fioralba from the station road, the dome in its
+  // centering, the campanile, a workshop's arched door (the old Yellow House
+  // arrival stays behind ?legacy=1)
+  painter: LEGACY_PAINTER ? null : {
+    ground: 0x8a7a62,
+    caption: "THE MASTER'S LADDER",
+    sub: 'Fioralba, the spring of the contest. The workshop door is open.',
+    doorX: 700,
+    draw(scene) {
+      const c = document.createElement('canvas');
+      c.width = 960;
+      c.height = 540;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(paintSky(FIORALBA.SKY), 0, 0, 960, 540);
+      const hills = paintBackdropLayer('rn_hills', FIORALBA.DAY, 3);
+      for (let x = 0; x < 960; x += hills.width) ctx.drawImage(hills, x, 470 - hills.height + 40);
+      const dome = paintLandmark('dome_works', FIORALBA.DAY);
+      ctx.drawImage(dome, 520, 470 - dome.height + 30);
+      const tower = paintLandmark('campanile', FIORALBA.DAY);
+      ctx.drawImage(tower, 400, 470 - tower.height + 20);
+      const row = paintBackdropLayer('rn_row', FIORALBA.DAY, 7);
+      for (let x = -200; x < 960; x += row.width) ctx.drawImage(row, x, 470 - row.height + 4);
+      // the workshop door on the street: a round arch in stone, dark oak
+      ctx.fillStyle = '#d8ccb0';
+      ctx.fillRect(650, 330, 100, 140);
+      ctx.fillStyle = '#3e2a1c';
+      ctx.beginPath();
+      ctx.moveTo(668, 470);
+      ctx.lineTo(668, 380);
+      ctx.arc(700, 380, 32, Math.PI, 0);
+      ctx.lineTo(732, 470);
+      ctx.fill();
+      if (scene.textures.exists('intro-painter-rn')) scene.textures.remove('intro-painter-rn');
+      scene.textures.addCanvas('intro-painter-rn', c);
+      scene.add.image(0, 0, 'intro-painter-rn').setOrigin(0);
+      scene.add.rectangle(480, 505, 960, 70, 0x8a7a62);
+      scene.add.rectangle(480, 472, 960, 4, 0x6a5a48);
+      return { groundY: 470 };
+    },
+  },
+  painter_legacy: {
     ground: 0x6b4e2e, // the arrival platform's stone (round 2 WP3)
     caption: 'THE YELLOW HOUSE',
     sub: 'The south, at the first hour of light. A house with no curtains.',
@@ -220,7 +262,7 @@ const INTROS = {
 
 // the scene that plays each dream (framework dreams: 'Dream'; the Musician's
 // old scene only with ?legacy=1, data/dreams.js)
-const LEVEL_SCENES = { clockmaker: 'Dream', chef: 'Chef', musician: dreamById('musician').scene, astronaut: 'Astronaut', writer: 'Writer', painter: 'Painter', gambler: 'Gambler' };
+const LEVEL_SCENES = { clockmaker: 'Dream', chef: 'Chef', musician: dreamById('musician').scene, astronaut: 'Astronaut', writer: 'Writer', painter: dreamById('painter').scene, gambler: 'Gambler' };
 
 export default class IntroScene extends Phaser.Scene {
   constructor() {
@@ -232,7 +274,7 @@ export default class IntroScene extends Phaser.Scene {
   }
 
   create() {
-    const intro = INTROS[this.levelKey];
+    const intro = (this.levelKey === 'painter' && LEGACY_PAINTER && INTROS.painter_legacy) || INTROS[this.levelKey];
     if (!intro) {
       this.scene.start('Level', { levelKey: this.levelKey });
       return;
