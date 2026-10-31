@@ -179,7 +179,7 @@ Each place has one goal, shown on arrival, that names only what can be seen. Roo
 | `npx vite build` | Built. |
 | Gambler scenarios | All 11 pass: board, places, coins, legacy, quay, saloon, cards, tilt, office, deck, playthrough. `readability-gambler`, `scale-gambler` and `jo-contrast` pass too. |
 | Room budgets (`gambler-places`) | 215–297 objects and 65–103 draw calls per room. Rooms paint in 23–92 ms. |
-| Full scenario run | See the end of this report. |
+| Full scenario run (once, polled) | 133 passed, 3 failed. Two of the failures were caused by this work: `zero-hearts-checkpoint` and `continue-run` on `gambler_legacy`. The legacy `GamblerScene` lost its run id when platform 7 moved to `'Dream'`; `BaseLevel`'s `DREAM_OF_SCENE` now maps `Gambler` to `gambler`, as it does for the Musician and Painter. I re-ran both alone and both pass. The third, `readability-chef`, was already failing and is not caused by this work: a 9 px minimum on the legacy Chef's "ROOF · survive service". |
 
 **`gambler-playthrough`** uses real inputs throughout. It goes:
 1. Lou, then the slate (chalked to stop $50 and goal $160).
@@ -212,4 +212,4 @@ Taken while I worked, in the scratchpad:
 - **The quay's bale ledge** is a one-way plank laid over the bales and crates. It reads as a plank, not as the bales' own tops.
 - **The deck's hatch** reads as a gap in the deck, not yet as a framed skylight.
 - **Audio** has not been heard (dev is silent): the band, the pad, the river loops, the fold chime and the rake's coin are code only.
-- **The legacy `GamblerScene`** is untouched and reachable. It now carries the bull's-eye lantern in its dark rooms instead of the phone.
+- **The legacy `GamblerScene`** is untouched and reachable; its runs save under `gambler` again. It now carries the bull's-eye lantern in its dark rooms instead of the phone.
