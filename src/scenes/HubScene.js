@@ -9,7 +9,8 @@ import { dipThroughDark } from '../world/TransitionDirector.js';
 import { D } from '../builders/depths.js';
 import hubRooms, { BAYS, bayIndex } from '../data/hub/rooms.js';
 import hubTiles from '../data/hub/tiles.js';
-import { HUB_ROWS } from '../data/hub/map.js';
+import { HUB_ROWS, buildHubMap } from '../data/hub/map.js';
+import { reachGrid } from '../world/reach.js';
 import { DREAMS, LAST_STOP, dreamById } from '../data/dreams.js';
 import { createHubTextures, HUB_PROP_KEYS } from '../entities/hubArt.js';
 import { stationTex, pigeonTex, doorWingTex } from '../art/trainArt.js';
@@ -138,6 +139,7 @@ export default class HubScene extends BaseLevel {
     this.buildPlatforms();
     this.buildGate();
     this.buildThresholds();
+    this.buildSafetyNet();
     this.buildUndercroft();
     this.buildRoof();
     this.buildTravelers();
@@ -209,6 +211,62 @@ export default class HubScene extends BaseLevel {
     this._lastJo = null;
     this.dipping = null;
     this._camBounds = null;
+  }
+
+  // ---- the safety net: no drop ends in a pocket ---------------------------
+  // The map is sound (tests/reach.test.js: every place Jo can reach has a way
+  // back to the hall). If he still ends up somewhere with no way out, or
+  // below the undercroft's floor, he is put back on his last safe footing
+  // through the station's short dip. Nothing here can hurt: no heart lost.
+  buildSafetyNet() {
+    const g = reachGrid(buildHubMap());
+    const row = HUB_ROWS.FLOOR - 1;
+    const hall = [];
+    for (let c = 31; c < 79; c++) hall.push([c, row]);
+    this.reach = g;
+    this.homeCells = g.to(hall);
+    this.rescues = 0;
+    this.rescuing = false;
+    this._stuckSince = 0;
+    // last safe footing (BaseLevel.trackSafeGround) only where home is in reach
+    this.isSafeHere = (p) => this.atHome(p);
+  }
+
+  // Jo's feet cell, or one beside it (stairs and slopes put his feet a little
+  // into the tile the reach map stands him on), is one with a way home
+  atHome(p) {
+    const c = Math.floor(p.x / T);
+    const r = Math.floor((p.y + 24) / T) - 1;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (this.reach.has(this.homeCells, c + dx, r + dy)) return true;
+    return false;
+  }
+
+  updateSafetyNet(time) {
+    const p = this.player;
+    if (!this.reach || this.rescuing || this.dipping || this.respawning || this.cardActive) return;
+    const below = p.y > UNDER + 2 * T; // under the undercroft's floor
+    const grounded = (p.body.blocked.down || p.onSlope) && !p.climbing;
+    if (grounded && !this.atHome(p)) this._stuckSince ||= time;
+    else this._stuckSince = 0;
+    if (below || (this._stuckSince && time - this._stuckSince > 500)) this.rescue();
+  }
+
+  rescue() {
+    this.rescuing = true;
+    this._stuckSince = 0;
+    const pt = this.safeGround || this.checkpoint || { x: px(26), y: FLOOR - 24 };
+    dipThroughDark(
+      this,
+      DIPS.inin,
+      () => {
+        this.rescues += 1;
+        this.placePlayer(pt);
+        // the room he lands in, at once, while the screen is dark
+        this._room = null;
+        this.updateThreshold();
+      },
+      () => (this.rescuing = false)
+    );
   }
 
   // what the camera may show of the room on screen: out to the far edge of
@@ -1513,6 +1571,7 @@ export default class HubScene extends BaseLevel {
     this.travelers.update(dt);
     this.queue.update(dt);
     if (this.rain) this.rain.setVisible(p.x < px(40));
+    this.updateSafetyNet(time);
     if (this.updateMusicRoom) {
       this.updateThreshold();
       this.parallax.update(); // the room on screen, alone

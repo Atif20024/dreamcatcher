@@ -24,6 +24,11 @@ const px = (t) => t * T + T / 2;
 // the Track: laps for Coach Adaeze; a 10 kg medicine ball is 0.4 m across
 const TRACK_LAPS = 3;
 const MEDBALL_R = 9;
+// the pool's hoops: a 2 m ring (88 px tall), 0.11 m tube, seen nearly
+// side-on; Jo is through it when his middle is inside the ring's opening
+const HOOP = { rx: 15, ry: 44, tube: 5, inX: 18, inY: 34 };
+// lane-rope floats (0.25 x 0.2 m); the far rope, 2.5 m back, sits a few px up
+const ROPE = { w: 11, h: 9, gap: 6 };
 // the one stat each gym room trains (the HUD shows only that one)
 const ROOM_STAT = { p1_track: 'legs', p1_pool: 'lungs' };
 
@@ -163,7 +168,9 @@ export default class AstronautScene extends BaseLevel {
       .filter((o) => o.type === 'rail')
       .map((o) => {
         const w = (o.len || 4) * T;
-        this.add.rectangle(o.wx - T / 2 + w / 2, o.wy, w, 6, 0xf2c078, 0.55).setDepth(D.INTERACT);
+        // a station handrail: a 4 px bar on standoffs every 0.8 m
+        this.add.rectangle(o.wx - T / 2 + w / 2, o.wy, w, 4, 0xf2c078, 0.75).setDepth(D.INTERACT);
+        for (let x = o.wx - T / 2 + 6; x < o.wx - T / 2 + w; x += 35) this.add.rectangle(x, o.wy + 4, 3, 6, 0x8a6a2c, 0.9).setDepth(D.INTERACT);
         return { x0: o.wx - T / 2, x1: o.wx - T / 2 + w, y: o.wy };
       });
     this.hooks = built.objects
@@ -431,6 +438,92 @@ export default class AstronautScene extends BaseLevel {
 
   // ------- phase builders -------------------------------------------------
 
+  // The pool at Jo's scale (1 m = 44 px). Each hoop is a 2 m ring (88 px) on
+  // a weighted stand, seen nearly side-on: its far half behind Jo, its near
+  // half in front, so he is plainly inside it as he swims through. Two lane
+  // ropes of real floats lie on the surface, the near one over his lane and
+  // the far one 2.5 m behind it; the floats are red for the last 5 m.
+  buildPool() {
+    const room = this.built.rooms.find((r) => r.id === 'p1_pool');
+    const x0 = room._x0 * T;
+    const x1 = x0 + room.grid[0].length * T;
+    const surfRow = 36;
+    const surf = surfRow * T;
+    const water = (tx, ty) => this.built.charAt(tx, ty) === '~';
+    if (!this.textures.exists('astro-hoop-far')) {
+      const g = this.make.graphics({ x: 0, y: 0 }, false);
+      const arc = (key, near) => {
+        g.clear();
+        const cx = HOOP.rx + 4;
+        const cy = HOOP.ry + 4;
+        // the tube: a dark under-edge, the colour, a lit top edge
+        const bands = [
+          [HOOP.tube + 2, near ? 0x8a4a1a : 0x5a3a20, 0],
+          [HOOP.tube, near ? 0xf29a3a : 0xb87a3a, 0],
+          [2, near ? 0xffd890 : 0xd8a868, 1],
+        ];
+        for (const [w, col, off] of bands) {
+          g.lineStyle(w, col, 1);
+          g.beginPath();
+          const from = near ? -Math.PI / 2 : Math.PI / 2;
+          for (let k = 0; k <= 32; k++) {
+            const t = from + (k / 32) * Math.PI;
+            const x = cx + Math.cos(t) * HOOP.rx - off;
+            const y = cy + Math.sin(t) * HOOP.ry - off;
+            if (k === 0) g.moveTo(x, y);
+            else g.lineTo(x, y);
+          }
+          g.strokePath();
+        }
+        g.generateTexture(key, cx * 2, cy * 2);
+      };
+      arc('astro-hoop-far', false);
+      arc('astro-hoop-near', true);
+      g.destroy();
+    }
+    this.hoops = this.objAll('hoop').map((o) => {
+      const far = this.add.image(o.wx, o.wy, 'astro-hoop-far').setDepth(D.PLAYER - 1);
+      const near = this.add.image(o.wx, o.wy, 'astro-hoop-near').setDepth(D.PLAYER + 1);
+      // the stand: a pole down to a weight on the pool floor
+      let fy = Math.floor(o.wy / T);
+      while (fy < 64 && water(Math.floor(o.wx / T), fy)) fy++;
+      const floor = fy * T;
+      const st = this.add.graphics().setDepth(D.PLAYER - 2);
+      st.fillStyle(0x6a6e7a, 1).fillRect(o.wx - 1, o.wy + HOOP.ry, 3, floor - o.wy - HOOP.ry - 8);
+      st.fillStyle(0x3a3c44, 1).fillRect(o.wx - 13, floor - 8, 26, 8);
+      st.fillStyle(0x8a8e9a, 1).fillRect(o.wx - 13, floor - 8, 26, 2);
+      const both = [far, near];
+      const img = { setTint: (c) => both.forEach((i) => i.setTint(c)), clearTint: () => both.forEach((i) => i.clearTint()) };
+      return { x: o.wx, y: o.wy, img, far, near, hit: false };
+    });
+
+    // the lane ropes: floats on the surface, over the water only (not over the
+    // mid-wall's top), red within 5 m of either end
+    const ropes = this.add.graphics().setDepth(D.PLAYER + 2);
+    const back = this.add.graphics().setDepth(D.PLAYER - 3);
+    const end = 5 * 44;
+    const floatCol = (x, i) => (x - x0 < end || x1 - x < end ? 0xd8443a : i % 2 ? 0xf2f2ee : 0x3a6ab8);
+    const lines = [
+      [back, surf - ROPE.gap, ROPE.w - 3, ROPE.h - 2, 0.7],
+      [ropes, surf + 1, ROPE.w, ROPE.h, 1],
+    ];
+    for (const [g, y, w, h, a] of lines) {
+      let i = 0;
+      for (let x = x0 + 2; x + w <= x1; x += w + 1) {
+        if (!water(Math.floor(x / T), surfRow) || !water(Math.floor((x + w) / T), surfRow)) continue;
+        // a float is a short drum seen side-on: an oval, a shade under it,
+        // a glint along the top
+        g.fillStyle(0x14141c, 0.5 * a).fillEllipse(x + w / 2, Math.round(y + 1), w, h);
+        g.fillStyle(floatCol(x, i++), a).fillEllipse(x + w / 2, Math.round(y), w, h - 1);
+        g.fillStyle(0xffffff, 0.35 * a).fillRect(x + 3, Math.round(y - h / 2 + 2), w - 6, 1);
+      }
+    }
+
+    const pb = this.obj('pool_board');
+    uiText(this, pb.wx - 30, pb.wy - 16, 'THE POOL\n5 hoops,\none breath', { size: 'body', color: '#9ac4dc' }).setDepth(D.INTERACT);
+  }
+
+
   buildArrival() {
     const o = this.obj('poster_fence');
     this.add.rectangle(o.wx, o.wy - 20, 84, 60, 0x2e3a52).setDepth(D.INTERACT - 1);
@@ -450,12 +543,7 @@ export default class AstronautScene extends BaseLevel {
     this.buildTrack();
 
     // -- the Pool (Lungs): hoops in one breath, the deep end holds the shard
-    this.hoops = this.objAll('hoop').map((o) => {
-      const img = this.add.image(o.wx, o.wy, 'astro-hoop').setDepth(D.INTERACT).setAlpha(0.9);
-      return { x: o.wx, y: o.wy, img, hit: false };
-    });
-    const pb = this.obj('pool_board');
-    uiText(this, pb.wx - 30, pb.wy - 40, 'THE POOL\n5 hoops,\none breath', { fontSize: '9px', color: '#9ac4dc' }).setDepth(D.INTERACT);
+    this.buildPool();
 
     // -- the Wall (Grip): the bell at the top
     const bell = this.obj('bell');
@@ -478,9 +566,12 @@ export default class AstronautScene extends BaseLevel {
 
     // -- the Ring (Nerve): three rounds, then Priya
     const ring = this.obj('ring');
-    [ring.wx - 5 * T, ring.wx + 5 * T].forEach((x) => this.add.image(x, px(31) + 8, 'astro-rope-post').setDepth(D.INTERACT));
-    [0, 1, 2].forEach((i) =>
-      this.add.rectangle(ring.wx, px(31) - 2 - i * 10, 10 * T, 2, 0xc03a2a, 0.8 - i * 0.15).setDepth(D.INTERACT)
+    // at Jo's scale: 1.3 m corner posts on the canvas, ropes at 0.45, 0.85
+    // and 1.25 m (a real ring's heights), so the top rope is at his chest
+    const canvas = 32 * T;
+    [ring.wx - 5 * T, ring.wx + 5 * T].forEach((x) => this.add.image(x, canvas, 'astro-rope-post').setOrigin(0.5, 1).setDepth(D.INTERACT));
+    [0.45, 0.85, 1.25].forEach((m, i) =>
+      this.add.rectangle(ring.wx, canvas - Math.round(m * 44), 10 * T - 8, 3, 0xc03a2a, 0.85 - i * 0.1).setDepth(D.INTERACT)
     );
     this.addInteract(ring.wx, px(31), 'the ring', () => this.boxing(), { once: false, when: () => !this.bout && this.stats.nerve < 5 });
 
@@ -733,7 +824,8 @@ export default class AstronautScene extends BaseLevel {
   buildGround() {
     // centrifuge
     const cf = this.obj('centrifuge');
-    this.snap(this.add.image(cf.wx, cf.wy - 30, 'astro-dome').setDepth(D.INTERACT - 1));
+    // the housing stands on the plinth's top (the mark is on its east slope)
+    this.snap(this.add.image(cf.wx - 2.5 * T, cf.wy, 'astro-dome').setDepth(D.INTERACT - 1));
     this.addInteract(cf.wx, cf.wy, 'the centrifuge', () => this.runCentrifuge(), { once: false, when: () => this.F.selected && !this.F.centrifuge });
 
     // neutral-buoyancy tank
@@ -745,7 +837,8 @@ export default class AstronautScene extends BaseLevel {
       this.floatText(rack.wx, rack.wy - 40, 'the spare panel. heavy, then weightless.', '#88b8d8');
     }, { once: false, when: () => this.F.centrifuge && !this.carry && !this.F.pool });
     const slot = this.obj('panel_slot');
-    this.add.rectangle(slot.wx, slot.wy, 30, 30, 0x2a3a52, 0.9).setDepth(D.INTERACT - 1).setStrokeStyle(2, 0xf2c078);
+    // the slot the 0.9 x 0.45 m spare panel seats in
+    this.add.rectangle(slot.wx, slot.wy, 46, 26, 0x2a3a52, 0.9).setDepth(D.INTERACT - 1).setStrokeStyle(2, 0xf2c078);
     this.addInteract(slot.wx, slot.wy, 'seat the panel', () => {
       if (this.carry !== 'panel') return this.floatText(slot.wx, slot.wy - 40, 'the slot is empty. the panel is on the rack.', '#c8c0b0');
       this.carry = null;
@@ -763,7 +856,9 @@ export default class AstronautScene extends BaseLevel {
 
     // simulator
     const sim = this.obj('simulator');
-    this.add.rectangle(sim.wx, sim.wy - 6, 60, 44, 0x2e3440).setDepth(D.INTERACT - 1).setStrokeStyle(2, 0x88b8d8);
+    // the simulator: a 2.4 x 2 m cockpit shell on the floor, a lit window
+    this.snap(this.add.rectangle(sim.wx, sim.wy, 106, 88, 0x2e3440).setDepth(D.INTERACT - 1).setStrokeStyle(2, 0x88b8d8));
+    this.snap(this.add.rectangle(sim.wx + 14, sim.wy, 52, 26, 0x88b8d8, 0.35).setDepth(D.INTERACT - 1)).y -= 46;
     this.addInteract(sim.wx, sim.wy, 'the simulator', async () => {
       const ok = await docking(this, { label: 'SIM — DOCKING', fuel: 34 - 2 * this.difficulty });
       if (!ok) return this.floatText(sim.wx, sim.wy - 50, '"again." Osei does not smile.', '#c8c0b0');
@@ -821,7 +916,8 @@ export default class AstronautScene extends BaseLevel {
     const camp = this.obj('camp');
     this.addInteract(camp.wx, camp.wy, 'build the shelter', () => {
       if (this.campItems < 3) return this.floatText(camp.wx, camp.wy - 40, `${this.campItems}/3 — the rain disagrees`, '#c8c0b0');
-      this.add.triangle(camp.wx, camp.wy + 10, -30, 16, 30, 16, 0, -20, 0x4a5a42).setDepth(D.INTERACT - 1);
+      // a two-person tent: 2.2 m along the ground, 1.3 m at the ridge
+      this.snap(this.add.triangle(camp.wx, camp.wy, 0, 57, 96, 57, 48, 0, 0x4a5a42).setDepth(D.INTERACT - 1));
       sfx('clang');
       this.setFlag('shelter');
       this.floatText(camp.wx, camp.wy - 40, 'the shelter holds. now the beacon — and Priya is not answering.', '#f2d580');
@@ -916,7 +1012,8 @@ export default class AstronautScene extends BaseLevel {
 
     // O2 ports
     this.objAll('o2_port').forEach((o) => {
-      const panel = this.add.rectangle(o.wx, o.wy, 20, 26, 0x2a3a52).setDepth(D.INTERACT - 1).setStrokeStyle(1, 0x88b8d8);
+      // a 0.65 x 0.8 m wall panel
+      const panel = this.add.rectangle(o.wx, o.wy, 28, 36, 0x2a3a52).setDepth(D.INTERACT - 1).setStrokeStyle(1, 0x88b8d8);
       const label = uiText(this, o.wx, o.wy, 'O₂', { fontSize: '9px', color: '#88b8d8' }).setOrigin(0.5).setDepth(D.INTERACT);
       // one charge, spent for good: a lifeline, not a fountain
       this.addInteract(o.wx, o.wy, 'emergency O₂ — one charge', () => {
@@ -931,7 +1028,7 @@ export default class AstronautScene extends BaseLevel {
     const comms = this.obj('comms');
     this.add.image(comms.wx, comms.wy, 'astro-comms').setDepth(D.INTERACT);
     // it sits near the ceiling; without a sign nobody finds it from the deck
-    const commsSign = uiText(this, comms.wx, comms.wy + 22, 'COMMS  [E]', { fontSize: '10px', color: '#7ec87e' })
+    const commsSign = uiText(this, comms.wx, comms.wy + 32, 'COMMS  [E]', { fontSize: '10px', color: '#7ec87e' })
       .setOrigin(0.5)
       .setDepth(D.INTERACT);
     this.tweens.add({ targets: commsSign, alpha: 0.35, duration: 700, yoyo: true, repeat: -1 });
@@ -1139,7 +1236,7 @@ export default class AstronautScene extends BaseLevel {
     // §5 descent — a vertical thrust puzzle with dust in the last stretch
     const hard = await this.landing();
     const l = this.obj('lander');
-    this.snap(this.add.image(l.wx, l.wy, 'astro-lander').setDepth(D.INTERACT - 1));
+    this.snap(this.add.image(l.wx, l.wy, 'astro-lander-site').setDepth(D.INTERACT - 1));
     p.setPosition(l.wx + 40, l.wy);
     p.setVelocity(0, 0);
     this.checkpoint = { x: l.wx + 40, y: l.wy };
@@ -1457,7 +1554,7 @@ export default class AstronautScene extends BaseLevel {
       b.setVelocityY(-540);
       sfx('jump');
       for (let i = 0; i < 4; i++) {
-        const dr = this.add.circle(p.x + Phaser.Math.Between(-8, 8), p.y + 8, 2, 0x9ac4dc, 0.8).setDepth(D.PLAYER + 1);
+        const dr = this.add.circle(p.x + Phaser.Math.Between(-12, 12), p.y + 8, Phaser.Math.Between(3, 4), 0x9ac4dc, 0.8).setDepth(D.PLAYER + 1);
         this.tweens.add({ targets: dr, y: dr.y + 24, alpha: 0, duration: 500, onComplete: () => dr.destroy() });
       }
     }
@@ -1467,9 +1564,29 @@ export default class AstronautScene extends BaseLevel {
     // breath
     if (this.headAboveWater()) this.breath = Math.min(100, this.breath + 60 * dt);
     else this.breath = Math.max(0, this.breath - (100 / (14 + 5 * this.stats.lungs)) * dt);
-    if (Math.random() < 0.06) {
-      const bub = this.add.circle(p.x + (p.flipX ? -8 : 8), p.y - 12, 2, 0xd8ecf8, 0.7).setDepth(D.PLAYER + 1);
-      this.tweens.add({ targets: bub, y: bub.y - 40, alpha: 0, duration: 900, onComplete: () => bub.destroy() });
+    // breath out: bubbles 0.15-0.25 m across (drawn readable: a ring with a
+    // lit fleck), rising to the surface and no further
+    if (Math.random() < 0.06 && !this.headAboveWater()) {
+      const r = Phaser.Math.Between(3, 5);
+      const bx = p.x + (p.flipX ? -10 : 10);
+      const by = p.y - 26;
+      let top = Math.floor(by / T);
+      while (top > 0 && this.built.charAt(Math.floor(bx / T), top - 1) === '~') top--;
+      const rise = Math.max(8, by - (top * T + r));
+      const bub = this.add.circle(bx, by, r, 0xd8ecf8, 0.25).setStrokeStyle(1, 0xe8f6ff, 0.85).setDepth(D.PLAYER + 1);
+      const fleck = this.add.rectangle(bx - r / 2, by - r / 2, 2, 2, 0xffffff, 0.9).setDepth(D.PLAYER + 1);
+      const drift = Phaser.Math.Between(-6, 6);
+      this.tweens.add({
+        targets: [bub, fleck],
+        y: `-=${rise}`,
+        x: `+=${drift}`,
+        duration: rise * 14,
+        ease: 'sine.in',
+        onComplete: () => {
+          bub.destroy();
+          fleck.destroy();
+        },
+      });
     }
     if (this.breath <= 0) {
       this.floatText(p.x, p.y - 40, 'no air—', '#e86a6a');
@@ -2357,7 +2474,7 @@ export default class AstronautScene extends BaseLevel {
       return;
     }
     for (const h of this.hoops) {
-      if (!h.hit && Phaser.Math.Distance.Between(p.x, p.y, h.x, h.y) < 26) {
+      if (!h.hit && Math.abs(p.x - h.x) < HOOP.inX && Math.abs(p.y - h.y) < HOOP.inY) {
         h.hit = true;
         h.img.setTint(0x7ec87e);
         sfx('pop');
