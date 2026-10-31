@@ -355,7 +355,7 @@ async function quayPart(dc, s, ok) {
   await dc.run(4);
   const P = s.F.purse;
   ok('purse', !!s.F.slate_set && P.buyin === 100 && P.stop === 50 && P.goal === 160 && P.stack === 100);
-  ok('hud-slate', /STOP \$50 {2}GOAL \$160/.test(JSON.stringify(hud.get('tool'))) && hud.get('meters').some((m) => m.id === 'stack' && m.ticks && m.ticks.length === 2));
+  ok('hud-slate', /STOP \$50 GOAL \$160/.test(JSON.stringify(hud.get('tool'))) && hud.get('meters').some((m) => m.id === 'stack' && m.ticks && m.ticks.length === 2));
   p = at(s, 'quay', 70, 15);
   ok('reach-door', await walkTo(dc, s, p.x, { frames: 2400, tol: 20 }));
   ok('into-saloon', await door(dc, s, 'saloon'));

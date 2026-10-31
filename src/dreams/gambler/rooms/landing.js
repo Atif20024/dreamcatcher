@@ -39,6 +39,7 @@ export default {
     { type: 'checkpoint', id: 'cp_landing', label: 'THE LANDING', x: 9, y: 15 },
     { type: 'sign', text: 'PORT MERROW WHARF', x: 32, y: 11, board: 0x2a2420 },
     { type: 'npc', id: 'lou_end', cast: 'npc-lq-lou', x: 17, y: 15, facing: -1, talk: [{ conv: 'lou_end_after', if: 'heard_lou' }, { conv: 'lou_end' }] },
-    { type: 'orb', id: 'orb', x: 28, y: 13, when: 'heard_lou' },
+    // the night's cash: one small gold coin, not gold-plated glory
+    { type: 'orb', id: 'orb', x: 28, y: 13, tint: 0xf2c060, when: 'heard_lou' },
   ],
 };

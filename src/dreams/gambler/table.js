@@ -17,11 +17,12 @@ import { RULES, TELLS } from '../../engines/showdown.js';
 import { FARO_RANKS } from '../../engines/faro.js';
 import { LOU_TIPS } from './dialogue.js';
 
+const RANK_LABEL = ['', '', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 const D = 160; // UI depth (adopted by the UI scene: never zoomed)
 const PX = 40;
 const PY = 190; // above the table: the people sit under it, in the room
 const PW = 880;
-const PH = 196;
+const PH = 212;
 const INK = '#f2e9d8';
 const DIM = '#9c8f7a';
 const ACC = '#e9b84a';
@@ -80,10 +81,18 @@ function stage(scene) {
     texts.push(t);
     return t;
   };
+  // a card with its rank in the corner (the pip alone is not enough to read)
+  const card = (x, y, c, opts = {}) => {
+    drawCard(g, x, y, c, opts);
+    if (!c || opts.back) return;
+    const red = c.s === 1 || c.s === 2;
+    text(x + 3, y + 3, RANK_LABEL[c.r], { color: red ? '#a02020' : '#1e1a22' });
+  };
   return {
     frame,
     g,
     text,
+    card,
     clear() {
       texts.forEach((t) => t.destroy());
       texts = [];
@@ -91,6 +100,8 @@ function stage(scene) {
     },
     drawFrame(accent = null, glow = 0) {
       frame.clear();
+      // a solid ground under the panel: the room never shows through the cards
+      frame.fillStyle(0x14122a, 0.7).fillRoundedRect(PX, PY, PW, PH, 4);
       drawPanel(frame, PX, PY, PW, PH, { accent });
       if (glow) frame.lineStyle(2, 0xf6d98a, glow).strokeRoundedRect(PX - 3, PY - 3, PW + 6, PH + 6, 6);
     },
@@ -195,8 +206,8 @@ export function faroPresenter(scene, def, engine) {
     ui.text(bx, PY + 40, "BANK'S", { color: DIM });
     ui.text(bx + 120, PY + 40, 'PLAYER\'S', { color: DIM });
     if (l && st.phase !== 'draw') {
-      drawCard(ui.g, bx + 6, PY + 60, { r: l.banker === 0 ? 14 : l.banker + 1, s: 2 });
-      drawCard(ui.g, bx + 126, PY + 60, { r: l.player === 0 ? 14 : l.player + 1, s: 3 });
+      ui.card(bx + 6, PY + 60, { r: l.banker === 0 ? 14 : l.banker + 1, s: 2 });
+      ui.card(bx + 126, PY + 60, { r: l.player === 0 ? 14 : l.player + 1, s: 3 });
     } else {
       drawCard(ui.g, bx + 6, PY + 60, null, { back: true });
       drawCard(ui.g, bx + 126, PY + 60, null, { back: true });
@@ -256,7 +267,7 @@ function infoLine(st) {
     if (L.joWins) return { text: `${L.split ? 'Split pot' : 'Your pot'} with ${L.joHand.toLowerCase()}.${rake}`, color: ACC };
     return { text: `Their hand is better. -$${L.put}.`, color: INK };
   }
-  if (st.mode === 'final') return { text: 'CALL plays for the night\'s profit. RAISE, for everything. STAND UP takes it home.', color: INK };
+  if (st.mode === 'final') return { text: 'CALL plays the profit. RAISE plays it all. STAND UP takes it home.', color: INK };
   if (st.tip) {
     if (st.tilted) return { text: 'LOU: …   (you can\'t hear him: you\'re steaming)', color: DIM };
     return { text: `LOU: ${LOU_TIPS[st.tip.say]}`, color: INK };
@@ -287,24 +298,24 @@ export function showdownPresenter(scene, def, engine, ctx) {
     ui.drawFrame(line === 'goal' ? 0xf6d98a : line === 'below' ? 0x6a3a3a : null, line === 'goal' ? 0.6 : 0);
     const showAll = st.phase === 'reveal' || st.phase === 'done';
     // the players
-    const ow = Math.min(190, 560 / Math.max(1, st.opps.length));
+    const ow = Math.min(200, 600 / Math.max(1, st.opps.length));
     st.opps.forEach((o, i) => {
       const x = PX + 22 + i * ow;
       ui.text(x, PY + 10, o.name, { color: o.folded ? DIM : ACC });
       // the last table: two up, the third face down until it is played
       const cards = showAll ? o.cards : st.mode === 'final' ? [o.cards[0], o.cards[1], null] : [o.up[0], null, null];
-      cards.forEach((c, j) => drawCard(ui.g, x + j * 30, PY + 34, c, { back: !c, w: 32, h: 44, dim: o.folded }));
-      if (showAll) ui.text(x, PY + 84, o.folded ? 'FOLDED' : o.hand, { color: o.folded ? DIM : INK });
+      cards.forEach((c, j) => ui.card(x + j * 34, PY + 34, c, { back: !c, w: 32, h: 44, dim: o.folded }));
+      if (showAll) ui.text(x, PY + 84, o.folded ? 'FOLDED' : o.hand, { color: o.folded ? DIM : INK, wrap: ow - 14 });
       else {
         const word = st.tilted ? '· · ·' : TELLS[o.tell].word;
-        ui.text(x, PY + 84, word, { color: st.tilted ? DIM : INK });
+        ui.text(x, PY + 84, word, { color: st.tilted ? DIM : INK, wrap: ow - 14 });
       }
     });
     // Jo's hand, the pot, the house
-    const jx = PX + 600;
+    const jx = PX + 630;
     ui.text(jx, PY + 10, st.mode === 'final' ? "LOU'S CHAIR" : 'YOUR HAND', { color: ACC });
     const hidden = st.mode === 'final' && !showAll;
-    st.jo.forEach((c, j) => drawCard(ui.g, jx + j * 42, PY + 32, hidden && j === 2 ? null : c, { back: hidden && j === 2 }));
+    st.jo.forEach((c, j) => ui.card(jx + j * 42, PY + 32, hidden && j === 2 ? null : c, { back: hidden && j === 2 }));
     ui.text(jx, PY + 88, hidden ? 'KINGS AND NINES' : st.joHand, { color: INK });
     ui.text(PX + PW - 20, PY + 10, `POT $${st.pot}`, { color: INK, align: 'right' });
     // the house's slot: where the rake goes, shown
@@ -312,9 +323,9 @@ export function showdownPresenter(scene, def, engine, ctx) {
     ui.g.fillStyle(0x0e0b14, 1).fillRect(PX + PW - 58, PY + 43, 32, 4);
     ui.text(PX + PW - 20, PY + 56, 'HOUSE', { color: DIM, align: 'right' });
     // the verbs, then one line
-    options(ui, st.menu, st.cursor, PY + 122, { active: st.phase === 'decide' });
+    options(ui, st.menu, st.cursor, PY + 138, { active: st.phase === 'decide' });
     const info = infoLine(st);
-    ui.text(PX + 22, PY + 160, info.text, { color: info.color, wrap: PW - 44 });
+    ui.text(PX + 22, PY + 174, info.text, { color: info.color, wrap: PW - 44 });
   };
   // the tells, on the people (true, never random); a hum's notes, the
   // little finger off the glass, the hand at the collar or flat on the baize
@@ -385,7 +396,7 @@ export function showdownPresenter(scene, def, engine, ctx) {
       drawTells(st, t);
       sync(st);
       // tilted, the bet creeping is seen: the cursor box blinks red a moment
-      if (creepFlash && t - creepFlash < 300) ui.g.lineStyle(2, 0xd5443c, 1).strokeRect(PX + 4, PY + 116, PW - 8, 34);
+      if (creepFlash && t - creepFlash < 300) ui.g.lineStyle(2, 0xd5443c, 1).strokeRect(PX + 4, PY + 132, PW - 8, 34);
     },
     outro(result) {
       return new Promise((res) => scene.time.delayedCall(result && result.ok ? 600 : 250, res));

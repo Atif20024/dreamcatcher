@@ -71,9 +71,9 @@ export default {
   entities: [
     { type: 'portal', id: 'cards>saloon', kind: 'door', x: 3, y: 11, to: { room: 'saloon', portal: 'saloon>cards' }, door: { prompt: 'back to the saloon', fade: 220 } },
     { type: 'checkpoint', id: 'cp_cards', label: 'THE CARD ROOM', x: 5, y: 11 },
-    { type: 'sign', text: 'NO CREDIT AT THE TABLES. APPLY TO THE PURSER', x: 30, y: 6, board: 0x2a160e, scale: 1, wrap: 260 },
-    { type: 'sign', text: 'THE GUARD: TAKE THE AIR', x: 48, y: 5, board: 0x2a160e, scale: 1 },
-    { type: 'sign', text: 'PURSER', x: 56, y: 6, board: 0x2a160e, scale: 1 },
+    { type: 'sign', text: 'NO CREDIT AT THE TABLES. APPLY TO THE PURSER', x: 30, y: 6, board: 0x2a160e, scale: 2, wrap: 330 },
+    { type: 'sign', text: 'THE GUARD: TAKE THE AIR', x: 48, y: 5, board: 0x2a160e, scale: 2 },
+    { type: 'sign', text: 'PURSER', x: 56, y: 6, board: 0x2a160e, scale: 2 },
     // the first two tables, until the three of them move to the third
     { type: 'npc', id: 'voe1', cast: 'npc-lq-voe', x: TABLES.t1 + 2, y: 11, pose: 'sit', facing: -1, unless: 'table3_open', talk: [{ conv: 'voe_after', if: 't1_won' }, { conv: 'voe_first' }] },
     { type: 'npc', id: 'sorrel2', cast: 'npc-lq-sorrel', x: TABLES.t2 + 1, y: 11, pose: 'sit', facing: -1, unless: 'table3_open', talk: [{ conv: 'sorrel' }] },

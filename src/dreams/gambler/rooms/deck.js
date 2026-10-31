@@ -60,7 +60,7 @@ export default {
     { type: 'checkpoint', id: 'cp_deck', label: 'THE HURRICANE DECK', x: 5, y: 25 },
     { type: 'npc', id: 'dev_deck', cast: 'npc-lq-dev', x: 12, y: 25, facing: -1, pace: [10, 14], talk: [{ conv: 'dev_deck' }] },
     { type: 'checkpoint', id: 'cp_texas', label: 'THE TEXAS ROOF', x: 17, y: 18 },
-    { type: 'sign', text: 'PILOT HOUSE', x: 35, y: 13, board: 0x5a1e26, scale: 1 },
+    { type: 'sign', text: 'PILOT HOUSE', x: 35, y: 13, board: 0x5a1e26, scale: 2 },
     { type: 'portal', id: 'deck>pilot', kind: 'door', x: 35, y: 18, to: { room: 'pilot', portal: 'pilot>deck' }, door: { prompt: 'into the pilot house', fade: 220 } },
     // half dimes: over the hatch, between the pipes (timed), up the ratlines
     { type: 'coins', id: 'c_hatch', x: 7, y: 23, n: 3 },

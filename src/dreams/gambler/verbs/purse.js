@@ -32,6 +32,7 @@ function vignetteKey(scene) {
 export default {
   id: 'purse',
   keys: [],
+  always: true, // the bar moves while the cards are out
   create(ctx) {
     const s = ctx.scene;
     if (!ctx.flags.purse) ctx.flags.purse = newPurse();
@@ -51,11 +52,11 @@ export default {
     const stack = p.stack + (p.atBank || 0);
     const top = Math.max(p.goal * 1.25, stack, 1);
     const ln = line({ ...p, stack });
-    st.stack.set(stack / top).setLabel(`STACK $${stack}`).setColor(COLORS[ln]).setTicks([
+    st.stack.set(stack / top).setLabel(p.debt ? `STACK $${stack} OWES $${p.debt}` : `STACK $${stack}`).setColor(COLORS[ln]).setTicks([
       { at: p.stop / top, color: '#d5443c' },
       { at: p.goal / top, color: '#f6d98a' },
     ]);
-    st.slate.setText(F.slate_set ? `SLATE: STOP $${p.stop}  GOAL $${p.goal}${p.debt ? `  OWED $${p.debt}` : ''}` : "LOU'S STAKE: $100").setColor(ln === 'below' ? 'danger' : 'ink');
+    st.slate.setText(F.slate_set ? `STOP $${p.stop} GOAL $${p.goal}` : 'LOU: $100').setColor(ln === 'below' ? 'danger' : 'ink');
     st.tilt.set(p.tilt).setVisible(!!F.slate_set);
     // the air: walking an open deck cools the head
     const pl = ctx.player;

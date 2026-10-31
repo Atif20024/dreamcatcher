@@ -41,7 +41,7 @@ export default {
     { prop: 'stair_up', x: 43, y: 12, layer: 'back' },
   ],
   lights: [],
-  enclosure: { backWall: 'panelled', wainscot: true, posts: 5, ceiling: true, pillars: false, frames: [{ x: 2, y: 9, w: 2, h: 3 }, { x: 17, y: 6, w: 1, h: 6 }], palette: { wall: 0x4a3424, wood: 0x2a160e, accent: 0xc8a050, deep: 0x120a06, lit: 0xd8b080 } },
+  enclosure: { backWall: 'panelled', wainscot: true, posts: 5, ceiling: true, pillars: false, frames: [{ x: 2, y: 9, w: 2, h: 3 }], palette: { wall: 0x4a3424, wood: 0x2a160e, accent: 0xc8a050, deep: 0x120a06, lit: 0xd8b080 } },
   light: { tint: 0xf2e6d4 },
   backdrop: null,
   ambience: 'gm_office',
@@ -52,9 +52,9 @@ export default {
   entities: [
     { type: 'portal', id: 'office>cards', kind: 'door', x: 3, y: 11, to: { room: 'cards', portal: 'cards>office' }, door: { prompt: 'back to the card room', fade: 220 } },
     { type: 'checkpoint', id: 'cp_office', label: "THE PURSER'S OFFICE", x: 14, y: 11 },
-    { type: 'sign', text: 'PURSER', x: 9, y: 5, board: 0x22284a, scale: 1 },
-    { type: 'sign', text: 'MARKERS ON YOUR WORD. SETTLED AT THE LANDING', x: 14, y: 6, board: 0x2a160e, scale: 1, wrap: 200 },
-    { type: 'sign', text: 'HURRICANE DECK', x: 43, y: 5, board: 0x2a160e, scale: 1 },
+    { type: 'sign', text: 'PURSER', x: 9, y: 5, board: 0x22284a, scale: 2 },
+    { type: 'sign', text: 'MARKERS ON YOUR WORD. SETTLED AT THE LANDING', x: 14, y: 7, board: 0x2a160e, scale: 2, wrap: 200 },
+    { type: 'sign', text: 'HURRICANE DECK', x: 43, y: 5, board: 0x2a160e, scale: 2 },
     { type: 'npc', id: 'pell', cast: 'npc-lq-pell', x: 9, y: 11, facing: -1, talk: [{ conv: 'pell_full', if: 'marker3' }, { conv: 'pell_again', if: 'met_pell' }, { conv: 'pell_first' }] },
     // Crake comes when there is a marker in the book; he walks the corridor
     { type: 'foe', kind: 'crake', x: 19, y: 11, patrol: [18, 42], when: 'marker1' },

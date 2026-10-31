@@ -517,8 +517,10 @@ export default class DreamScene extends BaseLevel {
       case 'orb': {
         const x = (room.r.tx + e.x) * T + T / 2;
         const y = (room.r.ty + e.y) * T + T / 2;
-        const glow = this.add.image(x, y, 'dc-glow').setBlendMode('ADD').setTint(0x9ae8c9).setScale(0.8).setDepth(13).setAlpha(0.6);
+        // (a dream may colour its catch: THE LAST HAND's is one small gold coin)
+        const glow = this.add.image(x, y, 'dc-glow').setBlendMode('ADD').setTint(e.tint ?? 0x9ae8c9).setScale(0.8).setDepth(13).setAlpha(0.6);
         const orb = this.add.image(x, y, 'orb').setDepth(14);
+        if (e.tint) orb.setTint(e.tint);
         orb.isOrb = true;
         const tw = this.tweens.add({ targets: [orb, glow], y: y - 10, duration: 1400, yoyo: true, repeat: -1, ease: 'sine.inOut' });
         this.orb = orb;
@@ -860,6 +862,8 @@ export default class DreamScene extends BaseLevel {
     }
     if (this.encounterActive) {
       this.encounters.update(dt, this.inputs);
+      // a verb that keeps a HUD (THE LAST HAND's purse) runs through encounters too
+      for (const v of this.verbs) if (v.mod.always && v.mod.update) v.mod.update(v.ctx, dt);
       this.player.body.setVelocityX(0);
       this.interaction.hide();
       this.holdFoes();
