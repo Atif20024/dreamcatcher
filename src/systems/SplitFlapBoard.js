@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { sfx } from './audio.js';
 import { D } from '../builders/depths.js';
+import { uiText } from '../ui/text.js';
 
 // The departure board: the loudest thing in the room, and it only ever says
 // where you could be. Each cell is a glyph that flips (4-frame scaleY) when
@@ -18,15 +19,16 @@ export default class SplitFlapBoard {
     this.width = 56 * CELL_W + 24;
     this.height = (rows.length + 1) * ROW_H + 30;
     this.container = scene.add.container(x, y).setDepth(D.INTERACT - 1);
+    this.container.dcReadable = true; // counter-scaled as one under a low camera zoom (§8)
     this.container.add(
       scene.add.rectangle(0, 0, this.width, this.height, 0x141418).setStrokeStyle(3, 0xc4a25c)
     );
-    const header = scene.add.text(-this.width / 2 + 12, -this.height / 2 + 6, 'PLATFORM   DESTINATION            DEPARTS   STATUS', {
-      fontFamily: 'monospace',
-      fontSize: '11px',
-      color: '#c4a25c',
-    });
-    this.container.add(header);
+    // the column heads sit over their columns (body ×1, cap 9: §8)
+    const heads = { platform: 'PLAT', title: 'DESTINATION', departs: 'DEPARTS', status: 'STATUS' };
+    for (const [k, label] of Object.entries(heads)) {
+      const header = uiText(scene, -this.width / 2 + 12 + COLS[k] * CELL_W + 2, -this.height / 2 + 6, label, { size: 'body', scale: 1, color: '#c4a25c', backing: 0x141418 });
+      this.container.add(header);
+    }
     this.clackAt = 0;
     rows.forEach((r, i) => this.buildRow(i));
     rows.forEach((r, i) => this.setRow(i, r, true));
@@ -37,8 +39,7 @@ export default class SplitFlapBoard {
     const x0 = -this.width / 2 + 12;
     const cells = [];
     for (let c = 0; c < 56; c++) {
-      const t = this.scene.add
-        .text(x0 + c * CELL_W, y, ' ', { fontFamily: 'monospace', fontSize: '13px', color: '#f2e6cc' })
+      const t = uiText(this.scene, x0 + c * CELL_W + 2, y, ' ', { size: 'body', scale: 1, color: '#f2e6cc', backing: 0x141418 })
         .setOrigin(0, 0.5);
       cells.push(t);
       this.container.add(t);
@@ -62,9 +63,10 @@ export default class SplitFlapBoard {
     const color = r.dim ? '#6a6478' : r.hot ? '#f2d580' : '#f2e6cc';
     chars.forEach((ch, c) => {
       const cell = this.cells[i][c];
-      if (cell.text === ch && cell.style.color === color) return;
+      if (cell.rawText === ch && cell.flapColor === color) return;
       if (instant) {
         cell.setText(ch).setColor(color);
+        cell.flapColor = color;
         return;
       }
       this.flip(cell, ch, color, c * 18);
@@ -79,6 +81,7 @@ export default class SplitFlapBoard {
       delay,
       onComplete: () => {
         cell.setText(ch).setColor(color);
+        cell.flapColor = color;
         const now = this.scene.time.now;
         if (now - this.clackAt > 45) {
           this.clackAt = now;
@@ -96,7 +99,7 @@ export default class SplitFlapBoard {
     const cells = this.cells[i].filter((c) => c.text !== ' ');
     if (!cells.length) return;
     const cell = Phaser.Utils.Array.GetRandom(cells);
-    this.flip(cell, cell.text, cell.style.color, 0);
+    this.flip(cell, cell.text, cell.flapColor || '#f2e6cc', 0); // bitmap text has no .style (phase 1.2)
   }
 
   destroy() {

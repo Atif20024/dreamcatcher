@@ -3,8 +3,11 @@ import { sfx } from '../systems/audio.js';
 import { dreamDust, hitStop } from '../systems/effects.js';
 import { showTutorial } from '../systems/tutorial.js';
 import { frameKeys } from '../utils/pixelart.js';
+import { castFrame } from '../art/baked.js';
+import { Stride } from '../art/stride.js';
 import { D } from '../builders/depths.js';
-import { resolveSlope } from './slopes.js';
+import { solveGround } from './ground.js';
+import { uiText } from '../ui/text.js';
 
 const T = 32;
 
@@ -23,13 +26,46 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(D.FOE);
-    if (def.big) this.setScale(1.2);
-
     // C1.2 — frames are stepped by distance travelled, never by a timer, so a
     // foe's legs always match the speed it is actually moving at.
-    this.walkFrames = frameKeys(scene, texture, 3);
+    // Round 2 WP2: people are rigs at Jo's scale (an 8-frame walk stepping 6 px
+    // a frame, plus alert / windup / grab / throw / search poses); the big ones
+    // are drawn big, not scaled up.
+    this.rigged = !!castFrame(scene, `${texture}#1`) && !!castFrame(scene, `${texture}-windup#1`);
+    if (this.rigged) {
+      // phase 2 motion: a second look for every other foe of a kind, so a
+      // line of them never reads as clones (same palette, other face/hair)
+      const seen = (scene._foeLooks ||= {});
+      const nth = (seen[texture] = (seen[texture] || 0) + 1);
+      if (nth % 2 === 0 && castFrame(scene, `${texture}~b`) && castFrame(scene, `${texture}~b#1`)) {
+        texture = `${texture}~b`;
+        this.setTexture(texture);
+      }
+      this.look = texture;
+      // legs from the ground covered, in this foe's own gait (src/art/stride.js)
+      this.stride = new Stride(scene, texture);
+      this.walkFrames = [texture, `${texture}#1`];
+      this.idleFrame = texture;
+      this.lastX = def.wx;
+      this.poseFrames = {};
+      for (const [a, n] of [['alert', 3], ['windup', 3], ['grab', 2], ['throw', 3], ['search', 4], ['stagger', 2]]) {
+        this.poseFrames[a] = [];
+        for (let i = 1; i <= n; i++) if (castFrame(scene, `${texture}-${a}#${i}`)) this.poseFrames[a].push(`${texture}-${a}#${i}`);
+      }
+      // the body: Jo's size at the feet (a big one is broader and taller),
+      // so rooms, grabs and shoves play exactly as before
+      // (exactly the old sprite's box: 32 × 48, a big one's ×1.2)
+      const bw = def.big ? 38 : 32;
+      const bh = def.big ? 58 : 48;
+      this.body.setSize(bw, bh, false);
+      this.body.setOffset((this.width - bw) / 2, this.height - bh);
+    } else {
+      if (def.big) this.setScale(1.2);
+      this.walkFrames = frameKeys(scene, texture, 3);
+      this.idleFrame = this.walkFrames[0];
+    }
     this.walkPhase = 0;
-    this.frameStep = def.human ? 26 : 18;
+    this.frameStep = this.rigged ? (def.big ? 7 : 6) : def.human ? 26 : 18;
     // a contact shadow: without one, a foe reads as pasted onto the backdrop
     this.shadow = scene.add.ellipse(this.x, this.y, 26, 8, 0x000000, 0.35).setDepth(D.FOE - 1);
     this.alertMark = null;
@@ -128,45 +164,81 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
   canSee(player) {
     if (!this.human) return false;
     if (this.scene.playerHidden) return false;
+    if (this.passive || this.asleep) return false;
     const dx = player.x - this.x;
     const dy = Math.abs(player.y - this.y);
     if (dy > 60) return false;
+    // THE SECOND DRAFT: proofreaders only see a page with typos on it;
+    // library guards see nothing until they HEAR something
+    if (this.def.homing && !(this.scene.typos > 0)) return false;
+    if (this.def.hears && !this.scene.loudNow && Math.abs(dx) > 48) return false;
     if (Math.abs(dx) > this.sightRange) return false;
     return Math.sign(dx) === (this.flipX ? -1 : 1) || Math.abs(dx) < 40;
+  }
+
+  // just above the head, whatever the figure's height
+  markY() {
+    return this.y + (1 - this.originY) * this.displayHeight - (this.rigged ? this.displayHeight - 4 : 58);
   }
 
   // called first thing each update: walk cycle, shadow, alert mark
   animate(time) {
     const vx = this.body.velocity.x;
-    if (this.walkFrames.length > 1) {
-      this.walkPhase += Math.abs(vx) * 0.016;
+    const dt = this.scene.game.loop.delta || 16.7;
+    if (this.stride) {
+      // phase 2 motion: the legs follow the ground actually covered (a
+      // velocity, a tween, a shove), in this foe's gait; standing still he
+      // plays his signature idle, never a walk frame
+      const dx = this.x - this.lastX;
+      this.lastX = this.x;
+      const pf = this.poseFrames;
+      const into = (ms) => Math.max(0, ms - (this.stateUntil - time));
+      const pick = (arr, t) => (arr.length ? arr[Math.max(0, Math.min(arr.length - 1, Math.floor(t * arr.length)))] : null);
+      if (this.state === 'alert' && this._lastState !== 'alert') this.alertAt = time;
+      this._lastState = this.state;
+      const walkKey = this.stride.next(dx, dt, this.flipX ? -1 : 1);
+      let key;
+      if (time < (this.throwUntil || 0)) key = pick(pf.throw, 1 - (this.throwUntil - time) / 700);
+      else if (this.state === 'windup') key = pick(pf.windup, into(400) / 400);
+      else if (this.state === 'grabbing') key = pick(pf.grab, into(250) / 250);
+      else if (this.state === 'staggered') key = pick(pf.stagger, Math.min(0.99, (time - (this.stateUntil - 1500)) / 500));
+      else if (this.state === 'alert' && time - (this.alertAt || 0) < 400) key = pick(pf.alert, (time - this.alertAt) / 400); // the notice: 0.4 s
+      else if (walkKey) key = walkKey;
+      else if (this.state === 'alert') key = pf.alert[pf.alert.length - 1];
+      else if (this.state === 'distracted') key = pf.search[Math.floor(time / 450) % pf.search.length];
+      else key = this.stride.idle(time + (this.idlePhase ??= Math.random() * 4000));
+      key = key || walkKey || this.idleFrame;
+      if (this.texture.key !== key && castFrame(this.scene, key)) this.setTexture(key);
+    } else if (this.walkFrames.length > 1) {
+      // creatures and things: two or three frames stepped by real distance
+      this.walkPhase += Math.abs(vx) * (dt / 1000);
       if (Math.abs(vx) < 4) this.walkPhase = 0;
       const f = Math.floor(this.walkPhase / this.frameStep) % this.walkFrames.length;
-      const key = Math.abs(vx) < 4 ? this.walkFrames[0] : this.walkFrames[f];
+      const key = Math.abs(vx) < 4 ? this.idleFrame : this.walkFrames[f];
       if (this.texture.key !== key) this.setTexture(key);
     }
-    // the grab telegraph leans in. (A stagger has its own tween on `angle`,
-    // so don't write to it here or the shove wobble gets flattened.)
-    if (this.state === 'windup') this.setAngle(this.flipX ? -9 : 9);
+    // the grab telegraph leans in (a rig leans in its own windup pose). A
+    // stagger has its own tween on `angle`, so don't write to it here.
+    if (this.state === 'windup' && !this.rigged) this.setAngle(this.flipX ? -9 : 9);
     else if (this.state !== 'staggered' && this.angle !== 0 && !this.scene.tweens.isTweening(this)) this.setAngle(0);
     if (this.shadow) {
-      this.shadow.setPosition(this.x, this.y + this.displayHeight / 2 - 1);
+      this.shadow.setPosition(this.x, this.y + (1 - this.originY) * this.displayHeight - 1);
       this.shadow.setVisible(this.visible);
     }
     const alert = this.state === 'alert' || this.state === 'windup';
     if (alert && !this.alertMark) {
-      this.alertMark = this.scene.add
-        .text(this.x, this.y - 34, '!', { fontFamily: 'monospace', fontSize: '18px', color: '#f2d580' })
+      this.alertMark = uiText(this.scene, this.x, this.markY(), '!', { fontSize: '18px', color: '#f2d580' })
         .setOrigin(0.5)
         .setDepth(D.FOE + 1);
     } else if (!alert && this.alertMark) {
       this.alertMark.destroy();
       this.alertMark = null;
     }
-    if (this.alertMark) this.alertMark.setPosition(this.x, this.y - 34 - Math.sin(time / 120) * 3);
+    if (this.alertMark) this.alertMark.setPosition(this.x, this.markY() - Math.sin(time / 120) * 3);
   }
 
   destroy(fromScene) {
+    if (this.zz) this.zz.destroy();
     if (this.shadow) this.shadow.destroy();
     if (this.alertMark) this.alertMark.destroy();
     if (this.sightCone) this.sightCone.destroy();
@@ -176,7 +248,7 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
   // walkers cross ramps and hop one-tile kerbs instead of jittering at them
   footing(time) {
     const body = this.body;
-    this.onSlope = resolveSlope(this.scene, this, body);
+    this.onSlope = body.allowGravity ? solveGround(this.scene, this, body, (this.scene.game.loop.delta || 16.7) / 1000) : false;
     const grounded = body.onFloor() || this.onSlope;
     const wall = (this.dir < 0 && body.blocked.left) || (this.dir > 0 && body.blocked.right);
     if (wall && grounded && time > (this.stepAt || 0)) {
@@ -225,6 +297,19 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
     }
 
     if (this.state === 'thrown') return;
+    // asleep (a library guard), or a person whose whole job is standing
+    // there (a café talker: the scene does the pushing)
+    if (this.asleep || this.def.pushes) {
+      this.setVelocityX(0);
+      if (this.asleep && !this.zz) {
+        this.zz = uiText(this.scene, this.x + 10, this.y - 30, 'z', { fontSize: '12px', color: '#c8c0b0' }).setDepth(D.FOE + 1);
+      } else if (!this.asleep && this.zz) {
+        this.zz.destroy();
+        this.zz = null;
+      }
+      if (this.zz) this.zz.setPosition(this.x + 10, this.y - 30 - Math.sin(time / 400) * 4).setAlpha(0.5 + Math.sin(time / 300) * 0.4);
+      return;
+    }
     if (this.state === 'staggered') {
       this.setVelocityX(this.body.velocity.x * 0.9);
       if (time > this.stateUntil) this.enter('patrol', 0);
@@ -250,6 +335,7 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
       const reach = Math.abs(player.x - this.x) < 42 && Math.abs(player.y - this.y) < 50;
       const ducking = player.crouching; // slipping under the grab
       if (reach && !ducking) {
+        this.throwUntil = time + 700;
         this.scene.throwOut(this);
         this.enter('staggered', 900);
         return;
@@ -267,9 +353,16 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
         sfx('click');
         return;
       }
-      if (this.state !== 'alert') showTutorial(this.scene, 'shove'); // first notice: how to get past a person
+      if (this.state !== 'alert') {
+        showTutorial(this.scene, 'shove'); // first notice: how to get past a person
+        this.alertAt = time;
+      }
       this.enter('alert', 0);
-      this.setVelocityX(Math.sign(dx) * this.speedBase * 0.9);
+      this._lastState = 'alert';
+      // the notice (skill §6): he stops for 0.4 s — head snaps, red glint,
+      // a point — then comes for Jo
+      const noticing = this.stride && time - (this.alertAt || 0) < 400;
+      this.setVelocityX(noticing ? 0 : Math.sign(dx) * this.speedBase * 0.9);
       this.setFlipX(dx < 0);
       return;
     }

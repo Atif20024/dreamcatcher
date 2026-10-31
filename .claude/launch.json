@@ -9,6 +9,17 @@
         "dev"
       ],
       "port": 5173
+    },
+    {
+      "name": "dreamcatcher-check",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--port",
+        "5182",
+        "--strictPort"
+      ],
+      "port": 5182
     }
   ]
 }

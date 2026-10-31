@@ -36,10 +36,15 @@ export function buildChefMap() {
   // base ground everywhere (rooftop included)
   fill(rows, 34, 39, 0, W - 1, '#');
 
-  // S1 — alley: dumpster block, wall-jump chimney at 39/41
+  // S1 — alley: dumpster block, wall-jump chimney between 39 and 41.
+  // B1: the chimney walls are ribbed ('|', the only wall-jumpable tile).
+  // The near wall stops two tiles short of the ground so Jo walks into the
+  // shaft; its floor is solid, so a missed jump just lands him at the foot
+  // (the staged first success: you cannot fail it). The dumpster stair over
+  // the top stays as the other way up.
   fill(rows, 32, 33, 33, 34, '#');
-  fill(rows, 29, 33, 39, 39, '#');
-  fill(rows, 27, 33, 41, 41, '#');
+  fill(rows, 29, 31, 39, 39, '|');
+  fill(rows, 27, 33, 41, 41, '|');
   // loading dock: belts with a low pipe ceiling (crouch clearance)
   put(rows, 31, 42, '>>>>>>');
   put(rows, 31, 50, '<<<<<<');

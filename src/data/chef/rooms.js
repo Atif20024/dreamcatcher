@@ -1,4 +1,5 @@
 import { buildChefMap } from '../chefMap.js';
+import { withObjectives } from '../objectives.js';
 
 // D2 — rooms = grid + objects. Terrain comes from the section painter (the
 // grid chars are already legend-compliant: # solid, ~ liquid, <> conveyor,
@@ -7,19 +8,22 @@ const FULL = buildChefMap();
 const slice = (x0, x1) => FULL.map((row) => row.slice(x0, x1 + 1));
 const L = (worldCol, x0) => worldCol - x0;
 
-export default [
+const ROOMS = [
   {
     id: 'arrival',
     section: 'arrival',
     grid: slice(0, 25),
     music: { section: 'arrival', bpm: 96, state: 'quiet' },
-    bg: { far: 'city', mid: 'brick', near: 'fence', landmark: 'meridian_sign' },
+    bg: { far: 'city', mid: 'brick', near: 'fence', landmark: 'le_reve_awning' },
     objects: [
       { type: 'spawn', x: 3, y: 32 },
       { type: 'dialogue', x: 6, y: 33, id: 'd0', auto: true },
-      { type: 'foe', kind: 'rat', x: 12, y: 33, human: false },
-      { type: 'foe', kind: 'rat', x: 15, y: 33, human: false },
-      { type: 'checkpoint', x: 23, y: 33, id: 'CP0' },
+      // C1: the first minutes are harmless: one rat, by the kerb, 17 tiles in
+      { type: 'foe', kind: 'rat', x: 20, y: 33, human: false },
+      // coins (tier 1): the kerb ramp is optional height — the pay is up there
+      { type: 'coins', x: 19, y: 31, n: 3 },
+      { type: 'coin', x: 24, y: 32, breadcrumb: true }, // marks the gate
+      { type: 'checkpoint', x: 23, y: 33, id: 'CP0', label: 'THE KERB' },
       { type: 'gate', x: 25, y: 29, h: 5, id: 'g0', requires: ['d0'] },
     ],
   },
@@ -42,9 +46,18 @@ export default [
       { type: 'carryable', kind: 'crate', x: L(45, 26), y: 33, id: 'crate1', height: 1 },
       { type: 'carryable', kind: 'crate', x: L(49, 26), y: 33, id: 'crate2', height: 2 },
       { type: 'carryable', kind: 'crate', x: L(51, 26), y: 33, id: 'crate3', height: 3 },
+      // P1 fork — the safe floor (crawlers) pays nothing; the conveyor run
+      // above pays 6, with the gap jump mid-line (tier 3: belts + a drop)
+      { type: 'coins', x: L(42, 26), y: 30, n: 3 },
+      { type: 'coins', x: L(51, 26), y: 30, n: 3 },
+      // tier 2: on top of the dock beam, a jump up from the conveyor's end
+      { type: 'coins', x: L(63, 26), y: 25, n: 3 },
+      // P7 — the dock hand's beat; the pay is past him, under the beam
+      { type: 'coins', x: L(65, 26), y: 32, n: 3 },
+      { type: 'coin', x: L(72, 26), y: 31, breadcrumb: true }, // the plate
       { type: 'plate', x: L(72, 26), y: 33, id: 'dry_plate', needs: 2, opens: 'hatch' },
       { type: 'moment', x: L(77, 26), y: 33, id: 'm1' },
-      { type: 'checkpoint', x: L(79, 26), y: 29, id: 'CP1' },
+      { type: 'checkpoint', x: L(79, 26), y: 29, id: 'CP1', label: 'THE LOADING DOCK' },
       { type: 'gate', x: L(81, 26), y: 29, h: 5, id: 'g1', requires: ['crates'] },
     ],
   },
@@ -70,7 +83,19 @@ export default [
       { type: 'hazard', kind: 'pan_pendulum', x: L(126, 82), y: 20, len: 58, phase: 0 },
       { type: 'hazard', kind: 'pan_pendulum', x: L(128, 82), y: 24, len: 58, phase: 1.5 },
       { type: 'carryable', kind: 'saffron', x: L(127, 82), y: 18, id: 'saffron', story: true, sets: 'has_saffron', dialogue: 'd2' },
-      { type: 'checkpoint', x: L(129, 82), y: 33, id: 'CP2' },
+      { type: 'checkpoint', x: L(129, 82), y: 33, id: 'CP2', label: 'THE FREEZER' },
+      // tier 2: the shelf hop line under the icicles — visible from the door
+      { type: 'coin', x: L(86, 82), y: 30 },
+      { type: 'coins', x: L(91, 82), y: 27, n: 3 },
+      { type: 'coin', x: L(98, 82), y: 30 },
+      // shard (§4): above the icicle shelf, between the two drop columns —
+      // the section's hardest optional jump, with consolation pay beside it
+      { type: 'shard', x: L(92, 82), y: 24 },
+      { type: 'coins', x: L(90, 82), y: 24, n: 2, dx: 4 },
+      // tier 3: the saffron climb — the stairs, then the high shelves
+      { type: 'coins', x: L(118, 82), y: 30, n: 3, dy: -1 },
+      { type: 'coin', x: L(125, 82), y: 24 },
+      { type: 'coin', x: L(127, 82), y: 21 },
       { type: 'gate', x: L(131, 82), y: 29, h: 5, id: 'g2', requires: ['freezer_valve', 'has_saffron'] },
     ],
   },
@@ -81,7 +106,7 @@ export default [
     music: { section: 'the_line', bpm: 110, state: 'danger' },
     bg: { far: 'pans', mid: 'kitchen_wall', near: 'cooks', landmark: 'pass_window' },
     objects: [
-      { type: 'checkpoint', x: L(132, 132), y: 33, id: 'CP3' },
+      { type: 'checkpoint', x: L(132, 132), y: 33, id: 'CP3', label: 'THE LINE' },
       { type: 'hazard', kind: 'burner', x: L(136, 132), y: 30, period: 2000, offset: 0 },
       { type: 'hazard', kind: 'burner', x: L(139, 132), y: 30, period: 2000, offset: 500 },
       { type: 'hazard', kind: 'burner', x: L(143, 132), y: 30, period: 2000, offset: 1000 },
@@ -107,8 +132,17 @@ export default [
       { type: 'source', x: L(182, 132), y: 23, id: 'herbs' },
       { type: 'source', x: L(195, 132), y: 32, id: 'bread' },
       { type: 'oven_door', x: L(191, 132), y: 31, h: 3, period: 12000, open: 4000 },
-      { type: 'checkpoint', x: L(200, 132), y: 33, id: 'CP3b' },
+      { type: 'checkpoint', x: L(200, 132), y: 33, id: 'CP3b', label: 'END OF THE LINE' },
       { type: 'moment', x: L(201, 132), y: 33, id: 'm3' },
+      // P2 — the arc over the grease slick traces the running jump
+      { type: 'coin', x: L(160, 132), y: 32 },
+      { type: 'coins', x: L(162, 132), y: 31, n: 3 },
+      { type: 'coin', x: L(166, 132), y: 32 },
+      // tier 3: the counter top belongs to the pepper mills
+      { type: 'coins', x: L(140, 132), y: 30, n: 3, dx: 2 },
+      // tier 2: the shelf over the pass line
+      { type: 'coins', x: L(148, 132), y: 26, n: 4, dx: 2 },
+      { type: 'coin', x: L(203, 132), y: 32, breadcrumb: true }, // the dumbwaiter door
       { type: 'lift', x: L(207, 132), y: 33, id: 'dumbwaiter', dialogue: 'd4', requires: ['rush_done'] },
       { type: 'gate', x: L(203, 132), y: 29, h: 5, id: 'g3', requires: ['rush_done'] },
     ],
@@ -132,7 +166,15 @@ export default [
       { type: 'foe', kind: 'meringue', x: L(255, 204), y: 12, human: false },
       { type: 'panel', x: L(252, 204), y: 13, id: 'piping', puzzle: 'piping', sets: 'piping' },
       { type: 'carryable', kind: 'gold_leaf', x: L(254, 204), y: 13, id: 'gold leaf', story: true, sets: 'has_gold_leaf', dialogue: 'd5', requires: ['piping'] },
-      { type: 'checkpoint', x: L(258, 204), y: 13, id: 'CP4' },
+      { type: 'checkpoint', x: L(258, 204), y: 13, id: 'CP4', label: 'THE LOFT' },
+      // tier 3: across the sugar bridges — the coins sit over the gaps
+      { type: 'coins', x: L(221, 204), y: 13, n: 3, dx: 3 },
+      { type: 'coins', x: L(233, 204), y: 13, n: 3, dx: 3 },
+      // tier 3: meringue territory, up in the rafters
+      { type: 'coins', x: L(248, 204), y: 11, n: 4, dx: 2 },
+      // shard: the high ramp the meringues guard, with its consolation pay
+      { type: 'shard', x: L(245, 204), y: 11 },
+      { type: 'coins', x: L(249, 204), y: 22, n: 2, dx: 3 },
       { type: 'gate', x: L(260, 204), y: 8, h: 6, id: 'g4', requires: ['piping', 'has_gold_leaf'] },
     ],
   },
@@ -143,7 +185,7 @@ export default [
     music: { section: 'the_pass', bpm: 120, state: 'setpiece' },
     bg: { far: 'dining_room', mid: 'chandeliers', near: 'heat_lamps', landmark: 'the_pass' },
     objects: [
-      { type: 'checkpoint', x: L(266, 263), y: 33, id: 'CP5' },
+      { type: 'checkpoint', x: L(266, 263), y: 33, id: 'CP5', label: 'THE PASS' },
       { type: 'station', x: L(271, 263), y: 30, id: 'hot', service: true },
       { type: 'station', x: L(279, 263), y: 30, id: 'cold', service: true },
       { type: 'station', x: L(287, 263), y: 30, id: 'dessert', service: true },
@@ -154,6 +196,11 @@ export default [
       { type: 'foe', kind: 'crawler', x: L(290, 263), y: 33, human: false, wave: 3 },
       { type: 'npc', who: 'aurelio', x: L(297, 263), y: 29 },
       { type: 'station', x: L(296, 263), y: 30, id: 'the_pass', service: true, deliver: true },
+      // P5 — inside the pans' swing: two coins per platform, on the beat
+      { type: 'coins', x: L(270, 263), y: 29, n: 2 },
+      { type: 'coins', x: L(278, 263), y: 29, n: 2 },
+      { type: 'coins', x: L(286, 263), y: 29, n: 2 },
+      { type: 'coins', x: L(297, 263), y: 29, n: 3 },
       { type: 'gate', x: L(304, 263), y: 29, h: 5, id: 'g5', requires: ['service_survived'] },
     ],
   },
@@ -165,6 +212,74 @@ export default [
     music: { section: 'rooftop', bpm: 72, state: 'quiet' },
     bg: { far: 'dawn', mid: 'herb_beds', near: 'beehive', landmark: 'sunrise' },
     vista: true,
-    objects: [{ type: 'orb', x: L(314, 305), y: 29 }],
+    objects: [
+      { type: 'coins', x: L(310, 305), y: 31, n: 3 }, // the kerb up to the orb
+      { type: 'orb', x: L(314, 305), y: 29 },
+    ],
   },
 ];
+
+// Phase 1.4 (plan §2.7): each room's objective, each gate's sign
+const OBJECTIVES = {
+  "arrival": "find the service entrance",
+  "alley_dock": [
+    "the loading dock: two crates on the plate",
+    {
+      "flag": "crates",
+      "text": "through the hatch. the freezer."
+    }
+  ],
+  "freezer": [
+    "the freezer: find the saffron",
+    {
+      "flag": "has_saffron",
+      "text": "saffron in hand. the valve, then out"
+    },
+    {
+      "flag": "freezer_valve",
+      "unless": "has_saffron",
+      "text": "the valve is open. now the saffron"
+    }
+  ],
+  "the_line": [
+    "deliver saffron → risotto station",
+    {
+      "flag": "saffron_delivered",
+      "text": "sort the ticket rail"
+    },
+    {
+      "flag": "ticket_rail",
+      "text": "RUSH: fish · herbs · bread → the pass"
+    },
+    {
+      "flag": "rush_done",
+      "text": "take the dumbwaiter up"
+    }
+  ],
+  "loft": [
+    "the loft: pipe the plate, find the gold leaf",
+    {
+      "flag": "has_gold_leaf",
+      "text": "bring the gold to the pass — yourself"
+    }
+  ],
+  "the_pass": [
+    "the pass: read the icon, feed the pass",
+    {
+      "flag": "service_survived",
+      "text": "the roof door is open"
+    }
+  ],
+  "rooftop": "the roof. one plate left."
+};
+
+const GATE_HINTS = {
+  "g0": "STAFF DOOR · hear Marguerite out",
+  "g1": "HATCH · two crates on the plate",
+  "g2": "needs: the valve · the saffron",
+  "g3": "LIFT · survive the rush",
+  "g4": "needs: the piping · the gold leaf",
+  "g5": "ROOF · survive service"
+};
+
+export default withObjectives(ROOMS, OBJECTIVES, GATE_HINTS);

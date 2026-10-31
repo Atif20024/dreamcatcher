@@ -4,15 +4,23 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/build-atlas.js --if-stale",
     "dev": "vite",
+    "prebuild": "node scripts/build-atlas.js --if-stale",
     "build": "vite build",
     "preview": "vite preview",
-    "lint:rooms": "node scripts/lint-rooms.js"
+    "lint:rooms": "node scripts/lint-rooms.js",
+    "lint:content": "node scripts/lint-content.js",
+    "lint:scale": "node scripts/lint-scale.js",
+    "test": "vitest run",
+    "scenarios": "node scripts/run-scenarios.js",
+    "atlas": "node scripts/build-atlas.js"
   },
   "dependencies": {
     "phaser": "^3.90.0"
   },
   "devDependencies": {
-    "vite": "^7.1.0"
+    "vite": "^7.1.0",
+    "vitest": "^4.1.12"
   }
 }

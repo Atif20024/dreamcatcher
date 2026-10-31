@@ -1,10 +1,33 @@
 import Phaser from 'phaser';
-import { roleOf, isSolidChar, isSlopeChar, SLOPES } from './legend.js';
+import { roleOf, isSolidChar, SLOPES, slopeRoleAt, crestSides, isStairRole, slopeSurface, baseSlope } from './legend.js';
 import { buildTileset, maskAt, wearAt } from './autotile.js';
 import { buildSupportTextures, addSupports } from './supports.js';
 import { D } from './depths.js';
+import { paintTileset } from '../art/levelArt.js';
 
 const T = 32;
+
+// A flight of stairs, drawn: the solid tile's top (its lit lip) stepped down
+// into treads that sit on the walking line at each step's middle (4 steps a
+// tile at 45°, 2 at half pitch). Collision is the slope under it.
+function stairTexture(scene, srcKey, role) {
+  const key = `${srcKey}_${role}`;
+  if (scene.textures.exists(key)) return key;
+  if (!scene.textures.exists(srcKey) || !scene.textures.addDynamicTexture) return srcKey;
+  const dt = scene.textures.addDynamicTexture(key, T, T);
+  if (!dt) return srcKey;
+  const base = baseSlope(role);
+  const n = base === 'slope_r' || base === 'slope_l' ? 4 : 2;
+  const w = T / n;
+  const tmp = scene.make.image({ x: 0, y: 0, key: srcKey, add: false }).setOrigin(0, 0);
+  for (let i = 0; i < n; i++) {
+    const tread = Math.round(slopeSurface(role, (i + 0.5) / n) * T);
+    tmp.setCrop(i * w, 0, w, T - tread);
+    dt.draw(tmp, 0, tread);
+  }
+  tmp.destroy();
+  return key;
+}
 
 // D2/D3 — one generic builder for every dream. Rooms are laid out left to
 // right; each room's objects use room-local tile coords and are offset here.
@@ -12,6 +35,9 @@ export default class RoomBuilder {
   // rooms: array of room objects (see data/<dream>/rooms.js)
   // theme: { key, tiles, palette, support, hazardTint }
   static build(scene, rooms, theme) {
+    // painted ground first (the Evening paints its own); the gridded set
+    // then only fills keys nobody painted
+    if (!theme.selfPainted) paintTileset(scene, theme);
     buildTileset(scene, theme.key, theme.tiles, theme.palette);
     const sc = theme.supportColors || [0x3a3a44, 0x6a6e7a];
     buildSupportTextures(scene, theme.key, theme.support || 'bracket', sc[0], sc[1]);
@@ -50,6 +76,9 @@ export default class RoomBuilder {
       ladderGrid: {},
       climbGrid: {},
       slopeGrid: {},
+      solidGrid: {},
+      oneWayGrid: {}, // tx → the one-way's top y
+      tileBodies: {}, // the tile's physics image (the ground solver skips switched-off ones)
       surfaceGrid: {},
       looseGrid: {},
       objects: [],
@@ -66,9 +95,11 @@ export default class RoomBuilder {
         const cy = ty * T + T / 2;
         const wear = wearAt(tx, ty);
 
-        if (isSlopeChar(ch)) {
-          scene.add.image(cx, cy, `${theme.key}_sl_${role}_${wear}`).setDepth(D.TERRAIN);
-          (out.slopeGrid[ty] ||= {})[tx] = role;
+        const sRole = slopeRoleAt(charAt, tx, ty);
+        if (sRole) {
+          const tex = isStairRole(sRole) ? stairTexture(scene, `${theme.key}_s_${maskAt(solidAt, tx, ty)}_${wear}`, sRole) : `${theme.key}_sl_${sRole}_${wear}`;
+          scene.add.image(cx, cy, tex).setDepth(D.TERRAIN);
+          (out.slopeGrid[ty] ||= {})[tx] = sRole;
           continue;
         }
         if (role === 'oneway') {
@@ -79,6 +110,8 @@ export default class RoomBuilder {
           img.body.checkCollision.left = false;
           img.body.checkCollision.right = false;
           out.oneWays.add(img);
+          (out.oneWayGrid[ty] ||= {})[tx] = img.body.top;
+          (out.tileBodies[ty] ||= {})[tx] = img;
           continue;
         }
         if (role === 'hazard') {
@@ -96,7 +129,9 @@ export default class RoomBuilder {
         }
         if (role === 'liquid') {
           scene.add.rectangle(cx, cy, T, T, theme.liquid || 0x4a2c1a, 0.9).setDepth(D.TERRAIN);
-          scene.add.rectangle(cx, cy - 10, T, 6, theme.liquidTop || 0x6a4028, 0.9).setDepth(D.LIQUID_TOP);
+          // the lit band is the surface: only under open air (not under a wall
+          // hung in it; on every tile it read as stripes 0.7 m apart)
+          if (roleOf(charAt(tx, ty - 1)) !== 'liquid' && !solidAt(tx, ty - 1)) scene.add.rectangle(cx, cy - 10, T, 6, theme.liquidTop || 0x6a4028, 0.9).setDepth(D.LIQUID_TOP);
           (out.surfaceGrid[ty] ||= {})[tx] = 'liquid';
           continue;
         }
@@ -124,6 +159,12 @@ export default class RoomBuilder {
         img.tileRole = role;
         img.tx = tx;
         img.ty = ty;
+        (out.solidGrid[ty] ||= {})[tx] = true;
+        (out.tileBodies[ty] ||= {})[tx] = img;
+        // a crest: the side flush with a slope's high end is no wall
+        const crest = crestSides((x, y) => slopeRoleAt(charAt, x, y), tx, ty);
+        if (crest.left) img.body.checkCollision.left = false;
+        if (crest.right) img.body.checkCollision.right = false;
 
         if (role === 'climbable') (out.climbGrid[ty] ||= {})[tx] = true;
         if (role === 'ice' || role === 'grease') (out.surfaceGrid[ty] ||= {})[tx] = role;
@@ -149,6 +190,7 @@ export default class RoomBuilder {
         const role = roleOf(ch);
         if (role !== 'solid' && role !== 'oneway') return false;
         if (theme.noSupports) return false;
+        if (theme.supportFilter && !theme.supportFilter(tx, ty)) return false;
         if (solidAt(tx, ty + 1)) return false;
         // a lone floor row at the world's base doesn't need legs
         return ty < height - 2;
@@ -191,6 +233,27 @@ export default class RoomBuilder {
     const tx = Math.floor(worldX / T);
     let best = rooms[0];
     for (const r of rooms) if (r._x0 <= tx) best = r;
+    return best;
+  }
+
+  // The room the camera is looking at (F#4 / T2a). `x` is the camera centre;
+  // `prev` is the room already committed. Hysteresis: the committed room is
+  // kept until the centre is `band` px past its edge, so standing on a line
+  // (or the follow-lerp wobbling across it) never flickers music or zoom.
+  // A room's edge is its first column, or `_bx` where the backdrop has
+  // pulled an end-of-world boundary in to where the camera can reach it.
+  static roomAtCamera(rooms, x, prev, band = 1.5 * T) {
+    const edge = (r) => (r._bx !== undefined ? r._bx : r._x0 * T);
+    if (prev) {
+      const i = rooms.indexOf(prev);
+      if (i >= 0) {
+        const x0 = edge(prev);
+        const x1 = i + 1 < rooms.length ? edge(rooms[i + 1]) : Infinity;
+        if (x >= x0 - (i > 0 ? band : Infinity) && x < x1 + band) return prev;
+      }
+    }
+    let best = rooms[0];
+    for (const r of rooms) if (edge(r) <= x) best = r;
     return best;
   }
 }

@@ -1,4 +1,5 @@
 import { buildMusicianMap } from '../musicianData.js';
+import { withObjectives } from '../objectives.js';
 
 // D2 — the seven "days" as rooms. Terrain from the section painter; every
 // object declarative.
@@ -6,7 +7,7 @@ const FULL = buildMusicianMap();
 const slice = (x0, x1) => FULL.map((row) => row.slice(x0, x1 + 1));
 const L = (worldCol, x0) => worldCol - x0;
 
-export default [
+const ROOMS = [
   {
     id: 'd0_marquee',
     section: 'arrival',
@@ -18,7 +19,9 @@ export default [
       { type: 'spawn', x: 3, y: 34 },
       { type: 'dialogue', x: 5, y: 35, id: 'd0', auto: true },
       { type: 'resonant', x: 8, y: 34, id: 'shop_horn', reaction: 'ring' },
-      { type: 'checkpoint', x: 22, y: 35, id: 'CP0' },
+      { type: 'coin', x: 12, y: 34, breadcrumb: true },
+      { type: 'coin', x: 24, y: 34, breadcrumb: true }, // marks the gate
+      { type: 'checkpoint', x: 22, y: 35, id: 'CP0', label: 'THE MARQUEE' },
       { type: 'gate', x: 25, y: 31, h: 5, id: 'g0', requires: ['d0'] },
     ],
   },
@@ -36,13 +39,25 @@ export default [
       { type: 'anchor', x: L(38, 26), y: 31, len: 5, row: 29 },
       { type: 'resonant', x: L(44, 26), y: 31, id: 'dead_neon', reaction: 'ladder' },
       { type: 'hazard', kind: 'boom_mic', x: L(52, 26), y: 28, len: 62 },
+      // the fire-escape wall pays on the way up (tier 2)
+      { type: 'coins', x: L(37, 26), y: 34, n: 4, dx: 0, dy: -1 },
+      // the rooftops belong to the hecklers' bottles (tier 3)
+      { type: 'coins', x: L(35, 26), y: 27, n: 3 },
+      { type: 'coins', x: L(41, 26), y: 26, n: 4 },
+      // under the boom mic's sweep, along the high platform (tier 3)
+      { type: 'coins', x: L(47, 26), y: 25, n: 6 },
+      // P7 — past the bouncer's beat on the floor
+      { type: 'coins', x: L(36, 26), y: 34, n: 3 },
+      // the drop back off the platform, spent well (tier 1)
+      { type: 'coins', x: L(59, 26), y: 30, n: 2, dy: 1 },
+      { type: 'coins', x: L(62, 26), y: 34, n: 2 },
       { type: 'npc', who: 'delphine', x: L(56, 26), y: 35, dialogue: 'd1' },
-      { type: 'checkpoint', x: L(57, 26), y: 35, id: 'CP1a' },
+      { type: 'checkpoint', x: L(57, 26), y: 35, id: 'CP1a', label: 'THE CELLAR STEPS' },
       { type: 'npc', who: 'ray', x: L(62, 26), y: 35 },
       { type: 'gig', x: L(70, 26), y: 35, id: 'cellar', song: 'gig1', bpm: 96, sets: 'cellar_gig' },
       { type: 'moment', x: L(72, 26), y: 33, id: 'm1', requires: ['cellar_gig'] },
       { type: 'foe', kind: 'scalper', x: L(80, 26), y: 34, human: true, steals: true },
-      { type: 'checkpoint', x: L(84, 26), y: 35, id: 'CP1b' },
+      { type: 'checkpoint', x: L(84, 26), y: 35, id: 'CP1b', label: 'THE FIRE ESCAPE' },
       { type: 'gate', x: L(85, 26), y: 31, h: 5, id: 'g1', requires: ['cellar_gig'] },
     ],
   },
@@ -64,8 +79,19 @@ export default [
       { type: 'anchor', x: L(120, 86), y: 25, len: 4, row: 26 },
       { type: 'anchor', x: L(128, 86), y: 25, len: 4, row: 26 },
       { type: 'panel', x: L(145, 86), y: 35, id: 'tuning', puzzle: 'tuning', sets: 'valve_fixed', dialogue: 'd3' },
-      { type: 'checkpoint', x: L(149, 86), y: 35, id: 'CP2' },
+      { type: 'checkpoint', x: L(149, 86), y: 35, id: 'CP2', label: 'THE CORNER' },
       { type: 'npc', who: 'nia', x: L(148, 86), y: 35, dialogue: 'd4', requires: ['valve_fixed'], sets: 'met_nia' },
+      // the walkers own the rooftops; the pay is on their beat (tier 3-4)
+      { type: 'coins', x: L(107, 86), y: 29, n: 3 },
+      { type: 'coins', x: L(110, 86), y: 25, n: 5, dx: 2 },
+      { type: 'coins', x: L(125, 86), y: 25, n: 4 },
+      { type: 'coins', x: L(139, 86), y: 29, n: 3 },
+      // shard: the far ledge past the last walker — the hardest hop in the day
+      { type: 'shard', x: L(141, 86), y: 32 },
+      { type: 'coins', x: L(138, 86), y: 32, n: 2 },
+      // the way back down from the roofs (tier 1)
+      { type: 'coins', x: L(120, 86), y: 29, n: 3, dx: 2 },
+      { type: 'coins', x: L(131, 86), y: 33, n: 3 },
       { type: 'gate', x: L(105, 86), y: 31, h: 5, id: 'g2', requires: ['busking_done'] },
       { type: 'gate', x: L(150, 86), y: 31, h: 5, id: 'g3', requires: ['met_nia'] },
     ],
@@ -81,7 +107,7 @@ export default [
       { type: 'plate', x: L(162, 151), y: 35, id: 'plateA', needs: 1 },
       { type: 'plate', x: L(168, 151), y: 35, id: 'plateB', needs: 1 },
       { type: 'cue', x: L(165, 151), y: 35, id: 'heater', sets: 'rehearsal', needs: ['plateA', 'plateB'] },
-      { type: 'checkpoint', x: L(156, 151), y: 35, id: 'CP3a' },
+      { type: 'checkpoint', x: L(156, 151), y: 35, id: 'CP3a', label: 'THE BASEMENT' },
       { type: 'foe', kind: 'wisp', x: L(183, 151), y: 26, human: false, duet: true },
       { type: 'foe', kind: 'wisp', x: L(186, 151), y: 24, human: false, duet: true },
       { type: 'foe', kind: 'wisp', x: L(188, 151), y: 22, human: false, duet: true },
@@ -89,8 +115,18 @@ export default [
       { type: 'gig', x: L(196, 151), y: 35, id: 'jam', song: 'gig2', bpm: 104, sets: 'jam_done', dialogue: 'd6', requires: ['rehearsal'] },
       { type: 'npc', who: 'ray', x: L(200, 151), y: 35, id: 'rayJam' },
       { type: 'panel', x: L(206, 151), y: 35, id: 'play_the_room', puzzle: 'playTheRoom', sets: 'ray_lesson', requires: ['jam_done'] },
-      { type: 'checkpoint', x: L(207, 151), y: 35, id: 'CP3b' },
+      { type: 'checkpoint', x: L(207, 151), y: 35, id: 'CP3b', label: 'THE BOILER' },
       { type: 'moment', x: L(208, 151), y: 35, id: 'm3', requires: ['jam_done'] },
+      // the boiler steps: pay on the climb (tier 2)
+      { type: 'coins', x: L(160, 151), y: 32, n: 2 },
+      { type: 'coins', x: L(163, 151), y: 30, n: 2 },
+      { type: 'coins', x: L(166, 151), y: 26, n: 2 },
+      { type: 'coins', x: L(181, 151), y: 29, n: 2 },
+      { type: 'coins', x: L(185, 151), y: 23, n: 2 },
+      // the wisp den pays if you can keep them off you (tier 3)
+      { type: 'coins', x: L(190, 151), y: 33, n: 5 },
+      // Ray's alley, behind the jam (tier 1)
+      { type: 'coins', x: L(199, 151), y: 34, n: 4 },
       { type: 'gate', x: L(178, 151), y: 31, h: 5, id: 'g3b', requires: ['rehearsal'] },
       { type: 'gate', x: L(210, 151), y: 31, h: 5, id: 'g4', requires: ['ray_lesson'] },
     ],
@@ -103,19 +139,28 @@ export default [
     bg: { far: 'river', mid: 'pavilion', near: 'lanterns', landmark: 'bandstand' },
     objects: [
       { type: 'gig', x: L(218, 211), y: 35, id: 'pavilion', song: 'pavilion', bpm: 120, sets: 'pavilion_done', dialogue: 'd7', requires: ['ray_lesson'] },
-      { type: 'checkpoint', x: L(227, 211), y: 35, id: 'CP4a' },
+      { type: 'checkpoint', x: L(227, 211), y: 35, id: 'CP4a', label: 'THE ROAD' },
       { type: 'resonant', x: L(238, 211), y: 35, id: 'dog', reaction: 'calm', repeat: true },
       { type: 'foe', kind: 'manager', x: L(240, 211), y: 35, human: true, cone: true, patrol: [L(240, 211), L(246, 211)] },
       { type: 'hide', x: L(243, 211), y: 35, id: 'barrels' },
       { type: 'bassclef', x: L(247, 211), y: 34, id: 'office_vent', sets: 'office_open' },
       { type: 'pickup', x: L(248, 211), y: 34, id: 'deposit', sets: 'saltbox_done', requires: ['office_open'] },
-      { type: 'checkpoint', x: L(249, 211), y: 35, id: 'CP4b' },
+      { type: 'checkpoint', x: L(249, 211), y: 35, id: 'CP4b', label: 'THE BROKEN ROAD' },
       { type: 'anchor', x: L(263, 211), y: 34, len: 3, row: 35 },
       { type: 'anchor', x: L(266, 211), y: 34, len: 3, row: 35 },
       { type: 'hazard', kind: 'truck_spray', x: L(270, 211), y: 34, period: 7000 },
-      { type: 'checkpoint', x: L(276, 211), y: 35, id: 'CP4c' },
+      { type: 'checkpoint', x: L(276, 211), y: 35, id: 'CP4c', label: 'THE GUARDRAIL' },
       { type: 'choice', x: L(275, 211), y: 35, id: 'd8', writes: 'marcus_left', sets: 'd8_done', requires: ['saltbox_done'] },
       { type: 'resonant', x: L(288, 211), y: 34, id: 'payphone', reaction: 'ring_out', sets: 'tour_done' },
+      // P2 — the arc over the broken road
+      { type: 'coin', x: L(263, 211), y: 34 },
+      { type: 'coins', x: L(265, 211), y: 33, n: 2 },
+      { type: 'coin', x: L(268, 211), y: 34 },
+      // the guardrail line: long, low pay for the patient (tier 2)
+      { type: 'coins', x: L(231, 211), y: 34, n: 6, dx: 2 },
+      { type: 'coins', x: L(244, 211), y: 34, n: 5, dx: 2 },
+      { type: 'coins', x: L(272, 211), y: 34, n: 5, dx: 2 },
+      { type: 'coins', x: L(283, 211), y: 33, n: 3 },
       { type: 'gate', x: L(290, 211), y: 31, h: 5, id: 'g5', requires: ['tour_done'] },
     ],
   },
@@ -131,9 +176,12 @@ export default [
       { type: 'foe', kind: 'metronome_walker', x: L(304, 291), y: 35, human: false },
       { type: 'gig', x: L(306, 291), y: 35, id: 'take', song: 'studio', bpm: 110, invertRests: true, sets: 'take_done', requires: ['tour_done'] },
       { type: 'panel', x: L(313, 291), y: 35, id: 'the_mix', puzzle: 'theMix', sets: 'mix_done', requires: ['take_done'] },
-      { type: 'checkpoint', x: L(314, 291), y: 35, id: 'CP5' },
+      { type: 'checkpoint', x: L(314, 291), y: 35, id: 'CP5', label: 'THE STUDIO' },
       { type: 'npc', who: 'tally', x: L(320, 291), y: 35 },
       { type: 'choice', x: L(320, 291), y: 35, id: 'd9', writes: 'choice', sets: 'offer_done', requires: ['mix_done'] },
+      // the silent run: coins along the red-light corridor (tier 3)
+      { type: 'coins', x: L(330, 291), y: 27, n: 5, dx: 2 },
+      { type: 'coins', x: L(340, 291), y: 32, n: 4 },
       { type: 'gate', x: L(325, 291), y: 31, h: 5, id: 'g6', requires: ['choice_made'] },
     ],
   },
@@ -145,7 +193,7 @@ export default [
     bg: { far: 'crowd', mid: 'truss', near: 'cables', landmark: 'the_big_stage' },
     objects: [
       { type: 'choice', x: L(328, 326), y: 35, id: 'd9_dock', writes: 'choice', sets: 'dock_done', whenChoice: 'think' },
-      { type: 'checkpoint', x: L(327, 326), y: 35, id: 'CP6a' },
+      { type: 'checkpoint', x: L(327, 326), y: 35, id: 'CP6a', label: 'THE STAGE DOOR' },
       { type: 'foe', kind: 'roadie', x: L(334, 326), y: 27, human: true, unkillable: true, patrol: [L(334, 326), L(337, 326)] },
       { type: 'foe', kind: 'roadie', x: L(340, 326), y: 27, human: true, unkillable: true, patrol: [L(340, 326), L(343, 326)] },
       { type: 'hazard', kind: 'moving_head', x: L(333, 326), y: 31, sweep: 70, offset: 0 },
@@ -154,13 +202,19 @@ export default [
       { type: 'foe', kind: 'wisp', x: L(341, 326), y: 26, human: false },
       { type: 'foe', kind: 'wisp', x: L(343, 326), y: 26, human: false },
       { type: 'wing', x: L(344, 326), y: 27, id: 'wing', sets: 'wing_done' },
+      // the rig climb: pay on the stairs and the beam (tier 3)
+      { type: 'coins', x: L(333, 326), y: 27, n: 4, dx: 2 },
+      { type: 'coins', x: L(344, 326), y: 27, n: 3, dy: 1 },
+      // the wings, past the moving heads
+      { type: 'coins', x: L(357, 326), y: 31, n: 5 },
+      { type: 'coins', x: L(350, 326), y: 30, n: 4, dx: 2 },
       { type: 'gate', x: L(345, 326), y: 26, h: 10, id: 'g7', requires: ['choice_final'] },
       { type: 'riser', x: L(350, 326), y: 30, phase: 0 },
       { type: 'riser', x: L(356, 326), y: 30, phase: 1 },
       { type: 'riser', x: L(362, 326), y: 30, phase: 2 },
       { type: 'riser', x: L(368, 326), y: 30, phase: 3 },
       { type: 'riser', x: L(374, 326), y: 30, phase: 4 },
-      { type: 'checkpoint', x: L(362, 326), y: 31, id: 'CP6b' },
+      { type: 'checkpoint', x: L(362, 326), y: 31, id: 'CP6b', label: 'THE WINGS' },
       { type: 'setpiece', x: L(352, 326), y: 29, id: 'big_stage_set', sets: 'set_done' },
     ],
   },
@@ -173,9 +227,79 @@ export default [
     bg: { far: 'dawn', mid: 'flightcases', near: 'banner', landmark: 'folding_chair' },
     vista: true,
     objects: [
+      { type: 'coins', x: L(384, 381), y: 34, n: 4, dx: 2 },
       { type: 'gate', x: L(381, 381), y: 26, h: 10, id: 'g8', requires: ['set_done'] },
       { type: 'dialogue', x: L(384, 381), y: 35, id: 'd_after' },
       { type: 'orb', x: L(392, 381), y: 31 },
     ],
   },
 ];
+
+// Phase 1.4 (plan §2.7): each room's objective, each gate's sign
+const OBJECTIVES = {
+  "d0_marquee": "get to The Blue Cellar",
+  "d1_cellar": [
+    "The Blue Cellar: nine chairs, one set",
+    {
+      "flag": "cellar_gig",
+      "text": "the alley — watch your case"
+    }
+  ],
+  "d2_corner": [
+    "the corner: busk for the rent",
+    {
+      "flag": "busking_done",
+      "text": "find Nia"
+    },
+    {
+      "flag": "met_nia",
+      "text": "basement, Thursday"
+    }
+  ],
+  "d3_basement": [
+    "basement, Thursday: the cue",
+    {
+      "flag": "rehearsal",
+      "text": "jam night — twenty people"
+    },
+    {
+      "flag": "jam_done",
+      "text": "the dark stage: Ray"
+    },
+    {
+      "flag": "ray_lesson",
+      "text": "the road — three towns"
+    }
+  ],
+  "d4_road": [
+    "the road — three towns",
+    {
+      "flag": "tour_done",
+      "text": "the studio — session work pays"
+    }
+  ],
+  "d5_studio": [
+    "the studio — session work pays",
+    {
+      "flag": "choice_made",
+      "text": "Saturday. the festival."
+    }
+  ],
+  "d6_stage": "THE BIG STAGE — play the set",
+  "d7_after": "backstage. after."
+};
+
+const GATE_HINTS = {
+  "g0": "STAGE DOOR · talk to the doorman",
+  "g1": "BACK DOOR · play the cellar set",
+  "g2": "busk the corner first",
+  "g3": "find Nia first",
+  "g3b": "rehearse the cue first",
+  "g4": "Ray's lesson: the dark stage",
+  "g5": "finish the tour",
+  "g6": "make the choice",
+  "g7": "make the choice for good",
+  "g8": "play the last long note"
+};
+
+export default withObjectives(ROOMS, OBJECTIVES, GATE_HINTS);

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import Player from '../entities/Player.js';
 import BaseLevel from './BaseLevel.js';
 import { THEMES } from '../themes/index.js';
+import { lightThemeProps } from '../art/levelArt.js';
 import { DIALOGUES, MOMENTS } from '../data/chefMap.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
 import Parallax from '../builders/parallax.js';
@@ -9,8 +10,10 @@ import { D } from '../builders/depths.js';
 import chefRooms from '../data/chef/rooms.js';
 import chefTiles from '../data/chef/tiles.js';
 import { freezerValve, ticketRail, piping } from '../systems/puzzles.js';
-import { completeDream } from '../utils/save.js';
+import { completeDream, recordMoment, markMet } from '../utils/save.js';
 import { sfx, music, sting } from '../systems/audio.js';
+import { uiText } from '../ui/text.js';
+import { hud } from '../ui/hud.js';
 
 const T = 32;
 const overlaps = (a, b) => Phaser.Geom.Intersects.RectangleToRectangle(a, b);
@@ -24,6 +27,7 @@ export default class ChefScene extends BaseLevel {
   create() {
     this.theme = THEMES.chef;
     this.theme.createTextures(this);
+    lightThemeProps(this, ['chef-']);
 
     // D2/D3 — terrain comes from the generic RoomBuilder (autotiled, with
     // supports, slopes, one-ways and climbable walls).
@@ -38,6 +42,7 @@ export default class ChefScene extends BaseLevel {
     this.oneWays = built.oneWays;
     this.spikes = built.hazards;
     this.slopeGrid = built.slopeGrid;
+    this.solidGrid = built.solidGrid;
     this.climbGrid = built.climbGrid;
     this.surfaceGrid = built.surfaceGrid;
     this.orbs = this.physics.add.staticGroup();
@@ -54,7 +59,11 @@ export default class ChefScene extends BaseLevel {
 
     const spawn = { x: px(3), y: px(32) };
     this.player = new Player(this, spawn.x, spawn.y);
-    this.setupCommon({ worldW, worldH, levelName: 'DREAM 03 — FIVE-STAR DREAM', spawn });
+    this.player.shadow.set({ tint: 0x1c1010, alpha: 0.55 });
+    this.player.toolPose = 'swing'; // the verb pose a swing plays here
+    this.dreamCoinId = 'chef';
+    markMet('chef');
+    this.setupCommon({ worldW, worldH, levelName: 'DREAM — FIVE-STAR DREAM', spawn });
 
     this.F = {};
     this.moments = 0;
@@ -67,6 +76,7 @@ export default class ChefScene extends BaseLevel {
     this.enemies = this.foeGroup;
     this.spawnRoomFoes(built.objects, (o) => !o.wave);
     this.addHideSpots(built.objects);
+    this.spawnPickups(built.objects);
 
     this.buildGates();
     this.buildCheckpoints();
@@ -86,15 +96,12 @@ export default class ChefScene extends BaseLevel {
     this.physics.add.overlap(this.player, this.flags, (_p, f) => this.activateCheckpoint(f));
     this.physics.add.overlap(this.player, this.orbs, (_p, o) => this.catchOrb(o));
 
-    this.promptText = this.add
-      .text(0, 0, '[E]', { fontFamily: 'monospace', fontSize: '13px', color: '#f2d580', backgroundColor: '#14101c' })
-      .setOrigin(0.5)
-      .setDepth(80)
-      .setVisible(false);
+    this.promptText = hud.prompt(); // the HUD's interact prompt, pinned over the world point
 
     this.setObjective('find the service entrance');
     music.bass();
     this.time.delayedCall(900, async () => {
+      if (this.resuming && this.F.d0) return; // a continued run: already heard
       await this.dialog.show(DIALOGUES.d0);
       this.setFlag('d0');
       this.setObjective('find saffron → deliver to pass');
@@ -141,15 +148,33 @@ export default class ChefScene extends BaseLevel {
   }
 
   buildCheckpoints() {
-    this.built.objects
-      .filter((o) => o.type === 'checkpoint')
-      .forEach((c) => this.flags.create(c.wx, c.wy, 'flag'));
+    this.placeCheckpoints(this.built.objects);
   }
 
   addInteract(x, y, label, cb, { radius = 40, once = true, when = () => true } = {}) {
     const it = { x, y, label, cb, radius, once, when, used: false };
     this.interacts.push(it);
     return it;
+  }
+
+  // Collectibles §5 — a key item sits on a lit pedestal: base, spotlight
+  // cone, a slow glint, and a one-line pickup card when taken.
+  addPedestal(x, y, texKey, line) {
+    this.add.rectangle(x, y + 22, 30, 8, 0xc4a25c).setDepth(D.INTERACT - 1).setStrokeStyle(1, 0x8a6a2c);
+    this.add.rectangle(x, y + 27, 22, 4, 0x8a6a2c).setDepth(D.INTERACT - 1);
+    this.add.triangle(x, y - 6, 0, -46, -26, 30, 26, 30, 0xf2e0a0, 0.1).setDepth(D.INTERACT - 2);
+    const item = this.add.image(x, y, texKey).setDepth(D.INTERACT);
+    this.tweens.add({ targets: item, y: y - 3, duration: 1000, yoyo: true, repeat: -1, ease: 'sine.inout' });
+    this.time.addEvent({
+      delay: 2600,
+      loop: true,
+      callback: () => {
+        if (!item.visible) return;
+        const g = this.add.rectangle(x + 8, y - 10, 3, 3, 0xffffff, 0.9).setDepth(30);
+        this.tweens.add({ targets: g, scale: 2.4, alpha: 0, duration: 380, onComplete: () => g.destroy() });
+      },
+    });
+    return { item, card: () => this.floatText(x, y - 60, line, '#f2d580') };
   }
 
   take(id, texKey) {
@@ -162,8 +187,14 @@ export default class ChefScene extends BaseLevel {
   dropCarry() {
     if (!this.carry) return;
     this.floatText(this.player.x, this.player.y - 56, `the ${this.carry} is lost!`, '#e86a6a');
-    if (this.carry === 'saffron') this.saffronItem.used = false;
-    if (this.carry === 'gold leaf') this.goldItem.used = false;
+    if (this.carry === 'saffron') {
+      this.saffronItem.used = false;
+      if (this.saffronPedestal) this.saffronPedestal.item.setVisible(true); // back to its pedestal (§3.8)
+    }
+    if (this.carry === 'gold leaf') {
+      this.goldItem.used = false;
+      if (this.goldPedestal) this.goldPedestal.item.setVisible(true);
+    }
     if (this.rush && this.rush.active && this.rush.sources[this.carry]) this.rush.sources[this.carry].used = false;
     if (this.service && this.service.order) this.service.plateLost = true;
     this.carry = null;
@@ -179,19 +210,18 @@ export default class ChefScene extends BaseLevel {
     this.addInteract(x, y, 'pause', async () => {
       const m = MOMENTS[id];
       this.moments += 1;
+      recordMoment('chef', id);
       this.setFlag(id);
       sfx(id === 'm2' ? 'purr' : 'chime');
       this.player.controlLockUntil = this.time.now + 5000;
       this.player.body.setVelocity(0, 0);
       const cam = this.cameras.main;
-      const t1 = this.add
-        .text(cam.width / 2, cam.height - 150, m.sub, { fontFamily: 'monospace', fontSize: '14px', color: '#c8c0b0' })
+      const t1 = uiText(this, cam.width / 2, cam.height - 150, m.sub, { fontSize: '14px', color: '#c8c0b0' })
         .setOrigin(0.5)
         .setScrollFactor(0)
         .setDepth(160)
         .setAlpha(0);
-      const t2 = this.add
-        .text(cam.width / 2, cam.height - 120, m.text, { fontFamily: 'monospace', fontSize: '17px', color: '#f2e0a0', fontStyle: 'italic' })
+      const t2 = uiText(this, cam.width / 2, cam.height - 120, m.text, { fontSize: '17px', color: '#f2e0a0' })
         .setOrigin(0.5)
         .setScrollFactor(0)
         .setDepth(160)
@@ -258,13 +288,8 @@ export default class ChefScene extends BaseLevel {
   buildFreezer() {
     this.coldMax = 40 - 4 * this.difficulty;
     this.cold = this.coldMax;
-    this.coldBar = this.add.rectangle(28, 78, 90, 10, 0x88b8d8).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150).setVisible(false);
-    this.coldBarBg = this.add
-      .rectangle(28, 78, 90, 10, 0x2a2a34)
-      .setOrigin(0, 0.5)
-      .setScrollFactor(0)
-      .setDepth(149)
-      .setVisible(false);
+    // the cold meter: a row of the HUD grid's meter stack (§8)
+    this.coldMeter = hud.meter('cold', { label: 'COLD', color: '#88b8d8', visible: false });
 
     if (this.difficulty < 3) {
       this.heatLamp = { x: px(105), y: px(30) };
@@ -304,13 +329,15 @@ export default class ChefScene extends BaseLevel {
       }
     }, { once: false, when: () => !this.F.freezer_valve });
 
+    this.saffronPedestal = this.addPedestal(px(127), px(18), 'chef-saffron', 'SAFFRON — the whole order dies without it');
     this.saffronItem = this.addInteract(px(127), px(18), 'saffron', async () => {
       this.take('saffron', 'chef-saffron');
+      this.saffronPedestal.item.setVisible(false);
+      this.saffronPedestal.card();
       this.setFlag('has_saffron');
       this.setObjective('deliver saffron → risotto station');
       await this.dialog.show(DIALOGUES.d2);
     }, { once: false, when: () => !this.F.has_saffron || (!this.carry && !this.F.saffron_delivered) });
-    this.add.image(px(127), px(18), 'chef-saffron').setDepth(D.BEHIND).setAlpha(0.5);
     this.moment('m2', px(91), px(33));
   }
 
@@ -415,16 +442,15 @@ export default class ChefScene extends BaseLevel {
         if (this.rush.done.size >= 3) {
           this.rush.active = false;
           this.setFlag('rush_done');
-          this.rushBar && this.rushBar.destroy();
-          this.rushBarBg && this.rushBarBg.destroy();
+          this.rushMeter && this.rushMeter.destroy();
+          this.rushMeter = null;
           music.trumpet(false);
           this.setObjective('take the dumbwaiter up');
         }
       }
     }, { once: false, when: () => this.rush && this.rush.active });
-    const cam = this.cameras.main;
-    this.rushBarBg = this.add.rectangle(cam.width / 2, 24, 300, 14, 0x2a2a34).setScrollFactor(0).setDepth(150);
-    this.rushBar = this.add.rectangle(cam.width / 2 - 150, 24, 300, 14, 0xe86a6a).setOrigin(0, 0.5).setScrollFactor(0).setDepth(151);
+    // the service clock: a row of the HUD grid's meter stack (§8)
+    this.rushMeter = hud.meter('rush', { label: 'SERVICE', color: '#e86a6a', order: -1 });
     music.trumpet();
     this.setObjective('RUSH: fish · herbs · bread → the pass');
     this.floatText(this.player.x, this.player.y - 60, 'SERVICE!');
@@ -472,8 +498,11 @@ export default class ChefScene extends BaseLevel {
       }
     }, { once: false, when: () => !this.F.piping });
 
+    this.goldPedestal = this.addPedestal(px(254), px(13), 'chef-gold', 'GOLD LEAF — carried, never trusted to anyone');
     this.goldItem = this.addInteract(px(254), px(13), 'gold leaf', async () => {
       this.take('gold leaf', 'chef-gold');
+      this.goldPedestal.item.setVisible(false);
+      this.goldPedestal.card();
       this.setFlag('has_gold_leaf');
       await this.dialog.show(DIALOGUES.d5);
       this.setObjective('bring the gold to the pass — yourself');
@@ -559,8 +588,7 @@ export default class ChefScene extends BaseLevel {
       .setDepth(60)
       .setStrokeStyle(2, 0xf2d580);
     if (this.orderLabel) this.orderLabel.destroy();
-    this.orderLabel = this.add
-      .text(this.passPoint.x, this.passPoint.y - 96, pick.id.toUpperCase(), { fontFamily: 'monospace', fontSize: '13px', color: '#f2d580' })
+    this.orderLabel = uiText(this, this.passPoint.x, this.passPoint.y - 96, pick.id.toUpperCase(), { fontSize: '13px', color: '#f2d580' })
       .setOrigin(0.5)
       .setDepth(60);
     // wave 2+: a decoy station glows — the icon is the truth
@@ -672,8 +700,8 @@ export default class ChefScene extends BaseLevel {
       this.tweens.add({ targets: b, y: px(29), alpha: 0, duration: 3000, repeat: -1, delay: (c % 3) * 700 });
     });
     // neon sign + posters in the alley
-    this.add.text(px(10), px(28), 'HOTEL MERIDIAN — DELIVERIES', { fontFamily: 'monospace', fontSize: '13px', color: '#8a4a4a' });
-    const neon = this.add.text(px(21), px(30), 'OPEN', { fontFamily: 'monospace', fontSize: '15px', color: '#e86a6a' });
+    uiText(this, px(10), px(28), 'HOTEL MERIDIAN — DELIVERIES', { fontSize: '13px', color: '#8a4a4a' });
+    const neon = uiText(this, px(21), px(30), 'OPEN', { fontSize: '15px', color: '#e86a6a' });
     this.tweens.add({ targets: neon, alpha: 0.2, duration: 900, yoyo: true, repeat: -1 });
   }
 
@@ -691,7 +719,7 @@ export default class ChefScene extends BaseLevel {
         : this.moments < 3
           ? 'You noticed a little.'
           : 'You noticed. Maybe that was the point.';
-    this.showCard(['Five stars.', '', 'Was it enough?', '', momentMsg, '', '[X] Return to Crossroads Station'], () => {
+    this.showCard(['Five stars.', '', 'Was it enough?', '', momentMsg, '', '[E] Return to Crossroads Station'], () => {
       music.stop();
       this.scene.start('Hub', { returnedFrom: 'chef' });
     });
@@ -770,6 +798,12 @@ export default class ChefScene extends BaseLevel {
     }
 
     this.updateMusicRoom(); // D7 room-driven mix
+    this.updatePickups(time, delta);
+    const want = this.carry ? [this.carry] : [];
+    if (want.join() !== this.satchel.join()) {
+      this.satchel = want;
+      this.updateSatchelHud();
+    }
     this.updateAlley(pb);
     this.updateDryStore(time);
     this.updateFreezer(time, dt, pb);
@@ -782,7 +816,7 @@ export default class ChefScene extends BaseLevel {
     // chocolate rivers
     for (const z of this.chocoZones) {
       if (overlaps(pb, z)) {
-        this.hurt();
+        this.hurt({ toSafe: true, source: 'chocolate' }); // knockback can't get him out of a river
         break;
       }
     }
@@ -790,11 +824,7 @@ export default class ChefScene extends BaseLevel {
     if (!this.service && !this.F.service_survived && this.F.has_gold_leaf && p.x > px(266) && p.y > px(20)) {
       this.startService();
     }
-    if (p.y > this.worldH + 60) {
-      p.setPosition(this.checkpoint.x, this.checkpoint.y);
-      p.setVelocity(0, 0);
-      this.hurt();
-    }
+    if (p.y > this.worldH + 60) this.fallOut();
   }
 
   updateAlley(pb) {
@@ -824,15 +854,14 @@ export default class ChefScene extends BaseLevel {
 
   updateFreezer(time, dt, pb) {
     const inZone = this.player.x > px(81) && this.player.x < px(131);
-    this.coldBar.setVisible(inZone);
-    this.coldBarBg.setVisible(inZone);
+    this.coldMeter.setVisible(inZone);
     if (inZone) {
       let drain = dt;
       if (this.heatLamp && Phaser.Math.Distance.Between(this.player.x, this.player.y, this.heatLamp.x, this.heatLamp.y) < 70) {
         drain = -dt * 6;
       }
       this.cold = Phaser.Math.Clamp(this.cold - drain, 0, this.coldMax);
-      this.coldBar.width = (this.cold / this.coldMax) * 90;
+      this.coldMeter.set(this.cold / this.coldMax);
       if (this.cold <= 0) {
         this.cold = this.coldMax * 0.6;
         this.hurt();
@@ -947,7 +976,7 @@ export default class ChefScene extends BaseLevel {
 
     if (this.rush && this.rush.active) {
       this.rush.left -= 0.016;
-      this.rushBar.width = Math.max(0, (this.rush.left / this.rush.total) * 300);
+      if (this.rushMeter) this.rushMeter.set(this.rush.left / this.rush.total);
       if (this.rush.left <= 0) {
         this.rush.left = this.rush.total;
         sfx('fail');

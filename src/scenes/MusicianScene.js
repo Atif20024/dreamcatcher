@@ -1,7 +1,10 @@
 import Phaser from 'phaser';
+import { attachStride } from '../art/stride.js';
+import { personBody } from '../art/baked.js';
 import Player from '../entities/Player.js';
 import BaseLevel from './BaseLevel.js';
 import { THEMES } from '../themes/index.js';
+import { lightThemeProps } from '../art/levelArt.js';
 import { M_DIALOGUES, M_MOMENTS, SONGS, noRests, ZONES, GROUND } from '../data/musicianData.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
 import Parallax from '../builders/parallax.js';
@@ -10,8 +13,12 @@ import musicianRooms from '../data/musician/rooms.js';
 import musicianTiles from '../data/musician/tiles.js';
 import Phrases from '../systems/rhythm.js';
 import { tuning, playTheRoom, theMix } from '../systems/puzzles.js';
-import { completeDream } from '../utils/save.js';
+import { completeDream, recordMoment, markMet, updateSave } from '../utils/save.js';
+import { addCoins } from '../systems/wallet.js';
 import { sfx, music, sting, trumpet, bassNote } from '../systems/audio.js';
+import { uiText } from '../ui/text.js';
+import { hud } from '../ui/hud.js';
+import { showTutorial } from '../play/Teach.js';
 
 const T = 32;
 const px = (t) => t * T + T / 2;
@@ -25,6 +32,7 @@ export default class MusicianScene extends BaseLevel {
   create() {
     this.theme = THEMES.musician;
     this.theme.createTextures(this);
+    lightThemeProps(this, ['mus-']);
 
     // D2/D3 — generic RoomBuilder terrain: autotiled, supported, with slopes,
     // stairs, one-ways and the climbable fire-escape wall.
@@ -41,11 +49,15 @@ export default class MusicianScene extends BaseLevel {
     this.solids = built.solids;
     this.oneWays = built.oneWays;
     this.slopeGrid = built.slopeGrid;
+    this.solidGrid = built.solidGrid;
     this.climbGrid = built.climbGrid;
 
     const spawn = { x: px(3), y: px(GROUND - 2) };
     this.player = new Player(this, spawn.x, spawn.y);
+    this.player.shadow.set({ tint: 0x05050f, alpha: 0.6 });
     this.player.keys = this.input.keyboard.addKeys('W,A,S,D,SPACE,X,E,Q,F');
+    this.dreamCoinId = 'musician';
+    markMet('musician');
     this.setupCommon({ worldW, worldH, levelName: 'DREAM — THE BIG STAGE', spawn });
 
     this.F = {};
@@ -67,9 +79,7 @@ export default class MusicianScene extends BaseLevel {
 
     this.flags = this.physics.add.staticGroup();
     this.orbs = this.physics.add.staticGroup();
-    built.objects
-      .filter((o) => o.type === 'checkpoint')
-      .forEach((c) => this.flags.create(c.wx, c.wy, 'flag'));
+    this.placeCheckpoints(built.objects);
 
     // D6 — the people of this dream (bouncer, hecklers, scalper, the Saltbox
     // manager, the roadies) run on the confrontation system. The abstract
@@ -77,6 +87,7 @@ export default class MusicianScene extends BaseLevel {
     this.initFoes('musician');
     this.spawnRoomFoes(built.objects, (o) => o.human);
     this.addHideSpots(built.objects);
+    this.spawnPickups(built.objects);
 
     this.buildGates();
     this.buildDay0();
@@ -95,40 +106,28 @@ export default class MusicianScene extends BaseLevel {
     this.physics.add.overlap(this.player, this.flags, (_p, f) => this.activateCheckpoint(f));
     this.physics.add.overlap(this.player, this.orbs, (_p, o) => this.catchOrb(o));
     this.physics.add.overlap(this.player, this.bottles, (_p, b) => {
+      const bx = b.x;
       b.destroy();
       this.addNerve(12);
-      this.hurt();
+      this.hurt({ sourceX: bx });
     });
-    this.physics.add.overlap(this.player, this.walkers, () => this.hurt());
+    this.physics.add.overlap(this.player, this.walkers, (_p, w) => this.hurt({ sourceX: w.x }));
     this.physics.add.overlap(this.player, this.wisps, () => this.addNerve(6));
 
     // HUD: breath + nerve + coins
-    this.breathBarBg = this.add.rectangle(28, 78, 90, 8, 0x2a2a34).setOrigin(0, 0.5).setScrollFactor(0).setDepth(150);
-    this.breathBar = this.add.rectangle(28, 78, 90, 8, 0x88b8d8).setOrigin(0, 0.5).setScrollFactor(0).setDepth(151);
-    this.nerveBar = this.add.rectangle(28, 90, 90, 8, 0xe86a6a).setOrigin(0, 0.5).setScrollFactor(0).setDepth(151).setVisible(false);
-    this.coinText = this.add
-      .text(126, 78, '', { fontFamily: 'monospace', fontSize: '13px', color: '#f2d580' })
-      .setOrigin(0, 0.5)
-      .setScrollFactor(0)
-      .setDepth(150);
-    this.promptText = this.add
-      .text(0, 0, '[E]', { fontFamily: 'monospace', fontSize: '13px', color: '#f2d580', backgroundColor: '#14101c' })
-      .setOrigin(0.5)
-      .setDepth(80)
-      .setVisible(false);
-    this.hintText = this.add
-      .text(this.cameras.main.width / 2, this.cameras.main.height - 24, '[Q] play · [E] interact/case · [F] call Nia', {
-        fontFamily: 'monospace',
-        fontSize: '11px',
-        color: '#6a6478',
-      })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(150);
+    // the tool slot, top-right (HudGrid): breath, and nerve during a gig
+    // breath and nerve are rows of the HUD grid's meter stack (§8)
+    this.breathMeter = hud.meter('breath', { label: 'BREATH', color: '#88b8d8', order: 0 });
+    this.nerveMeter = hud.meter('nerve', { label: 'NERVE', color: '#e86a6a', order: 1, visible: false });
+    this.coinText = this.hud.toolLine(0, '#f2d580');
+    this.promptText = hud.prompt(); // the HUD's interact prompt, pinned over the world point
+    this.hintText = { setText: (t) => this.hud.set('caption', t) };
+    this.hintText.setText('[Q] play · [E] interact/case · [F] call Nia');
 
     this.setObjective('get to The Blue Cellar');
     music.bass();
     this.time.delayedCall(900, async () => {
+      if (this.resuming && this.F.d0) return; // a continued run: already heard
       await this.dialog.show(M_DIALOGUES.d0);
       this.setFlag('d0');
     });
@@ -189,13 +188,14 @@ export default class MusicianScene extends BaseLevel {
     this.addInteract(x, y, 'pause', () => {
       const m = M_MOMENTS[id];
       this.moments += 1;
+      recordMoment('musician', id);
       this.setFlag(id);
       sfx('chime');
       this.player.controlLockUntil = this.time.now + 5000;
       this.player.body.setVelocity(0, 0);
       const cam = this.cameras.main;
-      const t1 = this.add.text(cam.width / 2, cam.height - 150, m.sub, { fontFamily: 'monospace', fontSize: '14px', color: '#c8c0b0' }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
-      const t2 = this.add.text(cam.width / 2, cam.height - 120, m.text, { fontFamily: 'monospace', fontSize: '17px', color: '#f2e0a0', fontStyle: 'italic' }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
+      const t1 = uiText(this, cam.width / 2, cam.height - 150, m.sub, { fontSize: '14px', color: '#c8c0b0' }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
+      const t2 = uiText(this, cam.width / 2, cam.height - 120, m.text, { fontSize: '17px', color: '#f2e0a0' }).setOrigin(0.5).setScrollFactor(0).setDepth(160).setAlpha(0);
       this.tweens.add({ targets: [t1, t2], alpha: 1, duration: 900 });
       this.time.delayedCall(5000, () => this.tweens.add({ targets: [t1, t2], alpha: 0, duration: 800, onComplete: () => [t1, t2].forEach((t) => t.destroy()) }));
     });
@@ -223,7 +223,6 @@ export default class MusicianScene extends BaseLevel {
   // ------- day builders -------------------------------------------------
 
   buildDay0() {
-    this.add.text(px(12), px(28), 'MERIDIAN JAZZ FESTIVAL — SAT\n     THE  BIG  STAGE', { fontFamily: 'monospace', fontSize: '15px', color: '#f2d580', align: 'center' }).setDepth(4);
     this.resonant(px(8), px(34), 'mus-lamp', () => {
       sfx('bell');
       this.floatText(px(8), px(33), 'the horn in the window rings back');
@@ -303,8 +302,9 @@ export default class MusicianScene extends BaseLevel {
   }
 
   spawnScalper(x) {
-    this.scalper = this.physics.add.image(x, px(34), 'npc-scalper').setDepth(12);
+    this.scalper = personBody(this.physics.add.image(x, px(34), 'npc-scalper').setDepth(12));
     this.scalper.state = 'lurk';
+    attachStride(this, this.scalper, 'npc-scalper'); // skulks, then sprints on the run frames
     this.physics.add.collider(this.scalper, this.solids);
   }
 
@@ -389,7 +389,7 @@ export default class MusicianScene extends BaseLevel {
       const ok = await playTheRoom(this);
       if (ok) {
         this.setFlag('ray_lesson');
-        this.floatText(px(206), px(33), 'from now on: rests are part of the phrase.\n(hollow icon = DON\'T play)');
+        showTutorial(this, 'rest_note');
         this.setObjective('the road — three towns');
       }
     }, { once: false, when: () => this.F.jam_done && !this.F.ray_lesson });
@@ -430,7 +430,7 @@ export default class MusicianScene extends BaseLevel {
     }
     this.addInteract(px(218), px(35), 'Riverside Pavilion', () => this.gigPavilion(), { once: false, when: () => this.F.ray_lesson && !this.F.pavilion_done });
     // saltbox
-    this.add.text(px(233), px(32), 'BAND CANCELLED\n   TV NIGHT', { fontFamily: 'monospace', fontSize: '13px', color: '#a05a4a' }).setDepth(6);
+    uiText(this, px(233), px(32), 'BAND CANCELLED\n   TV NIGHT', { fontSize: '13px', color: '#a05a4a' }).setDepth(6);
     this.dogCalmUntil = 0;
     this.dog = this.resonant(px(238), px(35), 'mus-walker', () => {
       this.dogCalmUntil = this.time.now + 10000;
@@ -455,6 +455,8 @@ export default class MusicianScene extends BaseLevel {
     this.addInteract(px(275), px(35), 'shelter under the bridge', async () => {
       const choice = await this.dialog.show(M_DIALOGUES.d8);
       this.F.marcus_left = choice || 'silent';
+      // the evening needs to know whether Marcus went home to his daughter
+      updateSave((sv) => (sv.cast.marcus_left = this.F.marcus_left));
       await this.dialog.show(M_DIALOGUES[`d8_${this.F.marcus_left}`]);
       this.setFlag('d8_done');
       if (this.F.marcus_left !== 'stay') {
@@ -462,6 +464,7 @@ export default class MusicianScene extends BaseLevel {
       }
     }, { once: false, when: () => this.F.saltbox_done && !this.F.d8_done });
     this.marcusRoad = this.add.image(px(273), px(35), 'npc-marcus').setDepth(10).setVisible(false);
+    attachStride(this, this.marcusRoad, 'npc-marcus');
     this.resonant(px(288), px(34), 'mus-phone', () => {
       sfx('bell');
       this.floatText(px(288), px(32), 'it rings. weirdly.\nno one answers.');
@@ -559,6 +562,7 @@ export default class MusicianScene extends BaseLevel {
     // roadies on the catwalk
     this.roadies = [334, 340].map((c) => {
       const r = this.add.image(px(c), px(27), 'foe-roadie').setDepth(12);
+      attachStride(this, r, 'foe-roadie');
       this.tweens.add({ targets: r, x: px(c + 3), duration: 2600, yoyo: true, repeat: -1 });
       return r;
     });
@@ -601,7 +605,13 @@ export default class MusicianScene extends BaseLevel {
 
   // ------- the gig runner ----------------------------------------------
 
-  runGig(opts) {
+  // the first gig teaches the form before the first bar plays
+  async runGig(opts) {
+    if (showTutorial(this, 'call_response')) {
+      await new Promise((res) => {
+        const ev = this.time.addEvent({ delay: 50, loop: true, callback: () => !this.tutorialActive && (ev.remove(), res()) });
+      });
+    }
     return new Promise((resolve) => {
       this.nerve = opts.keepNerve ? this.nerve : 0;
       this.gig = new Phrases(this, {
@@ -756,14 +766,16 @@ export default class MusicianScene extends BaseLevel {
 
     const qJust = Phaser.Input.Keyboard.JustDown(p.keys.Q);
     const qDown = p.keys.Q.isDown;
+    // the horn to his mouth while Q is held, or for the length of a gig
+    if ((qDown || this.gig) && p.body.blocked.down && Math.abs(p.body.velocity.x) < 20) p.anim.hold('play_trumpet');
+    else if (p.anim.held === 'play_trumpet') p.anim.release();
 
     // breath
     const drainRate = this.sustain ? 23 : this.inZone(231, 291) ? 55 : 28;
     if (qDown) this.breath = Math.max(0, this.breath - drainRate * dt);
     else this.breath = Math.min(100, this.breath + 50 * dt);
-    this.breathBar.width = (this.breath / 100) * 90;
-    this.nerveBar.setVisible(!!this.gig);
-    this.nerveBar.width = (this.nerve / 100) * 90;
+    this.breathMeter.set(this.breath / 100);
+    this.nerveMeter.setVisible(!!this.gig).set(this.nerve / 100);
     this.coinText.setText(this.inZone(86, 106) ? `¢ ${this.coins}/12` : '');
 
     if (qJust) {
@@ -816,6 +828,10 @@ export default class MusicianScene extends BaseLevel {
     // sound bridges
     for (const a of this.anchors) {
       const near = Phaser.Math.Distance.Between(p.x, p.y, a.x, a.y) < 150;
+      if (near && !this._bridgeTaught) {
+        this._bridgeTaught = true;
+        showTutorial(this, 'sound_bridge');
+      }
       if (near && qDown && this.breath > 5 && !p.body.onFloor()) {
         if (!a.bridge) {
           a.bridge = this.physics.add.image(a.x + a.dir * (a.len / 2), px(a.row) + 8, 'mus-beat').setImmovable(true);
@@ -880,6 +896,7 @@ export default class MusicianScene extends BaseLevel {
     }
 
     this.updateMusicRoom(); // D7 room-driven mix
+    this.updatePickups(time, delta);
     this.updateFoes(time); // D6 people: patrol / alert / grab / stagger
     this.updateBusking(time);
     this.updateHazards(time, pb, dt);
@@ -891,15 +908,11 @@ export default class MusicianScene extends BaseLevel {
     }
     // static wall touch
     if (this.staticActive && p.x < this.staticWall.x + 40 && this.inZone(345, 381)) {
-      this.hurt();
+      this.hurt({ sourceX: this.staticWall.x - 100 });
       p.x += 60;
     }
 
-    if (p.y > this.worldH + 60) {
-      p.setPosition(this.checkpoint.x, this.checkpoint.y);
-      p.setVelocity(0, 0);
-      this.hurt();
-    }
+    if (p.y > this.worldH + 60) this.fallOut();
   }
 
   updateBusking(time) {
@@ -914,6 +927,7 @@ export default class MusicianScene extends BaseLevel {
       this.pedNext = time + 4200;
       const isCop = Math.random() < 0.25;
       const ped = this.add.image(px(86), px(35), isCop ? 'npc-tally' : 'npc-sol').setDepth(9);
+      attachStride(this, ped, isCop ? 'npc-tally' : 'npc-sol');
       if (isCop) ped.setTint(0x88a8d8);
       ped.isCop = isCop;
       this.peds.push(ped);
@@ -924,6 +938,7 @@ export default class MusicianScene extends BaseLevel {
       // the kid
       if (!this.kid && this.coins >= 6 && !this.F.m2) {
         this.kid = this.add.image(px(88), px(35), 'npc-kid').setDepth(9);
+        attachStride(this, this.kid, 'npc-kid');
         this.tweens.add({ targets: this.kid, x: px(93), duration: 3000 });
         this.addInteract(px(93), px(35), 'play for her', async () => {
           const passes = await this.runGig({ phrases: [[1, 1, 1, 1]], bpm: 88, label: 'for the kid' });
@@ -952,6 +967,12 @@ export default class MusicianScene extends BaseLevel {
             if (passes > 0) {
               const got = 1 + Math.floor(Math.random() * 2);
               this.coins += got;
+              if (got > 0) {
+                addCoins('musician', got); // busking pays the wallet too
+                this.levelCoins += got;
+                this.coinsSinceCP += got;
+                this.updateCoinHud();
+              }
               sfx('pickup');
               this.floatText(this.caseDown ? this.caseDown.x : this.player.x, this.player.y - 40, `+${got}¢`);
             }
@@ -1108,7 +1129,8 @@ export default class MusicianScene extends BaseLevel {
     const present =
       (this.F.met_nia && this.inZone(151, 291)) || (this.F.choice === 'nia' && this.inZone(326, 400) && this.F.set_done !== undefined);
     if (present && !this.nia) {
-      this.nia = this.physics.add.image(this.player.x - 40, this.player.y - 10, 'npc-nia').setDepth(11);
+      this.nia = personBody(this.physics.add.image(this.player.x - 40, this.player.y - 10, 'npc-nia').setDepth(11));
+      attachStride(this, this.nia, 'npc-nia');
       this.physics.add.collider(this.nia, this.solids);
     } else if (!present && this.nia) {
       this.nia.destroy();
@@ -1144,7 +1166,7 @@ export default class MusicianScene extends BaseLevel {
     if (this.F.choice === 'tally') lines.push('', "You didn't rush the third bar. Nobody was listening for it.");
     if (this.F.choice === 'nia') lines.push('', 'Somebody was listening for the third bar.');
     if (this.F.marcus_left === 'stay') lines.push('', 'Marcus drove home Sunday. He kept the napkin.');
-    lines.push('', '[X] Return to Crossroads Station');
+    lines.push('', '[E] Return to Crossroads Station');
     this.showCard(lines, () => {
       music.stop();
       this.scene.start('Hub', { returnedFrom: 'musician' });

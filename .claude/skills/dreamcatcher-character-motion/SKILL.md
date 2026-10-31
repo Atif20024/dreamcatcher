@@ -8,27 +8,15 @@ description: How to build and animate every character in the Dreamcatcher game (
 People in this game must look like they have weight, joints, and intent. The old cinematic platformers got that with rotoscoped frames; we get it with a **paper-doll rig** built from string-art parts, a fixed vocabulary of key poses, and one hard rule: **feet never slide.** Read `references/walk-run-tables.md` for the per-frame pose tables and `references/pose-examples.md` for drawn reference poses before authoring any cycle.
 
 ## 1. The rig (how every character is built)
-A character is not one grid. It is `src/data/rigs/<name>.js`:
-```js
-export default {
-  size: [20, 40],          // 1× chars; rendered at 2× → 40×80 px, 2.5 tiles tall (16-bit action-game scale)
-  origin: [10, 39],         // feet anchor (bottom-center); Phaser origin (0.5, 1)
-  palette: { H: hat, s: skin, e: eye, J: 'jo-blue', p: pants, b: boots, X: 'hazard-red' /* foes only */ },
-  parts: {
-    head:   { base: [...grid], variants: { look_down, look_up, wince } },
-    torso:  { base, variants: { lean_fwd, lean_back, crouch } },
-    arm_b:  { base, variants: { swing_fwd, swing_back, bent_fwd, bent_back, up, reach } },  // back arm (drawn first)
-    arm_f:  { ...same },                                                                    // front arm (drawn last)
-    leg_b:  { base, variants: { fwd_straight, fwd_bent, back_straight, back_bent, pass, crouch } },
-    leg_f:  { ...same },
-    extras: { hat, tool, case, cloth }                                                       // secondary-motion layers
-  },
-  frames: { walk: [ { leg_f:'fwd_straight', leg_b:'back_bent', arm_f:'swing_back', arm_b:'swing_fwd', torso:'base', head:'base', dy:0, dx:0 }, ... ] }
-}
-```
-`Rig.compose(rig, frameSpec)` stacks parts in draw order (arm_b → leg_b → torso → leg_f → head → arm_f → extras) at each part's anchor + offset into one string grid, and `scripts/build-atlas.js` rasterizes every frame into the character's PNG atlas + JSON at build time (Part D §D11); the runtime loads the atlas, never the grids. Imported PNG sheets are allowed if they pass the same proportion, shading, and telegraph reviews — declare them in `art-src/imported/<pack>/manifest.json`. Facing is `scaleX = -1`; art is authored facing right.
+Since phase 2 the rig is real code. A character is three files plus a manifest:
+- `src/data/rigs/<id>.js` — palette (≤ 16 letters + outline), tone **families** `[hi, base, shade, deep]` (jacket, pants, skin, boot, hat…), **metrics** and **parts**: string grids for head variants, hat, torso variants, boots (`flat heel toe point lift`), hands. Limbs are not grids: the shared skeleton (`src/art/rig/human.js`) draws thigh/shin/upper arm/forearm as **shaded capsules** (lit edge up-left, shade edge down-right, far limbs one tone darker, a deep-tone inner line where a near limb crosses its own material).
+- `src/data/rigs/<id>.poses.js` — `POSES[anim] = [pose…]`. A pose is numbers: `hips` (+ up), `hx`, `lean`, `chest` (breath), `head`/`headDy` (head lag), `fF`/`fB` feet `[x from hip, height above ground, boot]` solved by 2-bone IK (knees bend forward), `aF`/`aB` arms `[shoulder angle from down, + forward; elbow bend]` by FK, `handF/handB`, `hat` (`false`, or `{dx, dy, q}`), `rot` (+ `rotPivot`, for falls/KO), `torso`.
+- `src/data/rigs/<id>.portrait.js` — the dialogue face (32×32 drawn 3×) with expression patches.
+- `src/art/characters/<id>/manifest.js` — scale, frame/anchor, outfits, portraits, and per animation `{ fps | mode:'stride', step, loop, next, fallback, events }` (validated by `src/core/manifest.js`; a bad manifest fails the build).
 
-**Proportions (1× chars, humans, 20×40):** hat/hair 5, face 6, neck 1, torso 11 (shoulders 12 wide, waist 8), belt 1, legs 16 (thigh 7, shin 7, foot 2, boot sole 1). Big characters (bouncer, roadie) are 24×44 with torso +4 wide; kids are 14×28 with head 9 (big head, short legs). **Legs are always ≥ 40% of height** — that is what makes gaits readable. Standard rooms need **3 tiles of headroom**; the room lint enforces it. See `references/pose-examples.md` for a shaded 20×40 Jo to calibrate against.
+`scripts/build-atlas.js` (`npm run atlas`; also runs before `dev`/`build` when inputs changed) composes every pose → letter grid → shaded, outlined RGBA, trims it, and packs `public/atlas/<id>.png/.json` with the **foot anchor as each frame's pivot**; the hat is its own frame (`…/NN/hat`) so it lags a frame and takes the shop tint; attach points (`hand_f`, `head`, `mouth`…) and planted-foot contacts go to `public/atlas/index.json`. Frame names: `<id>/<outfit>/side/<anim>/<NN>`, portraits `<id>/portrait/<expr>` (alias `portrait-<id>[-expr]`). The runtime never reads grids: `BootScene` loads the atlases and `AnimationController` (`src/art/AnimationController.js`) plays them. Outside art goes through `art-src/imported/<pack>/manifest.json` (licence required; credits → `public/CREDITS.txt`). Art is authored facing right; facing is `flipX` (the pivot makes it flip about the feet).
+
+**Size (owner decision, phase 2): Jo is about 82 px tall on screen** — authored 1× on a 64×64 work canvas (≈41 rows from hat crown to sole) and baked at **2×**. Rows: hat 5, face 7, neck 1, torso 11 (incl. belt and trouser top), legs 17 (thigh 8, shin 8, boot 2–3). **Legs ≥ 40% of height** (17/41). Humans in the same scale class use the same metrics; kids/big bodies change metrics, not the skeleton. Tiles are 32 px, so a standing human needs **3 clear tiles (96 px)**; `npm run lint:content` reports every 2-tile span as headroom work. Until phase 3/5 rebuilds the rooms, Jo keeps the legacy 24×44 body and **ducks (crouch art) under any ceiling lower than his drawing**.
 
 ## 1b. Detail & shading (characters must look like 16-bit action-game sprites, not icons)
 Every part is drawn with these rules, and the sheet review rejects anything flatter:
@@ -41,11 +29,7 @@ Every part is drawn with these rules, and the sheet review rejects anything flat
 - **Foes read at a glance:** distinct silhouette (helmet/hat shape, body mass), a signature color block (never Jo's `J` blue), and the `X`-red eye glint on alert; groups of the same foe share a palette but vary one accessory letter so a line of three never looks cloned.
 
 ## 2. Ground speed lock (the no-slide rule)
-For any cycle with N frames and stride S (px a planted foot travels backward relative to the hips per half-cycle):
-```
-animation fps = moveSpeed × N / (2 × S)       // all at 1× px
-```
-Set the fps **every frame** from the body's actual `velocity.x`, not from a constant. Below 8 fps blend to idle. Standard values: walk S=10, N=8; run S=16, N=8; sneak S=6, N=8; big-guy walk S=12, N=12. If a foot's contact pixel moves relative to the ground in the rendered sheet, the cycle is wrong — fix the art, not the fps.
+Stride animations advance **by ground covered, not by the clock**: the manifest's `step` is the 1× px the body travels per frame, and the pose table moves a planted foot back by exactly `step` per frame. The controller adds `|dx| / scale / step` to the phase each tick (equivalent to `fps = speed × N / (2 × S)` with `S = step × N/2`). Jo's values (2× scale, game speed 280 px/s): **walk step 3** (contacts +7,+4,+1,−2… 1×; used below 110 px/s), **jog step 7** (110–240 px/s, the Evening's 215), **run step 7** (two contact frames per foot, two airborne; 20 fps at full speed), crouch-walk 3, climb 4 (vertical). The build marks contacts on `sheets/<id>-<anim>.png` (red ticks) and `tests/characters.test.js` checks the walk table; the `jo-foot-slide` harness scenario checks in play that the planted foot's world x at each frame boundary drifts < 2 px. If a foot slides, fix the pose table or the step, never the fps.
 
 ## 3. The four key poses (every walk and run is built from these, mirrored)
 1. **Contact** — legs widest, front heel down, back toe down; hips at 0; arms at maximum opposite swing.
@@ -105,7 +89,7 @@ NPCs: `idle (with fidgets) → face_jo (turn) → talk (head nods on punctuation
 ## 7. Authoring workflow (do this every time)
 1. Write or extend the rig file: parts first, each variant a small grid with an anchor comment.
 2. Fill `frames.<anim>` from the tables in `references/walk-run-tables.md`; do not freehand a cycle.
-3. Run `node scripts/sheet.js <rig> <anim>` — it composes every frame and writes `sheets/<rig>-<anim>.png` as a strip plus an onion-skin image. **Look at it.** Check: feet contact pixels line up frame to frame; hips bob −1/0/+1; arms opposite legs; silhouette readable at 2×.
+3. Run `npm run atlas` — it composes every frame and writes `sheets/<rig>-<anim>.png` (the strip at game scale on a ground line with 32 px tile ticks, contact marks, and an onion skin in the last cell), plus `sheets/<rig>-overview.png` and `sheets/<rig>-portraits.png`. **Look at it.** Check: feet contact pixels line up frame to frame; hips bob −1/0/+1; arms opposite legs; silhouette readable at 2×.
 4. Wire the state machine transition and the footstep/hit events.
 5. Play it against a tiled floor at three speeds; if the feet slip, adjust S in the rig, not fps.
 

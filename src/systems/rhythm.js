@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { sfx, trumpet } from './audio.js';
+import { uiText } from '../ui/text.js';
 
 // Call & Response engine. A phrase is an array of beats: 1 = play a note,
 // 0 = rest (do NOT play). Flow per phrase: one LISTEN bar (icons pulse with
@@ -32,8 +33,7 @@ export default class Phrases {
     const cam = scene.cameras.main;
     this.ui = scene.add.container(cam.width / 2, 96).setScrollFactor(0).setDepth(170);
     this.bg = scene.add.rectangle(0, 0, 360, 76, 0x14101c, 0.85).setStrokeStyle(2, 0x8a8aa8);
-    this.label = scene.add
-      .text(0, -26, opts.label || '', { fontFamily: 'monospace', fontSize: '12px', color: '#c8c0b0' })
+    this.label = uiText(scene, 0, -26, opts.label || '', { fontSize: '12px', color: '#c8c0b0' })
       .setOrigin(0.5);
     this.cursor = scene.add.rectangle(0, 8, 4, 40, 0xf2d580).setVisible(false);
     this.ui.add([this.bg, this.label, this.cursor]);
