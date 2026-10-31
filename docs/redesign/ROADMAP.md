@@ -27,6 +27,7 @@ Updated 2026-10-29 after the owner's change of direction. The owner's words over
 - Gambler: THE LAST HAND aboard the *Lantern Queen*, 1884, on platform 7 (SHOWDOWN, the slate, TILT, standing up as the catch). See `round2/GAMBLER_REPORT.md`.
 - Audio pass: a master chain, a band per place, ambience, chatter and acoustics.
 - The game fills the browser window.
+- Touch controls for phones and tablets: a d-pad, JUMP, E, X, Q and pause, drawn in the game's style. They press the same keys as the keyboard. Menus, choices, dialogue and the tables take taps. Holding a phone upright shows a "turn your phone sideways" card. Desktop is unchanged; `?touch=1` turns the controls on for testing. See `round2/TOUCH_REPORT.md`.
 
 ## In progress
 - (done) Room transitions: dips through dark at real doorways; see round2/TRANSITIONS_REPORT.md. Legacy scenes still blend until rebuilt.

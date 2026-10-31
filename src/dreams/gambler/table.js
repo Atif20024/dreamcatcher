@@ -16,6 +16,7 @@ import { playTone } from '../../systems/audio.js';
 import { RULES, TELLS } from '../../engines/showdown.js';
 import { FARO_RANKS } from '../../engines/faro.js';
 import { LOU_TIPS } from './dialogue.js';
+import { addTapZone } from '../../input/touchTaps.js';
 
 const RANK_LABEL = ['', '', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 const D = 160; // UI depth (adopted by the UI scene: never zoomed)
@@ -130,6 +131,25 @@ function options(ui, items, cursor, y, { active = true } = {}) {
   });
 }
 
+// the options row's hit rects (touch screens): one slot per verb, the
+// same slots options() draws in
+function optionRects(n, y) {
+  const slot = (PW - 40) / n;
+  return Array.from({ length: n }, (_, i) => ({ x: PX + 20 + slot * i, y: y - 10, w: slot, h: 36 }));
+}
+
+// walk an engine's cursor to `want` with its own moves (so a tilted table
+// still creeps, disabled verbs are still skipped), at most `n` steps
+function cursorTo(engine, read, want, n, dirs = ['left', 'right']) {
+  for (let k = 0; k < n && read() !== want; k++) engine.move(read() > want ? dirs[0] : dirs[1]);
+  return read() === want;
+}
+
+// a tap anywhere on the panel (touch screens), routed by the presenter
+function panelTaps(scene, onTap) {
+  return addTapZone(scene, { rects: () => [{ x: PX, y: PY, w: PW, h: PH }], slop: 0, onTap: (i, x, y) => onTap(x, y) });
+}
+
 // ---- the gangway slate -------------------------------------------------------
 export function slatePresenter(scene, def, engine) {
   const ui = stage(scene);
@@ -158,6 +178,22 @@ export function slatePresenter(scene, def, engine) {
     if (st.confirm) ui.g.lineStyle(2, 0xe9b84a, 1).strokeRoundedRect(PX + 556, btnY - 5, 112, 26, 3);
     ui.text(PX + 24, PY + 170, '[UP][DOWN] row  [LEFT][RIGHT] number  [E] next', { color: DIM });
   };
+  // touch: a row's label picks the row, the left / right of its number
+  // steps it, CHALK IT (picked, then tapped again) sets the slate
+  const offTap = panelTaps(scene, (x, y) => {
+    const st = engine.state();
+    const n = st.rows.length;
+    let row = -1;
+    for (let i = 0; i < n; i++) if (y >= PY + 44 + i * 32 && y < PY + 76 + i * 32 && x < PX + 540) row = i;
+    if (y >= PY + 150 && x >= PX + 548) row = n;
+    if (row < 0) return;
+    if (st.row !== row) {
+      cursorTo(engine, () => engine.state().row, row, n + 1, ['up', 'down']);
+      return;
+    }
+    if (row === n) engine.press();
+    else if (x >= PX + 290) engine.move(x < PX + 356 ? 'left' : 'right');
+  });
   return {
     enter(st) {
       hud.set('context', '');
@@ -173,6 +209,7 @@ export function slatePresenter(scene, def, engine) {
       return new Promise((res) => scene.time.delayedCall(200, res));
     },
     destroy() {
+      offTap();
       ui.destroy();
     },
   };
@@ -222,6 +259,23 @@ export function faroPresenter(scene, def, engine) {
     ui.text(PX + 24, PY + 160, line, { color: st.phase === 'show' && l && l.kind === 'win' ? ACC : INK });
   };
   const at0 = engine.state().now;
+  // touch: a card on the layout picks it; a bet is picked, then played by
+  // a second tap; while the cards show, a tap moves on
+  const offTap = panelTaps(scene, (x, y) => {
+    const st = engine.state();
+    if (st.phase !== 'choose') return engine.press();
+    if (y >= PY + 38 && y < PY + 104 && x < PX + 588) {
+      const j = Math.max(0, Math.min(12, Math.floor((x - PX - 28) / 42)));
+      if (st.row !== 0) engine.move('up');
+      cursorTo(engine, () => engine.state().card, j, 13);
+      return;
+    }
+    const i = optionRects(st.actions.length, PY + 120).findIndex((r) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
+    if (i < 0 || !st.actions[i].enabled) return;
+    if (st.row === 1 && st.pick === i) return engine.press();
+    if (st.row !== 1) engine.move('down');
+    cursorTo(engine, () => engine.state().pick, i, st.actions.length);
+  });
   return {
     enter(st) {
       hud.set('context', '');
@@ -242,6 +296,7 @@ export function faroPresenter(scene, def, engine) {
       return new Promise((res) => scene.time.delayedCall(result && result.ok ? 700 : 200, res));
     },
     destroy() {
+      offTap();
       if (scene.F.purse) delete scene.F.purse.atBank;
       ui.destroy();
     },
@@ -288,6 +343,16 @@ export function showdownPresenter(scene, def, engine, ctx) {
   const F = scene.F;
   const P = F.purse;
   const flag = def.flag || null;
+  // touch: a verb is picked by a tap and played by a second (the cursor is
+  // the table's own: tilted, it still creeps); in a reveal, a tap deals on
+  const offTap = panelTaps(scene, (x, y) => {
+    const st = engine.state();
+    if (st.phase !== 'decide') return engine.press('act');
+    const i = optionRects(st.menu.length, PY + 138).findIndex((r) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
+    if (i < 0 || !st.menu[i].enabled) return;
+    if (st.cursor === i) engine.press('act');
+    else cursorTo(engine, () => engine.state().cursor, i, st.menu.length);
+  });
   const draw = (st) => {
     const k = JSON.stringify([st.phase, st.hand, st.cursor, st.tilted, st.won, !!st.last]);
     if (k === sig) return;
@@ -413,6 +478,7 @@ export function showdownPresenter(scene, def, engine, ctx) {
         P.won += L.won - led0.won;
         P.lost += L.lost - led0.lost;
       }
+      offTap();
       world.destroy();
       coin.destroy();
       ui.destroy();

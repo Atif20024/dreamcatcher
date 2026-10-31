@@ -11,7 +11,7 @@
 //
 // Everything is at zoom 1 on the UI camera, so nothing here scales with the
 // world camera. Profiles: 'default', 'hub' (no hearts), 'none' (hidden).
-import { hud, SLOTS, TOOL_BARS, fitToBudget } from './hud.js';
+import { hud, SLOTS, TOOL_BARS, fitToBudget, hudInsets } from './hud.js';
 import { uiText, PLATE } from './text.js';
 
 // HUD lines drawn on a quiet plate (no brass line)
@@ -172,7 +172,7 @@ export default class HudGrid {
     this.hearts.forEach((img, i) => {
       const tex = h.texture && this.ui.textures.exists(h.texture) ? h.texture : 'heart';
       if (this.ui.textures.exists(tex) && img.texture.key !== tex) img.setTexture(tex);
-      img.setPosition(SLOTS.hearts.x + i * 28, SLOTS.hearts.y).setAlpha(i < h.n ? 1 : 0.25);
+      img.setPosition(SLOTS.hearts.x + (hudInsets.left || 0) + i * 28, SLOTS.hearts.y).setAlpha(i < h.n ? 1 : 0.25);
     });
 
     const setLine = (key, value) => {
@@ -212,7 +212,13 @@ export default class HudGrid {
       if (s.caption) this.ui.tweens.add({ targets: cap, alpha: 0, delay: 9000, duration: 1200 });
     }
     setLine('caption', modal ? '' : s.caption);
-    setLine('footer', modal ? '' : s.footer);
+    setLine('footer', modal || !hudInsets.footer ? '' : s.footer);
+    // touch controls (hudInsets): the left column moves right of the pause
+    // button, the bottom-left line up over the d-pad (all 0 on desktop)
+    const L = hudInsets.left || 0;
+    this.texts.level.setX(SLOTS.level.x + L);
+    this.texts.shards.setX(SLOTS.shards.x + L);
+    this.texts.context.setPosition(SLOTS.context.x, hudInsets.contextBottom == null ? SLOTS.context.y : Math.min(SLOTS.context.y, hudInsets.contextBottom));
 
     // the goal line wraps to two lines; a third is cut
     const obj = this.texts.objective;

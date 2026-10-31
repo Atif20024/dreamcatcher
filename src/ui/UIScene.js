@@ -7,6 +7,8 @@ import Phaser from 'phaser';
 import { UI, UI_KEY, flushPending, ownerScene } from './ui.js';
 import { ensureFonts } from './BitmapFonts.js';
 import HudGrid from './HudGrid.js';
+import { enableTouch } from './TouchControls.js';
+import { touchState } from '../input/touchState.js';
 
 export default class UIScene extends Phaser.Scene {
   constructor() {
@@ -20,6 +22,8 @@ export default class UIScene extends Phaser.Scene {
     this.cameras.main.setZoom(1).setScroll(0, 0);
     this.cameras.main.transparent = true;
     this.hudGrid = new HudGrid(this);
+    // phones and tablets: the on-screen buttons (src/ui/TouchControls.js)
+    if (touchState.on) enableTouch(true, this);
     flushPending();
     this.scene.bringToTop();
     this.events.once('shutdown', () => {
@@ -42,5 +46,6 @@ export default class UIScene extends Phaser.Scene {
     }
     if (cam.alpha !== a) cam.setAlpha(a);
     this.hudGrid.update();
+    if (touchState.controls) touchState.controls.update();
   }
 }

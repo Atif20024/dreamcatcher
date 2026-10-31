@@ -4,6 +4,9 @@ import ModalManager from '../ui/ModalManager.js';
 import { uiText, CONVERSATION_SCALE } from '../ui/text.js';
 import { resolveArt } from '../art/baked.js';
 import { panel, drawPanel } from '../ui/Panel.js';
+import { pickRect } from '../input/touchLayout.js';
+import { rectOf } from '../input/touchTaps.js';
+import { touchState } from '../input/touchState.js';
 
 // Bottom-screen dialogue with letterbox bars, portrait, name tag and
 // typewriter text (40 cps). Advance with X/E/Space. scene.dialogActive
@@ -32,7 +35,7 @@ export default class DialogueBox {
       this.active = true;
       s.dialogActive = true;
       // one modal among the others (ModalManager): keys only while on top
-      this.handle = ModalManager.for(s).open({ kind: 'dialogue', freeze: 'physics', onKey: (e) => this.keyHandler && this.keyHandler(e) });
+      this.handle = ModalManager.for(s).open({ kind: 'dialogue', freeze: 'physics', onKey: (e) => this.keyHandler && this.keyHandler(e), tap: (x, y) => this.tap(x, y) });
       const add = (o) => this.handle.add(o);
 
       const depth = 200;
@@ -49,7 +52,7 @@ export default class DialogueBox {
           .setScrollFactor(0)
           .setDepth(depth + 1)
       );
-      this.hint = add(uiText(s, cam.width - 40, boxY + boxH / 2 - 12, '[E] ▼', { size: 'small', color: 'ink-dim' }).setOrigin(1, 1).setScrollFactor(0).setDepth(depth + 1));
+      this.hint = add(uiText(s, cam.width - 40, boxY + boxH / 2 - 12, touchState.on ? 'tap ▼' : '[E] ▼', { size: 'small', color: 'ink-dim' }).setOrigin(1, 1).setScrollFactor(0).setDepth(depth + 1));
       this.portrait = add(s.add.image(88, boxY, '__WHITE').setScrollFactor(0).setDepth(depth + 1).setVisible(false));
 
       this.entries = entries;
@@ -82,6 +85,19 @@ export default class DialogueBox {
         if (['KeyX', 'KeyE', 'Space'].includes(e.code)) this.advance();
       };
     });
+  }
+
+  // a tap (touch screens): on a choice, that choice; anywhere else, the
+  // confirm key (finish the line, the next line, close)
+  tap(x, y) {
+    if (!this.keyHandler) return;
+    if (this.choosing) {
+      const i = pickRect(this.choiceTexts.map((t) => rectOf(t, 4, 26)), x, y, 16);
+      if (i < 0) return;
+      this.choiceIdx = i;
+      this.renderChoices();
+    }
+    this.keyHandler({ code: 'KeyX' });
   }
 
   renderChoices() {

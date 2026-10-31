@@ -30,6 +30,10 @@ class ModalHandle {
     this.priority = spec.priority ?? PRIORITY[this.kind] ?? 20;
     this.freeze = spec.freeze || 'physics';
     this.onKey = spec.onKey || null;
+    // touch screens: (x, y) in game px, the modal's own answer to a tap
+    // (a menu row, a choice). Without one, a tap on a dialogue, card or
+    // tutorial is its confirm key (src/ui/TouchControls.js).
+    this.tap = spec.tap || null;
     this.onClose = spec.onClose || null;
     this.onShow = spec.onShow || null;
     this.guardMs = spec.guardMs || 0;
@@ -123,6 +127,18 @@ export default class ModalManager {
     this.stack.splice(i, 0, h);
     this._refresh();
     return h;
+  }
+
+  // a tap for the top modal (touch screens). 'guarded' inside its guardMs,
+  // 'taken' when the modal answered it, 'default' when it has no tap of
+  // its own (the caller presses its confirm key), null with no modal
+  tapTop(x, y) {
+    const t = this.top;
+    if (!t) return null;
+    if (this.now() - t.topSince < t.guardMs) return 'guarded';
+    if (!t.tap) return 'default';
+    t.tap(x, y);
+    return 'taken';
   }
 
   _remove(h) {

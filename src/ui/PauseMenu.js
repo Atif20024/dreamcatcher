@@ -21,6 +21,8 @@ const NAV_RIGHT = ['ArrowRight', 'KeyD'];
 import ModalManager from './ModalManager.js';
 import { uiText } from './text.js';
 import { drawPanel, dim } from './Panel.js';
+import { pickRect } from '../input/touchLayout.js';
+import { rectOf } from '../input/touchTaps.js';
 
 export default class PauseMenu {
   constructor(scene, { depth = 260 } = {}) {
@@ -54,6 +56,7 @@ export default class PauseMenu {
       freeze: 'world',
       clears: death ? ['tutorial'] : [],
       onKey: (e) => this._key(e),
+      tap: (x, y) => this._tap(x, y),
       onClose: () => {
         if (this.handle === h) {
           this.handle = null;
@@ -129,6 +132,19 @@ export default class PauseMenu {
       if (it && it.adjust) it.adjust(NAV_LEFT.includes(e.code) ? -1 : 1, this);
     }
     else if (e.code === 'Escape' && this.canClose) this.close(true);
+  }
+
+  // a tap (touch screens): the row under the finger is chosen; a slider
+  // row steps down on its left half and up on its right half
+  _tap(x, y) {
+    if (!this.isOpen || this.scene.time.now < this.guardUntil) return;
+    const i = pickRect((this.itemTexts || []).map((t) => rectOf(t, 6, 34)), x, y, 18);
+    if (i < 0) return;
+    this.idx = i;
+    this._renderItems();
+    const it = this.items[i];
+    if (it && it.adjust) it.adjust(x < this.scene.cameras.main.width / 2 ? -1 : 1, this);
+    else this._choose();
   }
 
   _move(d) {

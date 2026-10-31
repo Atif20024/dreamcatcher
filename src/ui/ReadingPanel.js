@@ -66,6 +66,9 @@ export class ReadingPanel {
       freeze, // ('none' when the host has already frozen its world)
       guardMs: 250,
       onKey: (e) => this._key(e),
+      // a tap (touch screens): the left third turns back a page, anywhere
+      // else the next page (or closes on the last)
+      tap: (x) => (x < s.cameras.main.width / 3 && this.page > 0 ? this._key({ code: 'ArrowLeft' }) : this.next()),
       onClose: () => {
         if (this.handle === h) {
           this.handle = null;

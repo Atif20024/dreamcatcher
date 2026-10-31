@@ -252,6 +252,16 @@ class HudModel {
 
 export const hud = new HudModel();
 
+// Touch controls (src/ui/TouchControls.js) take the screen's corners: the
+// HUD's left column starts right of the pause button, the bottom-left line
+// sits over the d-pad and the footer's key hints go. All zero on desktop.
+export const HUD_INSETS_NONE = Object.freeze({ left: 0, contextBottom: null, footer: true });
+export const hudInsets = { ...HUD_INSETS_NONE };
+export function setHudInsets(next = HUD_INSETS_NONE) {
+  Object.assign(hudInsets, HUD_INSETS_NONE, next);
+  hud.v++;
+}
+
 // cut a value to a slot's budget: measure(text) → px width at 1× scale
 export function fitToBudget(key, text, measureLine) {
   const slot = SLOTS[key];
