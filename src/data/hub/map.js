@@ -60,7 +60,9 @@ export function buildHubMap() {
   fill(rows, 8, 25, 62, 62, 'H');
   // the roof walkway (train-shed roof), open at the hatch
   fill(rows, 8, 8, 24, 61, '#');
-  fill(rows, 8, 8, 63, 162, '#');
+  // (on to the station's east end: there is no edge past the gate to step
+  // off into the gap behind it)
+  fill(rows, 8, 8, 63, W - 1, '#');
   // clock tower above the steps, a bridge from it onto the walkway, and a
   // brass canopy over the doors that catches anyone who steps off it
   fill(rows, 4, 8, 12, 17, '#');
@@ -86,6 +88,10 @@ export function buildHubMap() {
   // --- the service gate ---------------------------------------------------
   fill(rows, 12, 25, 163, 164, 'G');
   fill(rows, 9, 11, 163, 164, '#'); // lintel
+  // the station's east end wall, behind the gate, from the leads down to
+  // the earth. It used to stop at the roof, leaving a two-tile shaft behind
+  // the gate: a drop off the roof's end landed in it with no way out.
+  fill(rows, 9, 27, 165, 166, '#');
 
   return rows;
 }

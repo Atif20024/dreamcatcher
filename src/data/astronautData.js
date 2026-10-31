@@ -42,17 +42,23 @@ export function buildAstroMap() {
   stairs(rows, GROUND, 59, 5, 'l');
   fill(rows, 27, 27, 40, 44, '=');
   fill(rows, 27, 27, 48, 52, '='); // high line over the track (hard route)
-  // the Pool: a basin carved through the crust; deep end to the right
-  fill(rows, GROUND, 43, 63, 84, '.');
-  fill(rows, 36, 41, 63, 84, '~');
-  fill(rows, 42, 43, 63, 84, '#'); // pool floor
-  fill(rows, 36, 39, 74, 75, '#'); // the mid-wall hangs from the surface: swim UNDER it
-  fill(rows, 40, 43, 79, 80, '.'); // the deep-end shaft (lights off, the locker)
-  fill(rows, 44, 49, 78, 84, '~');
-  fill(rows, 40, 43, 79, 80, '~');
-  fill(rows, 50, 50, 77, 85, '#');
-  fill(rows, 44, 49, 77, 77, '#');
-  fill(rows, 44, 49, 85, 85, '#');
+  // the Pool: a basin carved through the crust; deep end to the right.
+  // At Jo's scale (1 m = 44 px): 8 tiles of water is 5.8 m, a diving-pool
+  // depth, so a 2 m hoop sits under the surface with room round it.
+  fill(rows, GROUND, 45, 63, 84, '.');
+  fill(rows, 36, 43, 63, 84, '~');
+  fill(rows, 44, 45, 62, 85, '#'); // pool floor
+  fill(rows, 40, 43, 62, 62, '#'); // the basin's walls, under the deck's crust
+  fill(rows, 40, 43, 85, 85, '#');
+  // the mid-wall hangs 2.9 m from the surface: swim UNDER it, through a
+  // 2.9 m gap with the third hoop in it
+  fill(rows, 36, 39, 74, 75, '#');
+  // the deep-end shaft through the floor (lights off, the locker)
+  fill(rows, 44, 45, 79, 80, '~');
+  fill(rows, 46, 51, 78, 84, '~');
+  fill(rows, 52, 52, 77, 85, '#');
+  fill(rows, 46, 51, 77, 77, '#');
+  fill(rows, 46, 51, 85, 85, '#');
   // the Wall: a climbing wall with crumbling holds, bell platform on top
   fill(rows, 22, 35, 92, 92, '|');
   // crumbling holds: staggered one-tile ledges, three rows up, two across

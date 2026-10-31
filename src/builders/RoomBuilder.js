@@ -129,7 +129,9 @@ export default class RoomBuilder {
         }
         if (role === 'liquid') {
           scene.add.rectangle(cx, cy, T, T, theme.liquid || 0x4a2c1a, 0.9).setDepth(D.TERRAIN);
-          scene.add.rectangle(cx, cy - 10, T, 6, theme.liquidTop || 0x6a4028, 0.9).setDepth(D.LIQUID_TOP);
+          // the lit band is the surface: only under open air (not under a wall
+          // hung in it; on every tile it read as stripes 0.7 m apart)
+          if (roleOf(charAt(tx, ty - 1)) !== 'liquid' && !solidAt(tx, ty - 1)) scene.add.rectangle(cx, cy - 10, T, 6, theme.liquidTop || 0x6a4028, 0.9).setDepth(D.LIQUID_TOP);
           (out.surfaceGrid[ty] ||= {})[tx] = 'liquid';
           continue;
         }

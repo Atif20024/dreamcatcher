@@ -60,17 +60,19 @@ const ROOMS = [
     bg: { far: 'gym_wall', mid: 'pool_tiles', near: 'lane_ropes', landmark: 'lane_numbers' },
     objects: [
       { type: 'mark', id: 'pool_board', x: L(62, 61), y: 34 },
-      // hoops: swim the line without surfacing (tier 2 under the mid-wall)
+      // hoops: 2 m rings on weighted stands; swim the line without
+      // surfacing, down and under the mid-wall (the third is in its gap)
       { type: 'mark', id: 'hoop', x: L(66, 61), y: 38 },
       { type: 'mark', id: 'hoop', x: L(70, 61), y: 40 },
       { type: 'mark', id: 'hoop', x: L(74, 61), y: 41 },
-      { type: 'mark', id: 'hoop', x: L(78, 61), y: 38 },
-      { type: 'mark', id: 'hoop', x: L(82, 61), y: 37 },
-      { type: 'coins', x: L(68, 61), y: 40, n: 2, dx: 4 },
-      { type: 'coins', x: L(77, 61), y: 39, n: 2, dx: 3 },
+      { type: 'mark', id: 'hoop', x: L(78, 61), y: 40 },
+      { type: 'mark', id: 'hoop', x: L(82, 61), y: 38 },
+      // coins between the hoops, on the line (tier 2)
+      { type: 'coins', x: L(68, 61), y: 39, n: 2, dx: 4, dy: 1 },
+      { type: 'coins', x: L(76, 61), y: 41, n: 2, dx: 4, dy: -2 },
       // the deep end: lights off, the sunken locker (tier 4)
-      { type: 'shard', x: L(81, 61), y: 48 },
-      { type: 'coins', x: L(79, 61), y: 46, n: 2, dx: 2 },
+      { type: 'shard', x: L(82, 61), y: 50 },
+      { type: 'coins', x: L(79, 61), y: 48, n: 2, dx: 2 },
       { type: 'checkpoint', x: L(86, 61), y: 35, id: 'CP1b', label: 'THE POOL' },
     ],
   },
@@ -341,8 +343,8 @@ const OBJECTIVES = {
       "text": "three laps. the pool is next door"
     }
   ],
-  "p1_pool": "train it up: the pool",
-  "p1_wall_ring": "train it up: the climbing ring",
+  "p1_pool": "swim through 5 hoops on one breath",
+  "p1_wall_ring": "climb to the bell · box in the ring",
   "p1_study": [
     "read the notebook. 3 pips in every stat",
     {
