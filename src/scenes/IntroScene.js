@@ -2,9 +2,11 @@ import Phaser from 'phaser';
 import { createJoTextures } from '../entities/jo.js';
 import { drawCityBackdrop } from '../utils/backdrop.js';
 import { toggleMusic, sfx } from '../systems/audio.js';
-import { dreamById, LEGACY_PAINTER } from '../data/dreams.js';
+import { dreamById, LEGACY_PAINTER, LEGACY_GAMBLER } from '../data/dreams.js';
 import { paintSky, paintBackdropLayer, paintLandmark } from '../art/backdrops/painted.js';
 import { FIORALBA } from '../dreams/painter/dream.js';
+import { VERRANE } from '../dreams/gambler/dream.js';
+import GAMBLER_PROPS from '../dreams/gambler/props.js';
 import { arrivalTrain } from '../entities/Train.js';
 import { stationTex } from '../art/trainArt.js';
 import { hubTex } from '../art/hubArt.js';
@@ -118,7 +120,39 @@ const INTROS = {
       return { groundY: 470 };
     },
   },
-  gambler: {
+  // THE LAST HAND: Port Merrow's quay at dusk, the Lantern Queen alongside
+  // with every window lit (the old neon casino arrival stays behind ?legacy=1)
+  gambler: LEGACY_GAMBLER ? null : {
+    ground: 0x4a4a52,
+    caption: 'THE LAST HAND',
+    sub: 'Port Merrow, autumn 1884. The Lantern Queen sails at dusk.',
+    doorX: 700,
+    draw(scene) {
+      const c = document.createElement('canvas');
+      c.width = 960;
+      c.height = 540;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(paintSky(VERRANE.DUSK_SKY), 0, 0, 960, 540);
+      const ridge = paintBackdropLayer('far_ridge', VERRANE.DUSK, 5);
+      for (let x = 0; x < 960; x += ridge.width) ctx.drawImage(ridge, x, 470 - ridge.height + 10);
+      const town = paintBackdropLayer('town_row', VERRANE.DUSK, 9);
+      for (let x = -100; x < 960; x += town.width) ctx.drawImage(town, x, 470 - town.height + 4);
+      // the boat, its stern and paddlebox to the right of the platform
+      const boat = GAMBLER_PROPS.lq_boat;
+      const b = document.createElement('canvas');
+      b.width = boat.w;
+      b.height = boat.h;
+      boat.paint(b.getContext('2d'), boat.w, boat.h, {});
+      ctx.drawImage(b, 0, 0, boat.w, boat.h, 540, 470 - boat.h * 0.62, boat.w * 0.62, boat.h * 0.62);
+      if (scene.textures.exists('intro-gambler-lq')) scene.textures.remove('intro-gambler-lq');
+      scene.textures.addCanvas('intro-gambler-lq', c);
+      scene.add.image(0, 0, 'intro-gambler-lq').setOrigin(0);
+      scene.add.rectangle(480, 505, 960, 70, 0x4a4a52);
+      scene.add.rectangle(480, 472, 960, 4, 0x7a7880);
+      return { groundY: 470 };
+    },
+  },
+  gambler_legacy: {
     ground: 0x1a1820, // the arrival platform's stone (round 2 WP3)
     caption: 'THE LAST HAND',
     sub: 'Rain on a parking structure. The sign is bigger than the sky.',
@@ -262,7 +296,7 @@ const INTROS = {
 
 // the scene that plays each dream (framework dreams: 'Dream'; the Musician's
 // old scene only with ?legacy=1, data/dreams.js)
-const LEVEL_SCENES = { clockmaker: 'Dream', chef: 'Chef', musician: dreamById('musician').scene, astronaut: 'Astronaut', writer: 'Writer', painter: dreamById('painter').scene, gambler: 'Gambler' };
+const LEVEL_SCENES = { clockmaker: 'Dream', chef: 'Chef', musician: dreamById('musician').scene, astronaut: 'Astronaut', writer: 'Writer', painter: dreamById('painter').scene, gambler: dreamById('gambler').scene };
 
 export default class IntroScene extends Phaser.Scene {
   constructor() {
@@ -274,7 +308,7 @@ export default class IntroScene extends Phaser.Scene {
   }
 
   create() {
-    const intro = (this.levelKey === 'painter' && LEGACY_PAINTER && INTROS.painter_legacy) || INTROS[this.levelKey];
+    const intro = (this.levelKey === 'painter' && LEGACY_PAINTER && INTROS.painter_legacy) || (this.levelKey === 'gambler' && LEGACY_GAMBLER && INTROS.gambler_legacy) || INTROS[this.levelKey];
     if (!intro) {
       this.scene.start('Level', { levelKey: this.levelKey });
       return;

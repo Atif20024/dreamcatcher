@@ -708,6 +708,12 @@ export default class DreamScene extends BaseLevel {
           this.time.delayedCall((step.ms || 300) + 10, res);
         }),
       ending: () => this.endDream(),
+      // a dream's own code at a step (THE LAST HAND's purse): def.calls[name](scene, step)
+      call: (v, step) => {
+        const fn = this.def.calls && this.def.calls[v];
+        if (!fn) throw new Error(`DreamScene: no call "${v}"`);
+        return fn(this, step);
+      },
     };
   }
 

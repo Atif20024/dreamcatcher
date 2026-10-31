@@ -11,6 +11,8 @@
 export const LEGACY_MUSICIAN = typeof window !== 'undefined' && !!window.location && new URLSearchParams(window.location.search).get('legacy') === '1';
 // the painter likewise: THE MASTER'S LADDER, or with ?legacy=1 THE YELLOW HOUSE
 export const LEGACY_PAINTER = LEGACY_MUSICIAN;
+// and the gambler: THE LAST HAND aboard the Lantern Queen, or with ?legacy=1 the neon casino
+export const LEGACY_GAMBLER = LEGACY_MUSICIAN;
 
 export const DREAMS = [
   {
@@ -58,11 +60,14 @@ export const DREAMS = [
     roLine: 'You keep looking up, love. The tea is down here.',
   },
   {
-    id: 'gambler', platform: 7, title: 'THE LAST HAND', scene: 'Gambler', propsKind: 'chips', ambientLoop: 'slots',
-    coin: { name: 'chip', worth: 25, budget: [40, 50], pal: { c: 0xa8243a, C: 0xe84a5a, h: 0xf8d0c0 } },
-    livery: { body: 0x12101a, trim: 0xe03a8a, window: 0xf2c078, emblem: 'spade' },
-    conductor: 'The Last Hand. A casino that never closes, and one chip in your pocket.\nTonight is the night, sir. It always is. Still boarding?',
-    roLine: 'Cigar smoke and carpet. And your horn case is light. Sit.',
+    // THE LAST HAND (src/dreams/gambler/, DreamScene): the Lantern Queen on
+    // the Verrane, 1884, Lou Verrick's dream. ?legacy=1 boards the old neon
+    // casino (GamblerScene). The save flag (dreams.gambler) is the same id.
+    id: 'gambler', platform: 7, title: 'THE LAST HAND', scene: LEGACY_GAMBLER ? 'Gambler' : 'Dream', propsKind: 'chips', ambientLoop: LEGACY_GAMBLER ? 'slots' : 'gm_quay',
+    coin: LEGACY_GAMBLER ? { name: 'chip', worth: 25, budget: [40, 50], pal: { c: 0xa8243a, C: 0xe84a5a, h: 0xf8d0c0 } } : { name: 'half dime', worth: 5, budget: [40, 55], pal: { c: 0x8a8a92, C: 0xd0d0d8, h: 0xf4f4f8 } },
+    livery: LEGACY_GAMBLER ? { body: 0x12101a, trim: 0xe03a8a, window: 0xf2c078, emblem: 'spade' } : { body: 0x5a1e26, trim: 0xd8c8a0, window: 0xf2c078, emblem: 'spade' },
+    conductor: LEGACY_GAMBLER ? 'The Last Hand. A casino that never closes, and one chip in your pocket.\nTonight is the night, sir. It always is. Still boarding?' : "The Last Hand. A riverboat, a hundred dollars, and a night that ends at the landing.\nThe hard part, sir, is getting up from the table. Still boarding?",
+    roLine: LEGACY_GAMBLER ? 'Cigar smoke and carpet. And your horn case is light. Sit.' : 'River fog on your coat, and lamp oil. Sit. Did you get up in time?',
   },
   {
     id: 'doctor', platform: 8, title: 'THE WHITE COAT', propsKind: 'lockers', ambientLoop: 'monitors',

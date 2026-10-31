@@ -37,7 +37,7 @@ import { px as mpx } from '../data/scale.js';
 // 50 × 88): Jo steps down from the door, it pulls away.
 
 // short destination words for the blind (display ×1, cap 14)
-const BLIND = { chef: 'REVE', musician: 'STAGE', athlete: 'TRACK', writer: 'DRAFT', painter: 'ARLES', astronaut: 'ORBIT', gambler: 'CASINO', doctor: 'WARD 8' };
+const BLIND = { chef: 'REVE', musician: 'STAGE', athlete: 'TRACK', writer: 'DRAFT', painter: 'ARLES', astronaut: 'ORBIT', gambler: 'MERROW', doctor: 'WARD 8' };
 const GATE_X = 176; // bay-local: the gate's centre on the platform mouth
 const LAMP_X = 211;
 const VY = BAY.h - BAY.eye; // the vanishing point's bay-local y
