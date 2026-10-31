@@ -19,7 +19,7 @@ import { LOU_TIPS } from './dialogue.js';
 
 const D = 160; // UI depth (adopted by the UI scene: never zoomed)
 const PX = 40;
-const PY = 318;
+const PY = 190; // above the table: the people sit under it, in the room
 const PW = 880;
 const PH = 196;
 const INK = '#f2e9d8';

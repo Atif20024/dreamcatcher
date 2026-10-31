@@ -63,7 +63,7 @@ export default {
     { type: 'sign', text: 'LANTERN QUEEN', x: 63, y: 4, board: 0x5a1e26, ink: 0xf2d580, scale: 2 },
     { type: 'sign', text: 'SALOON', x: 70, y: 11, board: 0x3a2418, scale: 1 },
     { type: 'sign', text: 'THE SLATE', x: 29, y: 10, board: 0x2a3030, ink: 0xe8e8e0, scale: 1 },
-    { type: 'npc', id: 'porter', cast: 'npc-lq-porter', x: 20, y: 15, facing: 1, pace: [17, 27], talk: [{ conv: 'porter' }] },
+    { type: 'npc', id: 'porter', cast: 'npc-lq-porter', x: 17, y: 15, facing: 1, pace: [12, 20], talk: [{ conv: 'porter' }] },
     { type: 'npc', id: 'lou_quay', cast: 'npc-lq-lou', x: 26, y: 15, facing: 1, talk: [{ conv: 'lou_after_slate', if: 'slate_set' }, { conv: 'lou_quay_wait', if: 'met_lou' }, { conv: 'lou_quay' }] },
     { type: 'npc', id: 'clerk', cast: 'npc-lq-clerk', x: 31, y: 15, facing: -1, talk: [{ conv: 'clerk' }] },
     { type: 'npc', id: 'lady', cast: 'npc-lq-lady', x: 38, y: 15, facing: 1, talk: [{ conv: 'lady' }] },
@@ -75,5 +75,7 @@ export default {
     { type: 'coins', id: 'c_crates', x: 14, y: 12, n: 3 },
     { type: 'coins', id: 'c_deck', x: 42, y: 12, n: 4 },
     { type: 'coin', id: 'c_door', x: 68, y: 14 },
+    { type: 'coins', id: 'c_bales_hi', x: 10, y: 9, n: 3 },
+    { type: 'coins', id: 'c_deck_hi', x: 43, y: 9, n: 3 },
   ],
 };

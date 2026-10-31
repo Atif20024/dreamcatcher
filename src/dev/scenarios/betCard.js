@@ -10,7 +10,7 @@ export default {
     // (the save is v2 now: go through the save module, not the raw key)
     const { unmarkSeen } = await import('../../utils/save.js');
     unmarkSeen('bet');
-    dc.warp('gambler', 'pit');
+    dc.warp('gambler_legacy', 'pit');
     dc.step(30);
     dc.press('Enter', 2);
     dc.step(20);

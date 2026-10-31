@@ -45,6 +45,13 @@ export default {
     { prop: 'saloon_chair', x: TABLES.t1 - 2, y: 12 },
     { prop: 'saloon_chair', x: TABLES.t2 - 2, y: 12 },
     { prop: 'saloon_chair', x: TABLES.t3 - 2, y: 12 },
+    // the players' chairs (they sit facing the table)
+    { prop: 'saloon_chair', x: TABLES.t1 + 2, y: 12, dx: 6, flip: true },
+    { prop: 'saloon_chair', x: TABLES.t2 + 1, y: 12, dx: 6, flip: true },
+    { prop: 'saloon_chair', x: TABLES.t2 + 3, y: 12, dx: 6, flip: true },
+    { prop: 'saloon_chair', x: TABLES.t3 + 1, y: 12, dx: 6, flip: true },
+    { prop: 'saloon_chair', x: TABLES.t3 + 2, y: 12, dx: 16, flip: true },
+    { prop: 'saloon_chair', x: TABLES.t3 + 3, y: 12, dx: 26, flip: true },
     { prop: 'carpet_runner', x: 2, y: 12, layer: 'fg', dy: 2 },
     { prop: 'carpet_runner', x: 24, y: 12, layer: 'fg', dy: 2 },
   ],

@@ -56,7 +56,7 @@ const PLACES_TO_SAMPLE = [
   ['astronaut', 'gym'],
   ['writer', 'attic'],
   ['painter', 'via'],
-  ['gambler', 'arrival'],
+  ['gambler', 'quay'],
   ['clockmaker', null],
   ['evening', 'square'],
 ];

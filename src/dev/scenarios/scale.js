@@ -12,7 +12,7 @@ import { CLASSES, CAST_BODIES, PROP_TABLE, PROP_CLASSES, CREATURE_TABLE, TOL, JO
 import { atlasIndex } from '../../art/baked.js';
 
 const PLACES = [
-  ['hub', null], ['chef', null], ['musician', null], ['astronaut', 'gym'], ['writer', 'attic'], ['painter', 'via'], ['gambler', 'arrival'], ['evening', 'square'], ['clockmaker', 'start'],
+  ['hub', null], ['chef', null], ['musician', null], ['astronaut', 'gym'], ['writer', 'attic'], ['painter', 'via'], ['gambler', 'quay'], ['evening', 'square'], ['clockmaker', 'start'],
 ];
 const PERSON = /^(hub-|ev-p-|ev-x-|wr-p-|pt-p-|gm-p-|npc-|foe-|mus-critic)/;
 const BODY = { m: 'adult', f: 'adult', big: 'big', elderly: 'elderly', teen: 'teen', child: 'child' };

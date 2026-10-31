@@ -32,6 +32,7 @@ export default {
     { prop: 'cabin_door_white', x: 28, y: 12, layer: 'back' },
     { prop: 'last_table', x: LAST_TABLE_X, y: 12 },
     { prop: 'saloon_chair', x: LAST_TABLE_X - 2, y: 12 },
+    { prop: 'saloon_chair', x: LAST_TABLE_X + 2, y: 12, dx: 6, flip: true },
     { prop: 'pilot_wheel', x: 22, y: 12 },
   ],
   lights: [],
