@@ -14,6 +14,8 @@ import { getSave } from '../utils/save.js';
 import { toggleMusic, sfx } from '../systems/audio.js';
 import { drawPanel } from '../ui/Panel.js';
 import { IDENTITY } from '../ui/theme.js';
+import { addTapZone, rectOf } from '../input/touchTaps.js';
+import { touchState } from '../input/touchState.js';
 import { dreamcatcherTexture, caughtRounds, WEB_ORDER } from '../art/identityArt.js';
 
 const W = 960;
@@ -52,9 +54,20 @@ export default class TitleScene extends Phaser.Scene {
       ? `${s.dreamsCaught} caught${runs.length ? ' · a dream is waiting where you left it' : ''}`
       : 'nine o\'clock. every train leaves now.';
     this.subText = uiText(this, W / 2, 264, sub, { size: 'body', color: 'ink-dim', align: 'center', backing: IDENTITY.night }).setOrigin(0.5).setDepth(20);
-    uiText(this, W / 2, H - 22, '[↑↓] choose   [Enter] / [E] go   [M] music', { size: 'body', color: 'ink', align: 'center' }).setOrigin(0.5).setDepth(20);
+    uiText(this, W / 2, H - 22, touchState.on ? 'tap a line to choose it' : '[↑↓] choose   [Enter] / [E] go   [M] music', { size: 'body', color: 'ink', align: 'center' }).setOrigin(0.5).setDepth(20);
     this.render();
     this.input.keyboard.on('keydown', (e) => this.onKey(e));
+    // touch screens: a tap on a line chooses it (src/input/touchTaps.js)
+    addTapZone(this, {
+      rects: () => this.itemTexts.map((t) => rectOf(t, 4, 30)),
+      when: () => !this.leaving && !this.menu.isOpen,
+      onTap: (i) => {
+        if (i < 0) return;
+        this.idx = i;
+        this.render();
+        this.items[i].action();
+      },
+    });
     this.cameras.main.fadeIn(500, 0x14, 0x12, 0x2a);
   }
 

@@ -30,6 +30,7 @@ import { dreamcatcherTexture, caughtRounds, WEB_ORDER, glowTexture } from '../ar
 import { PLACES } from '../ui/theme.js';
 import { trainWipe } from '../ui/TrainWipe.js';
 import { boardTitle } from '../ui/BoardTitle.js';
+import { addTapZone } from '../input/touchTaps.js';
 import { readDocument } from '../ui/ReadingPanel.js';
 import { uiText } from '../ui/text.js';
 import { hud } from '../ui/hud.js';
@@ -1022,6 +1023,8 @@ export default class HubScene extends BaseLevel {
     };
     this.openingSkip = finish;
     this.input.keyboard.on('keydown', finish);
+    // touch screens: a tap skips it too (src/input/touchTaps.js)
+    addTapZone(this, { when: () => this.openingActive, onTap: finish });
     // pull back to the vista -> brief hold -> come back to Jo (about 3 s). The
     // board and the steam carry the moment; the title was already shown.
     timers.push(

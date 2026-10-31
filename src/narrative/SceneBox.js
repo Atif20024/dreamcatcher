@@ -13,6 +13,8 @@ import { resolveArt } from '../art/baked.js';
 import { DialogueRunner } from './DialogueRunner.js';
 import { playTone } from '../systems/audio.js';
 import { events } from '../core/events.js';
+import { pickRect } from '../input/touchLayout.js';
+import { rectOf } from '../input/touchTaps.js';
 
 const DEPTH = 200;
 const CPS = 40;
@@ -38,7 +40,7 @@ export class SceneBox {
     events.emit('conv:start', { id: conv.id });
     return new Promise((resolve) => {
       this.resolve = resolve;
-      this.handle = ModalManager.for(s).open({ kind: 'dialogue', name: `conv:${conv.id}`, freeze: 'physics' });
+      this.handle = ModalManager.for(s).open({ kind: 'dialogue', name: `conv:${conv.id}`, freeze: 'physics', tap: (x, y) => this.tap(x, y) });
       const cam = s.cameras.main;
       const add = (o) => this.handle.add(o);
       this.W = cam.width;
@@ -98,6 +100,20 @@ export class SceneBox {
     if (this.onSpeaker) this.onSpeaker(n.who, n);
   }
 
+  // a tap (touch screens): on a choice, that choice; anywhere else, the
+  // confirm (finish the line, the next node). Off the choices while
+  // choosing, nothing: a stray tap never picks for you.
+  tap(x, y) {
+    if (!this.active) return;
+    if (this.choosing) {
+      const i = pickRect(this.choiceTexts.map((t) => rectOf(t, 4, 26)), x, y, 16);
+      if (i < 0) return;
+      this.choiceIdx = i;
+      this.renderChoices();
+    }
+    this.tapGo = true;
+  }
+
   renderChoices() {
     const ch = this.runner.choices();
     this.choiceTexts.forEach((t) => t.destroy());
@@ -125,7 +141,10 @@ export class SceneBox {
     if (!this.active) return;
     this.t += dt;
     const I = this.input;
-    const go = this.t > 250 && I && I.justDown('confirm');
+    // a tap (touch screens) is a confirm, read here with the keys
+    const tapped = this.tapGo;
+    this.tapGo = false;
+    const go = this.t > 250 && ((I && I.justDown('confirm')) || tapped);
     if (this.shown < this.full.length) {
       if (go) {
         this.shown = this.full.length;
