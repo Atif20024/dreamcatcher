@@ -10,7 +10,8 @@
 //
 // def.params may be a function of the run's flags (ctx.flags), so a choice
 // made earlier changes the set (the Musician's last gig). An engine with a
-// release(action) hears the key come up (a held note).
+// release(action) hears the key come up (a held note). An engine with a
+// move(dir) is a menu (THE LAST HAND's tables): the arrows go to it.
 //
 // The host supplies the Phaser side: makePresenter(def, engine, ctx),
 // enter(def, ctx), exit(def, result, ctx). Tests pass a fake host, which is
@@ -54,6 +55,8 @@ export class Encounters {
     const keys = a.def.keys || ['act1', 'confirm'];
     let outcome = null;
     if (input && a.t > 250 && keys.some((k) => input.justDown(k))) outcome = a.engine.press('act');
+    // a menu: the arrows move its cursor
+    if (input && a.engine.move && a.t > 250) for (const d of ['left', 'right', 'up', 'down']) if (input.justDown(d)) outcome = a.engine.move(d) || outcome;
     // a held note: the engine hears the key come up (optional)
     if (input && a.engine.release && input.justUp && keys.some((k) => input.justUp(k))) outcome = a.engine.release('act') || outcome;
     if (input && a.def.canLeave !== false && input.justDown('back')) return this.finish({ ok: false, left: true });

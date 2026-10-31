@@ -207,6 +207,12 @@ class HudModel {
         m.color = c;
         return h;
       },
+      // marks on the bar (THE LAST HAND's slate: the stop-loss and the goal
+      // on the stack): [{ at: 0..1, color }]
+      setTicks(list) {
+        m.ticks = (list || []).map((t) => ({ at: Math.max(0, Math.min(1, t.at)), color: t.color || '#f2e9d8' }));
+        return h;
+      },
       setVisible(v) {
         if (m.visible !== !!v) {
           m.visible = !!v;

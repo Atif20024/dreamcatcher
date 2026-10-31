@@ -58,6 +58,26 @@ export const VOICES = {
   },
   drone: (f, beat, vol, bar, at) => [1, 1.5].forEach((m) => syn({ freq: f * m, attack: 0.4, hold: (bar / 1000) * 0.85, dur: 0.6, vol: vol * 0.5 }, at)),
 
+  // --- THE LAST HAND, 1884: a river saloon's four-piece ----------------
+  // a parlour upright, a little out (two strings 7 cents apart, a bright attack)
+  parlour: (f, beat, vol, bar, at) => {
+    syn({ freq: f, dur: 1.0, vol, attack: 0.003, detune: 7 }, at);
+    syn({ freq: f, dur: 0.8, vol: vol * 0.5, attack: 0.003, detune: -5 }, at);
+    syn({ freq: f * 3, dur: 0.18, vol: vol * 0.12, attack: 0.002 }, at);
+  },
+  // a five-string banjo: a fast pluck, a nasal ring off the skin head
+  banjo: (f, beat, vol, bar, at) => {
+    syn({ freq: f, type: 'triangle', dur: 0.28, vol: vol * 1.1, attack: 0.002 }, at, PULSE);
+    syn({ freq: f * 2, type: 'sawtooth', dur: 0.12, vol: vol * 0.22, attack: 0.002, filter: { type: 'bandpass', f: 1800, q: 2 } }, at, PULSE);
+  },
+  // a boxwood clarinet: odd harmonics (a square, softened), breath, a slow vibrato
+  clarinet: (f, beat, vol, bar, at) => {
+    syn({ freq: f, type: 'square', attack: 0.05, hold: (beat / 1000) * 0.9, dur: 0.3, vol: vol * 0.55, vib: f * 0.004, vibHz: 4.8, filter: { type: 'lowpass', f: 1500 } }, at);
+    hiss({ dur: 0.05, vol: vol * 0.06, f: 3000, q: 1.2, env: 'lin' }, at, PULSE);
+  },
+  // a low string pad (the card room's one sound): bowed, very soft
+  strings_low: (f, beat, vol, bar, at) => [1, 1.003, 2].forEach((m, i) => syn({ freq: f * m, type: 'sawtooth', attack: 0.9, hold: (bar / 1000) * 0.85, dur: 1.0, vol: vol * [0.45, 0.45, 0.12][i], filter: { type: 'lowpass', f: 520 } }, at)),
+
   // --- the station: a night-terminus piano, a pad, a bass ---------------
   // piano: sine partials 1x and 2x, a 4 ms attack, a long decay, 3 cents apart
   piano: (f, beat, vol, bar, at) => {

@@ -55,6 +55,13 @@ const PROPS = {
     rows: ['kkkk', 'kbbk', 'kbbk', 'kbbk', 'kbbk', 'kkkk'],
     pal: { k: 0x1e1e26, b: 0xc8dcff },
   },
+  // THE LAST HAND, 1884: a tin bull's-eye lantern, its lens a round beam
+  bullseye: {
+    at: [6, 2],
+    beam: 14,
+    rows: ['..kk...', '.kttty.', 'ktTTtyy', 'ktTTtyy', '.kttty.', '..kk...'],
+    pal: { k: 0x3a3438, t: 0x8a8478, T: 0xc0b8a8, y: 0xfff0c0 },
+  },
   loupe_lamp: {
     at: [5, 1],
     beam: 12,

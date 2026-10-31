@@ -49,6 +49,9 @@ export const FOES = {
     runner: { texture: 'foe-runner', human: true, speed: 130, steals: true, sight: 120 },
     bouncer: { texture: 'foe-lounge-bouncer', human: true, speed: 45, big: true, sight: 140 },
     pit: { texture: 'foe-pit', human: true, speed: 50, sight: 400, passive: true },
+    // THE LAST HAND (the framework gambler): Crake, the debt man. He walks;
+    // he never runs. He comes when there is a marker in Mr Pell's book
+    crake: { texture: 'foe-lq-crake', human: true, speed: 38, sight: 260 },
   },
   musician: {
     heckler: { texture: 'foe-heckler', human: true, speed: 0, ranged: true, sight: 360 },

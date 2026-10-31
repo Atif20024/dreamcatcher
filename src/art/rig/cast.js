@@ -158,6 +158,11 @@ const HATS = {
   // and the mazzocchio, a padded roll with its tail hanging behind
   berretta: { rows: ['...UHHHH...', '.UHHHHHHHh.', 'hhhhhhhhhhh'], ox: 5, oy: 8 },
   mazzocchio: { rows: ['...UHHHH...', '.UyyyyyyyH.', 'Uyyyyyyyyyh', '.hnnnnnnnh.', 'H..........', 'H..........', 'h..........'], ox: 5, oy: 9 },
+  // THE LAST HAND (the river, 1884): the round-crowned bowler with its
+  // curled brim, the silk hat, and a planter's low crown on a wide flat brim
+  bowler: { rows: ['...UHHH...', '..UHHHHh..', '..UHHHHh..', '..yyyyyr..', '.hHHHHHHh.'], ox: 4, oy: 10 },
+  silk: { rows: ['..UHHHHh..', '..UHHHHh..', '..UHHHHh..', '..UHHHHh..', '..yyyyyr..', '.hHHHHHHh.'], ox: 4, oy: 11 },
+  planter: { rows: ['...UHHHh...', '...UHHHh...', '...yyyyr...', 'hhHHHHHHHhh'], ox: 5, oy: 9 },
 };
 // heads grew a row (phase 2 motion): every hat sits one row higher
 for (const h of Object.values(HATS)) h.oy += 1;
@@ -188,6 +193,11 @@ const HELD = {
   flower: { rows: ['.Z.', 'ZAZ', '.F.', '.F.'], ox: 1, oy: 2, arm: [30, 70] },
   kite_string: null,
   case: { rows: ['..FF..', '.F..F.', 'AAAAAA', 'AZAAAx', 'AAAAAx', 'AAAAAx', 'xxxxxx'], ox: 3, oy: 0, arm: [6, 4] },
+  // THE LAST HAND: a fan of cards, a glass, a banjo, a clarinet
+  cards: { rows: ['ZAZA', 'AAAx', '.xx.'], ox: 1, oy: 1, arm: [40, 70] },
+  glass: { rows: ['Z.Z', 'ZAZ', '.Z.', 'ZZZ'], ox: 1, oy: 3, arm: [30, 90] },
+  banjo: { rows: ['....F', '...F.', '..F..', '.ZAA.', 'ZAAAA', 'AAxAA', '.AAA.'], ox: 3, oy: 3, arm: [20, 70], back: [40, 50] },
+  clarinet: { rows: ['F', 'F', 'F', 'F', 'F', 'A', 'A'], ox: 0, oy: 1, arm: [70, 100] },
 };
 HELD.kite_string = HELD.string;
 

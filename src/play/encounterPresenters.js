@@ -11,6 +11,7 @@ import { uiText } from '../ui/text.js';
 import { hud } from '../ui/hud.js';
 import { playTone, trumpet, bassNote, sfx } from '../systems/audio.js';
 import { craftWorld } from './craftPresenter.js';
+import { slatePresenter, faroPresenter, showdownPresenter } from '../dreams/gambler/table.js';
 
 const RAD = Math.PI / 180;
 
@@ -287,6 +288,10 @@ export const PRESENTERS = {
   rhythm: { world: rhythmWorld },
   // THE MASTER'S LADDER: grind, drapery, the masterpiece, the giornata
   craft: { world: craftWorld },
+  // THE LAST HAND: the gangway slate, the faro bank, SHOWDOWN (src/dreams/gambler/table.js)
+  lq_slate: { world: slatePresenter },
+  lq_faro: { world: faroPresenter },
+  lq_cards: { world: showdownPresenter },
 };
 
 export function makePresenter(scene, def, engine, ctx) {

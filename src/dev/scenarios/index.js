@@ -43,3 +43,6 @@ SCENARIOS.push(...softlock);
 // THE QUIET ABOVE's pool at Jo's scale: 2 m hoops, a deep pool, the climb out
 import astroPool from './astroPool.js';
 SCENARIOS.push(...astroPool);
+// THE LAST HAND on the framework (the gambler rebuilt aboard the Lantern Queen)
+import gambler from './gambler.js';
+SCENARIOS.push(...gambler);

@@ -3,7 +3,8 @@ import { resolveWarp, firstSceneKey } from '../src/dev/warp.js';
 
 describe('unified warp', () => {
   it('maps dream:place to the legacy param', () => {
-    expect(resolveWarp('?warp=gambler:pit').legacy).toEqual({ gm: 'pit' });
+    expect(resolveWarp('?warp=gambler_legacy:pit').legacy).toEqual({ gm: 'pit' });
+    expect(resolveWarp('?warp=gambler:pit&legacy=1').legacy).toEqual({ gm: 'pit' });
     expect(resolveWarp('?warp=astronaut:eva').legacy).toEqual({ at: 'eva' });
     expect(resolveWarp('?warp=writer:cafe').legacy).toEqual({ wr: 'cafe' });
     expect(resolveWarp('?warp=painter_legacy:studio').legacy).toEqual({ pt: 'studio' });
@@ -15,6 +16,12 @@ describe('unified warp', () => {
     expect(resolveWarp('?warp=painter:chapel').legacy).toEqual({});
     expect(firstSceneKey('?warp=painter&legacy=1')).toBe('Painter');
     expect(firstSceneKey('?warp=painter_legacy')).toBe('Painter');
+  });
+  it('THE LAST HAND warps into the framework; ?legacy=1 keeps the neon casino', () => {
+    expect(firstSceneKey('?warp=gambler:cards')).toBe('Dream');
+    expect(resolveWarp('?warp=gambler:cards').legacy).toEqual({});
+    expect(firstSceneKey('?warp=gambler&legacy=1')).toBe('Gambler');
+    expect(firstSceneKey('?warp=gambler_legacy')).toBe('Gambler');
   });
   it('chef/musician/hub have no legacy param but pick the scene', () => {
     expect(resolveWarp('?warp=chef:start').legacy).toEqual({});

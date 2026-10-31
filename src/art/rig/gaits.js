@@ -129,9 +129,11 @@ export const FOE_GAITS = {
   'foe-rn-rival': 'skulk',
   'foe-rn-inspector': 'measured',
   'foe-rn-foreman': 'heavy',
+  // THE LAST HAND: Crake, the debt man, walks with his hands behind him; he never runs
+  'foe-lq-crake': 'measured',
 };
 // people who stand still for a living get no run (saves atlas space)
-export const NO_RUN = new Set(['foe-heckler', 'foe-talker']);
+export const NO_RUN = new Set(['foe-heckler', 'foe-talker', 'foe-lq-crake']);
 
 export function gaitName(key, body) {
   if (FOE_GAITS[key]) return FOE_GAITS[key];

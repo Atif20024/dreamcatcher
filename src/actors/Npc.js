@@ -6,7 +6,7 @@
 // Interaction. It never starts a conversation by itself.
 import { AnimationController } from '../art/AnimationController.js';
 import { characterManifest, castFrame } from '../art/baked.js';
-import { gaitInfo } from '../art/stride.js';
+import { gaitInfo, Stride } from '../art/stride.js';
 import { D } from '../builders/depths.js';
 
 // A cast person (round 2 WP2: the rigged cast baked into the people packs,
@@ -26,8 +26,9 @@ class CastBody {
     while (this.talkN < 8 && castFrame(scene, `${key}-talk#${this.talkN + 1}`)) this.talkN += 1;
   }
 
-  frame(time, talking, laughing) {
+  frame(time, talking, laughing, walk = null) {
     const k = this.key;
+    if (walk) return walk;
     if (this.pose === 'sit') return laughing && castFrame(this.scene, `${k}-sitlaugh`) ? `${k}-sitlaugh` : `${k}-sit`;
     if (talking && this.talkN) return `${k}-talk#${(Math.floor(time / 140) % this.talkN) + 1}`;
     const [n, fps] = this.g.idle || [1, 5];
@@ -40,7 +41,11 @@ class CastBody {
 }
 
 export class Npc {
-  constructor(scene, { id, x, y, rig, cast = null, pose = null, outfit = 'street', facing = -1, task = null, depth = D.PLAYER - 1, turns = true }) {
+  // A cast person may walk (THE LAST HAND): `pace: [x0, x1]` (world px) is a
+  // beat walked to and fro with pauses (a steward with his tray, a deckhand);
+  // `follow: [x0, x1]` keeps a step behind Jo's shoulder inside that span
+  // (Lou). Legs are stepped by the ground covered (Stride): no slide.
+  constructor(scene, { id, x, y, rig, cast = null, pose = null, outfit = 'street', facing = -1, task = null, depth = D.PLAYER - 1, turns = true, pace = null, follow = null }) {
     this.scene = scene;
     this.id = id;
     this.rig = rig || cast;
@@ -52,6 +57,11 @@ export class Npc {
     if (cast) {
       this.body = new CastBody(scene, cast, x, y, depth, pose);
       this.ok = this.body.ok;
+      if ((pace || follow) && pose !== 'sit') {
+        this.stride = new Stride(scene, cast);
+        this.pace = pace ? { a: Math.min(pace[0], pace[1]), b: Math.max(pace[0], pace[1]), dir: facing < 0 ? -1 : 1, wait: 1500, speed: 40 } : null;
+        this.follow = follow ? { a: Math.min(follow[0], follow[1]), b: Math.max(follow[0], follow[1]) } : null;
+      }
       this.anim = null;
       this.img = this.body.img;
       this.hat = null;
@@ -84,12 +94,13 @@ export class Npc {
 
   update(dt, jo) {
     this.t += dt;
-    if (jo && this.turns) {
+    if (jo && this.turns && !(this.stride && this.stride.moving)) {
       const dx = jo.x - this.x;
       if (Math.abs(dx) < 260) this.facing = Math.sign(dx) || this.facing;
     }
     if (this.body) {
-      const f = this.body.frame(this.scene.time.now, this.talking, this.scene.time.now < (this.laughUntil || 0));
+      const walk = this.stride ? this.walk(dt, jo) : null;
+      const f = this.body.frame(this.scene.time.now, this.talking, this.scene.time.now < (this.laughUntil || 0), walk);
       if (this.body.ok && this.img.texture.key !== f && castFrame(this.scene, f)) this.img.setTexture(f);
       this.img.setPosition(this.x, this.y).setFlipX(this.facing < 0);
       return;
@@ -107,6 +118,39 @@ export class Npc {
     const tex = this.scene.textures.get(this.rig);
     if (this.hat && tex.has(hf)) this.hat.setFrame(hf).setPosition(this.x, this.y).setFlipX(this.facing < 0).setVisible(true);
     else if (this.hat) this.hat.setVisible(false);
+  }
+
+  // one frame of walking (pace or follow): returns the walk frame, or null
+  // when standing (the idle and talk loops play then)
+  walk(dt, jo) {
+    let vx = 0;
+    if (this.talking) {
+      this.stride.next(0, dt);
+      return null;
+    }
+    if (this.follow && jo) {
+      // a step behind Jo's shoulder, on the side he came from
+      const jf = jo.flipX ? -1 : 1;
+      const want = Math.max(this.follow.a, Math.min(this.follow.b, jo.x - jf * 58));
+      const d = want - this.x;
+      if (Math.abs(d) > 22) vx = Math.sign(d) * Math.min(150, Math.abs(d) * 2.4);
+      if (vx) this.facing = Math.sign(vx);
+    } else if (this.pace) {
+      const p = this.pace;
+      if (p.wait > 0) p.wait -= dt;
+      else {
+        vx = p.dir * p.speed;
+        const nx = this.x + (vx * dt) / 1000;
+        if (nx <= p.a || nx >= p.b) {
+          p.dir = -p.dir;
+          p.wait = 2200 + ((this.x * 7) % 1800);
+        }
+        this.facing = Math.sign(vx);
+      }
+    }
+    const dx = (vx * dt) / 1000;
+    this.x += dx;
+    return this.stride.next(dx, dt, this.facing);
   }
 
   destroy() {

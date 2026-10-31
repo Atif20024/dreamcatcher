@@ -33,8 +33,11 @@ export const JO_LIGHTS = Object.freeze({
   // daylight; the chapel vault and the palazzo's back rooms need a lamp: a
   // terracotta oil lamp (a lucerna)
   painter: { kind: 'oil_lamp', light: 'pool', color: 0xffb860, radius: 105, strength: 0.4, dark: false, rooms: { chapel: true, speziale: true } },
-  // the last hand: a phone screen in a dark casino, cold and small
-  gambler: { kind: 'phone', light: 'cone', color: 0xc8dcff, radius: 150, strength: 0.62, dark: true, rooms: { floor: false, lounge: false } },
+  // the last hand, 1884: a tin bull's-eye lantern off the deckhand's hook,
+  // for the purser's corridor (its lamp dims a notch a marker) and the
+  // hurricane deck before the dawn; the quay has its gas lamps, the saloons
+  // their chandeliers (the old casino's rooms keep their own dark)
+  gambler: { kind: 'bullseye', light: 'cone', color: 0xffe0a0, radius: 150, strength: 0.45, dark: false, rooms: { office: true, deck: true, backrooms: true, carpark: true, lasthand: true, arrival: true, lostfound: true } },
   // the stopped hour: a watchmaker's loupe lamp, a brass cup with a lens,
   // its beam narrow and warm
   clockmaker: { kind: 'loupe_lamp', light: 'cone', color: 0xffd890, radius: 150, strength: 0.4, dark: true, rooms: { clockhouse: false } },

@@ -135,8 +135,8 @@ const SITES = [
   { id: 'writer-attic-stairs', dream: 'writer', place: 'attic', c0: 50, c1: 62, row: 23 },
   { id: 'painter-fields', dream: 'painter_legacy', place: 'fields', c0: 237, c1: 250, row: 26 },
   { id: 'painter-studio-stairs', dream: 'painter_legacy', place: 'studio', c0: 57, c1: 63, row: 31, row1: 28 },
-  { id: 'gambler-floor-stairs', dream: 'gambler', place: 'floor', c0: 38, c1: 52, row: 30, row1: 22 },
-  { id: 'gambler-carpark', dream: 'gambler', place: 'carpark', c0: 348, c1: 362, row: 22 },
+  { id: 'gambler-floor-stairs', dream: 'gambler_legacy', place: 'floor', c0: 38, c1: 52, row: 30, row1: 22 },
+  { id: 'gambler-carpark', dream: 'gambler_legacy', place: 'carpark', c0: 348, c1: 362, row: 22 },
   { id: 'evening-arch', dream: 'evening', place: 'arch', c0: 62, c1: 78, row: 27 },
   { id: 'evening-hill', dream: 'evening', place: 'hill', c0: 338, c1: 360, row: 26, row1: 13 },
   { id: 'clockmaker-yard', dream: 'clockmaker', place: 'yard', room: 'yard', c0: 4, c1: 22, row: 8 },
@@ -285,7 +285,7 @@ const shadowSlope = {
 };
 
 const PLACES = [
-  ['hub', null], ['chef', null], ['musician', null], ['astronaut', 'gym'], ['writer', 'attic'], ['painter', 'via'], ['gambler', 'arrival'], ['evening', 'arch'], ['clockmaker', 'start'],
+  ['hub', null], ['chef', null], ['musician', null], ['astronaut', 'gym'], ['writer', 'attic'], ['painter', 'via'], ['gambler', 'quay'], ['evening', 'arch'], ['clockmaker', 'start'],
 ];
 const shadowPlaces = {
   id: 'shadow-places',

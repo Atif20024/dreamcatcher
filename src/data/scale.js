@@ -394,3 +394,29 @@ Object.assign(BACKDROP_ROWS, {
   'painted.rn_skyline': { s: 0.12, groundLine: false },
   'painted.rn_row': { s: 0.3, groundLine: true },
 });
+
+// THE LAST HAND (the gambler's dream on the framework): the Lantern Queen's
+// people in 1884 costume (looks in src/dreams/gambler/people.js). A frock
+// coat to the knee is the skirt layer (dress) on a man; Crake's long black
+// coat too. Lou stands; the Judge is big; Mrs Fenn is old.
+Object.assign(CAST_BODIES, {
+  'npc-lq-lou': { sex: 'm', hat: 'planter', dress: true },
+  'npc-lq-pell': { sex: 'm', hair: 'grey', beard: 'moustache', hat: 'peaked' },
+  'npc-lq-voe': { body: 'big', sex: 'm', beard: true, hat: 'planter' },
+  'npc-lq-sorrel': { sex: 'f', hair: 'bun', dress: true, hat: 'none' },
+  'npc-lq-nico': { body: 'teen', sex: 'm', hat: 'bowler' },
+  'npc-lq-fenn': { body: 'elderly', sex: 'f', dress: true, hat: 'veil' },
+  'npc-lq-dev': { body: 'teen', sex: 'm', hat: 'beanie' },
+  'npc-lq-dealer': { sex: 'm', beard: 'moustache', hat: 'peaked' },
+  'npc-lq-casekeeper': { body: 'elderly', sex: 'm', hair: 'bald', hat: 'none' },
+  'npc-lq-steward': { sex: 'm', hat: 'none', hair: 'crop' },
+  'npc-lq-pianist': { sex: 'm', hat: 'none' },
+  'npc-lq-banjo': { sex: 'm', hat: 'bowler' },
+  'npc-lq-drummer': { body: 'teen', sex: 'm', hat: 'none' },
+  'npc-lq-clarinet': { body: 'elderly', sex: 'm', hair: 'grey', hat: 'none' },
+  'npc-lq-pilot': { sex: 'm', beard: true, hat: 'peaked' },
+  'npc-lq-porter': { body: 'big', sex: 'm', hat: 'cap' },
+  'npc-lq-lady': { sex: 'f', dress: true, hat: 'veil' },
+  'npc-lq-clerk': { sex: 'm', hat: 'bowler' },
+  'foe-lq-crake': { sex: 'm', hat: 'silk', dress: true },
+});

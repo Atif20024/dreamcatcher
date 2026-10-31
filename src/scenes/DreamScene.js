@@ -56,7 +56,7 @@ import { boardTitle } from '../ui/BoardTitle.js';
 import { trainWipe } from '../ui/TrainWipe.js';
 import { placeOf } from '../ui/theme.js';
 import { markMet, updateSave } from '../utils/save.js';
-import { WATCHED, watch, spawnFoe, foeContact, spawnKeyItem, updateKeyItems, spawnAudience, spawnResonant, updateResonants, ringAt, spawnMoment, castPortrait } from '../play/dreamAdapters.js';
+import { WATCHED, watch, spawnFoe, foeContact, spawnKeyItem, updateKeyItems, spawnAudience, spawnResonant, updateResonants, ringAt, spawnMoment, spawnSign, castPortrait } from '../play/dreamAdapters.js';
 
 const T = 32;
 
@@ -472,8 +472,12 @@ export default class DreamScene extends BaseLevel {
         return spawnResonant(this, e, room);
       case 'moment':
         return spawnMoment(this, e, room);
+      case 'sign':
+        return spawnSign(this, e, room);
       case 'npc': {
-        const npc = new Npc(this, { id: e.id, x: at.x + (e.dx || 0), y: at.y, rig: e.rig, cast: e.cast, pose: e.pose, facing: e.facing || -1, task: e.task || 'idle_fidget', turns: e.turns !== false, ...(e.depth === 'behind' ? { depth: LAYER_DEPTH.mid - 0.5 } : {}) });
+        // pace / follow (room cols) walk a cast person within its span
+        const span = (c) => (c ? [(room.r.tx + c[0]) * T + T / 2, (room.r.tx + c[1]) * T + T / 2] : null);
+        const npc = new Npc(this, { id: e.id, x: at.x + (e.dx || 0), y: at.y, rig: e.rig, cast: e.cast, pose: e.pose, facing: e.facing || -1, task: e.task || 'idle_fidget', turns: e.turns !== false, pace: span(e.pace), follow: span(e.follow), ...(e.depth === 'behind' ? { depth: LAYER_DEPTH.mid - 0.5 } : {}) });
         this.npcs.set(e.id, npc);
         const reg = this.interaction.register({ id: `npc:${e.id}`, at: () => ({ x: npc.x, y: npc.y }), radius: 72, prompt: 'talk', onUse: () => this.talkTo(e, npc) });
         return {
@@ -513,8 +517,10 @@ export default class DreamScene extends BaseLevel {
       case 'orb': {
         const x = (room.r.tx + e.x) * T + T / 2;
         const y = (room.r.ty + e.y) * T + T / 2;
-        const glow = this.add.image(x, y, 'dc-glow').setBlendMode('ADD').setTint(0x9ae8c9).setScale(0.8).setDepth(13).setAlpha(0.6);
+        // (a dream may colour its catch: THE LAST HAND's is one small gold coin)
+        const glow = this.add.image(x, y, 'dc-glow').setBlendMode('ADD').setTint(e.tint ?? 0x9ae8c9).setScale(0.8).setDepth(13).setAlpha(0.6);
         const orb = this.add.image(x, y, 'orb').setDepth(14);
+        if (e.tint) orb.setTint(e.tint);
         orb.isOrb = true;
         const tw = this.tweens.add({ targets: [orb, glow], y: y - 10, duration: 1400, yoyo: true, repeat: -1, ease: 'sine.inOut' });
         this.orb = orb;
@@ -641,6 +647,10 @@ export default class DreamScene extends BaseLevel {
       if (result.clean) this.F[`${def.id}_clean`] = true; // a flag beats can branch on
     }
     if (result && result.ok && def.onWin && this.beats.has(def.onWin)) this.beats.play(def.onWin).catch((e) => console.warn('[dream] beat', e));
+    // a result that is not a win may have its own beat (a bust at the table):
+    // def.onFail is a beat id or (result) → beat id | null
+    const fail = result && !result.ok && def.onFail ? (typeof def.onFail === 'function' ? def.onFail(result) : def.onFail) : null;
+    if (fail && this.beats.has(fail)) this.beats.play(fail).catch((e) => console.warn('[dream] beat', e));
   }
 
   // ---- beats -----------------------------------------------------------------------
@@ -700,6 +710,12 @@ export default class DreamScene extends BaseLevel {
           this.time.delayedCall((step.ms || 300) + 10, res);
         }),
       ending: () => this.endDream(),
+      // a dream's own code at a step (THE LAST HAND's purse): def.calls[name](scene, step)
+      call: (v, step) => {
+        const fn = this.def.calls && this.def.calls[v];
+        if (!fn) throw new Error(`DreamScene: no call "${v}"`);
+        return fn(this, step);
+      },
     };
   }
 
@@ -846,6 +862,8 @@ export default class DreamScene extends BaseLevel {
     }
     if (this.encounterActive) {
       this.encounters.update(dt, this.inputs);
+      // a verb that keeps a HUD (THE LAST HAND's purse) runs through encounters too
+      for (const v of this.verbs) if (v.mod.always && v.mod.update) v.mod.update(v.ctx, dt);
       this.player.body.setVelocityX(0);
       this.interaction.hide();
       this.holdFoes();

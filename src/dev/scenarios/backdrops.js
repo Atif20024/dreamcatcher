@@ -29,7 +29,7 @@ const backdropScale = {
   async run(dc) {
     const bad = [];
     const trees = [];
-    const visits = [['chef', null], ['musician', null], ['writer', 'arrival'], ['painter_legacy', 'arrival'], ['painter_legacy', 'square'], ['painter_legacy', 'fields'], ['gambler', 'arrival'], ['evening', 'orchard'], ['evening', 'square'], ['evening', 'hill'], ['evening', 'pines']];
+    const visits = [['chef', null], ['musician', null], ['writer', 'arrival'], ['painter_legacy', 'arrival'], ['painter_legacy', 'square'], ['painter_legacy', 'fields'], ['gambler_legacy', 'arrival'], ['evening', 'orchard'], ['evening', 'square'], ['evening', 'hill'], ['evening', 'pines']];
     for (const [d, p] of visits) {
       const sc = await arrive(dc, d, p);
       for (const o of sc.children.list) {

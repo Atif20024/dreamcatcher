@@ -15,7 +15,10 @@ export const DREAM_WARP = {
   // reachable as painter_legacy (or ?warp=painter&legacy=1)
   painter: { scene: 'Dream', param: null, framework: true },
   painter_legacy: { scene: 'Painter', param: 'pt', fallback: 'arrival' },
-  gambler: { scene: 'Gambler', param: 'gm', fallback: 'arrival' },
+  // THE LAST HAND on the framework; the old neon casino stays reachable as
+  // gambler_legacy (or ?warp=gambler&legacy=1)
+  gambler: { scene: 'Dream', param: null, framework: true },
+  gambler_legacy: { scene: 'Gambler', param: 'gm', fallback: 'arrival' },
   evening: { scene: 'Evening', param: 'ev', fallback: 'arch' },
   // framework dreams (DreamScene reads ?warp= itself: dream:room[:spawn])
   clockmaker: { scene: 'Dream', param: null, framework: true },

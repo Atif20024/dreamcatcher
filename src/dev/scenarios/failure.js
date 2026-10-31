@@ -12,7 +12,7 @@ import { getRun, clearRun } from '../../utils/save.js';
 const DREAMS = [
   { id: 'chef', place: null, scene: 'Chef' },
   { id: 'writer', place: 'cafe', scene: 'Writer' },
-  { id: 'gambler', place: 'lou', scene: 'Gambler' },
+  { id: 'gambler_legacy', run: 'gambler', place: 'lou', scene: 'Gambler' }, // the neon casino (THE LAST HAND is a framework dream)
   { id: 'painter_legacy', run: 'painter', place: 'fields', scene: 'Painter' }, // the Yellow House (THE MASTER'S LADDER is a framework dream),
 ];
 

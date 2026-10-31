@@ -16,7 +16,7 @@ const DREAMS = [
   ['astronaut', null],
   ['writer', null],
   ['painter_legacy', null],
-  ['gambler', null],
+  ['gambler_legacy', null],
   ['evening', null],
 ];
 
@@ -190,7 +190,7 @@ async function each(dc, fn) {
 const backgroundSnap = {
   id: 'background-snap',
   async run(dc) {
-    dc.warp('gambler', 'floor');
+    dc.warp('gambler_legacy', 'floor');
     dc.step(30);
     dc.press('Enter', 2); // dismiss any first-time tutorial card
     dc.step(20);

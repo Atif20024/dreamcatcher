@@ -426,3 +426,16 @@ The Musician is the second framework dream and the reference for the roll-out. W
 - **Ambience recipes:** `src/audio/eraLoops.js`. `RECIPES.<loop> = { seconds, seed, rms, layers: [[sound, opts], …] }` over the `SOUNDS` kit, rendered pure and merged into `LOOPS`.
 - **Cast:** `src/dreams/painter/people.js` (`npc-rn-*`, baked with a foot pivot) and `FOE_LOOKS` (`foe-rn-*`).
 - **Dev:** `?warp=painter:<room>` (`start bottega via speziale piazza guild palazzo chapel`). `?warp=painter_legacy`, or `?warp=painter&legacy=1`, plays the old `PainterScene`.
+
+## 20. THE LAST HAND additions (`src/dreams/gambler/`)
+
+- **Menu encounters.** An engine with `move(dir)` gets the arrows (`left right up down`) while it runs; `[E]` still calls `press('act')`. The slate, the faro bank and SHOWDOWN (`src/engines/slate.js`, `faro.js`, `showdown.js`) are menus. Their presenters are views `lq_slate`, `lq_faro`, `lq_cards` (`src/dreams/gambler/table.js`).
+- **`def.onFail`**: a beat id, or `(result) → beat id | null`, played when an encounter ends without `ok` (a bust at a table).
+- **Beat step `{ call: 'name' }`** runs `def.calls[name](scene, step)`: a dream's own code (the purse) from data.
+- **`{ type: 'sign', text, x, y, scale?, board?, ink?, rim?, wrap? }`**: a board with its words in the bitmap font (body ×2 by default), the board declared as the text's backing so the readability audit checks it. Never paint words into a prop.
+- **Walking cast people.** An npc with `pace: [c0, c1]` walks that span to and fro with pauses; `follow: [c0, c1]` keeps a step behind Jo inside it (Lou). Legs step by distance (Stride).
+- **Meters with marks**: `hud.meter(id).setTicks([{ at, color }])` (the slate's stop-loss and goal on the stack bar).
+- **`verb.always: true`** runs a verb's `update` during encounters too (a HUD that must move while the cards are out).
+- **`orb.tint`** colours a dream's catch.
+- **Rooms:** `air: [c0, c1]` (open deck: TILT cools there), `vents` (timed steam), `corridor` (the marker's ceiling), read by the dream's own verbs.
+- **Dev:** `?warp=gambler:<room>` (`start quay saloon cards office deck pilot landing`); `?warp=gambler_legacy` or `?warp=gambler&legacy=1` plays the old casino.

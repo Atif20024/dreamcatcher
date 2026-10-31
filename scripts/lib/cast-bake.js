@@ -45,6 +45,9 @@ export async function bakeCast(ROOT, store) {
   const rn = await imp('src/dreams/painter/people.js');
   // (a foot pivot: DreamScene's Npc stands a cast person on its feet)
   for (const [key, look] of Object.entries(rn.PEOPLE)) list.push([key, look, 'people']);
+  // THE LAST HAND: the Lantern Queen's people, 1884 (src/dreams/gambler/people.js)
+  const lq = await imp('src/dreams/gambler/people.js');
+  for (const [key, look] of Object.entries(lq.PEOPLE)) list.push([key, look, 'people']);
   list.push(['npc-kid', { kid: true, pal: { H: 0xc03a2a, S: 0x8a5a3b, T: 0xe8a030, t: 0xb87820, P: 0x3a5a80, B: 0x2a2a32 } }, 'npc']);
   list.push(['mus-critic', { pal: { H: 0x9a9aa8, S: 0xc8a888, T: 0x4a4a5a, t: 0xd8d8d8, P: 0x2a2a34, B: 0x1e1e28 } }, 'npc']);
 
