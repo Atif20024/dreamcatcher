@@ -14,6 +14,9 @@
 //        verb can ring (scene.ringAt), glowing faintly when he is near
 //   { type: 'moment', id, x, y, beat, prompt }  a Small Moment: [E] plays its
 //        beat once and records it in the save (recordMoment)
+//   { type: 'sign', text, x, y, scale?, board?, ink?, rim? }  a painted board
+//        with its words in the bitmap font (§8: body at 2× by default, on
+//        the board's own colour, lifted to 4.5:1; x, y = the board's centre)
 // and `when` / `unless` on any of these (and npc / orb) make the entity
 // appear and go with its flag (watch()).
 import Phaser from 'phaser';
@@ -23,9 +26,10 @@ import { castFrame } from '../art/baked.js';
 import { recordMoment } from '../utils/save.js';
 import { sfx } from '../systems/audio.js';
 import { hud } from '../ui/hud.js';
+import { uiText } from '../ui/text.js';
 
 const T = 32;
-export const WATCHED = new Set(['npc', 'orb', 'foe', 'keyitem', 'audience', 'resonant', 'moment']);
+export const WATCHED = new Set(['npc', 'orb', 'foe', 'keyitem', 'audience', 'resonant', 'moment', 'sign']);
 
 // an entity with `when` / `unless`: spawned while its flags hold, removed when not
 export function watch(scene, e, room, spawn) {
@@ -298,4 +302,35 @@ export function spawnMoment(scene, e, room) {
       recordMoment(scene.dreamId, e.id);
     },
   });
+}
+
+// a sign: a board (its colour, a 2 px rim, a darker frame) and the words on
+// it, uiText in the world with the board declared as its backing (the
+// readability audit checks the glyphs against it). Body ×2 unless the sign
+// says otherwise; never smaller than body ×1 (cap 9 at zoom 1).
+export function spawnSign(scene, e, room) {
+  const r = room.r;
+  const x = Math.round((r.tx + e.x) * T + T / 2 + (e.dx || 0));
+  const y = Math.round((r.ty + e.y) * T + T / 2 + (e.dy || 0));
+  const board = e.board ?? 0x2a1c16;
+  const scale = e.scale || 2;
+  const t = uiText(scene, x, y, e.text, { size: e.size || 'body', scale, color: e.ink ?? 0xf2d580, backing: board, align: 'center', wrap: e.wrap || 0 })
+    .setOrigin(0.5)
+    .setDepth(e.depth ?? -8.5);
+  const padX = e.padX ?? 10;
+  const padY = e.padY ?? 6;
+  const w = Math.max(e.w || 0, Math.ceil(t.width) + padX * 2);
+  const h = Math.ceil(t.height) + padY * 2;
+  const g = scene.add.graphics().setDepth((e.depth ?? -8.5) - 0.01);
+  g.fillStyle(e.frame ?? 0x14100e, 1).fillRect(x - w / 2 - 3, y - h / 2 - 3, w + 6, h + 6);
+  g.fillStyle(board, 1).fillRect(x - w / 2, y - h / 2, w, h);
+  g.lineStyle(2, e.rim ?? 0xb08a3a, 1).strokeRect(x - w / 2 + 2, y - h / 2 + 2, w - 4, h - 4);
+  t.isSign = true;
+  return {
+    text: t,
+    destroy() {
+      t.destroy();
+      g.destroy();
+    },
+  };
 }

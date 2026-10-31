@@ -97,6 +97,7 @@ export default class HudGrid {
         r.label.destroy();
         r.back.destroy();
         r.bar.destroy();
+        for (const t of r.ticks || []) t.destroy();
         this.meterRows.delete(id);
       }
     }
@@ -126,6 +127,15 @@ export default class HudGrid {
       r.label.setColor(m.color).setPosition(B.right - B.w - 8, y + PLATE.padY);
       r.back.setPosition(B.right - B.w, cy);
       r.bar.setPosition(B.right - B.w, cy).setFillStyle(toColor(m.color)).setSize(Math.round(B.w * m.frac), B.h);
+      // marks on the bar (hud.meter().setTicks): a 2 px post, 4 px proud of it
+      const ticks = m.ticks || [];
+      r.ticks = r.ticks || [];
+      while (r.ticks.length < ticks.length) r.ticks.push(this.ui.add.rectangle(0, 0, 2, B.h + 8, 0xffffff).setOrigin(0.5, 0.5).setDepth(DEPTH + 0.02));
+      r.ticks.forEach((t, i) => {
+        const k = ticks[i];
+        t.setVisible(!!k);
+        if (k) t.setPosition(Math.round(B.right - B.w + B.w * k.at), cy).setFillStyle(toColor(k.color));
+      });
       const x0 = B.right - B.w - 8 - (m.label ? r.label.width : -8) - PLATE.padX;
       r.plate.setPosition(Math.round(x0), Math.round(y)).setSize(Math.round(B.right + PLATE.padX - x0), h);
       r.plate.setDisplaySize(r.plate.width, r.plate.height);

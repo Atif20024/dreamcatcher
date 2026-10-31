@@ -1,5 +1,6 @@
 import { createFrames } from '../utils/pixelart.js';
 import { FOE_LOOKS } from '../dreams/painter/people.js';
+import { FOE_LOOKS as LQ_FOES } from '../dreams/gambler/people.js';
 
 // D4/C1.2 — every foe gets a silhouette you can name at a glance and frames
 // that move when it moves. Before this, seven of the fifteen kinds shared one
@@ -152,6 +153,8 @@ export const PEOPLE = {
   // THE MASTER'S LADDER (src/dreams/painter/people.js): the rival's
   // apprentices, the guild's inspectors, the foreman
   ...Object.fromEntries(Object.entries(FOE_LOOKS).map(([k, l]) => [k, { art: person(l.hat, l.held), pal: P(...l.pal) }])),
+  // THE LAST HAND (src/dreams/gambler/people.js): Crake, the debt man
+  ...Object.fromEntries(Object.entries(LQ_FOES).map(([k, l]) => [k, { art: person(l.hat, l.held), pal: P(...l.pal) }])),
 };
 
 // --- creatures: things, not people -----------------------------------------

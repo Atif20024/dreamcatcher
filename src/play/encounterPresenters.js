@@ -290,6 +290,8 @@ export const PRESENTERS = {
 };
 
 export function makePresenter(scene, def, engine, ctx) {
+  // a dream may bring its own presenter (THE LAST HAND's card tables)
+  if (typeof def.present === 'function') return def.present(scene, def, engine, ctx);
   const set = PRESENTERS[def.view || def.id];
   if (!set) return null;
   const kind = def.presenter === 'modal' ? 'modal' : 'world';

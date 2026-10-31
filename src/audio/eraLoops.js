@@ -14,6 +14,9 @@
 // alembic), clink (glass), steps (footsteps on flags), chisel (a metallic
 // tick), quill (a scratch), murmur (a low room bed), wind (a soft wash),
 // drone (a held open fifth, the organ's breath in an empty church).
+// THE LAST HAND adds the river: lapping (water slapping at stone and hull),
+// creak (timber or rope under load), paddle (a paddlewheel's slow beat),
+// riffle (cards shuffled), chips (bone checks stacked) and gulls.
 
 function rng(seed) {
   let s = seed >>> 0 || 1;
@@ -266,6 +269,61 @@ export const SOUNDS = {
     for (let i = 0; i < n; i++) buf[i] += w[i] * vol * 3 * (0.6 + 0.4 * Math.sin((i / n) * Math.PI * 2 * cycles));
   },
   // a cheap baked echo: copies of the buffer, later and quieter (a stone room)
+  // water against stone or a hull: low noise in slow slaps, a few chuckles
+  lapping(buf, sr, r, { vol = 0.05, rate = 0.6, f = 420 } = {}) {
+    const n = buf.length;
+    const dur = n / sr;
+    for (let k = 0; k < dur * rate; k++) {
+      const len = 0.5 + r() * 0.7;
+      addAt(buf, bandpass(noise(Math.floor(len * sr), r), sr, f * (0.7 + r() * 0.6), 0.8), Math.floor(r() * n), vol * (0.6 + r() * 0.5), (x) => Math.sin(Math.PI * x) ** 2);
+      if (r() < 0.5) addAt(buf, tone(sr, 0.06, 500 + r() * 300, { decay: 4, glide: 250 }), Math.floor(r() * n), vol * 0.35);
+    }
+  },
+  // timber or rope under load: a slow glide of a reedy low note
+  creak(buf, sr, r, { vol = 0.03, count = 3, f = 140 } = {}) {
+    const n = buf.length;
+    for (let k = 0; k < count; k++) {
+      const len = 0.35 + r() * 0.5;
+      const src = tone(sr, len, f * (0.8 + r() * 0.5), { decay: 0.6, attack: 0.08, glide: f * (r() - 0.3), shape: 'tri' });
+      const rough = bandpass(noise(src.length, r), sr, 900, 3);
+      for (let i = 0; i < src.length; i++) src[i] = src[i] * (0.6 + 0.4 * Math.abs(rough[i]) * 8);
+      addAt(buf, src, Math.floor(r() * n), vol, (x) => Math.sin(Math.PI * x));
+    }
+  },
+  // a paddlewheel: buckets slapping in at a slow, even beat, the shaft's rumble
+  paddle(buf, sr, r, { vol = 0.04, every = 0.62, f = 160 } = {}) {
+    const dur = buf.length / sr;
+    for (let t = 0; t < dur; t += every) {
+      addAt(buf, bandpass(noise(Math.floor(0.22 * sr), r), sr, f * (0.9 + r() * 0.2), 1.1), Math.floor(t * sr), vol * (0.8 + r() * 0.3), (x) => (1 - x) ** 1.5);
+      addAt(buf, bandpass(noise(Math.floor(0.3 * sr), r), sr, 1400, 0.7), Math.floor((t + 0.05) * sr), vol * 0.25, (x) => (1 - x) ** 2);
+    }
+    for (let i = 0; i < buf.length; i++) buf[i] += Math.sin((i / sr) * 2 * Math.PI * 42) * vol * 0.12;
+  },
+  // cards riffled: a dense burst of tiny clicks, a bridge at the end
+  riffle(buf, sr, r, { vol = 0.03, count = 2 } = {}) {
+    const n = buf.length;
+    for (let k = 0; k < count; k++) {
+      let t = r() * (n / sr - 1);
+      for (let c = 0; c < 26; c++, t += 0.012 + r() * 0.01) addAt(buf, bandpass(noise(Math.floor(0.004 * sr), r), sr, 3500 + r() * 2000, 2), Math.floor(t * sr), vol, (x) => 1 - x);
+      addAt(buf, bandpass(noise(Math.floor(0.12 * sr), r), sr, 2000, 1), Math.floor((t + 0.05) * sr), vol * 0.5, (x) => Math.sin(Math.PI * x));
+    }
+  },
+  // bone checks stacked and cut: short dull clacks in twos and threes
+  chips(buf, sr, r, { vol = 0.03, clusters = 4 } = {}) {
+    const n = buf.length;
+    for (let k = 0; k < clusters; k++) {
+      let t = r() * (n / sr);
+      for (let c = 0; c < 2 + Math.floor(r() * 3); c++, t += 0.05 + r() * 0.05) for (const m of [1, 1.6]) addAt(buf, tone(sr, 0.03, 1900 * m * (0.9 + r() * 0.2), { decay: 6 }), Math.floor(t * sr), vol / m);
+    }
+  },
+  // gulls over a river town: a falling cry, two or three in a row
+  gulls(buf, sr, r, { vol = 0.03, rate = 0.12 } = {}) {
+    const dur = buf.length / sr;
+    for (let k = 0; k < Math.max(1, dur * rate); k++) {
+      let t = r() * dur;
+      for (let c = 0; c < 2 + Math.floor(r() * 2); c++, t += 0.32 + r() * 0.2) addAt(buf, tone(sr, 0.28, 1500 + r() * 300, { decay: 1.5, glide: -600, shape: 'tri', vib: 30, vibHz: 18 }), Math.floor(t * sr), vol);
+    }
+  },
   echo(buf, sr, r, { delay = 0.11, taps = 4, fb = 0.45 } = {}) {
     const src = Float32Array.from(buf);
     for (let k = 1; k <= taps; k++) addAt(buf, lowpass1(src, 0.5 / k), Math.floor(k * delay * sr), fb ** k);
@@ -297,6 +355,22 @@ export const RECIPES = {
   // (feedback 4, "the noise in the background is repetitive … not so
   // dominating": long loops, a second crowd of another length under the
   // first (src/audio/synthLoops.js LOOP_LAYERS) and quieter overall)
+  // THE LAST HAND, the Lantern Queen on the Verrane, 1884
+  // the quay at dusk: water at the stone, the hull creaking, a bell buoy, gulls
+  gm_quay: { seconds: 14, seed: 61, rms: -36, layers: [['lapping', { vol: 0.05, rate: 0.7 }], ['creak', { vol: 0.03, count: 3 }], ['bell', { f: 311, vol: 0.02, at: 5, strikes: 2, gap: 4.5, tail: 5 }], ['gulls', { vol: 0.02, rate: 0.1 }], ['wind', { vol: 0.012 }]] },
+  // the main saloon: talk and glasses under the band (the band is the music)
+  gm_saloon: { seconds: 12, seed: 62, rms: -37, layers: [['chatter', { voices: 6, vol: 0.03, pitch: 0.95 }], ['clink', { vol: 0.02, count: 5 }], ['chips', { vol: 0.012, clusters: 2 }], ['murmur', { vol: 0.02 }], ['echo', { delay: 0.07, taps: 2, fb: 0.25 }]] },
+  // the card room: a ceiling fan, ice in a glass, cards riffled, chips cut
+  gm_cards: { seconds: 11, seed: 63, rms: -40, layers: [['pump', { vol: 0.02, hz: 1.1, k: 0.05 }], ['riffle', { vol: 0.025, count: 2 }], ['chips', { vol: 0.02, clusters: 3 }], ['clink', { vol: 0.012, count: 2 }], ['echo', { delay: 0.05, taps: 2, fb: 0.2 }]] },
+  // the purser's office: dry and close, a pen on a ledger, the boat's timbers
+  gm_office: { seconds: 10, seed: 64, rms: -42, layers: [['quill', { vol: 0.02, clusters: 2 }], ['creak', { vol: 0.02, count: 2, f: 110 }], ['murmur', { vol: 0.012, k: 0.01 }]] },
+  // the hurricane deck before dawn: wind, rope and timber, the wheel below
+  gm_deck: { seconds: 15, seed: 65, rms: -35, layers: [['wind', { vol: 0.035 }], ['creak', { vol: 0.03, count: 4, f: 180 }], ['paddle', { vol: 0.03 }], ['lapping', { vol: 0.02, rate: 0.4, f: 300 }]] },
+  // the pilot house: the wheel's beat through the floor, glass, the wind outside
+  gm_pilot: { seconds: 12, seed: 66, rms: -40, layers: [['paddle', { vol: 0.025, every: 0.66 }], ['wind', { vol: 0.012 }], ['creak', { vol: 0.015, count: 2, f: 120 }]] },
+  // the landing at dawn: the wheel slowing, water, birds, nothing else
+  gm_dawn: { seconds: 16, seed: 67, rms: -37, layers: [['lapping', { vol: 0.04, rate: 0.5 }], ['swallows', { rate: 0.25, vol: 0.03, lo: 2400, hi: 4200 }], ['gulls', { vol: 0.018, rate: 0.08 }], ['paddle', { vol: 0.012, every: 1.4 }]] },
+
   hub_hall: { seconds: 21, seed: 51, rms: -43, layers: [['murmur', { vol: 0.05, k: 0.01 }], ['hum', { f: 60, vol: 0.005 }], ['echo', { delay: 0.17, taps: 4, fb: 0.5 }]] },
   hub_crowd: { seconds: 26, seed: 52, rms: -41, layers: [['chatter', { voices: 5, vol: 0.03, pitch: 0.9 }], ['steps', { vol: 0.03, pace: 0.5, walks: 4 }], ['echo', { delay: 0.17, taps: 4, fb: 0.5 }]] },
   hub_crowd_far: { seconds: 17, seed: 57, rms: -46, layers: [['chatter', { voices: 3, vol: 0.03, pitch: 1.05 }], ['steps', { vol: 0.02, pace: 0.7, walks: 2 }], ['echo', { delay: 0.23, taps: 5, fb: 0.55 }]] },
