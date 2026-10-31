@@ -56,7 +56,12 @@ export default class GateSigns {
       if (marks !== sign.last) {
         sign.last = marks;
         sign.marks.setText(marks);
-        if (g.open) sign.objs.forEach((o) => o.setAlpha(0.55));
+        if (g.open && g.fadeSign) {
+          // a gate that tidies its sign: OPEN reads for a second, then the
+          // sign goes (a dim board left by an open door is litter)
+          sign.objs.forEach((o) => o.setAlpha(0.55));
+          this.scene.tweens.add({ targets: sign.objs, alpha: 0, delay: 1000, duration: 500 });
+        } else if (g.open) sign.objs.forEach((o) => o.setAlpha(0.55));
       }
     }
   }

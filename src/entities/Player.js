@@ -426,9 +426,14 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     const fy = this.y + 22;
     const top = Math.floor((fy - JO_ART_HEIGHT + 6) / T);
     const row = Math.floor((fy - 1) / T);
+    // a stair step at his feet is the next tread, not a ceiling: on a flight
+    // the step ahead sits within a tile of the foot line, and counting it
+    // made him duck up every stair (and run upright into the top tread)
+    const sg = this.scene.slopeGrid || (this.scene.built && this.scene.built.slopeGrid) || {};
+    const tread = (tx, ty) => ty >= row - 1 && sg[ty] && sg[ty][tx];
     for (const dx of [-8, 8]) {
       const tx = Math.floor((this.x + dx) / T);
-      for (let ty = top; ty < row; ty++) if (solidAt(tx, ty)) return true;
+      for (let ty = top; ty < row; ty++) if (solidAt(tx, ty) && !tread(tx, ty)) return true;
     }
     return false;
   }

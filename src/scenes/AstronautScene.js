@@ -21,6 +21,11 @@ import { hud } from '../ui/hud.js';
 
 const T = 32;
 const px = (t) => t * T + T / 2;
+// the Track: laps for Coach Adaeze; a 10 kg medicine ball is 0.4 m across
+const TRACK_LAPS = 3;
+const MEDBALL_R = 9;
+// the one stat each gym room trains (the HUD shows only that one)
+const ROOM_STAT = { p1_track: 'legs', p1_pool: 'lungs' };
 
 // zone tints: gym fluorescents → gate grey → campus dusk → space → moon → field
 const ZONES = [
@@ -72,6 +77,13 @@ export default class AstronautScene extends BaseLevel {
     this.notebookPage = 0;
     this.wasInCrater = false;
     this.ballHitAt = 0;
+    this.statKey = null;
+    this.coach = null;
+    this.coachState = 'arrival';
+    this.coachPath = null;
+    this.lapText = null;
+    this.lapBoardEv = null;
+    this.lapFlash = null;
     this.groundedSinceBell = true;
     this.vaultUntil = 0;
     this.nearestInteract = null;
@@ -227,7 +239,9 @@ export default class AstronautScene extends BaseLevel {
       crater:  { flags: ['d0', 'physical', 'selected', 'centrifuge', 'pool', 'sim', 'shelter', 'survival', 'docked', 'coolant', 'debris_done', 'reported', 'wrench', 'eva_out', 'array_fixed', 'eva_done', 'landed', 'rescue_on'], col: 438, row: 38, stats: 1, suit: 1, obj: 'the crater. her signal is one pip.' },
       field:   { flags: ['d0', 'physical', 'selected', 'centrifuge', 'pool', 'sim', 'shelter', 'survival', 'docked', 'array_fixed', 'eva_done', 'landed', 'priya_safe', 'reentry', 'field'], col: 478, row: 34, stats: 1, obj: 'walk.' },
     };
-    const ph = PHASES[at] || PHASES[at === 'sky' ? 'pad' : ''];
+    // room ids from ?warp=astronaut:<room> land on the phase that holds them
+    const ALIAS = { sky: 'pad', p0_arrival: 'gym', p1_track: 'gym' };
+    const ph = PHASES[at] || PHASES[ALIAS[at] || ''];
     if (!ph) return false;
     this.warped = true;
     ph.flags.forEach((f) => this.setFlag(f));
@@ -279,8 +293,9 @@ export default class AstronautScene extends BaseLevel {
           tiles.push(img);
         }
         const light = this.add.circle(g.wx, px(g.ty) - 18, 5, 0xe83a2a).setDepth(20);
-        this.add.rectangle(g.wx, px(g.ty) - 18, 22, 3, 0x2a2a34).setDepth(19);
-        return { ...g, id: g.id, requires: g.requires || [], tiles, light, open: false };
+        const bar = this.add.rectangle(g.wx, px(g.ty) - 18, 22, 3, 0x2a2a34).setDepth(19);
+        // fadeSign: the gate's sign says OPEN, then goes (GateSigns)
+        return { ...g, id: g.id, requires: g.requires || [], tiles, light, bar, open: false, fadeSign: true };
       });
   }
 
@@ -294,6 +309,9 @@ export default class AstronautScene extends BaseLevel {
           if (t.body) t.body.enable = false;
           this.tweens.add({ targets: t, alpha: 0, duration: 400 });
         });
+        // the lamp shows green for a beat, then goes with the gate: a lit
+        // dot left hanging over an empty doorway reads as a stray object
+        this.tweens.add({ targets: [g.light, g.bar], alpha: 0, delay: 700, duration: 500 });
       }
     }
   }
@@ -364,11 +382,22 @@ export default class AstronautScene extends BaseLevel {
     this.updateStatHud();
   }
 
+  // The clipboard is one line: the stat this room trains (the wall and the
+  // ring split their room), or, between the gym rooms, the one most short.
+  // Four meters stacked under the objective was more HUD than game.
   updateStatHud() {
     const pip = (n) => '●'.repeat(n) + '○'.repeat(5 - n);
     const s = this.stats;
-    this.statHud.setText(`LUNGS ${pip(s.lungs)}\nGRIP ${pip(s.grip)}\nLEGS ${pip(s.legs)}\nNERVE ${pip(s.nerve)}`);
+    const k = this.statKey || ['lungs', 'grip', 'legs', 'nerve'].reduce((a, b) => (s[b] < s[a] ? b : a));
+    this.statHud.setText(`${k.toUpperCase()} ${pip(s[k])}`);
     this.o2Max = 40 + 10 * s.lungs;
+  }
+
+  trainedStat(room) {
+    if (!room) return null;
+    if (ROOM_STAT[room.id]) return ROOM_STAT[room.id];
+    if (room.id === 'p1_wall_ring') return this.player.x < px(95) ? 'grip' : 'nerve';
+    return null;
   }
 
   gainStat(k, to, label) {
@@ -418,17 +447,7 @@ export default class AstronautScene extends BaseLevel {
 
   buildBody() {
     // -- the Track (Legs): laps on the mezzanine, medicine balls rolling
-    const start = this.obj('track_start');
-    const far = this.obj('track_far');
-    this.add.rectangle(start.wx, start.wy + 10, 4, 40, 0xf2d580, 0.8).setDepth(D.INTERACT);
-    uiText(this, start.wx - 10, start.wy - 26, 'LAP', { fontSize: '10px', color: '#f2d580' }).setDepth(D.INTERACT);
-    this.track = { start: start.wx, far: far.wx, phase: 'home', laps: 0 };
-    this.balls = [0, 1].map((i) => {
-      const b = this.add.circle(start.wx + 120 + i * 220, px(30), 12, 0x8a2a20).setDepth(D.FOE);
-      b.dir = i % 2 ? -1 : 1;
-      b.speed = 90 + this.difficulty * 10;
-      return b;
-    });
+    this.buildTrack();
 
     // -- the Pool (Lungs): hoops in one breath, the deep end holds the shard
     this.hoops = this.objAll('hoop').map((o) => {
@@ -1805,8 +1824,14 @@ export default class AstronautScene extends BaseLevel {
       this.o2Meter.setColor(this.o2 < 10 ? '#e83a2a' : '#88b8d8');
     }
 
-    // stat clipboard only while the gym is the story
-    this.statHud.setVisible(!this.F.selected);
+    // stat clipboard only while the gym is the story, and only once the
+    // coach has said what the stats are
+    this.statHud.setVisible(!this.F.selected && !!this.F.d0 && room.id !== 'p0_arrival');
+    const statKey = this.trainedStat(room);
+    if (statKey !== this.statKey) {
+      this.statKey = statKey;
+      this.updateStatHud();
+    }
     // signal
     const inCrater = room.id === 'p5_crater' && p.y > px(40);
     this.signal = inCrater ? 0 : this.F.rescue_on && room.id.startsWith('p5') ? 1 : 3;
@@ -1827,7 +1852,7 @@ export default class AstronautScene extends BaseLevel {
     for (const s of this.shadows || []) s.setAlpha(this.visorOn && this.power > 0 ? 0.35 : 0.88);
 
     // the gym minigames
-    this.updateTrack(time);
+    this.updateTrack(time, delta);
     this.updateHoops();
     if (p.body.onFloor()) this.groundedSinceBell = true;
     if (this.bout) this.updateBoxing(time);
@@ -1960,32 +1985,358 @@ export default class AstronautScene extends BaseLevel {
     });
   }
 
-  updateTrack(time) {
+  // ------- the Track (p1_track) ---------------------------------------------
+  // The deck is a running track: rubber, two lane lines, a chequered start /
+  // finish line, a lap board on the wall above it. Coach Adaeze stands behind
+  // the line and rolls the medicine balls out to the bin at the far end. A
+  // lap is: cross the line, touch the bin end, come back over the line.
+
+  buildTrack() {
+    const start = this.obj('track_start');
+    const far = this.obj('track_far');
+    const row = start.ty + 1; // the deck's tile row
+    const deckY = row * T; // the running surface
+    let c0 = start.tx;
+    let c1 = far.tx;
+    while (this.built.charAt(c0 - 1, row) === '#') c0--;
+    while (this.built.charAt(c1 + 1, row) === '#') c1++;
+    const x0 = c0 * T;
+    const x1 = (c1 + 1) * T;
+    this.track = {
+      start: start.wx,
+      far: far.wx,
+      deckY,
+      x0,
+      x1,
+      bin: x1 - 14,
+      phase: 'idle', // idle → out (to the bin end) → back (over the line)
+      laps: this.F.track_done ? TRACK_LAPS : 0,
+      lastX: null,
+      nextThrow: 0,
+      windUpAt: 0,
+      told: false,
+    };
+    this.medBallTexture();
+
+    // the surface: red-brown rubber over the deck's top, two white lane
+    // lines, a dark edge, the concrete slab left showing under it
+    const g = this.add.graphics().setDepth(D.TERRAIN + 0.5);
+    g.fillStyle(0x8a3a2a, 1).fillRect(x0, deckY, x1 - x0, 20);
+    g.fillStyle(0xa84a34, 1).fillRect(x0, deckY, x1 - x0, 3);
+    g.fillStyle(0x5a2418, 1).fillRect(x0, deckY + 20, x1 - x0, 2);
+    g.fillStyle(0xf2ede4, 0.85).fillRect(x0, deckY + 7, x1 - x0, 1).fillRect(x0, deckY + 14, x1 - x0, 1);
+    // the start / finish line: a chequered band across both lanes
+    const sx = Math.round(start.wx) - 4;
+    for (let yy = 0; yy < 20; yy += 4) {
+      for (let xx = 0; xx < 8; xx += 4) {
+        g.fillStyle((xx + yy) % 8 === 0 ? 0xf2ede4 : 0x14141c, 1).fillRect(sx + xx, deckY + yy, 4, 4);
+      }
+    }
+    // the handrail along the back of the deck: posts every 2 m, rail at 1 m
+    const rail = this.add.graphics().setDepth(D.INTERACT - 3);
+    rail.fillStyle(0x6a6e7a, 1).fillRect(x0, deckY - 44, x1 - x0, 3);
+    rail.fillStyle(0x4a4c54, 1).fillRect(x0, deckY - 24, x1 - x0, 2);
+    for (let x = x0 + 4; x < x1; x += 88) rail.fillStyle(0x6a6e7a, 1).fillRect(x, deckY - 44, 3, 44);
+    rail.fillStyle(0x6a6e7a, 1).fillRect(x1 - 7, deckY - 44, 3, 44);
+
+    // the ball bin at the far end: a wire basket, two balls showing
+    const bx = this.track.bin;
+    const bin = this.add.graphics().setDepth(D.INTERACT - 1);
+    bin.fillStyle(0x2a2a34, 0.6).fillRect(bx - 12, deckY - 18, 24, 18);
+    [-6, 6].forEach((dx) => this.add.image(bx + dx, deckY - 16, 'astro-medball').setDepth(D.INTERACT - 2).setAngle(dx * 9));
+    bin.lineStyle(1, 0xb8bcc8, 1).strokeRect(bx - 12, deckY - 18, 24, 18);
+    for (let x = bx - 8; x < bx + 12; x += 4) bin.lineBetween(x, deckY - 18, x, deckY);
+    bin.lineBetween(bx - 12, deckY - 9, bx + 12, deckY - 9);
+
+    // the coach's rack behind the line
+    const rx = start.wx - 50;
+    const rack = this.add.graphics().setDepth(D.INTERACT - 2);
+    rack.fillStyle(0x4a4c54, 1).fillRect(rx - 12, deckY - 22, 3, 22).fillRect(rx + 9, deckY - 22, 3, 22).fillRect(rx - 12, deckY - 6, 24, 3);
+    this.add.image(rx, deckY - 15, 'astro-medball').setDepth(D.INTERACT - 1);
+
+    // the lap board, hung on the wall over the line
+    const by = deckY - 132;
+    const board = this.add.graphics().setDepth(D.INTERACT - 1);
+    board.lineStyle(1, 0x8a8e9a, 1).lineBetween(start.wx - 30, by - 70, start.wx - 30, by - 24).lineBetween(start.wx + 30, by - 70, start.wx + 30, by - 24);
+    board.fillStyle(0x3a3428, 1).fillRect(start.wx - 56, by - 24, 112, 50);
+    board.fillStyle(0x14141c, 1).fillRect(start.wx - 52, by - 20, 104, 42);
+    this.lapTitle = uiText(this, start.wx, by - 9, 'THE TRACK', { size: 'body', color: '#c8c0b0', align: 'center', backing: 0x14141c })
+      .setOrigin(0.5)
+      .setDepth(D.INTERACT);
+    this.lapText = uiText(this, start.wx, by + 9, '', { size: 'body', color: '#f2d580', align: 'center', backing: 0x14141c })
+      .setOrigin(0.5)
+      .setDepth(D.INTERACT);
+    this.lapText.name = 'track-lap-board';
+    this.updateLapBoard();
+    // the job, on the wall where the run starts
+    const sign = uiText(this, start.wx + 110, deckY - 70, `RUN ${TRACK_LAPS} LAPS\nJUMP THE BALLS`, { size: 'body', color: '#2a2018', align: 'center', backing: 0xe8dcc0 })
+      .setOrigin(0.5)
+      .setDepth(D.INTERACT - 1);
+    sign.name = 'track-sign';
+    this.add.rectangle(sign.x, sign.y, Math.ceil(sign.width) + 12, Math.ceil(sign.height) + 8, 0xe8dcc0).setStrokeStyle(1, 0x6a5a3a).setDepth(D.INTERACT - 2);
+
+    // the LV-3 poster on the wall (the Board asks about it)
+    this.buildLv3Poster(this.obj('lv3_poster'));
+
+    // Coach Adaeze: at the intake until d0, then at her line
+    this.coach = this.adaeze;
+    this.coachSpot = { x: start.wx - 26, y: deckY };
+    this.coachState = 'arrival';
+    attachStride(this, this.coach, 'npc-adaeze');
+    this.addInteract(this.coachSpot.x, deckY - 40, 'Coach Adaeze', () => {
+      const line = this.F.track_done ? "That's legs, champion.\nThe pool's next door. It's cold." : `${TRACK_LAPS} laps. Out to the bin, back over my line.\nJump the balls. They don't stop for you.`;
+      this.floatText(this.coachSpot.x, deckY - 100, line, '#f2e0a0');
+    }, { once: false, when: () => this.coachState === 'track' });
+    this.balls = [];
+  }
+
+  // a medicine ball, drawn: stitched leather panels, a lit top, an outline
+  medBallTexture() {
+    if (this.textures.exists('astro-medball')) return;
+    const r = MEDBALL_R;
+    const d = r * 2 + 2;
+    const c = r + 1;
+    const g = this.make.graphics({ x: 0, y: 0, add: false });
+    g.fillStyle(0x3e2214, 1).fillCircle(c, c, r);
+    g.fillStyle(0x6a3a24, 1).fillCircle(c - 1, c - 1, r - 1.5);
+    g.fillStyle(0x8a4e30, 1).fillCircle(c - 2.5, c - 2.5, r - 4.5);
+    g.fillStyle(0xc08a5a, 0.9).fillCircle(c - 3.5, c - 3.5, 1.6);
+    // the seams: a cross and two curved panel lines
+    g.lineStyle(1, 0x1e1008, 0.95);
+    g.lineBetween(c - r + 1, c, c + r - 1, c);
+    g.lineBetween(c, c - r + 1, c, c + r - 1);
+    g.beginPath();
+    g.arc(c - r - 3, c, r + 1, -0.75, 0.75);
+    g.strokePath();
+    g.beginPath();
+    g.arc(c + r + 3, c, r + 1, Math.PI - 0.75, Math.PI + 0.75);
+    g.strokePath();
+    // stitches along the band
+    g.fillStyle(0xd8b890, 0.9);
+    for (let x = c - r + 3; x < c + r - 2; x += 3) if (Math.abs(x - c) > 1) g.fillRect(x, c - 1, 1, 1);
+    g.lineStyle(1, 0x140a06, 1).strokeCircle(c, c, r);
+    g.generateTexture('astro-medball', d, d);
+    g.destroy();
+  }
+
+  // MERIDIAN LV-3, framed and pinned to the wall beside the deck: three
+  // stages with separation rings, fins, a flame. The caption is part of the
+  // poster, above the deck line.
+  buildLv3Poster(o) {
+    if (!o) return;
+    const x = Math.round(o.wx);
+    const bottom = this.track.deckY - 40;
+    const w = 66;
+    const h = 112;
+    const top = bottom - h;
+    const g = this.add.graphics().setDepth(D.BEHIND);
+    g.fillStyle(0x0e0c14, 0.35).fillRect(x - w / 2 + 3, top + 3, w, h); // its shadow on the wall
+    g.fillStyle(0x6a5a3a, 1).fillRect(x - w / 2, top, w, h); // the frame
+    g.fillStyle(0x1e2a4a, 1).fillRect(x - w / 2 + 3, top + 3, w - 6, h - 6);
+    g.fillStyle(0x2a3a64, 1).fillRect(x - w / 2 + 3, top + 3, w - 6, 26); // the sky, lighter up top
+    // the rocket: nose, three stages, interstage rings, fins, flame
+    const ny = top + 8;
+    g.fillStyle(0xd8dce8, 1).fillTriangle(x - 5, ny + 10, x + 5, ny + 10, x, ny); // the nose cone, on its stage
+    g.fillStyle(0xc8ccd8, 1).fillRect(x - 5, ny + 10, 10, 10); // stage 3
+    g.fillStyle(0xe8762a, 1).fillRect(x - 6, ny + 20, 12, 2);
+    g.fillStyle(0xd8dce8, 1).fillRect(x - 6, ny + 22, 12, 12); // stage 2
+    g.fillStyle(0xe8762a, 1).fillRect(x - 7, ny + 34, 14, 2);
+    g.fillStyle(0xe8e4d8, 1).fillRect(x - 7, ny + 36, 14, 16); // stage 1
+    g.fillStyle(0x9a9eaa, 1).fillRect(x + 3, ny + 10, 2, 42); // the shaded side
+    g.fillStyle(0x3a5a80, 1).fillRect(x - 4, ny + 40, 3, 3); // the flag patch
+    g.fillStyle(0x8a8e9a, 1).fillTriangle(x - 7, ny + 42, x - 7, ny + 52, x - 13, ny + 54).fillTriangle(x + 7, ny + 42, x + 7, ny + 52, x + 13, ny + 54);
+    g.fillStyle(0xe8a030, 1).fillTriangle(x - 5, ny + 52, x + 5, ny + 52, x, ny + 64);
+    g.fillStyle(0xf2e0a0, 1).fillTriangle(x - 2, ny + 52, x + 2, ny + 52, x, ny + 59);
+    // a pin at each corner
+    g.fillStyle(0xc03a2a, 1);
+    [[-1, top + 4], [1, top + 4], [-1, bottom - 4], [1, bottom - 4]].forEach(([sx, y]) => g.fillCircle(x + sx * (w / 2 - 4), y, 2));
+    const cap = uiText(this, x, bottom - 18, 'MERIDIAN LV-3\nTHREE STAGES', { size: 'body', color: '#c8dcf0', align: 'center', backing: 0x1e2a4a })
+      .setOrigin(0.5)
+      .setDepth(D.BEHIND + 0.5);
+    cap.name = 'lv3-poster';
+  }
+
+  updateLapBoard(msg = null, color = '#f2d580') {
+    const t = this.track;
+    if (!t || !this.lapText) return;
+    const done = t.laps >= TRACK_LAPS;
+    this.lapText.setText(msg || (done ? `LAP ${TRACK_LAPS} / ${TRACK_LAPS} DONE` : `LAP ${t.laps} / ${TRACK_LAPS}`));
+    this.lapText.setColor(msg ? color : done ? '#7ec87e' : '#f2d580');
+    if (this.lapBoardEv) this.lapBoardEv.remove();
+    this.lapBoardEv = msg ? this.time.delayedCall(1800, () => this.updateLapBoard()) : null;
+  }
+
+  // the coach: after the intake (d0) she jogs from the arrival hall, up the
+  // stairs, to her line; on a warp or a continued run she is already there
+  updateCoach(dt) {
+    const c = this.coach;
+    const t = this.track;
+    if (!c || !t) return;
+    if (this.coachState === 'arrival' && this.F.d0) {
+      const foot = t.x0 - 5 * T; // the foot of the stairs
+      if (this.player.x < 24 * T && c.x < foot) {
+        this.coachPath = [{ x: foot, y: c.y }, { x: t.x0, y: t.deckY }, this.coachSpot];
+        this.coachState = 'walking';
+      } else {
+        c.setPosition(this.coachSpot.x, this.coachSpot.y).setFlipX(false);
+        this.coachState = 'track';
+      }
+    }
+    if (this.coachState !== 'walking') return;
+    const to = this.coachPath[0];
+    const dx = to.x - c.x;
+    const dy = to.y - c.y;
+    const d = Math.hypot(dx, dy);
+    const step = 150 * dt; // a coach's jog, 3.4 m/s
+    if (d > step) {
+      c.setPosition(c.x + (dx / d) * step, c.y + (dy / d) * step);
+      return;
+    }
+    c.setPosition(to.x, to.y);
+    this.coachPath.shift();
+    if (!this.coachPath.length) {
+      this.coachState = 'track';
+      this.time.delayedCall(80, () => c.setFlipX(false)); // faces down the track
+    }
+  }
+
+  // Jo's body box against a ball's circle
+  ballTouches(b) {
+    const body = this.player.body;
+    const nx = Phaser.Math.Clamp(b.x, body.left, body.right);
+    const ny = Phaser.Math.Clamp(b.y, body.top, body.bottom);
+    return (b.x - nx) ** 2 + (b.y - ny) ** 2 < (MEDBALL_R - 1) ** 2;
+  }
+
+  // the tell: she lifts a ball off the rack and leans back (0.4 s)
+  windUp(time) {
+    const c = this.coach;
+    const t = this.track;
+    t.windUpAt = time + 420;
+    c.setFlipX(false);
+    t.held = this.add.image(c.x - 4, t.deckY - 30, 'astro-medball').setDepth(D.FOE + 1);
+    this.tweens.add({ targets: c, angle: -6, duration: 380 });
+    this.tweens.add({ targets: t.held, x: c.x - 8, y: t.deckY - 58, duration: 380 });
+  }
+
+  // the release: the ball leaves her hands in a low lob
+  throwBall() {
+    const t = this.track;
+    const c = this.coach;
+    if (t.held) t.held.destroy();
+    t.held = null;
+    sfx('swing');
+    const b = this.add.image(c.x + 12, t.deckY - 54, 'astro-medball').setDepth(D.FOE);
+    b.vx = 95 + this.difficulty * 15;
+    b.vy = -150;
+    b.shadow = this.add.ellipse(b.x, t.deckY - 1, 16, 4, 0x0e0c14, 0.35).setDepth(D.INTERACT - 1);
+    this.balls.push(b);
+    this.tweens.add({ targets: c, angle: 6, duration: 90, yoyo: true, onComplete: () => c.setAngle(0) });
+  }
+
+  removeBall(b) {
+    this.balls = this.balls.filter((x) => x !== b);
+    this.tweens.add({ targets: [b, b.shadow], alpha: 0, duration: 200, onComplete: () => [b, b.shadow].forEach((o) => o.destroy()) });
+  }
+
+  // never silent: the lap goes, and the game says so, at Jo and on the board
+  loseLap(why) {
+    const t = this.track;
+    const p = this.player;
+    t.phase = 'idle';
+    sfx('fail');
+    this.floatText(p.x, p.y - 64, `${why}: lap lost.\nback to the start line`, '#e86a6a');
+    this.updateLapBoard('LAP LOST', '#e86a6a');
+    if (this.lapFlash) this.lapFlash.destroy();
+    const f = this.add.rectangle(t.start, t.deckY + 10, 12, 22, 0xe86a6a, 0.6).setDepth(D.TERRAIN + 0.6);
+    this.lapFlash = f;
+    this.tweens.add({ targets: f, alpha: 0, duration: 300, yoyo: true, repeat: 3, onComplete: () => f.destroy() });
+  }
+
+  updateTrack(time, delta) {
     const p = this.player;
     const t = this.track;
     if (!t) return;
-    for (const ball of this.balls) {
-      ball.x += ball.dir * ball.speed * 0.016;
-      if (ball.x < t.start + 40) ball.dir = 1;
-      if (ball.x > t.far - 40) ball.dir = -1;
-      const onMezz = Math.abs(p.y - px(30)) < 30;
-      if (onMezz && Math.abs(p.x - ball.x) < 20 && time > (this.ballHitAt || 0)) {
+    const dt = Math.min(delta || 16.7, 50) / 1000;
+    this.updateCoach(dt);
+    const inRoom = p.x > t.x0 - 12 * T && p.x < t.x1 + 8 * T;
+    const onDeck = p.x > t.x0 - 8 && p.x < t.x1 + 8 && p.body.bottom <= t.deckY + 6 && p.body.bottom > t.deckY - 200;
+
+    // the coach rolls while Jo trains: never with him at her elbow, never
+    // once the laps are done
+    if (this.coachState === 'track' && inRoom && t.laps < TRACK_LAPS) {
+      if (t.windUpAt && time >= t.windUpAt) {
+        t.windUpAt = 0;
+        this.throwBall();
+        t.nextThrow = time + 2600 - this.difficulty * 300;
+      } else if (!t.windUpAt && time >= t.nextThrow && this.balls.length < 2 && !(onDeck && Math.abs(p.x - this.coach.x) < 90)) this.windUp(time);
+    }
+
+    for (const b of [...this.balls]) {
+      // delta time throughout: the same roll at 30, 60 or 144 fps
+      b.vy += 1100 * dt;
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      const rest = t.deckY - MEDBALL_R;
+      if (b.y >= rest) {
+        b.y = rest;
+        if (b.vy > 90) {
+          // a bounce: it thuds, and comes up lower
+          if (Math.abs(p.x - b.x) < 520) sfx('thump');
+          b.vy = -b.vy * 0.42;
+        } else b.vy = 0;
+      }
+      b.rotation += (b.vx * dt) / MEDBALL_R; // rolls, not slides
+      const lift = Math.max(0, rest - b.y);
+      b.shadow.setPosition(b.x, t.deckY - 1).setScale(Math.max(0.4, 1 - lift / 80)).setAlpha(Math.max(0.1, 0.35 - lift / 300));
+      if (b.dead) continue;
+      if (b.x >= t.bin - 8) {
+        this.removeBall(b); // into the bin
+        continue;
+      }
+      if (this.ballTouches(b) && time > (this.ballHitAt || 0)) {
         this.ballHitAt = time + 1200;
         sfx('hurt');
-        p.body.setVelocity(-Math.sign(ball.dir) * 100, -300);
-        this.floatText(p.x, p.y - 40, 'medicine ball!', '#e86a6a');
-        t.phase = 'home';
+        sfx('thump');
+        p.body.setVelocity(Math.sign(p.x - b.x || 1) * 160, -260);
+        b.dead = true;
+        b.vx *= -0.25;
+        this.time.delayedCall(700, () => this.removeBall(b));
+        if (t.phase !== 'idle') this.loseLap('medicine ball');
+        else this.floatText(p.x, p.y - 50, 'medicine ball!', '#e86a6a');
       }
     }
-    const onMezz = Math.abs(p.y - px(30)) < 40;
-    if (!onMezz) return;
-    if (t.phase === 'home' && p.x > t.far - 20) t.phase = 'out';
-    else if (t.phase === 'out' && p.x < t.start + 20) {
-      t.phase = 'home';
+
+    // laps
+    const prevX = t.lastX === null ? p.x : t.lastX;
+    t.lastX = p.x;
+    if (t.phase !== 'idle' && !onDeck && p.body.bottom > t.deckY + 24) {
+      this.loseLap('off the track');
+      return;
+    }
+    if (!onDeck) return;
+    if (!t.told && this.coachState === 'track' && t.laps < TRACK_LAPS) {
+      t.told = true;
+      this.floatText(this.coach.x, t.deckY - 100, `${TRACK_LAPS} laps, champion. Out to the bin,\nback over my line. Jump the balls.`, '#f2e0a0');
+    }
+    if (t.phase === 'idle' && prevX <= t.start && p.x > t.start) {
+      t.phase = 'out';
+      this.updateLapBoard(`LAP ${Math.min(TRACK_LAPS, t.laps + 1)} · GO`, '#f2ede4');
+    } else if (t.phase === 'out' && p.x > t.far - 8) {
+      t.phase = 'back';
+      sfx('click');
+      this.floatText(p.x, p.y - 56, 'the bin: turn, back to the line', '#88b8d8');
+    } else if (t.phase === 'back' && p.x < t.start) {
+      t.phase = 'idle';
       t.laps += 1;
       sfx('chime');
-      if (this.stats.legs < 3 + Math.min(2, t.laps - 1)) this.gainStat('legs', Math.min(5, 2 + t.laps), `LEGS ${Math.min(5, 2 + t.laps)}/5 — lap ${t.laps}`);
-      else this.floatText(p.x, p.y - 40, `lap ${t.laps}`, '#88b8d8');
+      this.updateLapBoard();
+      const to = Math.min(5, 2 + t.laps);
+      if (!this.gainStat('legs', to, `LEGS ${to}/5 · lap ${t.laps} of ${TRACK_LAPS}`)) this.floatText(p.x, p.y - 40, `lap ${t.laps} of ${TRACK_LAPS}`, '#88b8d8');
+      if (t.laps >= TRACK_LAPS && !this.F.track_done) {
+        this.setFlag('track_done');
+        this.time.delayedCall(900, () => this.floatText(this.coach.x, t.deckY - 100, "That's legs, champion.\nThe pool's next door.", '#f2e0a0'));
+      }
     }
   }
 

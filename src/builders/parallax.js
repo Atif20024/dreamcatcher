@@ -899,14 +899,31 @@ function drawLandmark(scene, name) {
       label("ADAEZE'S", '#f2d580', 18);
       add(uiText(scene, 0, -52, 'BOXING · POOL · "COME AS YOU ARE."', { fontSize: '10px', color: '#c8c0b0' }).setOrigin(0.5));
       break;
-    case 'lv3_poster':
-      add(scene.add.rectangle(0, -90, 130, 170, 0x1e2a4a));
-      add(scene.add.rectangle(0, -100, 18, 90, 0xd8dce8));
-      add(scene.add.triangle(0, -152, -9, 14, 9, 14, 0, -10, 0xd8dce8));
-      add(scene.add.rectangle(0, -78, 22, 3, 0xe8762a));
-      add(scene.add.rectangle(0, -104, 22, 3, 0xe8762a));
-      add(uiText(scene, 0, -36, 'MERIDIAN LV-3\nTHREE STAGES', { fontSize: '10px', color: '#88b8d8', align: 'center' }).setOrigin(0.5));
+    case 'gym_pennants': {
+      // the hall's far wall, high up: a sagging line of club pennants (red
+      // and gold, never white: a white point is the hazard shape). The LV-3
+      // poster hangs on the near wall now (AstronautScene.buildTrack).
+      const g = add(scene.add.graphics());
+      const y0 = -470; // up under the roof, clear of the mezzanine and its high line
+      g.lineStyle(2, 0x3a3428, 1);
+      g.beginPath();
+      for (let i = 0; i <= 16; i++) {
+        const x = -200 + i * 25;
+        const y = y0 + Math.sin((i / 16) * Math.PI) * 18;
+        if (i === 0) g.moveTo(x, y);
+        else g.lineTo(x, y);
+      }
+      g.strokePath();
+      for (let i = 0; i < 16; i++) {
+        const x = -200 + i * 25 + 12;
+        const y = y0 + Math.sin(((i + 0.5) / 16) * Math.PI) * 18;
+        g.fillStyle(i % 2 ? 0xc03a2a : 0xd8a840, 1);
+        g.fillTriangle(x - 8, y, x + 8, y, x, y + 16);
+        g.fillStyle(0x14141c, 0.25);
+        g.fillTriangle(x, y, x + 8, y, x, y + 16);
+      }
       break;
+    }
     case 'lane_numbers':
       add(scene.add.rectangle(0, -60, 260, 40, 0x2e4a56));
       add(uiText(scene, 0, -60, 'LANES  1 · 9 · 7 · 4', { fontSize: '14px', color: '#9ac4dc' }).setOrigin(0.5));
