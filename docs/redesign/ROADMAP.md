@@ -24,6 +24,7 @@ Updated 2026-10-29 after the owner's change of direction. The owner's words over
 
 ## Done since
 - Painter: THE MASTER'S LADDER (Renaissance) on platform 5.
+- Gambler: THE LAST HAND aboard the *Lantern Queen*, 1884, on platform 7 (SHOWDOWN, the slate, TILT, standing up as the catch). See `round2/GAMBLER_REPORT.md`.
 - Audio pass: a master chain, a band per place, ambience, chatter and acoustics.
 - The game fills the browser window.
 
