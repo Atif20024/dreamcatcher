@@ -34,10 +34,12 @@ export function buildAstroMap() {
   ramp(rows, GROUND, 14, 3);
 
   // ---- P1 THE BODY (24-129)
-  // the Track: a mezzanine loop with stairs at both ends
-  stairs(rows, GROUND, 31, 4, 'r');
-  fill(rows, 31, 31, 35, 55, '#'); // mezzanine deck
-  stairs(rows, GROUND, 58, 4, 'l');
+  // the Track: a mezzanine loop with stairs at both ends. Each flight is five
+  // steps so its top step is flush with the deck (four left a last riser:
+  // a 0.7 m wall at the top of a stair); the deck runs 36-54 between them.
+  stairs(rows, GROUND, 31, 5, 'r');
+  fill(rows, 31, 31, 36, 54, '#'); // mezzanine deck: the running track
+  stairs(rows, GROUND, 59, 5, 'l');
   fill(rows, 27, 27, 40, 44, '=');
   fill(rows, 27, 27, 48, 52, '='); // high line over the track (hard route)
   // the Pool: a basin carved through the crust; deep end to the right

@@ -30,19 +30,24 @@ const ROOMS = [
     section: 'body',
     grid: slice(24, 60),
     music: { section: 'gym', bpm: 100, state: 'explore' },
-    bg: { far: 'gym_wall', mid: 'gym_kit', near: 'ropes', landmark: 'lv3_poster' },
+    // the LV-3 poster is no longer a drifting backdrop shape: the scene hangs
+    // it on the wall by the deck (AstronautScene.buildTrack); far off, the
+    // hall's pennant line
+    bg: { far: 'gym_wall', mid: 'gym_kit', near: 'ropes', landmark: 'gym_pennants' },
     objects: [
       { type: 'checkpoint', x: L(40, 24), y: 35, id: 'CP1a', label: 'THE TRACK' },
-      { type: 'mark', id: 'sheet', x: L(27, 24), y: 34 },
-      // the Track: laps on the mezzanine; hurdles are the scene's business
-      { type: 'mark', id: 'track_start', x: L(36, 24), y: 30 },
-      { type: 'mark', id: 'track_far', x: L(54, 24), y: 30 },
+      // the Track: laps on the mezzanine deck (36-54). Coach Adaeze stands
+      // behind the start line and rolls the medicine balls; they run out to
+      // the ball bin at the far end
+      { type: 'mark', id: 'track_start', x: L(37, 24), y: 30 },
+      { type: 'mark', id: 'track_far', x: L(53, 24), y: 30 },
+      { type: 'mark', id: 'lv3_poster', x: L(46, 24), y: 30 },
       { type: 'foe', kind: 'gym_rat', x: L(45, 24), y: 30, human: true, patrol: [L(42, 24), L(50, 24)] },
       { type: 'foe', kind: 'cleaner', x: L(38, 24), y: 35, human: true, patrol: [L(30, 24), L(56, 24)], sight: 130 },
       { type: 'hide', x: L(33, 24), y: 35, id: 'mats' },
       // the high line pays (tier 2): one-ways over the rolling medicine balls
       { type: 'coins', x: L(41, 24), y: 26, n: 3, dx: 2 },
-      { type: 'coin', x: L(58, 24), y: 30, breadcrumb: true },
+      { type: 'coin', x: L(58, 24), y: 32, breadcrumb: true },
       { type: 'mark', id: 'm1_door', x: L(29, 24), y: 34 },
       { type: 'moment', x: L(29, 24), y: 34, id: 'm1' },
     ],
@@ -329,7 +334,13 @@ const ROOMS = [
 // Phase 1.4 (plan §2.7): each room's objective, each gate's sign
 const OBJECTIVES = {
   "p0_arrival": "the intake. then train.",
-  "p1_track": "train it up: the track",
+  "p1_track": [
+    "run 3 laps for Coach Adaeze — dodge the medicine balls",
+    {
+      "flag": "track_done",
+      "text": "three laps. the pool is next door"
+    }
+  ],
   "p1_pool": "train it up: the pool",
   "p1_wall_ring": "train it up: the climbing ring",
   "p1_study": [
@@ -386,7 +397,7 @@ const OBJECTIVES = {
 };
 
 const GATE_HINTS = {
-  "g0": "INTAKE · talk to the desk first",
+  "g0": "INTAKE · talk to Coach Adaeze first",
   "g1": "needs 3 pips in every stat",
   "g2": "THE BOARD · be selected",
   "g3": "finish the survival course",
