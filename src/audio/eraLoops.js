@@ -369,7 +369,7 @@ export const RECIPES = {
   // the pass: the kitchen through a door, a heat lamp's hum
   fs_pass: { seconds: 10, seed: 76, rms: -41, layers: [['murmur', { vol: 0.03, k: 0.012 }], ['hum', { f: 100, vol: 0.008 }], ['clink', { vol: 0.008, count: 3 }]] },
   // the dining room: almost silence. A long room's air, a candle
-  fs_dining: { seconds: 12, seed: 77, rms: -54, layers: [['wind', { vol: 0.004 }], ['crackle', { vol: 0.003, pops: 2 }]] },
+  fs_dining: { seconds: 12, seed: 77, rms: -46, layers: [['wind', { vol: 0.004 }], ['crackle', { vol: 0.003, pops: 2 }]] },
 
   // THE LAST HAND, the Lantern Queen on the Verrane, 1884
   // the quay at dusk: water at the stone, the hull creaking, a bell buoy, gulls

@@ -1,4 +1,4 @@
-// FIVE-STAR DREAM's props (FRAMEWORK §4.3): Le Rêve, a grand hotel's kitchen in
+// FIVE-STAR DREAM's props (FRAMEWORK 4.3): Le Rêve, a grand hotel's kitchen in
 // 1957, painted at the scale system's 1 m = 44 px (Jo is 1.8 m, a table's top
 // 0.9 m = 40 px). White glazed tile, cast iron, copper, zinc, butcher's maple,
 // marble, galvanised rack; out front, dark panelling and white linen. No plastic,
@@ -337,9 +337,9 @@ export default {
     for (let i = 0; i < 8; i++) stamp(c, 16 + i * 22, 6 - (i % 2) * 2, 5, 0xfff0d8, 0.12);
   } },
   curled_cat: { w: 44, h: 24, anchor: FLOOR, paint(c, w, h) {
-    ell(c, 21, h - 9, 18, 9, 0x8a6a48);
-    ell(c, 31, h - 13, 8, 7, 0x8a6a48);
-    c.fillStyle = hex(0x8a6a48);
+    ell(c, 21, h - 9, 18, 9, 0xe0a860);
+    ell(c, 31, h - 13, 8, 7, 0xe0a860);
+    c.fillStyle = hex(0xe0a860);
     c.beginPath();
     c.moveTo(27, h - 19);
     c.lineTo(29, h - 23);
@@ -349,10 +349,10 @@ export default {
     c.lineTo(37, h - 18);
     c.fill();
     for (let i = 0; i < 4; i++) {
-      c.fillStyle = hex(0x5a4228);
+      c.fillStyle = hex(0x9a5e2a);
       c.fillRect(10 + i * 6, h - 16 + (i % 2), 3, 6);
     }
-    c.strokeStyle = hex(0x6a4e32);
+    c.strokeStyle = hex(0xb87a3e);
     c.lineWidth = 3;
     c.beginPath();
     c.moveTo(6, h - 5);
@@ -553,6 +553,15 @@ export default {
     box(c, 0, 0, w, h - 66, 0x2a2622, 0.2, 0.3);
     gradientV(c, 6, 6, w - 12, h - 78, [[0, '#7a4a2a'], [1, '#c8783a']]);
     for (let i = 0; i < 20; i++) stamp(c, 12 + (i * 29) % (w - 24), 12 + (i * 17) % (h - 90), 7, 0xfff0c0, 0.08);
+    // the line through the glass: the brigade with their backs to him, and fire
+    for (const [x, tall] of [[22, 58], [58, 64], [96, 60], [124, 54]]) {
+      c.fillStyle = rgba(0x3a1e12, 0.75);
+      c.fillRect(x, h - 72 - tall + 16, 12, tall - 16);
+      ell(c, x + 6, h - 72 - tall + 12, 6, 7, rgba(0xf6e8d0, 0.85));
+      c.fillStyle = rgba(0xf6e8d0, 0.85);
+      c.fillRect(x + 1, h - 72 - tall - 2, 10, 10);
+    }
+    glow(c, 78, h - 78, 26, 0xff8a3a, 0.8);
     tiles(c, 0, h - 66, w, 66);
     box(c, -1, h - 70, w, 7, MARBLE, 0.55, 0.3);
   } },
@@ -787,48 +796,71 @@ export function paintTrolley(c, w, h) {
 // Jo's hands held out, painted from the run: src/engines/tickets.js readHands
 // marks. Everything he has done tonight is on them.
 export function paintHands(c, w, h, m) {
-  gradientV(c, 0, 0, w, h, [[0, hex(0x2a2018)], [1, hex(0x4a3020)]]);
+  gradientV(c, 0, 0, w, h, [[0, 0x2a2018], [1, 0x4a3020]]);
+  glow(c, w / 2, h * 0.45, 170, 0xffc070, 0.22);
   const SKIN = 0xd8a884;
-  const SKIN_DK = 0xa87a58;
-  const hand = (cx, dir) => {
-    // the sleeve, the wrist, the palm, the fingers curling toward you
-    box(c, cx - dir * 66 - 26, h - 48, 52, 48, 0xe8e4d8, 0.35, 0.3);
-    box(c, cx - dir * 40 - 18, h - 58, 36, 38, SKIN, 0.2, 0.25);
-    ell(c, cx, h - 58, 40, 32, SKIN);
-    ell(c, cx + dir * 4, h - 54, 26, 20, mix(SKIN, 0xc88870, 0.35));
-    for (let i = 0; i < 4; i++) {
-      const fx = cx + dir * (32 + (i === 3 ? 2 : 0));
-      const fy = h - 92 + i * 14;
-      box(c, dir > 0 ? fx : fx - 40, fy, 40, 11, SKIN, 0.3, 0.3);
-      c.fillStyle = rgba(SKIN_DK, 0.7);
-      c.fillRect((dir > 0 ? fx : fx - 40) + 14, fy + 1, 1, 9);
-      c.fillRect((dir > 0 ? fx : fx - 40) + 28, fy + 1, 1, 9);
-    }
-    // the thumb
-    box(c, cx - dir * 28 - 9, h - 104, 18, 36, SKIN, 0.3, 0.3);
+  const PALM = 0xe2b698;
+  const CREASE = 0xa87a58;
+  // palms up, as he holds them out: the cuff at the bottom, four fingers up, the
+  // thumb on the inside. `inner` is the side the thumb is on (+1 right, -1 left)
+  const hand = (cx, inner) => {
+    box(c, cx - 36, h - 34, 72, 34, 0xece8dc, 0.4, 0.3); // the cuff
+    c.fillStyle = rgba(NIGHT, 0.2);
+    c.fillRect(cx - 36, h - 12, 72, 1);
+    box(c, cx - 28, h - 44, 56, 14, SKIN, 0.2, 0.25); // the wrist
+    box(c, cx - 33, h - 88, 66, 46, PALM, 0.3, 0.3); // the palm
+    ell(c, cx - inner * 4, h - 66, 22, 16, mix(PALM, 0xd88870, 0.3));
+    c.strokeStyle = rgba(CREASE, 0.8);
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(cx - 28, h - 76);
+    c.quadraticCurveTo(cx, h - 66, cx + 28, h - 80);
+    c.moveTo(cx + inner * 26, h - 54);
+    c.quadraticCurveTo(cx, h - 62, cx - inner * 10, h - 84);
+    c.stroke();
+    // four fingers, little to index toward the thumb
+    [24, 30, 33, 28].forEach((len, i) => {
+      const fx = cx + inner * (-30 + i * 15) - 7;
+      box(c, fx, h - 88 - len, 14, len + 2, SKIN, 0.35, 0.3);
+      c.fillStyle = rgba(CREASE, 0.8);
+      c.fillRect(fx + 1, h - 88 - len * 0.5, 12, 1);
+      c.fillRect(fx + 1, h - 88 - len * 0.82, 12, 1);
+      box(c, fx + 2, h - 88 - len, 10, 5, 0xf2d2c0, 0.2, 0.15); // the nail side
+    });
+    // the thumb, out to the inside
+    c.fillStyle = hex(SKIN);
+    c.beginPath();
+    c.moveTo(cx + inner * 30, h - 52);
+    c.lineTo(cx + inner * 58, h - 88);
+    c.lineTo(cx + inner * 46, h - 96);
+    c.lineTo(cx + inner * 24, h - 76);
+    c.closePath();
+    c.fill();
   };
-  hand(w * 0.3, -1);
-  hand(w * 0.7, 1);
+  const L = w * 0.3;
+  const R = w * 0.7;
+  hand(L, 1);
+  hand(R, -1);
   // a burn on the left thumb; more if there were more
   if (m.burn) {
-    ell(c, w * 0.3 + 28, h - 90, 8, 11, 0xc84a3a);
-    ell(c, w * 0.3 + 28, h - 90, 4, 6, 0xf0a090);
-    if (m.burns > 1) ell(c, w * 0.7 - 6, h - 54, 12, 5, 0xc84a3a);
-    if (m.burns > 2) ell(c, w * 0.3 - 40, h - 72, 9, 4, 0xc84a3a);
+    ell(c, L + 46, h - 84, 8, 6, 0xc84a3a);
+    ell(c, L + 46, h - 84, 4, 3, 0xf0a090);
+    if (m.burns > 1) ell(c, R + 6, h - 68, 13, 5, 0xc84a3a);
+    if (m.burns > 2) ell(c, L - 16, h - 94, 5, 8, 0xc84a3a);
   }
-  // frost on the cuffs
-  if (m.frost) for (let i = 0; i < 40; i++) stamp(c, (i % 2 ? w * 0.3 + 66 : w * 0.7 - 66) - 26 + (i * 13) % 52, h - 48 + (i * 7) % 26, 3, 0xdcecff, 0.8);
+  // frost still on the cuffs
+  if (m.frost) for (let i = 0; i < 44; i++) stamp(c, (i % 2 ? L : R) - 34 + (i * 13) % 68, h - 32 + (i * 7) % 30, 3, 0xdcecff, 0.85);
   // flour in the nails and the creases
-  if (m.flour) for (let i = 0; i < 44; i++) stamp(c, (i % 2 ? w * 0.3 : w * 0.7) - 40 + (i * 19) % 80, h - 96 + (i * 11) % 60, 1.8, 0xfaf6ea, 0.7);
-  // onion: a stain across the fingertips, and a shine
+  if (m.flour) for (let i = 0; i < 60; i++) stamp(c, (i % 2 ? L : R) - 34 + (i * 19) % 68, h - 122 + (i * 11) % 60, 1.8, 0xfff8ec, 0.8);
+  // onion: the tips of the right hand, stained
   if (m.onion) {
-    c.fillStyle = rgba(0x8a6a2a, 0.5);
-    c.fillRect(w * 0.7 + 54, h - 94, 20, 54);
+    c.fillStyle = rgba(0x8a6a2a, 0.55);
+    c.fillRect(R - 38, h - 124, 60, 14);
   }
-  // soap-split knuckles from the pit
+  // split knuckles from the pit's soap
   if (m.soap) for (let i = 0; i < 5; i++) {
-    c.fillStyle = rgba(0xc86a5a, 0.7);
-    c.fillRect(w * 0.7 + 18 + i * 3, h - 90 + i * 14, 3, 1);
+    c.fillStyle = rgba(0xc86a5a, 0.75);
+    c.fillRect(L - 30 + i * 15, h - 96, 5, 1);
   }
 }
 
@@ -850,6 +882,10 @@ export function paintEnding(c, w, h, finish) {
     c.fillStyle = hex(0xe8e4d8);
     c.fillRect(w - 62, h * 0.2 + 22, 3, 12);
   }
+  // the empty chair, drawn back
+  for (const x of [cx - 30, cx + 24]) box(c, x, cy - 94, 6, 90, 0x1e1012, 0.12, 0.3);
+  box(c, cx - 30, cy - 94, 60, 8, 0x241416, 0.2, 0.3);
+  box(c, cx - 24, cy - 84, 48, 40, 0x4a161c, 0.15, 0.2);
   // the lamp's pool on the cloth
   glow(c, cx, cy, 190, 0xffd890, 0.42);
   ell(c, cx, cy + 22, 180, 42, 0xfaf4e6);
@@ -874,28 +910,25 @@ export function paintEnding(c, w, h, finish) {
     c.fillRect(cx - 2, cy + 4, 3, 1);
   }
   // the fork: squared to the plate, unless someone has used it
-  c.fillStyle = hex(ZINC_LT);
+  c.fillStyle = hex(0x5a6068);
   if (finish === 'own') {
     // one forkful gone: a clean bite out of the rice; the fork laid back crooked
     ell(c, cx + 22, cy + 10, 10, 5, 0xf2ead8);
     c.save();
-    c.translate(cx + 96, cy + 12);
+    c.translate(cx + 100, cy + 16);
     c.rotate(-0.5);
-    c.fillRect(-2, -30, 3, 54);
-    c.fillRect(-5, -36, 8, 8);
+    c.fillRect(-2, -26, 4, 44);
+    c.fillRect(-5, -34, 10, 10);
     c.restore();
   } else {
-    c.fillRect(cx + 92, cy - 16, 3, 52);
-    c.fillRect(cx + 89, cy - 22, 9, 8);
+    c.fillRect(cx + 94, cy + 2, 4, 26);
+    c.fillRect(cx + 90, cy - 4, 12, 8);
   }
-  c.fillRect(cx - 95, cy - 18, 3, 54);
+  c.fillRect(cx - 98, cy + 2, 4, 28);
   // the card
   box(c, cx - 150, cy + 6, 30, 20, 0xf2ead8, 0.6, 0.3);
   c.fillStyle = 'rgba(40,20,20,0.7)';
   c.fillRect(cx - 145, cy + 12, 20, 1);
   c.fillRect(cx - 145, cy + 17, 14, 1);
-  // the empty chair at the top of the pool
-  box(c, cx - 28, cy - 92, 56, 50, 0x241416, 0.12, 0.3);
-  box(c, cx - 22, cy - 86, 44, 38, 0x4a161c, 0.15, 0.2);
   grain(c, 0, 0, w, h, 0.05, 9, 2);
 }

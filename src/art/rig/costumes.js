@@ -176,7 +176,6 @@ export const COSTUMES = {
   'foe-manager': { face: 'round', over: ['tie', 'lapel'], pal: RED },
   'foe-proofreader': { face: 'thin', over: ['lapel'] },
   'foe-sous-chef': { hat: 'chef_toque', face: 'round', over: ['bib', 'apron', 'towel'] },
-  'foe-dock-hand': { face: 'snub', over: ['scarf'], pal: RED },
   'foe-roadie': { face: 'heavy', over: ['keys'] },
   'foe-heckler': { face: 'round', over: ['scarf'], pal: GOLD },
   'foe-talker': { face: 'round', over: ['waistcoat'] },

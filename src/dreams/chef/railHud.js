@@ -3,13 +3,13 @@
 // and dish, its stops in order (done ticked, the next one lit), where it goes.
 // The paper scorches from the bottom as its time runs and turns red near the
 // end. Every glyph in the game has a baked dark outline, so the words sit on a
-// dark docket inside the cream paper: small ×2 (14 px caps, §8) in cream, and
+// dark docket inside the cream paper: small ×2 (14 px caps) in cream, and
 // the HUD region keeps the grid's overlap rule honest.
 import { uiText } from '../../ui/text.js';
 import { hud } from '../../ui/hud.js';
 
 const D = 118; // under menus (adopted by the UI scene: never zoomed)
-const TW = 172;
+const TW = 156;
 const TH = 112;
 const GAP = 8;
 const X0 = 480 - (TW * 3 + GAP * 2) / 2;
@@ -23,7 +23,7 @@ const ROWS = 4;
 
 function label(k) {
   const t = typeof k.table === 'number' ? `T${k.table} ` : '';
-  return `${t}${k.dish}`.slice(0, 13);
+  return `${t}${k.dish}`.slice(0, 12);
 }
 
 export class RailHud {
@@ -33,11 +33,11 @@ export class RailHud {
     this.slots = [0, 1, 2].map((i) => {
       const x = X0 + i * (TW + GAP);
       const text = (dy, opts = {}) =>
-        uiText(scene, x + 9, Y0 + 10 + dy, '', { size: 'small', scale: 2, color: INK, backing: DOCKET, screen: true, ...opts })
+        uiText(scene, x + 7, Y0 + 10 + dy, '', { size: 'small', scale: 2, color: INK, backing: DOCKET, screen: true, ...opts })
           .setScrollFactor(0)
           .setDepth(D + 1)
           .setVisible(false);
-      return { x, head: text(0), rows: Array.from({ length: ROWS }, (_, r) => text(18 + r * 19, { color: DIM })) };
+      return { x, head: text(0), rows: Array.from({ length: ROWS }, (_, r) => text(20 + r * 20, { color: DIM })) };
     });
     this.visible = false;
     this.flash = [0, 0, 0];
@@ -90,13 +90,13 @@ export class RailHud {
         if (st.done) t = `+ ${t}`;
         else if (st.state === 'cooking') (t = `~ ${t} ON`), (c = '#f2a84a');
         else if (st.state === 'ready') (t = `> ${t} UP!`), (c = Math.floor(now / 180) % 2 ? '#8ae88a' : '#f2e6cc');
-        else if (st.state === 'burnt') (t = `! ${t} BURNT`), (c = '#ff8a6a');
+        else if (st.state === 'burnt') (t = `! ${t} OUT`), (c = '#ff8a6a');
         else if (st.now) (t = `> ${t}`), (c = NOW);
         else t = `  ${t}`;
-        rows.push({ t: t.slice(0, 13), c });
+        rows.push({ t: t.slice(0, 12), c });
       }
       const allDone = k.held || k.stops.every((st) => st.done);
-      rows.push({ t: `${allDone ? '> ' : '  '}${k.toLabel}`.slice(0, 13), c: allDone ? NOW : DIM });
+      rows.push({ t: `${allDone ? '> ' : '  '}${k.toLabel}`.slice(0, 12), c: allDone ? NOW : DIM });
       rows.forEach((row, r) => s.rows[r].setText(row.t).setColor(row.c).setVisible(true));
       // the clip that holds it to the rail
       g.fillStyle(0x8a929a, 1).fillRect(x + TW / 2 - 7, Y0 - 5, 14, 9);

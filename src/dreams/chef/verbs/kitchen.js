@@ -194,7 +194,7 @@ export default {
       st.coldV += warm ? (dt / 1000) * 0.45 : -((dt / 1000) / COLD_S) * (1 + 0.12 * Math.min(2, d));
       st.coldV = Math.min(1, st.coldV);
       if (st.coldV < 0.6) F.frost = true;
-      st.cold.set(st.coldV).setVisible(true).setLabel(warm ? 'COLD: WARMING' : 'COLD').setColor(st.coldV < 0.25 ? '#d5443c' : '#88b8d8');
+      st.cold.set(st.coldV).setVisible(true).setColor(warm ? '#f2a860' : st.coldV < 0.25 ? '#d5443c' : '#88b8d8');
       if (st.coldV <= 0) {
         st.coldV = 0.5;
         s.caption.say('jo', "My hands won't close.", { ms: 2200 });
@@ -287,7 +287,7 @@ export default {
     const st = ctx.state;
     const p = ctx.player;
     if (!st.dark) {
-      st.dark = s.add.rectangle(R.x0 + R.w / 2, R.y0 + R.h / 2, R.w, R.h, 0x06040a, 0.12).setDepth(15);
+      st.dark = s.add.rectangle(R.x0 + R.w / 2, R.y0 + R.h / 2, R.w, R.h, 0x06040a, 0.12).setDepth(12.9);
       st.lastGlow = s.add.image(R.last.x, R.last.y, 'dc-glow').setBlendMode('ADD').setTint(0xffd890).setScale(2.1).setAlpha(0.55).setDepth(16);
       for (const l of R.lamps) l.img = s.add.image(l.x, l.y, 'dc-glow').setBlendMode('ADD').setTint(0xffc880).setScale(l.r).setAlpha(0.5).setDepth(16);
     }

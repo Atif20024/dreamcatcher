@@ -39,7 +39,7 @@ export default {
   entities: [
     { type: 'spawn', id: 'start', x: 4, y: 15 },
     { type: 'checkpoint', id: 'cp_yard', label: 'THE SERVICE YARD', x: 5, y: 15 },
-    { type: 'sign', text: 'LE RÊVE', x: 16, y: 3, board: 0x2a1c16, ink: 0xf2d580, scale: 2 },
+    { type: 'sign', text: 'LE RÊVE', x: 24, y: 6, board: 0x2a1c16, ink: 0xf2d580, scale: 2 },
     { type: 'sign', text: 'DELIVERIES', x: 24, y: 9, board: 0x1e1c26, ink: 0xe8e4d8, scale: 2 },
     { type: 'npc', id: 'marguerite', cast: 'npc-rv-marguerite', x: 21, y: 15, facing: -1, talk: [{ conv: 'door' }] },
     { type: 'portal', id: 'yard>pit', kind: 'door', x: 24, y: 15, to: { room: 'pit', portal: 'pit>yard' }, door: { prompt: 'go in', fade: 260, requires: ['met_m'], locked: 'talk to her first', lockedLine: 'A woman is standing in the way, finishing a cigarette.' } },

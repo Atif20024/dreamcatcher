@@ -79,11 +79,17 @@ No fail state ends the dream. Refire, Marguerite's bail, thrown out = back to th
 
 ## Build list
 
-- [ ] `src/engines/tickets.js` pure, `tests/tickets.test.js` with a seeded bot: expert, ordinary, slow, at each difficulty; refire and bail; stock; hands-full can't deadlock; hands reading.
-- [ ] `src/dreams/chef/`: dream, rooms (yard, pit, cold, prep, line, pass, dining), dialogue, beats, verbs (rail, kitchen hazards, life), props, materials, music, people.
-- [ ] People in `src/dreams/chef/people.js`, `CAST_BODIES`, `costumes.js`, `cast-bake.js`.
-- [ ] HUD rail widget: real paper tickets, top centre, hud.region. Readable signs per the ui-type skill, station boards, prompts with verbs.
-- [ ] Beds and loops additive in `places.js`, `eraLoops.js`.
-- [ ] Platform 1 boards the dream. `EndingSequence`: `ending.variant(F)`.
-- [ ] Delete `ChefScene.js` and what only it used. Old saved Chef run: dropped quietly, station offers a fresh boarding.
-- [ ] Scenarios: `chef-places`, `chef-rail`, `chef-pocket`, `chef-playthrough`, `readability-chef`; `shadow-slope` and `slope-chef-*` point elsewhere.
+- [x] `src/engines/tickets.js` pure, `tests/tickets.test.js` with a seeded bot: expert, ordinary, slow, at each difficulty; refire and bail; stock; hands-full can't deadlock; hands reading.
+- [x] `src/dreams/chef/`: dream, rooms (yard, pit, cold, prep, line, pass, dining), dialogue, beats, verbs (rail, kitchen hazards, life), props, materials, music, people.
+- [x] People in `src/dreams/chef/people.js`, `CAST_BODIES`, `costumes.js`, `cast-bake.js`.
+- [x] HUD rail widget: real paper tickets, top centre, hud.region. Readable signs per the ui-type skill, station boards, prompts with verbs.
+- [x] Beds and loops additive in `places.js`, `eraLoops.js`.
+- [x] Platform 1 boards the dream. `EndingSequence`: `ending.variant(F)`.
+- [x] Delete `ChefScene.js` and what only it used. Old saved Chef run: dropped quietly, station offers a fresh boarding.
+- [x] Scenarios: `chef-places`, `chef-rail`, `chef-pocket`, `chef-playthrough`, `readability-chef`; `shadow-slope` and `slope-chef-*` point elsewhere.
+
+## As built (differences from the list above)
+
+- Eight numbered tables out front (2 to 9). Each shows a plate if it was sent that night; a table served twice shows one plate.
+- The grease blobs that split, on the review's keep list, are not in. They belong to the candy-world tone the rebuild cut, and Luc and the burners already put a plate on the floor. Brann's duck-under grab keeps the dock hand's idea.
+- The doors back from the pass and out of the dining room stay shut, on purpose: the plate can't go back.

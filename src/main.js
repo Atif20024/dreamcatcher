@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import HubScene from './scenes/HubScene.js';
 import TitleScene from './scenes/TitleScene.js';
 import IntroScene from './scenes/IntroScene.js';
-import ChefScene from './scenes/ChefScene.js';
 import AstronautScene from './scenes/AstronautScene.js';
 import EveningScene from './scenes/EveningScene.js';
 import WriterScene from './scenes/WriterScene.js';
@@ -51,7 +50,7 @@ window.game = new Phaser.Game({
   // nothing about the boot changes.
   scene: (() => {
     // no warp: Boot → Title (Continue / New game / Settings) → the station
-    const ALL = [TitleScene, HubScene, IntroScene, ChefScene, AstronautScene, EveningScene, WriterScene, DreamScene];
+    const ALL = [TitleScene, HubScene, IntroScene, AstronautScene, EveningScene, WriterScene, DreamScene];
     // Boot first: it loads the atlases, then starts the title or the warp's scene
     return [BootScene, ...ALL, UIScene];
   })(),

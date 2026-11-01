@@ -49,12 +49,15 @@ export default {
     st.key = null;
     // (the widget needs the UI text, which needs Phaser: the lint loads this file in Node)
     import('../railHud.js').then((m) => {
-      if (s.sys.isActive() || s.sys.isPaused()) st.hud = new m.RailHud(s);
+      // (not if the scene has already restarted past this state)
+      if (!s.verbs || s.verbs.some((v) => v.ctx.state === st)) st.hud = new m.RailHud(s);
     });
     st.world = s.add.graphics().setDepth(14);
     st.plate = s.add.image(0, 0, dishKey(s, 'RISOTTO')).setDepth(13).setVisible(false);
     st.pocket = hud.toolLine(1, 'accent');
-    st.stockLine = hud.toolLine(2, 'ink');
+    st.pocket2 = hud.toolLine(2, 'accent');
+    st.stockLine = hud.toolLine(3, 'ink');
+    st.stockLine2 = hud.toolLine(4, 'ink');
     st.doors = hud.meter('doors', { label: 'DOORS', color: '#e9b84a', order: 2, visible: false });
     st.spots = [];
     for (const r of s.graph.rooms.values()) {
@@ -136,6 +139,9 @@ export default {
     const def = SERVICES[key];
     const stock = def.stock ? { grill: def.stock.grill + (F.stock_grill || 0), sauce: def.stock.sauce + (F.stock_sauce || 0), larder: def.stock.larder + (F.stock_larder || 0) } : {};
     st.svs[key] = new Service({ ...def, difficulty: s.difficulty || 0, stock });
+    // the one thing worth knowing as the clock starts, said once
+    if (key === 'prep') s.caption.say('tome', 'Doors at half past. Everyone orders the bass when the Carnet is in. Fish first.', { ms: 4200 });
+    if (key === 'cold') s.caption.say('jo', 'The cold gets into the hands. Find something warm, or they let go.', { ms: 3600 });
     return st.svs[key];
   },
 
@@ -180,7 +186,7 @@ export default {
       const key2 = dishKey(s, held.dish);
       if (st.plate.texture.key !== key2) st.plate.setTexture(key2);
       const f = p.flipX ? -1 : 1;
-      st.plate.setPosition(p.x + f * 24, p.y - 14).setVisible(true);
+      st.plate.setPosition(p.x + f * 18, p.y - 40).setVisible(true);
     } else st.plate.setVisible(false);
     // the prompts: what [E] will do here, or why not
     if (sv) {
@@ -191,7 +197,8 @@ export default {
       }
     }
     // the rail on screen, and what it wants marked in the room
-    if (st.hud) st.hud.render(sv && !sv.done ? sv.view() : null, now);
+    // (the dining room has no rail: nothing is left to read)
+    if (st.hud) st.hud.render(sv && !sv.done && st.key !== 'dining' ? sv.view() : null, now);
     st.world.clear();
     if (sv && !sv.done) this.drawMarks(ctx, sv, now);
     this.hudLines(ctx, sv);
@@ -262,15 +269,16 @@ export default {
   hudLines(ctx, sv) {
     const F = ctx.flags;
     const st = ctx.state;
+    // the tool lines keep clear of the rail: one short row each
     const pk = Object.keys(ITEMS).filter((k) => F[k] && !(k === 'saffron' && F.saffron_used)).map((k) => ITEMS[k]);
-    st.pocket.setText(F.apron && pk.length ? `POCKET: ${pk.join(', ')}` : '').setVisible(!!(F.apron && pk.length));
-    if (st.key === 'line' && sv && !sv.done) {
-      const row = (n, v) => `${n} ${Math.max(0, v)}`;
-      st.stockLine.setText(`${row('FISH', sv.stock.grill)}  ${row('SAUCE', sv.stock.sauce)}  ${row('LARDER', sv.stock.larder)}`).setVisible(true);
-    } else st.stockLine.setText('').setVisible(false);
+    st.pocket.setText(F.apron && pk[0] ? `POCKET: ${pk[0]}` : '').setVisible(!!(F.apron && pk[0]));
+    st.pocket2.setText(F.apron && pk[1] ? `POCKET: ${pk[1]}` : '').setVisible(!!(F.apron && pk[1]));
+    const rush = st.key === 'line' && sv && !sv.done;
+    st.stockLine.setText(rush ? `FISH ${Math.max(0, sv.stock.grill)}  SAUCE ${Math.max(0, sv.stock.sauce)}` : '').setVisible(!!rush);
+    st.stockLine2.setText(rush ? `LARDER ${Math.max(0, sv.stock.larder)}` : '').setVisible(!!rush);
     if (st.key === 'prep' && sv && !sv.done) {
       const left = Math.max(0, sv.limit - sv.t);
-      st.doors.set(left / sv.limit).setLabel(`DOORS ${Math.ceil(left / 1000)}s`).setColor(left < 15000 ? '#d5443c' : '#e9b84a').setVisible(true);
+      st.doors.set(left / sv.limit).setColor(left < 15000 ? '#d5443c' : '#e9b84a').setVisible(true);
     } else st.doors.setVisible(false);
   },
 

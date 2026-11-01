@@ -13,6 +13,8 @@
 //                     the dining room door then has the plate
 //   chef-dining-cut   the kitchen drops out at the door: no loop but the room
 //                     tone, no music, no bed, hall acoustics, Jo can't run
+//   chef-pressures    a flame burns (a heart, the hands, the plate); the cold
+//                     takes the hands at zero
 //   chef-old-run      an old saved Chef run (old scene key) is dropped, not resumed
 //   chef-playthrough  real inputs from the yard to the orb: every place, every
 //                     ticket on the line played by a bot pressing keys, CAUGHT
@@ -404,6 +406,48 @@ const chefCut = {
   },
 };
 
+// the pressures, real: a flame burns (a heart, a burn on the hands, the plate
+// on the floor); the cold takes the hands at zero; difficulty tightens the beat
+const chefBurn = {
+  id: 'chef-pressures',
+  async run(dc) {
+    const s = await boot(dc, 'line', { keepSafe: false });
+    const log = [];
+    Object.assign(s.F, { mise_done: true });
+    s.invulnUntil = 0;
+    if (s.health.setInvulnerable) s.health.setInvulnerable(s.time.now, 0);
+    await dc.run(160);
+    const sv = s.railApi.service();
+    // onto a burner's spot, with a plate
+    const r = s.graph.room('line');
+    await dc.run(2);
+    s.player.setPosition((r.tx + 26) * T + T / 2, (r.ty + 11) * T + 10);
+    s.player.body.reset(s.player.x, s.player.y);
+    sv.hands = sv.rail[0];
+    sv.rail[0].idx = sv.rail[0].stops.length;
+    const lives = s.lives;
+    for (let i = 0; i < 420 && !s.F.burns; i++) {
+      s.player.setPosition((r.tx + 26) * T + T / 2, (r.ty + 11) * T + 10);
+      await dc.run(1);
+    }
+    log.push(`burn:${s.F.burns >= 1}`);
+    log.push(`heart:${s.lives < lives}`);
+    log.push(`spilled:${!sv.hands && sv.tally.spilled === 1}`);
+    // the cold
+    const c = await boot(dc, 'cold', { keepSafe: false });
+    c.invulnUntil = 0;
+    await dc.run(60);
+    if (c.health.setInvulnerable) c.health.setInvulnerable(c.time.now, 0);
+    const kv = c.verbs.find((v) => v.mod.id === 'kitchen');
+    const l0 = c.lives;
+    kv.ctx.state.coldV = 0.002;
+    await dc.run(60);
+    log.push(`hands:${c.lives < l0 && kv.ctx.state.coldV >= 0.4}`);
+    clearRun('chef');
+    return { pass: log.every((l) => l.endsWith(':true')), detail: log };
+  },
+};
+
 const chefOldRun = {
   id: 'chef-old-run',
   async run(dc) {
@@ -507,4 +551,4 @@ const chefPlaythrough = {
   },
 };
 
-export default [chefBoard, chefPlaces, chefCoins, chefRail, chefPocket, chefHands, chefCut, chefOldRun, chefPlaythrough];
+export default [chefBoard, chefPlaces, chefCoins, chefRail, chefPocket, chefHands, chefCut, chefBurn, chefOldRun, chefPlaythrough];

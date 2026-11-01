@@ -45,7 +45,7 @@ export default {
     { prop: 'hanging_pans', x: 26, y: 4, dy: 4, layer: 'back' },
     { prop: 'hanging_bulb', x: 22, y: 4, dy: 4 },
     { prop: 'hanging_bulb', x: 38, y: 4, dy: 4 },
-    { prop: 'wall_clock', x: 8, y: 9, layer: 'back' },
+    { prop: 'wall_clock', x: 40, y: 6, scale: 0.5, layer: 'back' },
   ],
   lights: [{ x: 22, y: 6, r: 170, color: 0xfff0d0 }, { x: 38, y: 6, r: 150, color: 0xfff0d0 }],
   enclosure: { backWall: 'plaster', wainscot: false, posts: 0, ceiling: true, pillars: true, frames: [{ x: 2, y: 9, w: 2, h: 3 }, { x: 44, y: 9, w: 2, h: 3 }], palette: { wall: 0xd8d4c4, wood: 0x6a6a64, accent: 0x8a8678, deep: 0x4a4a48, lit: 0xfff4e0 } },

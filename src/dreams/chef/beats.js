@@ -1,10 +1,7 @@
 // FIVE-STAR DREAM's beats: data, run on events. Hands and other run-dependent
 // things are code: `{ call: 'name' }` runs src/dreams/chef/dream.js calls.
 export default {
-  start: [
-    { wait: 500 },
-    { say: { who: 'jo', text: 'Rain. The back of a grand hotel. Every window on this wall is running with steam.' } },
-  ],
+  start: [{ wait: 500 }, { call: 'opening' }],
   // the pit's rail is clear: Marguerite comes down with the apron
   pit_clear: [
     { set: 'pit_clear' },

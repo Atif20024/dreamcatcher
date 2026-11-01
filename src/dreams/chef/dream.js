@@ -32,6 +32,10 @@ const NIGHT_SKY = { top: 0x0a0c20, mid: 0x161a34, bottom: 0x2e2c48, stars: 0, cl
 const ORVAIN = { sky: 0x20223e, hill: 0x1a1c32, house: 0x262438, roof: 0x1a1826, window: 0xffc870, light: 0xf2c890, rim: 0x8aa8c0, deep: 0x0e0c16, leaf: 0x1e2a2a, trunk: 0x1a1620, mist: 0x3a4060, mistA: 0.3, haze: 0.2 };
 
 const calls = {
+  // only a fresh arrival in the yard gets the line (not a Continue or a warp)
+  opening(scene) {
+    if (scene.roomId === 'yard' && !scene.F.met_m) scene.caption.say('jo', 'Rain. The back of a grand hotel. Every window on this wall is running with steam.', { ms: 3600 });
+  },
   saffronGot(scene) {
     if (scene.railApi) scene.railApi.complete('saffron');
     scene.F.rail_cold = true;
@@ -115,15 +119,15 @@ export default {
   objectives: {
     door: 'the woman at the back door: talk to her',
     to_pit: 'go in: the back door',
-    pit: "clear Bastien's rail: every ticket, every stop, earn an apron",
+    pit: 'clear the rail: earn an apron',
     to_cold: 'the cold store, the door at the far end',
-    saffron: 'saffron, the top shelf: your hands won\'t hold long',
+    saffron: 'saffron, on the top shelf',
     out_cold: 'through to prep, the door at the foot of the racks',
-    mise: 'stock the line before the doors: you will not do it all',
+    mise: 'stock the line before the doors',
     to_line: 'through to the line',
-    rush: 'plate what the rail says, then send it to the pass',
+    rush: 'plate what the rail says',
     to_pass: "round to Chef's side, the door past the window",
-    finish: 'finish Table One: the plate, the rim, then Chef',
+    finish: 'finish Table One',
     hands: 'hold out the plate to Chef',
     carry: 'carry it out: the door to the dining room',
     walk: 'Table One, at the far end. Walk.',

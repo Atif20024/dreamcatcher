@@ -1,4 +1,4 @@
-// FIVE-STAR DREAM's grounds (FRAMEWORK §4.1): new palettes on the shared kinds.
+// FIVE-STAR DREAM's grounds (FRAMEWORK 4.1): new palettes on the shared kinds.
 // The yard is wet setts; the kitchen floor is red quarry tile under white
 // glazed walls; the cold store is galvanised and frosted; the dining room is
 // a dark parquet that swallows a footstep.

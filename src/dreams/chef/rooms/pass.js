@@ -47,7 +47,7 @@ export default {
     { type: 'checkpoint', id: 'cp_pass', label: 'THE PASS', x: 6, y: 11 },
     { type: 'npc', id: 'aurelio', cast: 'npc-rv-aurelio', x: 20, y: 11, facing: -1, turns: false },
     { type: 'npc', id: 'marguerite_pass', cast: 'npc-rv-marguerite', x: 7, y: 11, facing: 1, when: 'hands_done', turns: false, talk: [{ conv: 'take_it', if: 'hands_done' }] },
-    { type: 'sign', text: 'SALLE', x: 23, y: 7, board: 0x3a2428, ink: 0xf2d580, scale: 1, size: 'body' },
+    { type: 'sign', text: 'SALLE', x: 20, y: 6, board: 0x3a2428, ink: 0xf2d580, rim: 0xc8a050 },
     { type: 'portal', id: 'pass>dining', kind: 'door', x: 23, y: 11, to: { room: 'dining', portal: 'dining>pass' }, door: { prompt: 'push through the door', fade: 900, requires: ['carry_out'], locked: 'the plate is not ready', lockedLine: 'Not without the plate.' } },
   ],
 };

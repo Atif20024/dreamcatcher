@@ -48,7 +48,7 @@ export default {
     { prop: 'beef_rail', x: 14, y: 20, dy: -68, layer: 'back' },
     { prop: 'beef_rail', x: 17, y: 8, dy: -68, layer: 'back' },
     { prop: 'warm_pipe', x: 22, y: 20, dy: -10, layer: 'back' },
-    { prop: 'curled_cat', x: 22, y: 20, dy: -14 },
+    { prop: 'curled_cat', x: 22, y: 20, dy: -34 },
     { prop: 'speaking_tube', x: 8, y: 25, layer: 'back' },
     { prop: 'hanging_bulb', x: 23, y: 4, layer: 'back' },
   ],
