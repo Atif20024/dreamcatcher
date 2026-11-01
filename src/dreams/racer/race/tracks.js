@@ -9,8 +9,9 @@
 // the reverse. What follows a bend decides which is best, so each is a choice:
 //   the sweeper   little to save on the inside, a long straight to carry speed down
 //   the kink      much to save, and the wall bend straight after it wastes any speed
-//   the wall bend much to save and a long straight after: inside in, outside out
-// tests/race.test.js pins that no line wins them all.
+//   the wall bend much to save and a long straight after: the outside pays most, and it is by the wall
+// tests/race.test.js pins that no line wins them all, and lints every track: a
+// wall's outside pays, and skipping the brake at the straw costs the race's slack.
 // the pedals on a pad: the triggers and the d-pad's sides; lanes on the d-pad only,
 // so a thumb holding the stick for the throttle cannot flick a lane by tilting
 export const RACE_PAD = {
@@ -32,9 +33,9 @@ export const TRACKS = {
     target: 44.5, // Ottavia's time, on the card: the best the bots find, on the best lines
     lamps: [250, 500, 700, 950], // never more than 250 m back, on a road this short
     bends: [
-      { from: 340, to: 430, safe: 24, side: 1, outside: 'straw', lineLen: 0.05, lineSpeed: 2 },
-      { from: 720, to: 790, safe: 21, side: 1, outside: 'straw', lineLen: 0.16, lineSpeed: 1.5 },
-      { from: 850, to: 935, safe: 19, side: -1, outside: 'wall', lineLen: 0.2, lineSpeed: 2 },
+      { name: 'sweeper', from: 340, to: 430, safe: 24, side: 1, outside: 'straw', lineLen: 0.05, lineSpeed: 2 },
+      { name: 'kink', from: 720, to: 790, safe: 21, side: 1, outside: 'straw', lineLen: 0.16, lineSpeed: 1.5 },
+      { name: 'wall bend', from: 850, to: 935, safe: 19, side: -1, outside: 'wall', lineLen: 0.2, lineSpeed: 3 },
     ],
     obstacles: [
       { d: 540, lane: 2, kind: 'cart' },
@@ -42,7 +43,8 @@ export const TRACKS = {
       { d: 660, lane: 1, kind: 'bale' },
       { d: 1040, lane: 2, kind: 'cart' },
     ],
-    // (20 m up the road: a perfect launch fills the draft by 2.2 s, and has 5.7 s before it reaches his bumper)
-    rival: { id: 'roche', livery: 'roche', d: 20, lane: 1, pull: 1, top: 0.94 },
+    // (on the screen on the grid, a lane over: a launch held straight passes him at 5.4 s;
+    // pull in behind him and the draft is full by 1.2 s, with 3.6 s to his bumper)
+    rival: { id: 'roche', livery: 'roche', d: 13, lane: 2, pull: 1, top: 0.96 },
   },
 };

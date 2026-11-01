@@ -47,3 +47,19 @@ export const clock = (t) => {
   const m = Math.floor(s / 60);
   return `${m}:${(s - m * 60).toFixed(1).padStart(4, '0')}`;
 };
+
+// about what each costs on the clock, from the bots (RACER_STAGE1_R2_REPORT.md, Round 3)
+const COST = { lamp: 2.3, straw: 0.8, rub: 0.3, launch: 0.4, underPerMs: 0.07 };
+const WORTH_SAYING = 0.15;
+
+// the card's one lesson: what this run gave away the most of ('' when it gave little)
+export function costliest({ resets = 0, offroads = 0, rubs = 0, launched = true, slowest = null }) {
+  const [cost, line] = [
+    [resets * COST.lamp, 'Going back to the lamp cost you the most.'],
+    [offroads * COST.straw, 'The straw cost you the most.'],
+    [rubs * COST.rub, 'Rubbing the Corsa cost you the most.'],
+    [launched ? 0 : COST.launch, `Missing the green cost you the most: it is worth ${COST.launch} s.`],
+    [slowest ? slowest.under * COST.underPerMs : 0, slowest && `Slowest into the ${slowest.name}: ${Math.round(slowest.under * 3.6)} km/h under. That cost you the most.`],
+  ].reduce((w, c) => (c[0] > w[0] ? c : w));
+  return cost >= WORTH_SAYING ? line : '';
+}

@@ -477,10 +477,10 @@ describe('a lane is a racing line', () => {
     expect(scrub(30)).toBeCloseTo(1 - TUNE.laneScrub, 5);
     expect(scrub(10)).toBe(1);
   });
-  it('no line is best everywhere: inside, outside and the change finish close, and each wins a bend', () => {
+  it('no line is best everywhere: the uniform plans finish close, and mixing them beats them all', () => {
     const bends = TRACKS.test.bends.length;
     const uniform = ['in', 'out', 'change'].map((p) => time(Array(bends).fill(p)));
-    expect(Math.max(...uniform) - Math.min(...uniform)).toBeLessThan(0.5);
+    expect(Math.max(...uniform) - Math.min(...uniform)).toBeLessThan(0.8);
     // every plan on the road; then, from the best, the winner of each bend with the others held
     const plans = [[]];
     for (let i = 0; i < bends; i++) plans.splice(0, plans.length, ...plans.flatMap((p) => ['in', 'out', 'change'].map((a) => [...p, a])));
@@ -491,7 +491,7 @@ describe('a lane is a racing line', () => {
       p[i] = a;
       return [a, time(p)];
     }).sort((x, y) => x[1] - y[1]));
-    expect(new Set(winners.map((w0) => w0[0][0])).size).toBe(3);
+    expect(new Set(winners.map((w0) => w0[0][0])).size).toBeGreaterThan(1);
     // and each bend is a choice: its losing lines are close enough to take for safety
     for (const w0 of winners) expect(w0[2][1] - w0[0][1]).toBeLessThan(0.8);
   });
@@ -585,6 +585,13 @@ describe('a mistake costs seconds, not the road', () => {
     expect(r.rivals[0].d).toBeLessThan(at + 3.5);
     expect(r.t).toBe(t0);
   });
+  it('nothing of the sling or the draft comes back from before the lamp, and the reset says whose it was', () => {
+    const r = new Race(FLAT);
+    Object.assign(r.jo, { lampD: 600, d: 700, slingT: 1, slingCool: 3, armed: true, draft: 1, inDraft: true, steerT: 0.2 });
+    r.toLamp(r.jo, true);
+    expect(r.jo).toMatchObject({ slingT: 0, slingCool: 0, armed: false, draft: 0, inDraft: false, steerT: 0, resets: 1 });
+    expect(r.drain()).toContainEqual({ type: 'reset', id: 'jo', d: 600, now: true });
+  });
   it('a spin before the first lamp leaves the rival be', () => {
     const r = new Race({ length: 3000, countdown: 0 }, { rivals: [{ id: 'x', lane: 1, d: 200 }] });
     r.toLamp(r.jo, true);
@@ -630,6 +637,86 @@ describe('a mistake costs seconds, not the road', () => {
   });
 });
 
+describe('what Ottavia hears as a lift', () => {
+  const coast = (d, input, secs) => {
+    const r = new Race({ length: 5000, countdown: 0, bends: [{ from: 1000, to: 1100, safe: 20, side: 1, outside: 'straw' }] });
+    Object.assign(r.jo, { d, v: 34 });
+    for (let i = 0; i < secs * 120; i++) r.step(input);
+    return r.jo.lifts;
+  };
+  it('off both pedals for 0.3 s at speed is one lift, however long', () => {
+    expect(coast(100, {}, 0.25)).toBe(0);
+    expect(coast(100, {}, 0.35)).toBe(1);
+    expect(coast(100, {}, 1)).toBe(1);
+  });
+  it('a feather is no lift, and the brake is no lift', () => {
+    const r = new Race({ length: 5000, countdown: 0 });
+    Object.assign(r.jo, { d: 100, v: 34 });
+    for (let i = 0; i < 240; i++) r.step({ throttle: i % 24 > 12 });
+    expect(r.jo.lifts).toBe(0);
+    expect(coast(100, { brake: true }, 1)).toBe(0);
+  });
+  it('near a bend, and slowly, is no lift', () => {
+    expect(coast(900, {}, 0.5)).toBe(0);
+    const r = new Race({ length: 5000, countdown: 0 });
+    Object.assign(r.jo, { d: 100, v: 20 });
+    for (let i = 0; i < 120; i++) r.step({});
+    expect(r.jo.lifts).toBe(0);
+  });
+});
+
+describe('every track, by bot', () => {
+  const noBrakeAt = (plans, skip) => {
+    const bot = lineBot(plans);
+    return (race) => {
+      const out = bot(race);
+      return skip(race.nextBend(race.jo.d)) ? { ...out, brake: false, throttle: true } : out;
+    };
+  };
+  const lapOn = (track, bot, rivals = []) => {
+    const r = new Race(track, { rivals });
+    for (let i = 0; i < 150 * 120 && !r.result; i++) {
+      r.step(bot(r));
+      r.drain();
+    }
+    return r;
+  };
+  for (const track of Object.values(TRACKS)) {
+    const uniform = (a) => Array(track.bends.length).fill(a);
+    const rivalHome = () => {
+      const r = new Race(track, { rivals: [track.rival] });
+      for (let i = 0; i < 150 * 120 && r.rivals[0].finished === null; i++) {
+        r.step({});
+        r.drain();
+      }
+      return r.rivals[0].finished;
+    };
+    // the fastest clean lap with the wall bends on `wall`: lines tried bend by bend
+    const best = (wall) => {
+      let plans = uniform('in');
+      const time = (p) => {
+        const r = lapOn(track, lineBot(p));
+        return r.jo.spins ? Infinity : r.result.time;
+      };
+      track.bends.forEach((b, i) => {
+        const tries = b.outside === 'wall' ? [wall] : ['in', 'out', 'change'];
+        plans = tries.map((a) => plans.map((x, j) => (j === i ? a : x))).sort((p, q) => time(p) - time(q))[0];
+      });
+      return { plans, time: time(plans) };
+    };
+    it(`${track.id}: the outside of a wall bend pays at least 0.3 s`, () => {
+      expect(best('in').time - best('out').time).toBeGreaterThanOrEqual(0.3);
+    });
+    it(`${track.id}: skipping the brake at the straw bends costs at least the race's slack`, () => {
+      const { plans, time } = best('out');
+      const slack = rivalHome() - time;
+      expect(slack).toBeGreaterThan(0);
+      const skipped = lapOn(track, noBrakeAt(plans, (b) => b?.outside === 'straw'));
+      expect(skipped.result.time - time).toBeGreaterThanOrEqual(slack);
+    });
+  }
+});
+
 describe('hear the draft', () => {
   const at = (lengths, dy = 0) => {
     const jo = { d: 100, y: 1, state: 'run' };
@@ -673,7 +760,7 @@ describe('hear the draft', () => {
 
 describe('the test road, bot against the placeholder rival', () => {
   const stopAtEnd = (bot) => Object.assign((r) => bot(r), { stop: (r) => r.result });
-  it('a tidy driver who drafts and slings wins, inside the design length', () => {
+  it('a tidy driver wins, inside the design length', () => {
     const r = testRace();
     run(r, stopAtEnd(cleanBot({ sling: true })), 120);
     expect(r.result.place).toBe(1);
@@ -700,22 +787,43 @@ describe('the test road, bot against the placeholder rival', () => {
     run(r, stopAtEnd((x) => ({ throttle: x.jo.v < 15 })), 150);
     expect(r.result.place).toBe(2);
   });
-  it('a perfect launch cannot drive into the bumper of the car in front', () => {
+  it('the first row is on the screen on the grid, a lane over', () => {
+    const { rival, gridLane } = TRACKS.test;
+    expect(rival.d - CAR_LEN / 2).toBeLessThan(13.6); // (the view ahead at rest: (960 - 360) / 44)
+    expect(rival.lane).not.toBe(gridLane);
+  });
+  it('a perfect launch held straight passes him and never touches', () => {
     const r = testRace();
-    let armedAt = null;
-    while (r.t < TUNE.launchTime + 3) {
+    let passedAt = null;
+    while (r.t < TUNE.launchTime + 6) {
       r.step({ throttle: true, sling: r.t >= -0.05 && r.t < 0 });
       r.drain();
-      if (armedAt === null && r.jo.armed) armedAt = r.t;
+      if (passedAt === null && r.jo.d > r.rivals[0].d) passedAt = r.t;
     }
-    expect(r.launchTried).toBe(true);
+    expect(r.launched).toBe(true);
     expect(r.jo.rubs).toBe(0);
-    expect(armedAt).toBeLessThan(TUNE.launchTime + 1); // it pays in the draft, not on his bumper
+    expect(passedAt).not.toBeNull();
+  });
+  it('pull in behind him off a launch: the draft pays, with time to pull out before his bumper', () => {
+    const r = testRace();
+    let armedAt = null;
+    let touchedAt = null;
+    while (r.t < 8 && touchedAt === null) {
+      r.step({ throttle: true, sling: r.t >= -0.05 && r.t < 0, laneDown: r.t > 0 && r.jo.lane === 1 });
+      r.drain();
+      if (armedAt === null && r.jo.armed) armedAt = r.t;
+      if (r.jo.rubs) touchedAt = r.t;
+    }
+    expect(armedAt).toBeLessThan(2);
+    expect(touchedAt - armedAt).toBeGreaterThan(1.5);
   });
   it('the result says what the run did', () => {
     const r = testRace();
     run(r, stopAtEnd(cleanBot({ sling: true })), 120);
-    expect(r.result.flags.lifts).toBeGreaterThanOrEqual(TRACKS.test.bends.length - 1);
+    expect(r.result.flags.lifts).toBe(0); // (a brake for a bend is no lift)
+    expect(r.result.flags.launched).toBe(false);
+    expect(r.result.flags.slowest.under).toBeGreaterThan(0);
+    expect(TRACKS.test.bends.map((b) => b.name)).toContain(r.result.flags.slowest.name);
     expect(r.result.gap).toBeGreaterThan(0);
     expect(typeof r.result.flags.clean).toBe('boolean');
     const s = testRace();
