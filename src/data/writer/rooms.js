@@ -86,6 +86,10 @@ const ROOMS = [
       { type: 'prop', kind: 'machine', x: 92, y: 33, id: 'machine2', noun: 'machine', adj: 'jammed', to: 'working' },
       { type: 'prop', kind: 'machine', x: 96, y: 33, id: 'machine3', noun: 'machine', adj: 'jammed', to: 'working' },
       { type: 'prop', kind: 'machine', x: 99, y: 33, id: 'machine4', noun: 'machine', adj: 'jammed', to: 'working' },
+      // the two words that fix the rollers and the spill, here where they are
+      // needed (they were a library and a café away, past the point of use)
+      { type: 'word', x: 90, y: 33, word: 'cold', on: 'a water cooler' },
+      { type: 'word', x: 94, y: 33, word: 'dry', on: 'a box of blotters' },
       { type: 'coins', x: 87, y: 29, n: 3 },
       { type: 'coins', x: 95, y: 29, n: 3 },
       { type: 'label', x: 101, y: 32, id: 'rollers', noun: 'rollers', adj: 'hot', to: 'cold' },
@@ -95,7 +99,8 @@ const ROOMS = [
       { type: 'prop', kind: 'machine', x: 115, y: 27, id: 'machine6', noun: 'machine', adj: 'empty', bound: true, accepts: 'toner' },
       { type: 'coins', x: 111, y: 25, n: 2 },
       { type: 'desk', x: 113, y: 26, id: 'desk2', pages: 8, bars: 10 },
-      { type: 'moment', x: 116, y: 33, id: 'm1' },
+      { type: 'prop', kind: 'crate', x: 116, y: 33 },
+      { type: 'moment', x: 116, y: 33, id: 'm1', who: 'tomasz', perch: 12 },
       { type: 'checkpoint', x: 83, y: 33, id: 'CP1b', label: 'THE COPY SHOP' },
       { type: 'coin', x: 118, y: 27, breadcrumb: true },
       { type: 'gate', x: 119, y: 29, h: 5, id: 'g1', requires: ['rent_paid', 'pages12'] },
@@ -110,14 +115,15 @@ const ROOMS = [
       { type: 'gate', x: 127, y: 27, h: 7, id: 'g_gap', requires: ['gap_wide'] },
       { type: 'checkpoint', x: 129, y: 33, id: 'CP2a', label: 'THE CAFE' },
       { type: 'prop', kind: 'espresso', x: 131, y: 33, id: 'espresso', noun: 'machine', adj: 'loud', to: 'quiet', noisy: true },
-      { type: 'moment', x: 129, y: 33, id: 'm2' },
+      { type: 'prop', kind: 'table', x: 138, y: 33 },
+      { type: 'moment', x: 138, y: 33, id: 'm2', who: 'hat' },
       { type: 'foe', kind: 'talker', x: 135, y: 33, human: true, word: 'quiet', line: 'the *quiet* ones, every time' },
       { type: 'coins', x: 133, y: 30, n: 2 },
       { type: 'coin', x: 136, y: 28 },
-      { type: 'foe', kind: 'talker', x: 147, y: 26, human: true, word: 'fixed', line: 'it was *fixed* from the start, the whole thing' },
+      { type: 'foe', kind: 'talker', x: 147, y: 26, human: true, word: 'awake', line: 'I lay *awake* with it for a week' },
       { type: 'label', x: 141, y: 28, id: 'ladder', noun: 'ladder', adj: 'broken', to: 'fixed' },
       { type: 'coins', x: 144, y: 23, n: 3 },
-      { type: 'foe', kind: 'talker', x: 155, y: 33, human: true, word: 'awake', line: 'I lay *awake* with it for a week' },
+      { type: 'foe', kind: 'talker', x: 155, y: 33, human: true, word: 'fixed', line: 'it was *fixed* from the start, the whole thing' },
       { type: 'npc', who: 'wren', x: 150, y: 31 },
       { type: 'prop', kind: 'piano', x: 152, y: 31 },
       { type: 'npc', who: 'emmerich', x: 158, y: 33 },
@@ -211,7 +217,13 @@ const ROOMS = [
     [
       { type: 'editor', x: 322, y: 33, from: 326 },
       { type: 'prop', kind: 'lamp_post', x: 338, y: 33 },
+      { type: 'prop', kind: 'bench', x: 342, y: 32 },
+      { type: 'prop', kind: 'puddle', x: 348, y: 34 },
       { type: 'prop', kind: 'lamp_post', x: 358, y: 33 },
+      { type: 'prop', kind: 'bus_stop', x: 361, y: 31 },
+      // the word the bag could not take has its one use here; the Editor,
+      // walking past, takes it back
+      { type: 'label', x: 361, y: 29, id: 'timetable', noun: 'timetable', adj: 'lying', to: 'honest' },
     ]
   ),
   room(
@@ -226,7 +238,7 @@ const ROOMS = [
       { type: 'inkwell', x: 388, y: 20, id: 'ink5' },
       { type: 'editor_wait', x: 391, y: 20 },
       { type: 'gate', x: 393, y: 15, h: 6, id: 'g4', requires: ['rewritten'] },
-      { type: 'moment', x: 398, y: 24, id: 'm3' },
+      { type: 'moment', x: 398, y: 24, id: 'm3', who: 'landlady' },
       { type: 'coin', x: 396, y: 22 },
     ]
   ),
@@ -259,7 +271,6 @@ const ROOMS = [
       { type: 'npc', who: 'isolde', x: 472, y: 19 },
       { type: 'prop', kind: 'desk_big', x: 473, y: 19 },
       { type: 'dialogue', x: 470, y: 19, id: 'd5', auto: true, sets: 'deadline' },
-      { type: 'editor', x: 462, y: 19, from: 476, stop: 598, follow: true },
       { type: 'coins', x: 480, y: 17, n: 3 },
       { type: 'prop', kind: 'fire_door', x: 488, y: 19 },
     ]
@@ -270,6 +281,7 @@ const ROOMS = [
     [
       { type: 'coins', x: 496, y: 18, n: 2 },
       { type: 'coins', x: 507, y: 20, n: 3 },
+      { type: 'word', x: 504, y: 21, word: 'wide', on: 'a torn billboard' },
       { type: 'label', x: 513, y: 22, id: 'ledge', noun: 'ledge', adj: 'narrow', to: 'wide' },
       { type: 'ledge', x: 512, y: 23, x1: 515, id: 'ledge_tiles' },
       { type: 'coins', x: 519, y: 19, n: 3 },
@@ -282,6 +294,10 @@ const ROOMS = [
     { id: 'press', section: 'deadline', music: { bpm: 124, state: 'setpiece' }, bg: { far: 'iron_hall', mid: 'press_rollers', near: 'paper_webs', landmark: 'press_wheel' } },
     540, 599,
     [
+      // W-S6: the city is the Friday clock alone; the Editor waits for the press.
+      // It steps out once the Draft is fed (past the typo desk and the ladder,
+      // where it would catch a climber for nothing) and walks away at the PRESS lever.
+      { type: 'editor', x: 553, y: 33, from: 561, stop: 598, follow: true },
       { type: 'foe', kind: 'proofreader', x: 545, y: 33, patrol: [542, 552], human: true },
       { type: 'foe', kind: 'proofreader', x: 550, y: 33, patrol: [546, 553], human: true },
       { type: 'desk', x: 543, y: 33, id: 'typo_desk', fixTypos: true },
@@ -318,7 +334,7 @@ const ROOMS = [
 // Phase 1.4 (plan §2.7): each room's objective, each gate's sign
 const OBJECTIVES = {
   "arrival": "the attic. the blank page.",
-  "attic": "write chapter one (12 pages)",
+  "attic": "write chapter one (10 pages)",
   "copyshop": [
     "the copy shop. fix four machines.",
     {
@@ -335,7 +351,7 @@ const OBJECTIVES = {
     "the café: the napkin, her challenge",
     {
       "flag": "lines",
-      "text": "the garden table (30 pages)"
+      "text": "the garden table (25 pages)"
     },
     {
       "flag": "pages30",
@@ -355,12 +371,12 @@ const OBJECTIVES = {
     },
     {
       "flag": "structure",
-      "text": "the desk (60 pages)"
+      "text": "the desk (50 pages)"
     }
   ],
   "postoffice": "post it. forty addresses.",
   "bus": "the night bus",
-  "rain": "the rain. keep moving.",
+  "rain": "the rain. keep walking.",
   "rewrite": "the wall of cards. from memory.",
   "editor": "the editor. (the stairs, past the door)",
   "agent": "the agent",
@@ -370,11 +386,11 @@ const OBJECTIVES = {
 };
 
 const GATE_HINTS = {
-  "g1": "needs: the rent · 12 pages",
+  "g1": "needs: the rent · 10 pages",
   "g_gap": "the gap is narrow. strike it wide",
-  "g_dog": "wake the dog",
-  "g2": "needs: her challenge · 30 pages",
-  "g3": "needs: sources · the cards · 60 pages",
+  "g_dog": "wake the dog (Q)",
+  "g2": "needs: her challenge · 25 pages",
+  "g3": "needs: sources · the cards · 50 pages",
   "g4a": "post it. wait for the answer",
   "g4": "rewrite it, from memory",
   "g5": "make the cut",

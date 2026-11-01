@@ -153,6 +153,16 @@ export const SHOTS = {
   crumple: (v) => {
     for (let i = 0; i < 8; i++) v.noise({ dur: 0.02, vol: 0.03, f: 2500 + Math.random() * 1500, q: 1, when: Math.random() * 0.5 });
   },
+  copier_thunk: (v) => {
+    v.noise({ dur: 0.09, vol: 0.05, f: 240, q: 0.8 });
+    v.noise({ dur: 0.5, vol: 0.02, f: 1800, q: 1.2, env: 'swell', when: 0.1 });
+    v.noise({ dur: 0.07, vol: 0.035, f: 300, q: 0.8, when: 0.62 });
+  },
+  murmur: (v) => v.babble({ f0: 132, secs: 1.8, lp: 900, vol: 0.35 }),
+  press_roar: (v) => {
+    v.noise({ dur: 0.4, vol: 0.07, f: 130, q: 0.6, env: 'lin' });
+    v.noise({ dur: 0.18, vol: 0.03, f: 900, q: 1, when: 0.05 });
+  },
   clock_hour: (v) => [0, 1.6].forEach((w) => bellPartials(v, 784, 0.02, 1.6, w, [[1, 1], [2, 0.3], [3, 0.1]])),
 
   // --- the station in orbit ------------------------------------------------

@@ -10,6 +10,7 @@ import { lightThemeProps } from '../art/levelArt.js';
 import writerRooms, { PARAGRAPHS } from '../data/writer/rooms.js';
 import writerTiles from '../data/writer/tiles.js';
 import { DIALOGUES, MOMENTS, FIRST_PARAGRAPH, CARD_LINES } from '../data/writer/cast.js';
+import { PAGE_GATES, deskTotal, deskWords, carryTypos, dropIndex, KEPT_WORDS, REQUIRED_EDITS } from '../data/writer/economy.js';
 import { createWriterTextures } from '../data/writer/sprites.js';
 import Labels from '../systems/labels.js';
 import Typing from '../systems/typing.js';
@@ -20,6 +21,7 @@ import { sfx, music, sting, musicDirector } from '../systems/audio.js';
 import { showTutorial } from '../systems/tutorial.js';
 import { uiText } from '../ui/text.js';
 import { hud } from '../ui/hud.js';
+import { deductWorth, coinWorth } from '../systems/wallet.js';
 import { barkMs, barkNear, claimBark, onCamera } from '../ui/barks.js';
 import { ladderPass } from '../world/ladders.js';
 
@@ -30,6 +32,7 @@ const SPEED = 280;
 
 // a word's weight in the book, for the rewrite (P3): what he wrote down is
 // what he can build with, and some of it carries more tension than the rest
+const RENT = 12; // four machines, three pennies each: it goes straight to her
 const TENSION = { working: 1, light: 2, honest: 3, wide: 2, quiet: 1, fixed: 2, awake: 3, dry: 2, true: 4, necessary: 4, low: 1, lit: 2, old: 2, kind: 3, far: 3, cold: 4, gone: 5, again: 5 };
 
 // THE SECOND DRAFT — the dream about the slowest kind of work. The world is
@@ -76,7 +79,10 @@ export default class WriterScene extends BaseLevel {
   // touch screens (src/ui/TouchControls.js): while the letters fall, ABC
   // opens the device keyboard (src/input/softKeyboard.js)
   touchKeys() {
-    return this.typing ? ['Keyboard'] : [];
+    if (this.typing) return ['Keyboard'];
+    // Q: the dog at the café's far gate cannot be woken any other way
+    const room = this.built && this.player && RoomBuilder.roomAt(this.built.rooms, this.player.x);
+    return room && room.id === 'cafe' ? ['KeyQ'] : [];
   }
 
   create() {
@@ -172,7 +178,7 @@ export default class WriterScene extends BaseLevel {
       .setDepth(85)
       .setAlpha(0);
 
-    this.setObjective('write chapter one (12 pages)');
+    this.setObjective('the attic. the blank page.');
     music.piano();
     if (!this.devWarp()) {
       this.time.delayedCall(900, async () => {
@@ -317,8 +323,9 @@ export default class WriterScene extends BaseLevel {
       return;
     }
     if (this.words.length >= this.wordCap) {
-      // drop the oldest word that is not the honest one
-      const idx = this.words.findIndex((w) => w !== 'honest');
+      // drop the oldest word that is not the honest one, nor one the way on still needs
+      const needed = this.labels.list.filter((l) => REQUIRED_EDITS.includes(l.id) && !l.changed).map((l) => l.to);
+      const idx = dropIndex(this.words, needed);
       const gone = this.words.splice(idx, 1)[0];
       this.floatText(this.player.x, this.player.y - 76, `(${gone} — dropped)`, '#8a8478');
     }
@@ -338,9 +345,7 @@ export default class WriterScene extends BaseLevel {
   addPages(n, why) {
     this.pages = Math.max(0, this.pages + n);
     if (n > 0) this.floatText(this.player.x, this.player.y - 70, `+${n} pages${why ? ` — ${why}` : ''}`, '#f2e0a0');
-    if (this.pages >= 12) this.setFlag('pages12');
-    if (this.pages >= 30) this.setFlag('pages30');
-    if (this.pages >= 60) this.setFlag('pages60');
+    for (const [flag, need] of Object.entries(PAGE_GATES)) if (this.pages >= need) this.setFlag(flag);
     this.updateHud();
   }
 
@@ -349,7 +354,7 @@ export default class WriterScene extends BaseLevel {
     const p = this.props[id];
     switch (id) {
       case 'typewriter':
-        if (adj === 'working') this.setObjective('sit. write. (four pages)');
+        if (adj === 'working') this.setObjective('sit. write.');
         break;
       case 'trunk':
       case 'cart':
@@ -415,6 +420,13 @@ export default class WriterScene extends BaseLevel {
         break;
       case 'crane':
         if (this.crane) this.crane.fast = adj === 'fast';
+        break;
+      case 'timetable':
+        if (adj === 'honest' && !revert && !this.told.timetable) {
+          this.told.timetable = true;
+          this.floatText(this.player.x, this.player.y - 60, 'last bus: gone. it says so now.', '#f2e0a0');
+          if (this.coinMgr) for (let i = 0; i < 3; i++) this.coinMgr.spawn(this.player.x - 24 + i * 24, this.player.y - 40);
+        }
         break;
       default:
         break;
@@ -505,7 +517,7 @@ export default class WriterScene extends BaseLevel {
           this.wakeX = o.wx;
           break;
         case 'editor': {
-          const ed = new InnerEditor(this, { x: o.wx, y: floor, stopX: o.stop ? px(o.stop) : (this.roomOf(o)._x0 + this.roomOf(o).grid[0].length - 2) * T, speed: o.slow ? 40 : this.editorSpeed });
+          const ed = new InnerEditor(this, { x: o.wx, y: floor, stopX: o.stop ? px(o.stop) : (this.roomOf(o)._x0 + this.roomOf(o).grid[0].length - 2) * T, speed: o.slow ? 70 : this.editorSpeed });
           ed.from = px(o.from); // `from` and `stop` are written in world columns
           ed.follow = !!o.follow; // the chase across the city: it keeps Jo's level
           ed.room = this.roomOf(o).id;
@@ -544,7 +556,7 @@ export default class WriterScene extends BaseLevel {
           this.orbAt = { x: o.wx, y: o.wy };
           break;
         case 'moment':
-          this.moment(o.id, o.wx, o.wy);
+          this.moment(o, floor);
           break;
         default:
           break;
@@ -559,9 +571,16 @@ export default class WriterScene extends BaseLevel {
       this.addInteract(landlady.x, landlady.y, 'the rent', async () => {
         if (this.machinesFixed >= 4) {
           await this.dialog.show(DIALOGUES.rent_yes);
+          // the pennies go to her, as far as he has kept them
+          const paid = Math.min(RENT, this.levelCoins || 0);
+          if (paid > 0) {
+            this.levelCoins -= paid;
+            deductWorth('writer', paid * coinWorth('writer'));
+            this.updateCoinHud();
+          }
           this.setFlag('rent_paid');
           this.standDown(landlady);
-          this.setObjective(this.pages >= 12 ? 'the café' : 'the back-room desk (12 pages)');
+          this.setObjective(this.F.pages12 ? 'the café' : `the back-room desk (${PAGE_GATES.pages12} pages)`);
         } else {
           await this.dialog.show(DIALOGUES.rent_no);
           this.setObjective('the copy shop. fix four machines.');
@@ -667,13 +686,14 @@ export default class WriterScene extends BaseLevel {
     if (!m || m.fixed) return;
     m.fixed = true;
     m.img.clearTint();
-    this.machinesFixed += 1;
+    const spare = id === 'machine5' || id === 'machine6'; // the job is the four on the floor
+    if (!spare) this.machinesFixed += 1;
     sfx('deliver');
     const l = this.labels.get(id);
     if (l && l.adj !== 'working') this.labels.apply(l, 'working', { free: true });
     // it pays in pennies
     if (this.coinMgr) for (let i = 0; i < 3; i++) this.coinMgr.spawn(m.img.x - 24 + i * 24, m.floor - 60);
-    this.floatText(m.img.x, m.floor - 70, `machine ${this.machinesFixed}/4 running`, '#f2d580');
+    this.floatText(m.img.x, m.floor - 70, spare ? 'and one more, for luck.' : `machine ${this.machinesFixed}/4 running`, '#f2d580');
     if (this.machinesFixed >= 4 && !this.F.rent_paid) {
       this.setObjective('the rent. (she is outside)');
       // she has heard the machines running: she waits at her door now
@@ -708,7 +728,7 @@ export default class WriterScene extends BaseLevel {
       if (o.needs === 'bench') return this.labels.get('bench').adj === 'dry';
       return true;
     };
-    this.addInteract(o.wx, floor - 16, 'sit and write', () => {
+    desk.interact = this.addInteract(o.wx, floor - 16, 'sit and write', () => {
       if (!ready()) {
         this.floatText(o.wx, floor - 56, o.needs === 'typewriter' ? 'the typewriter is jammed.' : 'the bench is wet.', '#c8c0b0');
         return;
@@ -724,17 +744,24 @@ export default class WriterScene extends BaseLevel {
     p.typing = true;
     showTutorial(this, 'typing');
     this.typing = new Typing(this, {
-      count: desk.bars * 2,
+      words: deskWords(desk.id),
       bpm: 84 + Math.min(24, desk.bars * 2),
       cat: !!desk.cat,
-      onDone: (hits, typos) => {
+      onDone: (hits, typos, total) => {
         this.typing = null;
         p.typing = false;
         p.controlLockUntil = 0;
-        desk.done = true;
-        this.typos += typos;
-        this.addPages(desk.pages, `${hits} clean`);
-        this.afterDesk(desk.id);
+        const best = desk.best || 0;
+        desk.best = deskTotal(desk.pages, best, hits, total);
+        desk.done = desk.best >= desk.pages;
+        desk.interact.label = `redraft it (${desk.best}/${desk.pages} pages)`;
+        this.typos = carryTypos(this.typos, typos);
+        this.addPages(desk.best - best, `${hits}/${total} clean. ${typos} typo${typos === 1 ? '' : 's'}.`);
+        if (typos > 0 && !this.told.typos) {
+          this.told.typos = true;
+          this.time.delayedCall(2600, () => this.floatText(p.x, p.y - 70, "Typos keep. They'll be waiting at the printworks.", '#e8a090'));
+        }
+        if (!best) this.afterDesk(desk.id);
       },
     });
   }
@@ -759,12 +786,16 @@ export default class WriterScene extends BaseLevel {
           this.setObjective('the napkin: her challenge');
           return;
         }
+        if (!this.told.d1b) {
+          this.told.d1b = true;
+          await this.dialog.show(DIALOGUES.d1b);
+        }
         const ok = await napkin(this);
         if (ok) {
           this.setFlag('lines');
           this.addWord('true', 'the napkin');
           this.addPages(6, 'her lines');
-          this.setObjective('the garden table (30 pages)');
+          this.setObjective(`the garden table (${PAGE_GATES.pages30} pages)`);
         }
       }, { once: false, when: () => !this.F.lines });
     }
@@ -794,9 +825,9 @@ export default class WriterScene extends BaseLevel {
           this.setFlag('structure');
           this.addWord('necessary', 'the shape');
           this.reveal('grief');
-          this.setObjective(this.F.research ? 'the desk (60 pages)' : 'the stacks: five sources');
+          this.setObjective(this.F.research ? `the desk (${PAGE_GATES.pages60} pages)` : 'the stacks: five sources');
         }
-      }, { once: false, when: () => !this.F.structure && this.pages >= 30 });
+      }, { once: false, when: () => !this.F.structure && this.F.pages30 });
     }
     if (o.puzzle === 'memory') {
       this.addInteract(o.wx, floor - 20, 'the wall of cards', async () => {
@@ -836,7 +867,7 @@ export default class WriterScene extends BaseLevel {
       this.floatText(o.wx, floor - 80, `${o.name} — ${this.sources.length}/5`, '#f2d580');
       if (this.sources.length >= 5) {
         this.setFlag('research');
-        this.setObjective(this.F.structure ? 'the desk (60 pages)' : 'the shape of it: the cards');
+        this.setObjective(this.F.structure ? `the desk (${PAGE_GATES.pages60} pages)` : 'the shape of it: the cards');
       }
     }, { once: false, when: () => src.shown && !src.taken && (!o.shelf || this.labels.get('shelf').adj === 'low') && Math.abs(this.player.y - (o.shelf ? px(13) : floor - 16)) < 44 });
   }
@@ -907,7 +938,8 @@ export default class WriterScene extends BaseLevel {
     }
   }
 
-  moment(id, x, y) {
+  moment({ id, wx: x, wy: y, who, perch = 0 }, floor) {
+    this.person(who, x, floor - perch, { sit: true, flip: true }); // somebody is there to be noticed
     this.addInteract(x, y, 'pause', async () => {
       const m = MOMENTS[id];
       this.moments += 1;
@@ -1019,6 +1051,8 @@ export default class WriterScene extends BaseLevel {
     }
     this.leversPulled.push(lever.id);
     this.floatText(lever.img.x, lever.img.y - 50, `${lever.name}. ${['then the press.', 'then the fold.', ''][expect] || ''}`, '#f2d580');
+    // the rest of the run doubles back along the webs: it would walk through him
+    if (this.leversPulled.length === 2) for (const ed of this.editors) if (ed.room === 'press') ed.leave();
     if (this.leversPulled.length === 3) this.printBook();
   }
 
@@ -1053,7 +1087,6 @@ export default class WriterScene extends BaseLevel {
       this.setFlag('printed');
       this.deadline = null;
       this.updateHud();
-      for (const ed of this.editors) if (ed.room === 'agent') ed.leave();
       musicDirector.setState('quiet');
       this.floatText(this.tray.x, this.tray.y - 70, `${this.pages} pages, bound. it leaves his hands.`, '#f2d580');
       this.setObjective('the reading');
@@ -1097,7 +1130,7 @@ export default class WriterScene extends BaseLevel {
           // nine people clap
           for (let k = 0; k < 9; k++) this.time.delayedCall(k * 140, () => sfx('click'));
           this.time.delayedCall(1400, async () => {
-            const d6 = DIALOGUES.d6.map((e) => ({ ...e, text: e.text.replace('{page_three}', this.pageThreeChoice === 'kept' ? 'Kept.' : 'Cut.') }));
+            const d6 = DIALOGUES.d6.map((e) => ({ ...e, text: e.text.replace('{page_three}', this.pageThreeChoice === 'cut' ? 'Cut.' : 'Kept.') }));
             await this.dialog.show(d6);
             p.typing = false;
             p.controlLockUntil = 0;
@@ -1124,7 +1157,7 @@ export default class WriterScene extends BaseLevel {
     sfx('orb');
     this.tweens.add({ targets: orb, scale: 2.5, alpha: 0, duration: 700 });
     const momentMsg = this.moments === 0 ? "You didn't notice anything on the way." : this.moments < 3 ? 'You noticed a little.' : 'You noticed. Maybe that was the point.';
-    const lines = [`${this.pages} pages.`, '', 'Was it enough?', '', momentMsg, this.pageThreeChoice === 'kept' ? CARD_LINES.kept : CARD_LINES.cut];
+    const lines = [`${this.pages} pages.`, '', 'Was it enough?', '', momentMsg, this.pageThreeChoice === 'cut' ? CARD_LINES.cut : CARD_LINES.kept];
     if (this.memoryUsed >= 6) lines.push(CARD_LINES.attentive);
     lines.push('', '[E] Return to Crossroads Station');
     this.showCard(lines, () => {
@@ -1201,15 +1234,25 @@ export default class WriterScene extends BaseLevel {
     this.tweens.add({ targets: wipe, alpha: 1, duration: 800 });
     this.time.delayedCall(1400, () => {
       if (this.bag) this.bag.destroy();
+      const lost = this.pages;
       this.pages = 0;
-      this.words = this.words.filter((w) => w === 'honest');
+      this.words = this.words.filter((w) => KEPT_WORDS.includes(w));
+      this.ink = this.inkMax; // the bag had the pages; the pen is in his coat
       this.updateSatchel();
       this.updateHud();
       music.stop();
       this.tweens.add({ targets: wipe, alpha: 0, duration: 900, onComplete: () => wipe.destroy() });
-      this.floatText(this.player.x, this.player.y - 70, 'the bag is gone.', '#e8dcc8');
-      this.setObjective('');
+      this.setObjective('the rain. keep walking.');
       this.satchelHud.setText('[honest]');
+      // three beats as the fade lifts: Jo finds out when the player does
+      this.player.controlLockUntil = this.time.now + 900 + 4500;
+      const cam = this.cameras.main;
+      ['...', 'The bag was on my knee.', `${lost} pages.`].forEach((line, i) => {
+        this.time.delayedCall(900 + i * 1500, () => {
+          const t = uiText(this, cam.width / 2, cam.height - 130, line, { fontSize: '17px', color: '#e8dcc8' }).setOrigin(0.5).setScrollFactor(0).setDepth(231);
+          this.tweens.add({ targets: t, alpha: 0, delay: 1000, duration: 400, onComplete: () => t.destroy() });
+        });
+      });
     });
   }
 
@@ -1232,7 +1275,7 @@ export default class WriterScene extends BaseLevel {
       });
     }
     if (ed.room === 'editor') {
-      for (const p of this.paragraphs) if (!p.gone && !p.bound && px(p.x1) + 16 < x) this.cutParagraph(p, { erased: true });
+      for (const p of this.paragraphs) if (!p.gone && !p.bound && !p.three && px(p.x1) + 16 < x) this.cutParagraph(p, { erased: true }); // page three is Jo's to cut, not the Editor's
     } else {
       for (const l of this.labels.list) if (l.x < x && l.x > lo && l.changed) this.labels.revert(l);
     }
@@ -1270,7 +1313,7 @@ export default class WriterScene extends BaseLevel {
       this.restoreErased();
       if (ed.room === 'editor') this.restoreParagraphs();
       ed.reset();
-      if (ed.room === 'agent') {
+      if (ed.room === 'press') {
         ed.startX = this.checkpoint.x - this.editorLead;
         ed.x = ed.startX;
         ed.art.x = ed.x;
@@ -1459,7 +1502,10 @@ export default class WriterScene extends BaseLevel {
           this.setFlag('rejected');
           this.setObjective('the night bus');
         }
-        if (z.id === 'd5') this.startDeadline();
+        if (z.id === 'd5') {
+          this.addWord('fast', 'Isolde');
+          this.startDeadline();
+        }
       })();
     }
   }
@@ -1501,6 +1547,9 @@ export default class WriterScene extends BaseLevel {
     const id = room.id;
     // §3.3 noise: the café makes it; in the library Jo makes it
     let noisy = false;
+    // the bed rides what the room is doing: the café's chatter with the noise
+    // meter, the press's roar down a step with each lever pulled
+    if (this.placeAudio) this.placeAudio.loudness = id === 'cafe' ? 0.5 + this.noise : id === 'press' ? 1 - 0.25 * this.leversPulled.length : 1;
     if (id === 'cafe') {
       noisy = true;
       let gain = 0;
@@ -1548,10 +1597,12 @@ export default class WriterScene extends BaseLevel {
     if (id === 'rain' && !this.F.rain_walk) {
       this.setFlag('rain_walk');
       music.stop();
-      this.setObjective('');
+      musicDirector.setMix({}); // music.stop only drops the boosts: this is the silence
+      this.setObjective('the rain. keep walking.');
     }
     if (id === 'rewrite' && !this.F.at_attic2) {
       this.setFlag('at_attic2');
+      musicDirector.clearMix();
       this.setObjective('the wall of cards. from memory.');
       music.piano();
     }
@@ -1565,7 +1616,7 @@ export default class WriterScene extends BaseLevel {
     }
     // the Inner Editor steps out when Jo passes its mark
     for (const ed of this.editors) {
-      if (ed.room === id && !ed.started && !ed.done && p.x > ed.from && (id !== 'agent' || this.F.deadline)) {
+      if (ed.room === id && !ed.started && !ed.done && p.x > ed.from && (id !== 'press' || this.F.deadline)) {
         ed.started = true;
         ed.start();
         this.activeEditor = ed;
@@ -1655,7 +1706,7 @@ export default class WriterScene extends BaseLevel {
   updateFlat(time) {
     if (!this.told.d4 && this.player.x > px(427)) {
       this.told.d4 = true;
-      this.dialog.show(DIALOGUES.d4);
+      this.dialog.show(DIALOGUES.d4.map((e) => ({ ...e, text: e.text.replace('{pages}', this.pages) })));
     }
     void time;
   }
@@ -1904,9 +1955,9 @@ export default class WriterScene extends BaseLevel {
       rewrite: { flags: [...ALL3, 'later', 'rejected', 'draft_lost', 'rain_walk'], col: 372, row: 20, pages: 0, words: ['honest'], obj: 'the wall of cards' },
       editor: { flags: ALL4, col: 402, row: 33, pages: 60, words: ['honest', 'again'], obj: 'the editor' },
       agent: { flags: ALL5, col: 461, row: 19, pages: 40, words: ['honest', 'again'], pencil: true, obj: 'the agent' },
-      city: { flags: [...ALL5, 'deadline'], col: 491, row: 19, pages: 40, words: ['honest', 'again', 'wide', 'fast'], pencil: true, deadline: true, obj: 'the printworks' },
-      press: { flags: [...ALL5, 'deadline'], col: 541, row: 33, pages: 40, words: ['honest', 'again'], pencil: true, deadline: true, typos: 2, obj: 'feed it, then ink → press → fold' },
-      reading: { flags: ALL6, col: 601, row: 33, pages: 40, words: ['honest', 'again'], pencil: true, carry: 'book', obj: 'the lectern' },
+      city: { flags: [...ALL5, 'deadline'], col: 491, row: 19, pages: 40, words: ['honest', 'again', 'fast'], pencil: true, deadline: true, obj: 'the printworks' },
+      press: { flags: [...ALL5, 'deadline'], col: 541, row: 33, pages: 40, words: ['honest', 'again', 'fast'], pencil: true, deadline: true, typos: 2, obj: 'feed it, then ink → press → fold' },
+      reading: { flags: ALL6, col: 601, row: 33, pages: 40, words: ['honest', 'again', 'fast'], pencil: true, carry: 'book', obj: 'the lectern' },
     };
     const ph = PH[at];
     if (!ph) return false;

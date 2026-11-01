@@ -3,6 +3,7 @@ import { sfx } from './audio.js';
 import ModalManager from '../ui/ModalManager.js';
 import { uiText } from '../ui/text.js';
 import { panel } from '../ui/Panel.js';
+import { wrongWordLine } from '../data/writer/cast.js';
 
 // THE SECOND DRAFT §3.1 — the world is labelled, and labels can be edited.
 // A label is a typewriter word over a thing: `adj noun`. The pen strikes the
@@ -64,7 +65,7 @@ export default class Labels {
   nearest(px, py) {
     let best = null;
     for (const l of this.list) {
-      if (l.bound || l.hidden) continue;
+      if (l.bound || l.hidden || l.changed) continue; // a word that took is finished with
       let d = Phaser.Math.Distance.Between(px, py, l.x, l.y + 24);
       // a tall thing (the trunk, a machine) carries its word high up
       if (Math.abs(px - l.x) < 36 && py > l.y && py < l.y + 140) d = Math.min(d, 30 + Math.abs(px - l.x));
@@ -116,7 +117,7 @@ export default class Labels {
     }
     s.puzzleActive = true;
     const handle = ModalManager.for(s).open({ kind: 'encounter', name: 'pen', freeze: 'physics', onKey: (e) => handler(e) });
-    let idx = Math.max(0, words.indexOf(label.to));
+    let idx = 0; // never on the answer: which word fits is the whole thought
     const cam = s.cameras.main;
     const cx = cam.width / 2;
     const cy = 110;
@@ -154,10 +155,29 @@ export default class Labels {
       } else if (e.code === 'Enter' || e.code === 'KeyE' || e.code === 'KeyX') {
         const word = words[idx];
         close();
-        this.apply(label, word);
+        if (word === label.to) this.apply(label, word);
+        else this.misfire(label, word);
       }
     };
     this.editing = label;
+  }
+
+  // the wrong word: it spends the ink, sits on the thing for a moment, and
+  // does not take
+  misfire(label, word) {
+    const s = this.scene;
+    if (!s.spendInk(1)) return;
+    sfx('scratch');
+    label.striking = true;
+    label.adjText.setText(word);
+    this.layout(label);
+    s.floatText(label.x, label.y - 20, wrongWordLine(label.noun, word, label.adj), '#c8c0b0');
+    s.time.delayedCall(1400, () => {
+      label.striking = false;
+      label.adjText.setText(label.adj);
+      this.layout(label);
+      sfx('click');
+    });
   }
 
   apply(label, word, { free = false, revert = false } = {}) {
