@@ -15,6 +15,9 @@ export const laneY = (y) => LANE_Y[0] + (LANE_Y[2] - LANE_Y[0]) * (y / 2);
 export const laneScale = (y) => 0.92 + 0.08 * y;
 
 const PINEWOOD = { sky: 0x8ec4e0, hill: 0x4a7a5a, house: 0xd8c8a4, roof: 0xb86a4a, window: 0x3a3a4a, light: 0xf2e6cc, rim: 0xf2e6cc, deep: 0x24402e, leaf: 0x2e6a44, trunk: 0x5a4030, mist: 0xc0dce8, mistA: 0.28, haze: 0.2, fade: 0.08 };
+// a bend slides the land towards its outside, the far land the most (px at full lean)
+export const ROAD_SLIDE = 8;
+const LAND_SLIDE = [14, 9, 5];
 const SKY = { top: 0x5a9ccc, mid: 0x8ec4e0, bottom: 0xd8ecf0, clouds: 5, cloud: 0xf0f6f8, cloudLit: 0xffffff, seed: 21 };
 
 function paintRoad(ctx, w, h) {
@@ -95,21 +98,28 @@ export class RaceRoad {
     this.sky = s.add.image(480, 200, skyT).setDisplaySize(W, 620).setDepth(0);
     const horizon = ROAD_TOP - 20;
     this.layers = [
-      { ts: tile(x0, horizon, W, h(farT), farT, 1, 1), f: 0.1 },
-      { ts: tile(x0, horizon + 4, W, h(midT), midT, 2, 1), f: 0.35 },
-      { ts: tile(x0, horizon + 8, W, h(nearT), nearT, 3, 1), f: 0.7 },
+      { ts: tile(x0, horizon, W, h(farT), farT, 1, 1), f: 0.1, y: horizon },
+      { ts: tile(x0, horizon + 4, W, h(midT), midT, 2, 1), f: 0.35, y: horizon + 4 },
+      { ts: tile(x0, horizon + 8, W, h(nearT), nearT, 3, 1), f: 0.7, y: horizon + 8 },
     ];
-    this.farVerge = tile(x0, horizon, W, ROAD_TOP - horizon, farVergeT, 4);
+    this.horizon = horizon;
+    // (taller than the gap it fills: when the land slides up, it follows and no sky shows under the hills)
+    this.farVerge = tile(x0, horizon, W, ROAD_TOP - horizon + LAND_SLIDE[0], farVergeT, 4);
     this.road = tile(x0, ROAD_TOP, W, ROAD_BOT - ROAD_TOP, roadT, 5);
     this.verge = tile(x0, ROAD_BOT, W, 180, vergeT, 6);
     this.kerb = tile(x0, 522, W, 80, kerbT, 60);
     this.layerW = LAYER_W;
   }
 
-  // d in metres; the picture rounds to whole pixels so a slow car does not shimmer
-  update(d, v) {
+  // d in metres; the picture rounds to whole pixels so a slow car does not shimmer.
+  // lean: -1..1, the bend's side as far as the car has taken it (the camera slides the road)
+  update(d, v, lean = 0) {
     const px = d * M;
-    for (const L of this.layers) L.ts.tilePositionX = Math.round(px * L.f) % this.layerW;
+    this.layers.forEach((L, i) => {
+      L.ts.tilePositionX = Math.round(px * L.f) % this.layerW;
+      L.ts.y = L.y + Math.round(lean * LAND_SLIDE[i]);
+    });
+    this.farVerge.y = this.horizon + Math.min(0, Math.round(lean * LAND_SLIDE[0]));
     this.farVerge.tilePositionX = Math.round(px * 0.95) % 256;
     this.road.tilePositionX = Math.round(px) % 512;
     this.verge.tilePositionX = Math.round(px * 1.05) % 512;

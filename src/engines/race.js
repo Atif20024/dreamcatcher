@@ -14,7 +14,7 @@ export const CAR_LEN = 3.8; // m (167 px)
 export const STEP = 1 / 120;
 const MAX_FRAME = 0.05; // a hitch costs at most this much race time
 
-// Why each number is what it is: docs/redesign/round2/RACER_STAGE1_REPORT.md
+// Why each number is what it is: docs/redesign/round2/RACER_STAGE1_REPORT.md, then _R2_REPORT.md
 export const TUNE = Object.freeze({
   vMax: 36, // m/s: 130 km/h, the design's honest 1958 top speed
   accel: 8.5, // m/s² off the line
@@ -26,8 +26,14 @@ export const TUNE = Object.freeze({
   fadeTo: 5, // … to this …
   fadeMin: 0.7, // … at this strength
   laneTime: 0.45, // s per lane
-  slipPush: 0.22, // lanes/s per m/s over a bend's speed
+  laneScrub: 0.015, // a lane change at speed costs this much of it (weaving is not free)
+  lineSpeed: 2, // m/s: a bend's outside lane holds this much more than its middle, the inside this much less
+  lineLen: 0.08, // and the outside is this much longer a way round, the inside this much shorter
+  slipPush: 0.28, // lanes/s per m/s over a bend's speed
   slipScrub: 0.6, // m/s² per m/s over it (a slide costs speed)
+  slipOver: 1, // a tyre that has let go grips again only this far under the limit, per m/s it went over …
+  slipOverMax: 0.5, // … and never further than this share of it
+  slipSteer: 0.5, // a lane press in a slide steers at this share of the glide
   gripMin: 0.75, // bald tyres: never worse than a fair 25 percent
   wearBrake: 0.02, // grip/s under hard braking
   wearLane: 0.006, // grip per lane change at speed
@@ -57,6 +63,15 @@ export const TUNE = Object.freeze({
   backAt: 3, // … and driving again at this: the design's 3 s
   rollOut: 12, // m/s: the car is moving when it is handed back
   ghost: 1, // s after a reset that nothing can touch it
+  chalkReact: 0.2, // s: Ottavia's chalk leaves this much road for the foot to move
+  bumpGap: 0.5, // s between the knocks of a car pressing on a cart
+  rollCost: 3, // s a car standing still has yet to lose to one at the top speed (raceLost)
+  catchSlack: 0.5, // s a sling and a draft can still win back (raceLost)
+  beatSlotWidth: 0.2, // of the window's half: the slot where the beat has stopped
+  beatEdge: 4, // Hz at the edge of the draft window
+  beatMax: 9, // Hz at its roughest, far from it
+  beatHear: 3, // misses (window half-widths) at which the two engines are fully pulled together …
+  beatFar: 5, // … and at which the rival's note is its own again
 });
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -65,14 +80,64 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 export const gripFactor = (grip, t = TUNE) => t.gripMin + (1 - t.gripMin) * clamp(grip, 0, 1);
 export const gripBand = (grip) => (grip >= 0.6 ? 'green' : grip >= 0.3 ? 'worn' : 'bald');
 
-// the road needed to get from v to `safe` under the brake (coasting drag ignored: a margin)
-export const brakeDistance = (v, safe, gf = 1, t = TUNE) => (v <= safe ? 0 : (v * v - safe * safe) / (2 * t.brake * gf));
+// the road needed to get from v to `safe` under the brake, the rolling drag included
+// (∫ v dv / (B + A v²); the drums do not fade in a stop this short)
+export function brakeDistance(v, safe, gf = 1, t = TUNE) {
+  if (v <= safe) return 0;
+  const B = t.brake * gf + t.coast;
+  return Math.log((B + t.coastAero * v * v) / (B + t.coastAero * safe * safe)) / (2 * t.coastAero);
+}
+
+// A lane is a racing line. In a bend, y becomes how far out the car is running:
+// 0 the inside lane (the side it turns towards), 1 the outside (the side it throws you)
+export const lineOf = (b, y) => clamp(b.side > 0 ? y / 2 : (2 - y) / 2, 0, 1);
+// what this line holds: the outside is faster …
+export const bendSafe = (b, y, gf = 1, t = TUNE) => (b.safe + (lineOf(b, y) * 2 - 1) * (b.lineSpeed ?? t.lineSpeed)) * gf;
+// … and longer (metres driven per metre of road)
+export const bendLen = (b, y, t = TUNE) => 1 + (lineOf(b, y) * 2 - 1) * (b.lineLen ?? t.lineLen);
 
 // what the engine note follows (no gears: one long pull). 0.18 idle … 1 at the
 // top speed; the throttle lifts it a little, as it does on a real car
 export function revs(v, throttle = false, vMax = TUNE.vMax) {
   const r = 0.18 + 0.82 * Math.pow(clamp(v / vMax, 0, 1.2), 0.8);
   return Math.min(1.15, r + (throttle ? 0.05 : 0));
+}
+
+// Where to get on the brake for a line, from speed v. A chalk mark leaves the foot its moment.
+export const brakePoint = (b, y, v = TUNE.vMax, gf = 1, t = TUNE) => b.from - brakeDistance(v, bendSafe(b, y, gf, t), gf, t);
+export const chalkAt = (b, lane, t = TUNE) => brakePoint(b, lane, t.vMax, 1, t) - t.vMax * t.chalkReact;
+
+// Which side the road turns: a bend that throws you to the near verge turns away
+// from it. Driving right across the screen, the near verge is on Jo's right hand.
+export const turnSide = (b) => (b.side > 0 ? 'LEFT' : 'RIGHT');
+
+// HEAR THE DRAFT. The two engines beat against each other, and the beat slows to
+// nothing in the perfect slot behind a rival: the middle of the draft window, in
+// its lane. `hz` is the beat, 0 in the slot; `hear` (0..1) is how far the rival's
+// note has been pulled to Jo's. Null when there is nobody to tune to.
+export function draftBeat(jo, r, t = TUNE) {
+  if (r.d <= jo.d || r.state !== 'run' || jo.state !== 'run') return null;
+  const half = (t.draftFar - t.draftNear) / 2;
+  const off = ((r.d - jo.d - CAR_LEN) / CAR_LEN - (t.draftNear + half)) / half; // 0 the slot, ±1 the window's ends
+  const miss = Math.hypot(off, (jo.y - r.y) / 0.4); // (0.4: the draft's own lane test)
+  if (miss >= t.beatFar) return null;
+  const w = t.beatSlotWidth;
+  let hz = 0;
+  if (miss > w) hz = miss <= 1 ? (t.beatEdge * (miss - w)) / (1 - w) : t.beatEdge + (t.beatMax - t.beatEdge) * Math.min(1, (miss - 1) / 2);
+  return { id: r.id, hz, hear: clamp((t.beatFar - miss) / (t.beatFar - t.beatHear), 0, 1) };
+}
+
+// Can Jo still make the gate? Flat-out arithmetic on what is left, the bends the
+// same for everybody: a rival is out of reach when it gets home a sling's worth
+// sooner than Jo can, from the speed he has.
+export function raceLost(race, t = race.tune) {
+  const L = race.track.length;
+  const jo = race.jo;
+  if (race.result || race.track.passPlace === undefined) return false;
+  const v = jo.state === 'run' ? jo.v : t.rollOut; // (in the dark he is about to be handed back at this)
+  const joEta = (L - jo.d) / t.vMax + t.rollCost * (1 - Math.min(1, v / t.vMax));
+  const out = race.rivals.filter((r) => r.finished !== null || (L - r.d) / (t.vMax * r.top) + t.catchSlack < joEta);
+  return out.length >= race.track.passPlace;
 }
 
 export function newCar({ id = 'jo', d = 0, lane = 1, pull = 1, top = 1 } = {}) {
@@ -94,6 +159,7 @@ export function newCar({ id = 'jo', d = 0, lane = 1, pull = 1, top = 1 } = {}) {
     slingCool: 0,
     launchT: 0,
     slip: 0,
+    slipPeak: 0,
     steerT: 0,
     braking: false,
     throttle: false,
@@ -108,6 +174,8 @@ export function newCar({ id = 'jo', d = 0, lane = 1, pull = 1, top = 1 } = {}) {
     spins: 0,
     slings: 0,
     offroads: 0,
+    lifts: 0,
+    bumpAt: -Infinity,
     touchAgain: new Map(), // other car id → when they may next touch
   };
 }
@@ -123,6 +191,7 @@ export class Race {
     this.cars = [this.jo, ...this.rivals];
     this.obstacles = (track.obstacles || []).map((o) => ({ ...o, gone: false }));
     this.lamps = [...(track.lamps || [])].sort((a, b) => a - b);
+    this.lampRivals = null; // where everybody was when Jo passed his last lamp
     this.t = -(track.countdown ?? 3); // the lights: racing starts at 0
     this.acc = 0;
     this.events = [];
@@ -172,17 +241,27 @@ export class Race {
     return (this.track.bends || []).find((b) => b.to > d) || null;
   }
 
-  // what is coming, per lane, for the sight strip (the view is 18 m ahead at speed)
+  // the nearest rival ahead Jo can hear: the beat of the two engines (see draftBeat)
+  beat() {
+    let best = null;
+    for (const r of this.rivals) {
+      const b = draftBeat(this.jo, r, this.tune);
+      if (b && (!best || b.hear > best.hear)) best = b;
+    }
+    return best;
+  }
+
+  // what is coming, per lane, for the sight strip (the view is 14-17 m ahead)
   ahead(range = 150) {
     const c = this.jo;
     const out = [];
     for (const o of this.obstacles) {
       const dist = o.d - c.d;
-      if (!o.gone && dist > 0 && dist < range) out.push({ kind: o.kind, lane: o.lane, dist });
+      if (!o.gone && dist > 0 && dist < range) out.push({ kind: o.kind, lane: o.lane, dist, v: 0 });
     }
     for (const r of this.rivals) {
       const dist = r.d - c.d;
-      if (dist > 0 && dist < range) out.push({ kind: 'car', lane: r.lane, dist });
+      if (dist > 0 && dist < range) out.push({ kind: 'car', lane: r.lane, dist, v: r.v });
     }
     return out;
   }
@@ -237,7 +316,7 @@ export class Race {
     const gf = gripFactor(c.grip, t);
     let brake = false;
     if (b) {
-      const safe = b.safe * 0.97 * gf;
+      const safe = bendSafe(b, c.y, gf, t) * 0.97;
       brake = c.d >= b.from ? c.v > safe : brakeDistance(c.v, safe, gf, t) + 6 >= b.from - c.d;
     }
     let laneUp = false;
@@ -268,7 +347,7 @@ export class Race {
     c.steerT = Math.max(0, c.steerT - h);
     if (c.slip <= 0 || c.steerT > 0) {
       const dy = c.lane - c.y;
-      const glide = h / t.laneTime;
+      const glide = (h / t.laneTime) * (c.slip > 0 ? t.slipSteer : 1);
       c.y = Math.abs(dy) <= glide ? c.lane : c.y + Math.sign(dy) * glide;
     }
 
@@ -276,6 +355,8 @@ export class Race {
     const gf = gripFactor(c.grip, t);
     const vTop = t.vMax * c.top * (1 + (c.inDraft ? t.draftSpeed : 0) + (c.slingT > 0 ? t.slingSpeed : 0));
     const coast = t.coast + t.coastAero * c.v * c.v;
+    const lifted = c.throttle && !input.throttle && c.v > 20 && c.finished === null;
+    if (lifted) c.lifts += 1; // (what Ottavia hears from the pit wall)
     c.throttle = !!input.throttle && !input.brake;
     c.braking = !!input.brake;
     let a;
@@ -292,9 +373,12 @@ export class Race {
       } else a = -coast;
     }
 
-    // a bend: over its speed the car slides towards the outside, and scrubs
+    // a bend: over its line's speed the car slides towards the outside, and scrubs
     const b = this.bendAt(c.d);
-    c.slip = b ? Math.max(0, c.v - b.safe * gf) : 0;
+    const limit = b ? bendSafe(b, c.y, gf, t) : 0;
+    c.slipPeak = b ? Math.max(c.slipPeak, c.v - limit) : 0;
+    c.slip = b ? Math.max(0, c.v - (limit - Math.min(t.slipOver * c.slipPeak, t.slipOverMax * limit))) : 0;
+    if (c.slip <= 0) c.slipPeak = 0;
     if (c.slip > 0) {
       a -= t.slipScrub * c.slip;
       c.y += b.side * t.slipPush * c.slip * h;
@@ -304,17 +388,20 @@ export class Race {
     }
     c.grip = clamp(c.grip, 0, 1);
     c.v = Math.max(0, c.v + a * h);
-    c.d += c.v * h;
+    c.d += (c.v * h) / (b ? bendLen(b, c.y, t) : 1);
     if (c.state === 'run' && c.ghost <= 0) this.hitObstacles(c);
     this.passLamps(c);
     return undefined;
   }
 
   changeLane(c, dir) {
-    c.fromLane = c.lane;
+    if (c.y === c.lane) c.fromLane = c.lane; // (mid-glide it still came from where the glide began)
     c.lane += dir;
     c.steerT = this.tune.laneTime;
-    if (c.v > 20) c.grip -= this.tune.wearLane;
+    if (c.v > 20) {
+      c.grip -= this.tune.wearLane;
+      c.v *= 1 - this.tune.laneScrub;
+    }
     this.emit('lane', { id: c.id, lane: c.lane });
   }
 
@@ -328,6 +415,7 @@ export class Race {
     // the straw: soft, costly, and it puts the car back on the road
     c.y = b.side > 0 ? 2.45 : -0.45;
     c.v *= 1 - this.tune.baleLoss;
+    c.slip = c.slipPeak = 0; // (the straw has it: one hit, not one every step)
     c.grip -= this.tune.wearBale;
     c.offroads += 1;
     this.emit('straw', { id: c.id });
@@ -350,7 +438,8 @@ export class Race {
       } else {
         c.d = o.d - CAR_LEN / 2 - 0.05;
         c.v = 0;
-        this.emit('bump', { id: c.id });
+        if (this.t >= c.bumpAt) this.emit('bump', { id: c.id });
+        if (this.t >= c.bumpAt) c.bumpAt = this.t + t.bumpGap;
       }
       return;
     }
@@ -360,7 +449,10 @@ export class Race {
     for (const l of this.lamps) {
       if (l > c.lampD && c.d >= l) {
         c.lampD = l;
-        if (c === this.jo) this.emit('lamp', { d: l });
+        if (c === this.jo) {
+          this.lampRivals = this.rivals.map((r) => ({ r, d: r.d, v: r.v, y: r.y, lane: r.lane, finished: r.finished, state: r.state }));
+          this.emit('lamp', { d: l });
+        }
       }
     }
   }
@@ -371,7 +463,7 @@ export class Race {
     c.state = 'spin';
     c.stateT = 0;
     c.spins += 1;
-    c.slip = 0;
+    c.slip = c.slipPeak = 0;
     c.draft = 0;
     c.armed = false;
     this.emit('spin', { id: c.id, why });
@@ -398,13 +490,20 @@ export class Race {
     c.d = c.prevD = c.lampD;
     c.y = c.prevY = c.lane = c.fromLane = 1;
     c.v = 0;
-    c.slip = 0;
+    c.slip = c.slipPeak = 0;
     c.brakeHeld = 0;
     c.state = now ? 'run' : 'reset';
     c.stateT = t.resetAt;
     if (now) {
       c.v = t.rollOut;
       c.ghost = t.ghost;
+    }
+    // the road goes back with Jo: everybody where they were when he passed that
+    // lamp. The clock does not, so a spin still costs its time (no lamp: no change)
+    if (c === this.jo && this.lampRivals) {
+      for (const { r, d, v, y, lane, finished, state } of this.lampRivals) {
+        Object.assign(r, { d, prevD: d, v, y, prevY: y, lane, fromLane: lane, finished, state, slip: 0, slipPeak: 0, ghost: t.ghost });
+      }
     }
     this.emit('reset', { id: c.id, d: c.lampD });
   }
@@ -463,9 +562,15 @@ export class Race {
     for (const c of this.cars) {
       if (c.finished !== null || c.d < L) continue;
       c.finished = this.t;
-      if (c !== this.jo) continue;
+      if (c !== this.jo) {
+        this.emit('rival_home', { id: c.id });
+        continue;
+      }
       const place = 1 + this.rivals.filter((r) => r.finished !== null).length;
-      this.result = { place, time: this.t, flags: { rubs: c.rubs, spins: c.spins, slings: c.slings, clean: !c.rubs && !c.spins && !c.offroads } };
+      // the gap to the nearest rival, in seconds: + he was behind, - he was already home
+      const gaps = this.rivals.map((r) => (r.finished !== null ? r.finished - this.t : (L - r.d) / Math.max(r.v, 1)));
+      const gap = gaps.length ? gaps.reduce((a, b) => (Math.abs(b) < Math.abs(a) ? b : a)) : null;
+      this.result = { place, time: this.t, gap, flags: { rubs: c.rubs, spins: c.spins, slings: c.slings, lifts: c.lifts, clean: !c.rubs && !c.spins && !c.offroads } };
       this.emit('finish', this.result);
     }
   }

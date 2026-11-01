@@ -1,7 +1,7 @@
 // The car and the race rules, with bots. The numbers these pin are the design's
 // (docs/dream_racer.md §3); the feel behind them has not been felt by anybody yet.
 import { describe, it, expect } from 'vitest';
-import { Race, TUNE, STEP, CAR_LEN, gripFactor, gripBand, brakeDistance, revs } from '../src/engines/race.js';
+import { Race, TUNE, STEP, CAR_LEN, gripFactor, gripBand, brakeDistance, revs, bendSafe, bendLen, lineOf, chalkAt, turnSide, draftBeat, raceLost } from '../src/engines/race.js';
 import { TRACKS } from '../src/dreams/racer/race/tracks.js';
 
 const FLAT = { length: 5000, countdown: 0, lamps: [600, 1200] };
@@ -33,7 +33,7 @@ function cleanBot({ sling = false, margin = 8, pass = true } = {}) {
     const b = race.nextBend(c.d);
     const gf = gripFactor(c.grip);
     let brake = false;
-    if (b) brake = c.d >= b.from ? c.v > b.safe * gf * 0.98 : brakeDistance(c.v, b.safe * 0.98 * gf, gf) + margin >= b.from - c.d;
+    if (b) brake = c.d >= b.from ? c.v > bendSafe(b, c.y, gf) * 0.98 : brakeDistance(c.v, bendSafe(b, c.lane, gf) * 0.98, gf) + margin >= b.from - c.d;
     let laneUp = false;
     let laneDown = false;
     const hit = race.obstacles.find((o) => !o.gone && o.lane === c.lane && o.d > c.d && o.d - c.d < 45) || race.rivals.find((o) => o.lane === c.lane && o.d > c.d && o.d - c.d < CAR_LEN * 2.3 && c.v >= o.v && pass);
@@ -266,7 +266,7 @@ describe('what is on the road', () => {
   });
   it('sees it coming, in the right lane', () => {
     const r = new Race({ length: 3000, countdown: 0, obstacles: [{ d: 100, lane: 2, kind: 'cart' }] }, { rivals: [{ id: 'x', d: 50, lane: 0 }] });
-    expect(r.ahead()).toEqual(expect.arrayContaining([{ kind: 'cart', lane: 2, dist: 100 }, { kind: 'car', lane: 0, dist: 50 }]));
+    expect(r.ahead()).toEqual(expect.arrayContaining([{ kind: 'cart', lane: 2, dist: 100, v: 0 }, { kind: 'car', lane: 0, dist: 50, v: 0 }]));
   });
   it('gives a lamp when passed and a restart back to it', () => {
     const r = new Race(FLAT);
@@ -403,6 +403,274 @@ describe('contact', () => {
   });
 });
 
+// a driver with a plan for each bend: in, out, or the line change (inside to the apex, then out)
+function lineBot(plans, { k = 1, brakes = true } = {}) {
+  return (race) => {
+    const c = race.jo;
+    const bends = race.track.bends;
+    const i = bends.findIndex((x) => x.to > c.d);
+    const b = bends[i];
+    const inner = b && (b.side > 0 ? 0 : 2);
+    const lineLane = () => (plans[i] === 'in' ? inner : plans[i] === 'out' ? 2 - inner : c.d >= (b.from + b.to) / 2 ? 2 - inner : inner);
+    let target = b && b.from - c.d < 110 ? lineLane() : c.lane;
+    const blocked = (l) => race.obstacles.some((o) => !o.gone && o.lane === l && o.d > c.d - 2 && o.d - c.d < Math.max(30, c.v * 1.3));
+    if (blocked(target)) target = [1, 0, 2].filter((l) => l !== target && !blocked(l)).sort((x, y) => Math.abs(x - c.lane) - Math.abs(y - c.lane))[0] ?? target;
+    const press = target !== c.lane && c.steerT <= 0;
+    const gf = gripFactor(c.grip);
+    let brake = false;
+    if (b && brakes) {
+      if (c.d >= b.from) brake = c.v > bendSafe(b, c.y, gf) * k + 0.05;
+      else brake = brakeDistance(c.v, bendSafe(b, lineLane(), gf) * k, gf) + 1 >= b.from - c.d;
+    }
+    return { throttle: !brake, brake, laneUp: press && target < c.lane, laneDown: press && target > c.lane };
+  };
+}
+const lap = (plans, opts = {}, rivals = []) => {
+  const r = new Race(TRACKS.test, { rivals });
+  const bot = lineBot(plans, opts);
+  for (let i = 0; i < 100 * 120 && !r.result; i++) {
+    r.step({ ...bot(r) });
+    r.drain();
+  }
+  return r;
+};
+const time = (plans) => {
+  const r = lap(plans);
+  expect(r.jo.spins).toBe(0);
+  return r.result.time;
+};
+
+describe('a lane is a racing line', () => {
+  const b = { from: 100, to: 200, safe: 20, side: 1 };
+  const w = { ...b, side: -1 };
+  it('the inside is the side it turns to: shorter and slower; the outside longer and faster', () => {
+    expect(lineOf(b, 0)).toBe(0);
+    expect(lineOf(b, 2)).toBe(1);
+    expect(lineOf(w, 0)).toBe(1);
+    expect(bendSafe(b, 1)).toBe(20);
+    expect(bendSafe(b, 0)).toBeLessThan(20);
+    expect(bendSafe(b, 2)).toBeGreaterThan(20);
+    expect(bendLen(b, 0)).toBeLessThan(1);
+    expect(bendLen(b, 1)).toBe(1);
+    expect(bendLen(b, 2)).toBeGreaterThan(1);
+    expect(bendSafe(w, 2)).toBeLessThan(20);
+    expect(turnSide(b)).toBe('LEFT');
+    expect(turnSide(w)).toBe('RIGHT');
+  });
+  it('the inside really is less road for the same speed', () => {
+    const go = (lane) => {
+      const r = new Race({ length: 2000, countdown: 0, bends: [{ ...b, safe: 40 }] });
+      Object.assign(r.jo, { d: 100, v: 20, y: lane, lane });
+      for (let i = 0; i < 60; i++) r.step({ throttle: false });
+      return r.jo.d;
+    };
+    expect(go(0)).toBeGreaterThan(go(1));
+    expect(go(1)).toBeGreaterThan(go(2));
+  });
+  it('a lane change at speed scrubs a little speed; a crawl does not', () => {
+    const scrub = (v) => {
+      const r = new Race(FLAT);
+      r.jo.v = v;
+      r.changeLane(r.jo, 1);
+      return r.jo.v / v;
+    };
+    expect(scrub(30)).toBeCloseTo(1 - TUNE.laneScrub, 5);
+    expect(scrub(10)).toBe(1);
+  });
+  it('no line is best everywhere: inside, outside and the change finish close, and each wins a bend', () => {
+    const bends = TRACKS.test.bends.length;
+    const uniform = ['in', 'out', 'change'].map((p) => time(Array(bends).fill(p)));
+    expect(Math.max(...uniform) - Math.min(...uniform)).toBeLessThan(0.5);
+    // every plan on the road; then, from the best, the winner of each bend with the others held
+    const plans = [[]];
+    for (let i = 0; i < bends; i++) plans.splice(0, plans.length, ...plans.flatMap((p) => ['in', 'out', 'change'].map((a) => [...p, a])));
+    const best = plans.map((p) => [p, time(p)]).sort((x, y) => x[1] - y[1])[0];
+    expect(Math.min(...uniform) - best[1]).toBeGreaterThan(0.1); // mixing them is the skill
+    const winners = best[0].map((_, i) => ['in', 'out', 'change'].map((a) => {
+      const p = [...best[0]];
+      p[i] = a;
+      return [a, time(p)];
+    }).sort((x, y) => x[1] - y[1]));
+    expect(new Set(winners.map((w0) => w0[0][0])).size).toBe(3);
+    // and each bend is a choice: its losing lines are close enough to take for safety
+    for (const w0 of winners) expect(w0[2][1] - w0[0][1]).toBeLessThan(0.8);
+  });
+});
+
+describe('braking matters', () => {
+  const plans = (p) => Array(TRACKS.test.bends.length).fill(p);
+  it('a driver who never brakes does not finish well, on any line', () => {
+    const tidy = lap(plans('in')).result.time;
+    for (const p of ['in', 'out', 'change']) {
+      const r = lap(plans(p), { brakes: false });
+      expect(r.jo.spins).toBeGreaterThan(0);
+      if (r.result) expect(r.result.time).toBeGreaterThan(tidy + 10);
+    }
+  });
+  it('holds braking to the limit over carrying more into the bend', () => {
+    for (const p of ['in', 'out', 'change']) {
+      const limit = lap(plans(p)).result.time;
+      const over = lap(plans(p), { k: 1.15 });
+      if (over.result && !over.jo.spins) expect(over.result.time).toBeGreaterThan(limit - 0.15);
+    }
+  });
+  it('the slide leaves you slower than the limit, not at it', () => {
+    const r = new Race({ length: 2000, countdown: 0, bends: [{ from: 100, to: 400, safe: 20, side: 1, outside: 'straw' }] });
+    Object.assign(r.jo, { d: 100, v: 28, y: 0, lane: 0 });
+    let low = 99;
+    for (let i = 0; i < 360; i++) {
+      r.step({ brake: false, throttle: false });
+      low = Math.min(low, r.jo.v);
+    }
+    expect(low).toBeLessThan(bendSafe(r.track.bends[0], 0) - 0.5);
+  });
+  it('a late brake saves it on the inside and the middle; the line by the wall has no room', () => {
+    const wall = TRACKS.test.bends.find((x) => x.outside === 'wall');
+    const saved = (lane, over) => {
+      const r = new Race({ length: 2000, countdown: 0, bends: [wall] });
+      Object.assign(r.jo, { d: wall.from - 0.5, v: bendSafe(wall, lane) * over, y: lane, lane });
+      for (let i = 0; i < 6 * 120 && r.jo.d < wall.to && !r.jo.spins; i++) {
+        const late = (r.jo.d - wall.from) / Math.max(r.jo.v, 1) > 0.3; // about 0.3 s in
+        r.step({ brake: late && r.jo.v > bendSafe(wall, r.jo.y) });
+        r.drain();
+      }
+      return r.jo.spins === 0;
+    };
+    const inside = wall.side > 0 ? 0 : 2;
+    expect(saved(inside, 1.25)).toBe(true);
+    expect(saved(1, 1.15)).toBe(true);
+    expect(saved(2 - inside, 1.25)).toBe(false);
+  });
+  it('the chalk is where the brake really has to go on', () => {
+    for (const bend of TRACKS.test.bends) {
+      for (const lane of [0, 1, 2]) {
+        const r = new Race({ length: 2000, countdown: 0, bends: [{ ...bend, from: 500, to: 700 }] });
+        Object.assign(r.jo, { v: TUNE.vMax, y: lane, lane });
+        const mark = chalkAt(r.track.bends[0], lane);
+        r.jo.d = mark;
+        // the foot takes its moment, then the brake, and then it is on the line's speed at the bend
+        for (let i = 0; i < TUNE.chalkReact * 120; i++) r.step({ throttle: true });
+        while (r.jo.d < 500) r.step({ brake: true });
+        const safe = bendSafe(r.track.bends[0], lane);
+        expect(r.jo.v).toBeLessThanOrEqual(safe + 0.2);
+        expect(r.jo.v).toBeGreaterThan(safe - 1.5);
+      }
+    }
+  });
+});
+
+describe('a mistake costs seconds, not the road', () => {
+  const T = TRACKS.test;
+  it('never leaves a lamp more than 250 m back, or a hard thing past one', () => {
+    const stops = [0, ...T.lamps, T.length];
+    stops.slice(1).forEach((l, i) => expect(l - stops[i]).toBeLessThanOrEqual(250));
+    const hard = [...T.obstacles.filter((o) => o.kind === 'cart').map((o) => o.d), ...T.bends.filter((b) => b.outside === 'wall').map((b) => b.from)];
+    for (const d of hard) {
+      const back = d - Math.max(...T.lamps.filter((l) => l < d));
+      expect(back).toBeLessThanOrEqual(250);
+    }
+  });
+  it('the rival goes back with Jo, to where he was when Jo passed the lamp; the clock does not', () => {
+    const r = new Race({ length: 3000, countdown: 0, lamps: [100] }, { rivals: [{ id: 'x', lane: 1, d: 130 }] });
+    r.jo.d = 99;
+    r.jo.v = 30;
+    r.rivals[0].v = 30;
+    run(r, gas, 0.1);
+    const at = r.rivals[0].d;
+    run(r, gas, 4);
+    expect(r.rivals[0].d).toBeGreaterThan(at + 100);
+    const t0 = r.t;
+    r.toLamp(r.jo, true);
+    expect(r.jo.d).toBe(100);
+    expect(r.rivals[0].d).toBeLessThan(at + 3.5);
+    expect(r.t).toBe(t0);
+  });
+  it('a spin before the first lamp leaves the rival be', () => {
+    const r = new Race({ length: 3000, countdown: 0 }, { rivals: [{ id: 'x', lane: 1, d: 200 }] });
+    r.toLamp(r.jo, true);
+    expect(r.rivals[0].d).toBe(200);
+  });
+  it('knows a lost race from one a sling can still win', () => {
+    const at = (joD, rD, joV = 30) => {
+      const r = new Race({ length: 1200, countdown: 0, passPlace: 1 }, { rivals: [{ id: 'x', lane: 1, d: rD, top: 0.96 }] });
+      r.jo.d = joD;
+      r.jo.v = joV;
+      return raceLost(r);
+    };
+    expect(at(600, 610)).toBe(false);
+    expect(at(1000, 1100)).toBe(true);
+    expect(at(1000, 900)).toBe(false);
+    expect(at(600, 700, 12)).toBe(true);
+    const home = new Race({ length: 1200, countdown: 0, passPlace: 1 }, { rivals: [{ id: 'x', lane: 1, d: 1200 }] });
+    home.rivals[0].finished = 40;
+    expect(raceLost(home)).toBe(true);
+  });
+  it('a car pressing on a cart knocks twice a second, not every step', () => {
+    const r = new Race({ length: 3000, countdown: 0, obstacles: [{ d: 100, lane: 1, kind: 'cart' }] });
+    r.jo.d = 97.9;
+    r.jo.v = 5;
+    const bumps = types(run(r, gas, 2)).filter((t) => t === 'bump').length;
+    expect(bumps).toBeGreaterThan(1);
+    expect(bumps).toBeLessThanOrEqual(5);
+  });
+  it('a double tap thrown back goes back to where the glide began', () => {
+    const r = new Race(FLAT);
+    r.step({ laneUp: true });
+    r.step({ laneDown: true });
+    r.step({ laneDown: true });
+    expect(r.jo.lane).toBe(2);
+    expect(r.jo.fromLane).toBe(1);
+  });
+  it('a press in a hit-stop waits for the race to go on', () => {
+    const r = new Race(FLAT);
+    expect(r.advance({ laneUp: true }, 0)).toBe(0);
+    expect(r.jo.lane).toBe(1);
+    r.advance({}, 20);
+    expect(r.jo.lane).toBe(0);
+  });
+});
+
+describe('hear the draft', () => {
+  const at = (lengths, dy = 0) => {
+    const jo = { d: 100, y: 1, state: 'run' };
+    return draftBeat(jo, { id: 'x', d: 100 + CAR_LEN + lengths * CAR_LEN, y: 1 + dy, state: 'run' });
+  };
+  const slot = (TUNE.draftNear + TUNE.draftFar) / 2;
+  it('stops in the perfect slot', () => {
+    expect(at(slot).hz).toBe(0);
+    expect(at(slot + 0.2).hz).toBe(0);
+    expect(at(slot).hear).toBe(1);
+  });
+  it('quickens the further out of it, either way, and at the window edge it is a clear beat', () => {
+    expect(at(TUNE.draftFar).hz).toBeCloseTo(TUNE.beatEdge, 5);
+    expect(at(TUNE.draftNear).hz).toBeCloseTo(TUNE.beatEdge, 5);
+    let last = -1;
+    for (let g = slot; g < 7; g += 0.25) {
+      const b = at(g);
+      if (!b) break;
+      expect(b.hz).toBeGreaterThanOrEqual(last);
+      last = b.hz;
+    }
+    expect(last).toBeLessThanOrEqual(TUNE.beatMax);
+  });
+  it('a lane over is out of tune too', () => {
+    expect(at(slot, 0.4).hz).toBeCloseTo(TUNE.beatEdge, 5);
+    expect(at(slot, 1).hz).toBeGreaterThan(TUNE.beatEdge);
+  });
+  it('lets go of the note far away, behind, and in a spin', () => {
+    expect(at(30)).toBeNull();
+    expect(draftBeat({ d: 100, y: 1, state: 'run' }, { d: 90, y: 1, state: 'run' })).toBeNull();
+    expect(draftBeat({ d: 100, y: 1, state: 'spin' }, { d: 110, y: 1, state: 'run' })).toBeNull();
+    const far = at(slot + 1.25 * TUNE.beatFar - 0.5);
+    expect(far && far.hear).toBeLessThan(1);
+  });
+  it('the race listens to the nearest it can hear', () => {
+    const r = new Race(FLAT, { rivals: [{ id: 'near', lane: 1, d: CAR_LEN + slot * CAR_LEN }, { id: 'far', lane: 1, d: 18 }] });
+    expect(r.beat().id).toBe('near');
+    expect(r.beat().hz).toBe(0);
+  });
+});
+
 describe('the test road, bot against the placeholder rival', () => {
   const stopAtEnd = (bot) => Object.assign((r) => bot(r), { stop: (r) => r.result });
   it('a tidy driver who drafts and slings wins, inside the design length', () => {
@@ -431,6 +699,28 @@ describe('the test road, bot against the placeholder rival', () => {
     const r = testRace();
     run(r, stopAtEnd((x) => ({ throttle: x.jo.v < 15 })), 150);
     expect(r.result.place).toBe(2);
+  });
+  it('a perfect launch cannot drive into the bumper of the car in front', () => {
+    const r = testRace();
+    let armedAt = null;
+    while (r.t < TUNE.launchTime + 3) {
+      r.step({ throttle: true, sling: r.t >= -0.05 && r.t < 0 });
+      r.drain();
+      if (armedAt === null && r.jo.armed) armedAt = r.t;
+    }
+    expect(r.launchTried).toBe(true);
+    expect(r.jo.rubs).toBe(0);
+    expect(armedAt).toBeLessThan(TUNE.launchTime + 1); // it pays in the draft, not on his bumper
+  });
+  it('the result says what the run did', () => {
+    const r = testRace();
+    run(r, stopAtEnd(cleanBot({ sling: true })), 120);
+    expect(r.result.flags.lifts).toBeGreaterThanOrEqual(TRACKS.test.bends.length - 1);
+    expect(r.result.gap).toBeGreaterThan(0);
+    expect(typeof r.result.flags.clean).toBe('boolean');
+    const s = testRace();
+    run(s, stopAtEnd((x) => ({ throttle: x.jo.v < 15 })), 150);
+    expect(s.result.gap).toBeLessThan(0);
   });
   it('after the line the car rolls down by itself', () => {
     const r = new Race({ length: 100, countdown: 0 });

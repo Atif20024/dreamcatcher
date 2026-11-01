@@ -6,7 +6,9 @@ Design doc by a pro-gamer advisor. Read-only on code: nothing was built or run. 
 - Driving is a separate scene, `RaceScene` (`src/scenes/RaceScene.js`, its own JS chunk), started from a door and handing back `{place, time, flags}`. It is not an encounter inside DreamScene, and there is no RaceDirector. The walk-in places stay on the DreamScene framework.
 - Every dream plays by touch: on-screen pedals and lane buttons through the same virtual keys. "Keyboard only" is gone.
 - Platform 10 is real: the station grew 7 tiles (W 174), bay at col 155.
-- Stage 1 is built: `docs/redesign/round2/RACER_STAGE1_REPORT.md`.
+- Stage 1 is built: `docs/redesign/round2/RACER_STAGE1_REPORT.md`, fix round `RACER_STAGE1_R2_REPORT.md`.
+- Lanes are racing lines: in a bend the inside is shorter and slower, the outside longer and faster, and a lane change at speed scrubs a little speed. No line is best everywhere.
+- Hear the draft: the two engines beat against each other, and the beat slows to nothing in the perfect slot behind a rival. Streaks off the rival's tail show the same thing with the sound off.
 
 ## 1. Premise
 - **Platform.** 10 (new). Platforms 2, 5, 7, 9 and G are taken, and 1, 3, 4, 6 and 8 already hold board lines in `src/data/dreams.js`. If the hub cannot hold a tenth, the fallback is 8: THE WHITE COAT is only a board line and has no scene.

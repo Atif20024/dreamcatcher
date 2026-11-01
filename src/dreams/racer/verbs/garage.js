@@ -13,6 +13,8 @@ import { PAINT_STEPS } from '../race/RaceRoad.js';
 const T = 32;
 const TRACK = 'test';
 const CAR_COL = 26; // the Heron's middle, room tiles (just inside the shutter at 28)
+const RACK_COL = 6; // (the props' middles, room tiles)
+const BENCH_COL = 12;
 const NIGHT = [0x14, 0x12, 0x2a];
 
 function goRace(scene, ctx) {
@@ -70,6 +72,12 @@ export default {
     for (const wx of CAR_SIZE.wheelX) scene.add.image(x + wx - CAR_SIZE.frameW / 2, floor - 14 + 2, 'cars', 'wheel-0').setDepth(depth + 0.01);
     ctx.state.going = false;
     ctx.state.door = scene.interaction.register({ id: 'race:test', x, y: floor - 20, radius: 110, prompt: 'drive', enabled: () => !ctx.state.going, onUse: () => goRace(scene, ctx) });
+    // the bench and the rack answer a press with Ottavia's opinion: their verbs come later (design §4 A)
+    const look = (id, col, line) => {
+      scene.interaction.register({ id, x: (r.tx + col) * T + T / 2, y: floor - 20, radius: 56, prompt: 'look', onUse: () => scene.caption.say('ottavia', line, { ms: 3200 }) });
+    };
+    look('race:rack', RACK_COL, "Tyres. We have the ones she is wearing. Not today.");
+    look('race:bench', BENCH_COL, 'Flat as a bad note, that carburettor. I will have it singing. Not today.');
     if (!scene.resuming) scene.caption.say('ottavia', "You're the one who plays by ear. Good. She is at the door. Don't lift.", { ms: 4200 });
   },
   update(ctx) {
