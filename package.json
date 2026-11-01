@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "lint:rooms": "node scripts/lint-rooms.js",
     "lint:content": "node scripts/lint-content.js",
+    "prelint:scale": "node scripts/build-atlas.js --if-stale",
     "lint:scale": "node scripts/lint-scale.js",
     "test": "vitest run",
     "scenarios": "node scripts/run-scenarios.js",

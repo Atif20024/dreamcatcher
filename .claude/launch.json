@@ -12,9 +12,11 @@
     },
     {
       "name": "dreamcatcher-check",
-      "runtimeExecutable": "npx",
+      "runtimeExecutable": "npm",
       "runtimeArgs": [
-        "vite",
+        "run",
+        "dev",
+        "--",
         "--port",
         "5182",
         "--strictPort"
