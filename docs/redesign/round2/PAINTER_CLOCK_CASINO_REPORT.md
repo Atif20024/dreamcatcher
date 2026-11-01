@@ -82,3 +82,30 @@ Length is an estimate: 6 to 8 minutes by counting beats and rooms, not measured.
 - **Coin spawned by the whistle** on a resumed run, and the rival-grab theft in live play (`loseLapis` is unit-tested; the edge on `thrownOut` is only read).
 
 The review-loop advisers were not run: this brief was a single builder on low resources.
+
+# Round 2
+
+Spec: `docs/redesign/advice/painter_clock_casino_review_r1.md`. Each item was checked against the code first; all were real. Still nothing played or seen.
+
+Results after merging `redesign`: vitest 494 passed; lint:content, lint:rooms, lint:scale and `vite build` clean. Six tests are new this round.
+
+| Item | What I did |
+|---|---|
+| MUST, lapis pick-up fires twice | Confirmed. The two `speziale.js` entities are now exclusive: `unless: 'lapis_stolen'` and `when: 'lapis_stolen', unless: 'lapis'`. This differs from the review's single entity because it keeps the pedestal standing after the first pick-up. A unit test walks the flags through two thefts. |
+| SHOULD, third gear assist | `escapement` takes `assist`; the third gear uses 0.25. **Differs from the review:** it counts misses, not slips, up to three. A miss at zero seated slips nothing, and that is exactly the player who needs help. The yard strike has no assist. |
+| SHOULD, Pell and comps | `pell_clean` needs `clean_book`. A comped player without a marker gets a new `pell_comped`, because `pell_again` ("Another marker?") would have been wrong for them. |
+| SHOULD, Pell's remark | A bark, "Nothing signed, Mr Jo. Remarkable.", once, when a clean Jo reaches column 14. It uses a flag rather than the review's `near` so it can't fire as he walks in the door. `pell_clean` now opens differently so the two don't repeat. |
+| NICE, step `speed` | Assist now scales a step's own speed. Tested. |
+| NICE, 5th mash press | The engine ignores presses for 250 ms after any step change. Tested. |
+| NICE, `dori_done` | Cleared in `giornata.params`, so each attempt starts fresh. |
+| NICE, `green_lit` | Set at the end of its beat. A session guard stops it replaying in the same run; a quit during the beat replays it on continue. |
+| NICE, signpost | Says THE GREEN. The watch man moved to x42 so his head doesn't cover it. |
+| NICE, whistle coin | Stays owed until taken (`child_coin_got`) and is put back in the street on continue. |
+| NICE, `c_clean` reach | **Row 6 did not work by the numbers.** Under the row 5 ceiling Jo's y stops at 242 (room px). Row 6 coins sit at 208, which is exactly 34 px away, and the magnet needs less than 34. Moved to row 7 (y 240), reachable with 88 px of rise of the 150 available. `boat.js` still removes them with the first plank. Numbers rechecked after the merge: `JUMP`, `GRAVITY` and the dream body are unchanged. |
+| Scenario | `painter-lapis-theft`: steals in the street, re-enters, checks one on the shelf and one pick-up; steals again in the shop and checks the same. |
+
+**Not taken:** the casekeeper joke's reach hint and a later mention of azurite. Both are optional in the review and not in this round's list.
+
+**Merge:** conflicts in `scripts/lib/cast-bake.js` and `src/data/scale.js` kept both sides. `sheets/cast-lineup.png` took redesign's copy, since it is generated. I did not move the test piece to the new `onFlags` hook: `onRender` already works and nothing needs the change.
+
+**Add to the browser rerun list:** `painter-lapis-theft` (new, never run), `gambler-clean-office` (its coin check changed), and everything listed in the first round, now on the merged code. The scenario list from `redesign` should be rerun too, because merged code has only been through unit tests and lints here.
