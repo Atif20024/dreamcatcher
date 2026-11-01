@@ -82,8 +82,9 @@ export function pack(items, maxW = 2048) {
     W = Math.max(W, x);
   }
   const H = y + rowH + PAD;
-  const pow2 = (n) => 2 ** Math.ceil(Math.log2(Math.max(n, 1)));
-  const sheet = image(pow2(W), pow2(H));
+  // the exact box, not the next power of two: art is NEAREST and clamped, so
+  // WebGL1 takes it as it is, and the rounding cost 33 MB of 98 (SPEED_REPORT)
+  const sheet = image(W, H);
   for (const it of sorted) {
     blit(sheet, it.img, it.x, it.y, 0, 0, it.img.width, it.img.height, { copy: true });
     extrude(sheet, it);

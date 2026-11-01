@@ -9,6 +9,7 @@ import { InputMap } from '../src/input/InputMap.js';
 import { clockwork } from '../src/engines/clockwork.js';
 import { Encounters } from '../src/play/Encounters.js';
 import { countObjects, estimateDrawCalls } from '../src/core/PerfBudget.js';
+import { isOffscreen } from '../src/core/offscreenCull.js';
 
 const T = 32;
 const box = (w, h, floor = h - 2) => Array.from({ length: h }, (_, y) => (y >= floor ? '#'.repeat(w) : '.'.repeat(w)));
@@ -310,6 +311,21 @@ describe('Encounters: logic engine and presenter are separate', () => {
     const p = enc.start('cw');
     enc.update(300, { justDown: (k) => k === 'back' });
     expect((await p).left).toBe(true);
+  });
+});
+
+describe('isOffscreen', () => {
+  const v = { x: 1000, y: 0, right: 1960, bottom: 540 };
+  const img = (o) => ({ type: 'Image', x: 1200, y: 100, originX: 0.5, originY: 0.5, width: 50, height: 50, _scaleX: 2, _scaleY: 2, _rotation: 0, scrollFactorX: 1, scrollFactorY: 1, ...o });
+  it('skips only what is past the margin', () => {
+    expect(isOffscreen(img(), v)).toBe(false);
+    expect(isOffscreen(img({ x: 3000 }), v)).toBe(true);
+    expect(isOffscreen(img({ x: 900 }), v)).toBe(false); // right edge 950, inside the 64 px margin
+    expect(isOffscreen(img({ x: 800 }), v)).toBe(true);
+    expect(isOffscreen(img({ y: 800 }), v)).toBe(true);
+  });
+  it('never skips what it cannot box', () => {
+    for (const o of [{ type: 'Container' }, { type: 'BitmapText' }, { _rotation: 0.3 }, { _scaleX: -2 }, { scrollFactorX: 0 }, { scrollFactorY: 0.5 }]) expect(isOffscreen(img({ x: 9000, ...o }), v)).toBe(false);
   });
 });
 
