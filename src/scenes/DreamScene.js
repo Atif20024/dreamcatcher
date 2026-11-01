@@ -384,6 +384,9 @@ export default class DreamScene extends BaseLevel {
     // entering a room: the brief locator over Jo (feedback 3), not again
     // for a room he was in a moment ago
     if (prev && this.player && this.player.locate) this.player.locate('room', id);
+    // a dream's beat on arriving in a room (it guards its own flags)
+    const onEnter = this.def.onEnter && this.def.onEnter[id];
+    if (onEnter && this.beats.has(onEnter)) this.beats.play(onEnter).catch((e) => console.warn('[dream] beat', e));
     if (r.data.titleCard && !this.F[`_title:${id}`]) {
       this.F[`_title:${id}`] = true;
       this.titleCard(r.data.titleCard);

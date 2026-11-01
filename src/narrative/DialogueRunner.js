@@ -10,7 +10,8 @@
 //   r.next(i?)        // advance (choice index when the node has choices)
 //   r.done
 // A node's `set` ({flag: value}) and `effects` ([{objective}|{beat}|{give}...])
-// fire when the node is shown. A node whose `if` fails is skipped to `next`.
+// fire when the node is shown. A node whose `if` fails is skipped to `else`,
+// or to `next` without one.
 
 export class DialogueRunner {
   constructor(conv, { flags = () => ({}), onSet = null, onEffect = null, maxSteps = 200 } = {}) {
@@ -47,7 +48,7 @@ export class DialogueRunner {
       const n = this.conv.nodes[cur];
       if (!n) throw new Error(`DialogueRunner: ${this.conv.id} has no node "${cur}"`);
       if (!this.test(n.if)) {
-        cur = n.end ? null : n.next || null;
+        cur = n.else || (n.end ? null : n.next || null);
         continue;
       }
       this.node = { id: cur, ...n };
@@ -105,7 +106,7 @@ export function conversationIssues(conv) {
     const n = nodes[id];
     if (!n.who) out.push(`${conv.id}/${id}: no speaker`);
     if (!n.text) out.push(`${conv.id}/${id}: no text`);
-    const targets = [n.next, ...(n.choices || []).map((c) => c.next)].filter(Boolean);
+    const targets = [n.next, n.else, ...(n.choices || []).map((c) => c.next)].filter(Boolean);
     for (const t of targets) {
       if (!nodes[t]) out.push(`${conv.id}/${id}: next "${t}" does not exist`);
       else q.push(t);

@@ -95,6 +95,7 @@ export async function bakeCast(ROOT, store) {
       for (const a of ['alert', 'windup', 'grab', 'throw', 'search', 'stagger']) P[a].forEach((p, i) => add(`${key}-${a}#${i + 1}`, { pose: p, held: null }));
     } else {
       add(key, { pose: spec.sit ? P.sit[0] : P.idle[0], held });
+      add(`${key}-sit`, { pose: P.sit[0], held });
       P.walk.forEach((p, i) => add(`${key}#${i + 1}`, { pose: p, held }));
     }
     if (hasRun) P.run.forEach((p, i) => add(`${key}-run#${i + 1}`, { pose: p, held }));

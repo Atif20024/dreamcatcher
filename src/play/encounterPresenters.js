@@ -9,7 +9,9 @@ import ModalManager from '../ui/ModalManager.js';
 import { panel, dim, drawPanel } from '../ui/Panel.js';
 import { uiText } from '../ui/text.js';
 import { hud } from '../ui/hud.js';
-import { playTone, trumpet, bassNote, sfx } from '../systems/audio.js';
+import { playTone, trumpetHz, bassHz, sfx } from '../systems/audio.js';
+import { noteHz } from '../audio/modes.js';
+import { beatCorrection } from '../engines/rhythm.js';
 import { craftWorld } from './craftPresenter.js';
 import { slatePresenter, faroPresenter, showdownPresenter } from '../dreams/gambler/table.js';
 
@@ -121,7 +123,10 @@ function clockworkModal(scene, def, engine) {
 // note, faint heads when it must be played by ear); a cursor sweeps the PLAY
 // bar; the house lights dim and a spot finds Jo; the audience the room placed
 // (scene.audience) turns toward the stage on every phrase he lands; NERVE is
-// a HUD meter. def.voice 'bass' answers with Nia's bass (the blank moment).
+// a HUD meter. Notes sit on the staff by pitch and sound in def.scale, the
+// room's key. A phrase's voice 'bass' is Nia (the blank), 'clap' is Ray.
+// def.cues (flags → cues, or a table) are the people around him: captions on
+// a bar, on a freeze, on a rushed third bar, and the songs' names.
 const NOTE = 0xf2d580;
 const NOTE_DIM = 0x8a7448;
 const HIT = 0x7ec87e;
@@ -130,15 +135,16 @@ const BAD = 0xd06050;
 function drawStaff(g, cx, cy, st, flash) {
   g.clear();
   const n = Math.max(1, st.len);
-  const gap = 54;
+  const gap = st.div < 1 ? 38 : 54;
   const w = st.hold ? 220 : (st.beats.length - 1) * gap;
   const x0 = cx - w / 2;
   // the plate: night at 88 %, a brass line (the identity's frame)
-  drawPanel(g, x0 - 44, cy - 40, w + 88, 80, { accent: 0xc8a24a });
+  // (a third bar wears the teal: somebody is listening for this one)
+  drawPanel(g, x0 - 44, cy - 40, w + 88, 80, { accent: st.third ? 0x2e7d9a : 0xc8a24a });
   // five staff lines
   g.lineStyle(1, 0xc8a24a, 0.28);
   for (let k = -2; k <= 2; k++) g.lineBetween(x0 - 30, cy + k * 8, x0 + w + 30, cy + k * 8);
-  if (st.phase === 'lead' || st.phase === 'frozen' || st.phase === 'done') return;
+  if (st.phase === 'lead' || st.phase === 'frozen' || st.phase === 'breath' || st.phase === 'done') return;
   const listen = st.phase === 'listen';
   if (st.hold) {
     const lit = listen ? Math.min(1, st.beat / n) : st.heldFrac;
@@ -147,9 +153,12 @@ function drawStaff(g, cx, cy, st, flash) {
     g.fillStyle(NOTE, 1).fillCircle(x0, cy, 12);
     return;
   }
+  // the tune is drawn as it sounds: a higher note sits higher
+  const sung = (st.notes || []).filter((n) => n !== null && n !== undefined);
+  const mid = sung.length ? (Math.min(...sung) + Math.max(...sung)) / 2 : 0;
   st.beats.forEach((b, i) => {
     const x = x0 + i * gap;
-    const y = cy;
+    const y = b === 1 && st.notes && st.notes[i] != null ? cy - Math.max(-16, Math.min(16, (st.notes[i] - mid) * 4)) : cy;
     const hit = st.hits[i];
     const pulse = listen && Math.floor(st.beat) === i ? 1.35 : 1;
     const col = hit === true ? HIT : hit === false ? BAD : NOTE;
@@ -196,10 +205,24 @@ function rhythmWorld(scene, def, engine, ctx) {
   const retries = (engine.retries ?? 2);
   let flash = null;
   let flashT = 0;
-  let pitch = 0;
-  const marks = (st) => `${def.title || 'THE SET'}  ${Math.min(st.idx + 1, st.total)}/${st.total}`;
+  const flags = ctx.flags || {};
+  const cues = (typeof def.cues === 'function' ? def.cues(flags) : def.cues) || {};
+  const say = (c) => c && scene.caption && scene.caption.say(c.who, c.text, { ms: c.ms || 2200 });
+  const key = def.scale || { root: 261.6, mode: 'ionian', oct: 0 };
+  const horn = (d) => noteHz(key, d ?? 0);
+  // the band's clock: a call starts on the beat the band is on
+  let bandBeatAt = null;
+  const onBandBeat = () => (bandBeatAt = scene.time.now);
+  scene.events.on('beat', onBandBeat);
+  // the song's camera: closer with each song, popped at the end
+  let songShot = null;
+  const songName = (i) => (cues.songs && i != null ? cues.songs[i] : null);
+  let nextSong = null;
+  const marks = (st) => `${songName(st.song) || def.title || 'THE SET'}  ${Math.min(st.idx + 1, st.total)}/${st.total}`;
   const hint = (st) => {
     if (st.phase === 'frozen') return '…frozen. breathe.';
+    if (st.phase === 'breath') return nextSong ? `next: ${nextSong}` : 'breathe.';
+    if (st.third && st.phase === 'play' && !st.silent && cues.third) return "the third bar. don't rush it";
     if (st.phase === 'lead') return def.lead || 'the band counts you in…';
     if (st.phase === 'listen') return st.blind ? 'LISTEN. no notes to read: play it by ear' : st.silent ? 'LISTEN… then leave the whole bar empty' : st.hold ? 'LISTEN: one long note' : 'LISTEN…';
     if (st.phase === 'play') return st.hold ? 'PLAY: press [E] and HOLD it' : st.silent ? 'say nothing. let the room breathe' : 'PLAY: [E] or [Q] on every note, nothing on a ring';
@@ -209,27 +232,38 @@ function rhythmWorld(scene, def, engine, ctx) {
   const react = (ok) => {
     const aud = scene.audience || [];
     if (!ok || !aud.length) return;
-    const next = aud.find((p) => !p.turned) || aud[Math.floor(Math.random() * aud.length)];
-    if (next && next.react) next.react(true);
+    // (every chair has turned by the last bar of a clean run)
+    for (let n = Math.ceil(aud.length / engine.state().total); n > 0; n--) {
+      const next = aud.find((p) => !p.turned) || aud[Math.floor(Math.random() * aud.length)];
+      if (next && next.react) next.react(true);
+    }
   };
   return {
     enter(st) {
       drawStaff(g, a.x, a.y, st, null);
       tool.setText(marks(st)).setVisible(true);
-      nerve.set(0).setVisible(true);
+      nerve.set(st.nerve / 100).setVisible(def.nerve !== false);
       label.setText(hint(st));
     },
     render(st, outcome) {
       for (const ev of engine.takeEvents()) {
-        if (ev.type === 'preview') {
-          // a phrase in Nia's voice: her bass answers from the dark, even on a rest
-          const bass = ev.voice === 'bass' || def.voice === 'bass';
-          if (bass) bassNote(ev.i % 6, ev.hold ? 1.6 : 0.5, 0.3);
-          else if (ev.note) trumpet((ev.i * 2) % 12, ev.hold ? 1.6 : 0.25, 0.18);
+        if (ev.type === 'lead') {
+          sfx('crowd_clap');
+        } else if (ev.type === 'phrase') {
+          if (bandBeatAt !== null && scene.music && !ev.tries) engine.nudge(beatCorrection(scene.time.now - bandBeatAt, 60000 / scene.music.bpm));
+          if (!ev.tries && cues.phrase) say(cues.phrase[ev.idx]);
+        } else if (ev.type === 'preview' || ev.type === 'answer') {
+          // Nia's bass comes from the dark, even on a rest; Ray claps; the horn
+          // plays the tune Jo is about to answer
+          if (ev.voice === 'bass') bassHz(noteHz({ ...key, oct: 0 }, ev.pitch ?? 0), 0.5, 0.3);
+          else if (ev.voice === 'clap') {
+            // (Ray claps the call, then leaves the bar to Jo)
+            if (ev.type === 'preview' && ev.note) sfx('clap');
+          } else if (ev.note) trumpetHz(horn(ev.pitch), ev.hold ? (ev.hold * st.beatMs) / 1000 : Math.min(0.3, (st.beatMs / 1000) * 0.8), 0.18);
           else sfx('click');
-          if (bass && scene.onBassRing) scene.onBassRing();
         } else if (ev.type === 'hit') {
-          trumpet((pitch++ * 2) % 12, ev.hold ? 1.2 : 0.3, 0.3);
+          // right note, right place: the answer is the call
+          trumpetHz(horn(ev.pitch), ev.hold ? (st.hold * st.beatMs) / 1000 : Math.min(0.3, (st.beatMs / 1000) * 0.9), 0.3);
           if (scene.player && scene.player.pose) scene.player.pose('play_trumpet');
         } else if (ev.type === 'rest' || (ev.type === 'held' && !ev.ok)) {
           flash = 'bad';
@@ -237,11 +271,26 @@ function rhythmWorld(scene, def, engine, ctx) {
           sfx('fail');
         } else if (ev.type === 'judge') {
           react(ev.ok);
-          if (ev.ok) [523, 659, 784].forEach((f, i) => playTone(f, 0.16, 'triangle', 0.08, i * 0.05));
-          if (scene.onGigPhrase) scene.onGigPhrase(def.id, ev.ok, ev.idx);
+          if (ev.ok) [7, 9, 11].forEach((d, i) => playTone(horn(d), 0.16, 'triangle', 0.08, i * 0.05));
+          if (ev.rushed) say(cues.third);
         } else if (ev.type === 'freeze') {
           cam.shake(220, 0.006);
           sfx('fail');
+          say(cues.freeze);
+        } else if (ev.type === 'breath') {
+          // between songs: the lights come up, the crowd answers, the camera moves in
+          nextSong = songName((ev.song ?? -1) + 1);
+          sfx('roar');
+          scene.tweens.add({ targets: dimR, alpha: 0.12, duration: 300, yoyo: true, hold: 500 });
+          if (scene.camDir) {
+            const old = songShot;
+            songShot = scene.camDir.push({ zoom: (def.camera?.zoom || 1.2) + 0.09 * ((ev.song ?? 0) + 1), focus: () => ({ x: scene.player.x, y: scene.player.y - 60 }), ms: 900 });
+            if (old) scene.camDir.pop(old, 900);
+          }
+        } else if (ev.type === 'held' && ev.ok) {
+          // the last note lands: everything at once
+          cam.shake(420, 0.008);
+          sfx('roar');
         }
       }
       if (outcome === 'miss' || outcome === 'rest') {
@@ -253,15 +302,24 @@ function rhythmWorld(scene, def, engine, ctx) {
       tool.setText(marks(st));
       nerve.set(st.nerve / 100);
       label.setText(hint(st));
-      spot.setPosition(scene.player.x, scene.player.y - 30);
-      if (st.phase === 'frozen') dimR.setAlpha(0.7);
-      else if (dimR.alpha > 0.42 && !scene.tweens.isTweening(dimR)) dimR.setAlpha(0.42);
+      // the blank: the house goes dark and the spot leaves Jo for the bass
+      const solo = st.silent && cues.soloist && scene.npcs ? scene.npcs.get(cues.soloist) : null;
+      if (solo) spot.setPosition(solo.x, solo.y - 60);
+      else spot.setPosition(scene.player.x, scene.player.y - 30);
+      // the held note opens the room up as it goes
+      spot.setScale(1.6 + (st.hold ? st.heldFrac * 3 : 0), 2.4 + (st.hold ? st.heldFrac * 3 : 0));
+      if (!scene.tweens.isTweening(dimR)) {
+        if (st.phase === 'frozen' || solo) dimR.setAlpha(0.7);
+        else if (st.hold && st.holding) dimR.setAlpha(0.42 * (1 - st.heldFrac));
+        else if (st.hold && st.phase === 'judge' && st.lastOk) dimR.setAlpha(0);
+        else if (st.phase !== 'lead') dimR.setAlpha(0.42);
+      }
     },
     outro(result) {
       return new Promise((res) => {
         if (result && result.ok) {
           try {
-            [392, 523, 659, 784].forEach((f, i) => playTone(f, 0.5, 'sine', 0.12, i * 0.12));
+            [4, 7, 9, 11].forEach((d, i) => playTone(horn(d), 0.5, 'sine', 0.12, i * 0.12));
           } catch {
             /* no audio */
           }
@@ -276,6 +334,8 @@ function rhythmWorld(scene, def, engine, ctx) {
       g.destroy();
       dimR.destroy();
       spot.destroy();
+      scene.events.off('beat', onBandBeat);
+      if (songShot && scene.camDir) scene.camDir.pop(songShot, 500);
       tool.setText('').setVisible(false);
       nerve.setVisible(false);
       hud.set('context', '');
