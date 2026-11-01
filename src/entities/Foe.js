@@ -8,6 +8,7 @@ import { Stride } from '../art/stride.js';
 import { D } from '../builders/depths.js';
 import { solveGround } from './ground.js';
 import { uiText } from '../ui/text.js';
+import { WINDUP_RANGE, GRAB_REACH, WINDUP_MS, GRAB_MS } from './grab.js';
 
 const T = 32;
 
@@ -270,6 +271,16 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
     if (!this.body) return;
     this.animate(time);
     const wall = this.footing(time);
+    // not updated for a while = a conversation, a card, an encounter: a wind-up
+    // doesn't finish behind one, and Jo gets a moment before he's looked at again
+    if (this.human && time - (this.lastTick ?? time) > 150) {
+      this.calmUntil = time + 900;
+      if (this.state === 'windup' || this.state === 'grabbing') {
+        this.clearTint();
+        this.enter('patrol', 0);
+      }
+    }
+    this.lastTick = time;
 
     // creatures: simple patrol, contact handled by the scene
     if (!this.human) {
@@ -327,14 +338,14 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
       this.setTint(0xffa0a0);
       if (time > this.stateUntil) {
         this.clearTint();
-        this.enter('grabbing', 250);
+        this.enter('grabbing', GRAB_MS);
       }
       return;
     }
     if (this.state === 'grabbing') {
-      const reach = Math.abs(player.x - this.x) < 42 && Math.abs(player.y - this.y) < 50;
+      const reach = Math.abs(player.x - this.x) < GRAB_REACH && Math.abs(player.y - this.y) < 50;
       const ducking = player.crouching; // slipping under the grab
-      // he winds up at 70 px and reaches 42: without the step in he only grabs someone walking into him
+      // he winds up further off than he reaches: the step in is what closes it
       if (this.def.lunge) this.setVelocityX(Math.sign(player.x - this.x) * this.def.lunge);
       if (reach && !ducking && !player.busy) {
         this.throwUntil = time + 700;
@@ -342,17 +353,20 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
         this.enter('staggered', 900);
         return;
       }
-      if (time > this.stateUntil) this.enter('alert', 600);
+      if (time > this.stateUntil) {
+        this.enter('alert', 600);
+        this.calmUntil = time + 450; // he missed: off balance, and that's the opening to get past
+      }
       return;
     }
 
     // (a rail's Jo, held at a station: nobody grabs a man with a knife in his hand)
-    if (!player.busy && this.canSee(player)) {
+    if (!player.busy && time >= (this.calmUntil || 0) && this.canSee(player)) {
       this.seenPlayerAt = time;
       const dx = player.x - this.x;
-      if (Math.abs(dx) < 70) {
+      if (Math.abs(dx) < WINDUP_RANGE) {
         showTutorial(this.scene, 'slide_under');
-        this.enter('windup', 400);
+        this.enter('windup', WINDUP_MS);
         sfx('click');
         return;
       }
