@@ -8,15 +8,16 @@
 // u buckle · m mouth · e eye.
 
 export const PALETTE = {
-  k: 0x1a1828,
-  I: 0x6488b6, J: 0x3d5a86, j: 0x2b3d6a, q: 0x1e2850,
+  // a blacker line than the cast's: on a dim street his outline is what holds 3:1
+  k: 0x0c0a16,
+  I: 0x8ab0dc, J: 0x4d72a8, j: 0x34508a, q: 0x243466,
   W: 0xece6d6, w: 0xb6b2c4, v: 0x8a88a2,
-  Q: 0x6a6480, P: 0x4a4560, p: 0x332f4a, o: 0x231f36,
+  Q: 0x8a84a6, P: 0x524c6c, p: 0x332f4a, o: 0x231f36,
   R: 0xc48c5e, S: 0x9a6440, s: 0x6e4234, t: 0x4a2c30,
   C: 0x6e4a3a, B: 0x48302a, b: 0x2e1e22, d: 0x1c1418,
   U: 0x4c4c72, H: 0x2c2c4a, h: 0x1e1e36, g: 0x141428,
   y: 0xc8564c, r: 0x9a3238, n: 0x682232,
-  G: 0x121218, L: 0x86b6d0, l: 0xeef6ff,
+  G: 0x2a1c1c, L: 0x86b6d0, l: 0xeef6ff,
   a: 0x1e1a24, K: 0x281e26, u: 0xd8b050, m: 0x5a2a2c, e: 0x16121a,
   T: 0xe8b84a, // (portrait/tool accents)
 };
@@ -44,17 +45,18 @@ export const METRICS = {
   hipSep: 0.6,
 };
 
-// torso, facing right: jacket open over a white shirt, a belt, trouser top.
+// torso, facing right: jacket open over a white shirt, a lapel, the band's red
+// in the tie, a pocket flap, a belt and the trouser top.
 // Anchor = the hip point (col 4, row 10).
 const TORSO_BASE = [
   '...IJJWW.',
-  '..IJJJJWj',
-  '.IJJJJJWw',
-  '.IJJJJJWw',
+  '..IJJJjWj',
+  '.IJJJjWyw',
+  '.IJJJJWyw',
+  '.IJJJJWyj',
+  '.IJJJJWrj',
   '.IJJJJWWj',
-  '.IJJJJWwj',
-  '.IJJJJWWj',
-  '..IJJJJWj',
+  '.IJwwwJWj',
   '..jJJJJjj',
   '..KKKKuK.',
   '..QPPPPp.',
@@ -62,106 +64,134 @@ const TORSO_BASE = [
 const TORSO_HUNCH = [
   '.........',
   '..IJJWW..',
-  '.IJJJJWj.',
-  'IJJJJJWwj',
-  'IJJJJJWWj',
-  'IJJJJJWwj',
+  '.IJJJjWj.',
+  'IJJJJjWyj',
+  'IJJJJJWyj',
+  'IJJJJJWrj',
   '.IJJJJWWj',
-  '..IJJJJWj',
+  '.IJwwwJWj',
   '..jJJJJjj',
   '..KKKKuK.',
   '..QPPPPp.',
 ];
+// square-on, his back to us: he faces the ladder. Shoulders wide, a centre seam.
+const TORSO_FRONT = [
+  '...IJJj..',
+  '.IIJJJJj.',
+  '.IJJJJJj.',
+  '.IJJJqJj.',
+  '.IJJJqJj.',
+  '..IJJqj..',
+  '..IJJqj..',
+  '..IJJqj..',
+  '..jJJqj..',
+  '..KKKKK..',
+  '..QPPPp..',
+];
+// the jacket's back hem, hanging past the belt: it swings on pose.trail
+const HEM = { rows: ['.IJJ', '.IJj', '.jj.'], ox: 4, oy: 1, trail: true };
 
-// head, profile facing right; anchor = the neck (col 3, row 7)
+// head, profile facing right; anchor = the neck (col 3, row 7). The brim sits
+// above row 1 now: a brow over the lens, the lens with its glint and a skin
+// gap below it, a nose that sticks out (col 8)
 const H = {
   base: [
     '..aaaaa.',
-    '.aaaSSRR',
-    '.aaGGLlG',
-    '.asSSLLS',
-    '.asSSSSS',
-    '..sSSSm.',
-    '..tsSSS.',
+    '.aaaRaaR',
+    '.aasGLlG',
+    '.asRRLLRS',
+    '.asRRRRR',
+    '..sRRRm.',
+    '..tsRRS.',
     '...ss...',
   ],
   blink: [
     '..aaaaa.',
-    '.aaaSSRR',
-    '.aaGGGGG',
-    '.asSSSSS',
-    '.asSSSSS',
-    '..sSSSm.',
-    '..tsSSS.',
+    '.aaaRaaR',
+    '.aasGGGG',
+    '.asRRRRRS',
+    '.asRRRRR',
+    '..sRRRm.',
+    '..tsRRS.',
     '...ss...',
   ],
   down: [
     '..aaaaa.',
-    '.aaaSSRR',
-    '.aaSSSSS',
-    '.asGGLlG',
-    '.asSSLLS',
-    '..sSSSSS',
-    '..tsSSm.',
+    '.aaaRRRR',
+    '.aasRaaR',
+    '.asRGLlG',
+    '.asRRLLRS',
+    '..sRRRRR',
+    '..tsRRm.',
     '...ss...',
   ],
   up: [
-    '..aaaSRR',
-    '.aaGGLlG',
-    '.asSSLLS',
-    '.asSSSSS',
-    '.asSSSSm',
-    '..sSSSS.',
+    '..aaaRaa',
+    '.aasGLlG',
+    '.asRRLLRS',
+    '.asRRRRR',
+    '.asRRRRm',
+    '..sRRRR.',
     '..tss...',
     '...ss...',
   ],
   wince: [
     '..aaaaa.',
-    '.aaaSSRR',
-    '.aaGGGGG',
-    '.asSSeeS',
-    '.asSSSSS',
-    '..sSSmm.',
-    '..tsSSS.',
+    '.aaaRaaR',
+    '.aasGGGG',
+    '.asRReeRS',
+    '.asRRRRR',
+    '..sRRmm.',
+    '..tsRRS.',
     '...ss...',
   ],
   laugh: [
     '..aaaaa.',
-    '.aaaSSRR',
-    '.aaGGGGG',
-    '.asSSSSS',
-    '.asSSSSm',
-    '..sSSmm.',
-    '..tsSSS.',
+    '.aaaRaaR',
+    '.aasGGGG',
+    '.asRRRRRS',
+    '.asRRRRm',
+    '..sRRmm.',
+    '..tsRRS.',
     '...ss...',
   ],
   blow: [ // trumpet: cheeks out
     '..aaaaa.',
-    '.aaaSSRR',
-    '.aaGGLlG',
-    '.asSSLLS',
-    '.asSSSSSS',
-    '..sSSSSS',
-    '..tsSSS.',
+    '.aaaRaaR',
+    '.aasGLlG',
+    '.asRRLLRS',
+    '.asRRRRRR',
+    '..sRRRRR',
+    '..tsRRS.',
     '...ss...',
   ],
   sleep: [
     '..aaaaa.',
-    '.aaaSSRR',
-    '.aaSSSSS',
-    '.asGGGGG',
-    '.asSSSSS',
-    '..sSSSS.',
-    '..tsSm..',
+    '.aaaRRRR',
+    '.aasRRRR',
+    '.asGGGGGS',
+    '.asRRRRR',
+    '..sRRRR.',
+    '..tsRm..',
+    '...ss...',
+  ],
+  back: [ // from behind, on the ladder: hair and the nape
+    '..aaaaa.',
+    '.aaaaaaa',
+    '.aaaaaaa',
+    '.aaaaaaa',
+    '.aaaaaaa',
+    '..asssa.',
+    '..sssss.',
     '...ss...',
   ],
 };
 
-// porkpie: flat crown, red band, short brim; anchor = the neck point below
+// porkpie: flat crown, a two-row red band, short brim; anchor = the neck point below
 const HAT = {
-  rows: ['...UHHHH..', '..UHHHHHh.', '..yrrrrrn.', '.hHHHHHHHHh'],
+  rows: ['..UHHHHHh.', '..yyrrrrn.', '..rnnnnnn.', '.hHHHHHHHHh'],
   ox: 4,
-  oy: 9,
+  oy: 10,
   flipShift: 0,
 };
 
@@ -170,8 +200,9 @@ const BOOTS = {
   flat: { rows: ['BB....', 'CBBBBb', 'dddddd'], ox: 1, oy: 0, ankleUp: 2 },
   heel: { rows: ['BB..b.', 'CBBBb.', 'dddd..'], ox: 1, oy: 0, ankleUp: 2 },
   toe: { rows: ['BB...', 'CBB..', '.BBBb', '..ddd'], ox: 1, oy: 0, ankleUp: 3 },
-  point: { rows: ['BB.', 'CBB', '.Bb', '.dd'], ox: 1, oy: 0, ankleUp: 3 },
+  point: { rows: ['BB..', 'CBB.', '.BBb', '..dd'], ox: 1, oy: 0, ankleUp: 3 },
   lift: { rows: ['BB...', 'CBBBb', '.dddd'], ox: 1, oy: 0, ankleUp: 2 },
+  front: { rows: ['BBb', 'CBb', 'ddd'], ox: 1, oy: 0, ankleUp: 2 }, // seen from behind
 };
 
 const HANDS = {
@@ -179,10 +210,11 @@ const HANDS = {
   fist: { rows: ['RS', 'ss'], ox: 1, oy: 0 },
   flat: { rows: ['RSS', '.ss'], ox: 1, oy: 0 },
   up: { rows: ['S.', 'RS', 'Ss'], ox: 1, oy: 1 },
+  watch: { rows: ['RS', 'uu'], ox: 1, oy: 0 }, // the pocket watch, gold in the fist
 };
 
 export const PARTS = {
-  torso: { base: TORSO_BASE, hunch: TORSO_HUNCH },
+  torso: { base: TORSO_BASE, hunch: TORSO_HUNCH, front: TORSO_FRONT },
   torsoAnchor: [4, 10],
   neckAt: [5, -1],
   shoulderF: [5, 1],
@@ -192,6 +224,7 @@ export const PARTS = {
   hat: HAT,
   boots: BOOTS,
   hands: HANDS,
+  over: HEM,
 };
 
 export const OUTFITS = {

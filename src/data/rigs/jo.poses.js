@@ -15,7 +15,7 @@ const withHeadLag = (frames) => frames.map((f, i) => ({ ...f, headDy: frames[(i 
 // heel-to-toe step one leg-length long, arms hanging low and nearly straight
 // (they swing from the shoulder, the elbow barely bends), a gentle ±1 bob
 // with the head a frame behind. Contacts move exactly 4 px a frame.
-const WALK = walkCycle({ n: 8, step: 4, lift: 3, hips: [0, -1, 0, 1], head: 'base', arms: swing(22, 6, 10) });
+const WALK = walkCycle({ n: 8, step: 4, lift: 3, hips: [0, -2, 0, 1], head: 'base', arms: swing(26, 6, 10) });
 
 // ---- run: N=8, contact frames move 7 px a frame (step 7); two airborne ----
 const RUN_HALF = (k = 1) => [
@@ -24,22 +24,39 @@ const RUN_HALF = (k = 1) => [
   { hips: 2, fF: [-8, 2, 'toe'], fB: [6, Math.round(6 * k), 'lift'], aF: [10 * k, 85], aB: [-14 * k, 80] }, // airborne push-off
   { hips: 1, fF: [-7, Math.round(6 * k), 'point'], fB: [8, 2, 'heel'], aF: [30 * k, 85], aB: [-36 * k, 80] }, // reach
 ];
-const run = (k, lean) => withHeadLag([...RUN_HALF(k), ...RUN_HALF(k).map(mirrorLegs)].map((f) => P({ lean, handF: 'fist', handB: 'fist', ...f })));
+// the coat drags behind him; the leading edge catches the light
+const run = (k, lean) => withHeadLag([...RUN_HALF(k), ...RUN_HALF(k).map(mirrorLegs)].map((f) => P({ lean, handF: 'fist', handB: 'fist', rim: 'limbs', trail: f.hips > 0 ? -2 : -1, ...f })));
 const RUN = run(1, 2);
 const JOG = run(0.7, 1);
 
-// ---- idle: a breath (chest up on 3–6), a blink on 6 ---------------------
-const IDLE = [0, 0, 0, 1, 1, 1, 1, 0].map((c, i) => P({ chest: c, head: i === 6 ? 'blink' : 'base' }));
-// fidget: lift the hat brim with the front hand, settle it, look back
+// ---- idle: two breaths, the weight going over to the back foot for the
+// second (the hips move, the feet stay put), a blink on each ----------------
+const IDLE = [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0].map((c, i) => {
+  const hx = i >= 8 ? -1 : 0;
+  return P({ chest: c, hx, fF: [1 - hx, 0, 'flat'], fB: [-1 - hx, 0, 'flat'], aF: [hx ? -8 : -4, 10], head: i === 6 || i === 13 ? 'blink' : 'base' });
+});
+// fidget (about every ten seconds, the controller's clock): lift the hat brim
+// and settle it, a look back over the shoulder, then the pocket watch
+const WATCH = { aF: [50, 95], handF: 'watch', head: 'down' };
+const LOOK_BACK = { headFlip: true, hx: -1, fF: [2, 0, 'flat'], fB: [0, 0, 'flat'] };
 const IDLE_FIDGET = [
   P({ aF: [60, 70] }),
   P({ aF: [110, 70], handF: 'up' }),
   P({ aF: [140, 60], handF: 'up', hat: { dy: -1 } }),
-  P({ aF: [140, 60], handF: 'up', hat: { dy: -1, dx: 1 } }),
+  P({ aF: [140, 60], handF: 'up', hat: { dy: -2, dx: 1 } }),
   P({ aF: [120, 70], handF: 'up' }),
   P({ aF: [40, 40] }),
-  P({ head: 'base', headFlip: true }),
-  P({ head: 'base', headFlip: true, chest: 1 }),
+  P(LOOK_BACK),
+  P({ ...LOOK_BACK, chest: 1 }),
+  P({ ...LOOK_BACK, chest: 1 }),
+  P({ ...LOOK_BACK, head: 'blink' }),
+  P({ aF: [15, 40] }),
+  P({ aF: [35, 70], handF: 'fist', head: 'down' }),
+  P(WATCH),
+  P({ ...WATCH, chest: 1 }),
+  P({ ...WATCH, chest: 1 }),
+  P({ ...WATCH, head: 'blink' }),
+  P({ aF: [30, 60], handF: 'fist' }),
 ];
 const POCKETS = [0, 0, 1, 1, 1, 0].map((c) => P({ chest: c, aF: [-2, 30], aB: [2, 30], handF: 'none', handB: 'none' }));
 
@@ -77,19 +94,21 @@ const JUMP_ANTICIPATE = [
   P({ hips: -3, lean: 1, fF: [2, 0, 'flat'], fB: [-2, 0, 'flat'], aF: [-30, 20], aB: [-20, 20], head: 'down' }),
   P({ hips: -4, lean: 2, fF: [2, 0, 'flat'], fB: [-2, 0, 'flat'], aF: [-45, 20], aB: [-35, 20], head: 'down' }),
 ];
+// bent elbows, not two sticks. The hat follows through: it stays down on the
+// way up, floats at the top, and lifts off his head on the way down
 const RISE = [
-  P({ hips: 1, lean: 1, fF: [2, 2, 'toe'], fB: [-3, 4, 'point'], aF: [140, 20], aB: [110, 30], head: 'up' }),
-  P({ hips: 1, fF: [4, 6, 'point'], fB: [-2, 4, 'point'], aF: [150, 15], aB: [125, 25], head: 'up' }),
-  P({ hips: 1, fF: [4, 7, 'point'], fB: [-2, 5, 'point'], aF: [145, 15], aB: [120, 25], head: 'up' }),
+  P({ hips: 1, lean: 1, fF: [2, 2, 'toe'], fB: [-3, 4, 'point'], aF: [115, 45], aB: [60, 50], handF: 'fist', head: 'up', trail: -1 }),
+  P({ hips: 1, fF: [4, 6, 'point'], fB: [-2, 4, 'point'], aF: [125, 40], aB: [75, 45], handF: 'fist', head: 'up', trail: -1 }),
+  P({ hips: 1, fF: [4, 7, 'point'], fB: [-2, 5, 'point'], aF: [120, 40], aB: [70, 45], handF: 'fist', head: 'up' }),
 ];
 const APEX = [
-  P({ hips: 1, fF: [5, 6, 'point'], fB: [-3, 6, 'point'], aF: [105, 10], aB: [95, 15] }),
-  P({ hips: 1, fF: [5, 6, 'point'], fB: [-3, 6, 'point'], aF: [100, 15], aB: [90, 20] }),
+  P({ hips: 1, fF: [5, 6, 'point'], fB: [-3, 6, 'point'], aF: [95, 40], aB: [65, 40], hat: { dy: -1 } }),
+  P({ hips: 1, fF: [5, 6, 'point'], fB: [-3, 6, 'point'], aF: [90, 45], aB: [60, 45], hat: { dy: -1 } }),
 ];
 const FALL = [
-  P({ hips: 1, fF: [3, 2, 'flat'], fB: [-3, 3, 'point'], aF: [125, -5], aB: [100, 10], head: 'down' }),
-  P({ hips: 1, fF: [3, 1, 'flat'], fB: [-3, 2, 'point'], aF: [135, -10], aB: [110, 5], head: 'down' }),
-  P({ hips: 1, fF: [3, 1, 'flat'], fB: [-3, 2, 'point'], aF: [130, -5], aB: [105, 10], head: 'down' }),
+  P({ hips: 1, fF: [3, 2, 'flat'], fB: [-3, 3, 'point'], aF: [120, 25], aB: [85, 40], head: 'down', hat: { dy: -1 }, trail: 1 }),
+  P({ hips: 1, fF: [3, 1, 'flat'], fB: [-3, 2, 'point'], aF: [130, 20], aB: [95, 35], head: 'down', hat: { dy: -2 }, trail: 1 }),
+  P({ hips: 1, fF: [3, 1, 'flat'], fB: [-3, 2, 'point'], aF: [125, 25], aB: [90, 40], head: 'down', hat: { dy: -2 }, trail: 1 }),
 ];
 const LAND = [
   P({ hips: -4, lean: 1, fF: [3, 0, 'flat'], fB: [-3, 0, 'flat'], aF: [35, 20], aB: [30, 20], head: 'down' }),
@@ -120,23 +139,30 @@ const CROUCH_WALK = withHeadLag(
   ].map((f, i) => P({ ...CROUCHED, ...f, aF: [30 + (i % 3) * 8, 50], aB: [36 - (i % 3) * 8, 50] }))
 );
 
-// ---- ladder: hands and feet alternate; hips sway ±1 ------------------------
+// ---- ladder: square-on and from behind (he faces the rungs). Hands and feet
+// alternate, one high, one low with the elbow out; hips sway +-1 ----------------
+const ON_LADDER = { torso: 'front', head: 'back', headDx: -1, flat: true, sF: [7, 1], sB: [1, 1], hipSep: 2, kneeB: -1, handF: 'fist', handB: 'fist' };
+// t: 0 the hand at the top of its reach ... 3 at its lowest
+const reach = (t, sign) => {
+  const [a, b] = [[172, 4], [135, 40], [80, 80], [35, 120]][t];
+  return [sign * a, sign * b];
+};
 const CLIMB = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
-  const s = i < 4 ? 1 : -1;
+  const up = i < 4; // the right hand is high on the first half
   const t = i % 4;
   const hi = [8, 5, 2, 0][t];
+  const hx = up ? 1 : -1;
   return P({
+    ...ON_LADDER,
     hips: [0, 1, 0, -1][t],
-    hx: s,
-    fF: [2, s > 0 ? hi : 8 - hi, 'flat'],
-    fB: [1, s > 0 ? 8 - hi : hi, 'flat'],
-    aF: [s > 0 ? 165 - t * 12 : 130 + t * 12, 10],
-    aB: [s > 0 ? 130 + t * 12 : 165 - t * 12, 10],
-    head: 'up',
-    lean: 1,
+    hx,
+    fF: [3 - hx, up ? hi : 8 - hi, 'front'],
+    fB: [-3 - hx, up ? 8 - hi : hi, 'front'],
+    aF: reach(up ? t : 3 - t, 1),
+    aB: reach(up ? 3 - t : t, -1),
   });
 });
-const CLIMB_IDLE = [P({ fF: [2, 4, 'flat'], fB: [1, 0, 'flat'], aF: [160, 10], aB: [135, 10], head: 'up', lean: 1 })];
+const CLIMB_IDLE = [P({ ...ON_LADDER, fF: [3, 4, 'front'], fB: [-3, 0, 'front'], aF: reach(0, 1), aB: reach(2, -1) })];
 
 // ---- walls -----------------------------------------------------------------
 const WALL_SLIDE = [
@@ -240,11 +266,12 @@ const BRUSH = [150, 120, 90, 60, 35].map((a, i) => P({ aF: [a, 10], handF: 'fist
 const BRUSH_HOLD = RUN.map((f) => ({ ...f, aF: [70, 10], handF: 'fist' }));
 
 // ---- the long evening -----------------------------------------------------
-const SEATED = { hips: -7, fF: [6, 0, 'flat'], fB: [5, 0, 'flat'], aF: [30, 50], aB: [25, 50] };
+// thighs level, shins dropping square from the knee, boots flat, hands on knees
+const SEATED = { hips: -7, fF: [8, 0, 'flat'], fB: [6, 0, 'flat'], aF: [40, 25], aB: [32, 28], handF: 'flat', handB: 'flat' };
 const SIT_DOWN = [P({ hips: -2, lean: 1, aF: [20, 20] }), P({ hips: -4, lean: 2, fF: [3, 0, 'flat'], fB: [-1, 0, 'flat'], aF: [30, 30] }), P({ ...SEATED, hips: -6, lean: 1 }), P(SEATED)];
 const SIT = [P(SEATED), P({ ...SEATED, chest: 1 })];
 // on the ground (no bench): hips down on the grass, knees up, hands behind
-const GROUND = { hips: -14, lean: -1, fF: [10, 0, 'heel'], fB: [8, 0, 'heel'], aF: [-35, 10], aB: [-45, 10], handF: 'flat', handB: 'flat' };
+const GROUND = { hips: -13, lean: -2, fF: [9, 0, 'flat'], fB: [6, 0, 'flat'], aF: [58, 25], aB: [-42, 8], handF: 'flat', handB: 'flat' };
 const SIT_GROUND = [P(GROUND), P({ ...GROUND, chest: 1 })];
 const SIT_UP = [P({ ...SEATED, head: 'up' }), P({ ...SEATED, head: 'up', chest: 1 })];
 const SLEEP = [P({ ...SEATED, head: 'sleep', lean: -1 }), P({ ...SEATED, head: 'sleep', lean: -1, chest: 1 })];

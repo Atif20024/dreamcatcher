@@ -13,7 +13,15 @@
 //   hat       true | false | { dx, dy, q } (q = quarter turns)
 //   rot       whole-figure rotation in degrees about the hips (falls, KO, float)
 //   lift      whole figure up by n px (sitting on a seat drawn lower, etc.)
-import { grid, stamp, capsule, ik, fk, outline, rotateGrid, translateGrid, rotRows } from './compose.js';
+//   trail     coat tails and hems lag by n px at the bottom (secondary motion)
+//   rim       leading-edge light this frame ('limbs' | 'all'; a rig's `rim` is the default)
+//   sF, sB    shoulder [col, row] on the torso grid, overriding the rig's (a square-on torso)
+//   kneeF/B   which way the knee goes (+1 forward, the default; -1 for a square-on left leg)
+//   hipSep    hip spread, overriding the metric; flat: both sides lit alike (no far limb)
+// A rig's parts.over is a layer or a list of layers: { rows, ox, oy } stamped
+// on the hips; { rows, torso: true } the torso's own size, moving with it;
+// { ..., trail: true } a hanging layer that swings by pose.trail.
+import { grid, stamp, capsule, ik, fk, outline, rimPass, rotateGrid, translateGrid, rotRows } from './compose.js';
 
 export function composeHuman(rig, pose) {
   const M = rig.metrics;
@@ -32,15 +40,18 @@ export function composeHuman(rig, pose) {
   const torsoTop = hipY - tOy;
   const neck = [hipX - tOx + P.neckAt[0] + lean, torsoTop + P.neckAt[1]];
   const chest = pose.chest || 0; // a breath: chest, shoulders and head up
-  const shoulderF = [hipX - tOx + P.shoulderF[0] + Math.round(lean * 0.85) + 0.5, torsoTop + P.shoulderF[1] + 0.5 - chest];
-  const shoulderB = [hipX - tOx + P.shoulderB[0] + Math.round(lean * 0.85) + 0.5, torsoTop + P.shoulderB[1] + 0.5 - chest];
+  const shoulder = (at) => [hipX - tOx + at[0] + Math.round(lean * 0.85) + 0.5, torsoTop + at[1] + 0.5 - chest];
+  const shoulderF = shoulder(pose.sF || P.shoulderF);
+  const shoulderB = shoulder(pose.sB || P.shoulderB);
+  const flat = !!pose.flat;
+  const sep = pose.hipSep ?? M.hipSep;
 
   const legChain = (foot, side) => {
     const [fx, fh, kind] = foot || [0, 0, 'flat'];
     const boot = P.boots[kind] || P.boots.flat;
-    const hip = [hipX + (side === 'f' ? M.hipSep : -M.hipSep) + 0.5, hipY + 0.5];
+    const hip = [hipX + (side === 'f' ? sep : -sep) + 0.5, hipY + 0.5];
     const ankle = [hipX + fx + 0.5, ground - boot.ankleUp - fh + 0.5];
-    const { mid } = ik(hip, ankle, M.thigh, M.shin, 1);
+    const { mid } = ik(hip, ankle, M.thigh, M.shin, (side === 'f' ? pose.kneeF : pose.kneeB) || 1);
     return { hip, knee: mid, ankle, boot, kind, fx, fh };
   };
   const armChain = (arm, sh) => {
@@ -49,14 +60,15 @@ export function composeHuman(rig, pose) {
   };
   const drawLeg = (L, side) => {
     const back = side === 'b';
-    const dk = back ? 1 : 0;
+    const dk = back && !flat ? 1 : 0;
     capsule(g, rig, L.hip, L.knee, M.thighR, 'pants', `thigh_${side}`, { darken: dk, ring: !back });
-    capsule(g, rig, L.knee, L.ankle, M.shinR, 'pants', `shin_${side}`, { darken: dk, ring: !back });
+    // a rig's tall boots: the shin takes the boot's leather
+    capsule(g, rig, L.knee, L.ankle, M.shinR, P.shinFamily || 'pants', `shin_${side}`, { darken: dk, ring: !back });
     stamp(g, L.boot.rows, Math.floor(L.ankle[0]), Math.floor(L.ankle[1]), L.boot.ox, L.boot.oy, `boot_${side}`, { darken: dk, rig });
   };
   const drawArm = (A, side) => {
     const back = side === 'b';
-    const dk = back ? 1 : 0;
+    const dk = back && !flat ? 1 : 0;
     capsule(g, rig, A.sh, A.mid, M.armR, 'jacket', `arm_${side}`, { darken: dk, ring: !back });
     capsule(g, rig, A.mid, A.end, M.foreR, 'jacket', `fore_${side}`, { darken: dk, ring: !back });
     const hk = (side === 'f' ? pose.handF : pose.handB) || 'open';
@@ -72,11 +84,18 @@ export function composeHuman(rig, pose) {
   // draw order: back arm, back leg, torso, front leg, head, front arm
   drawArm(armB, 'b');
   drawLeg(legB, 'b');
-  stamp(g, torsoRows, hipX, hipY, tOx, tOy, 'torso', { shearTop: lean });
-  if (chest) stamp(g, torsoRows.slice(0, tH - 3), hipX, hipY - chest, tOx, tOy, 'torso', { shearTop: lean, shearRows: tH });
+  const overs = pose.rot ? [] : [].concat(P.over || []);
+  const drawTorso = (rows) => {
+    stamp(g, rows, hipX, hipY, tOx, tOy, 'torso', { shearTop: lean });
+    if (chest) stamp(g, rows.slice(0, tH - 3), hipX, hipY - chest, tOx, tOy, 'torso', { shearTop: lean, shearRows: tH });
+  };
+  drawTorso(torsoRows);
+  // badges, belts, cross-belts: drawn as the torso is, so they lean and breathe with it
+  overs.filter((o) => o.torso).forEach((o) => drawTorso(o.rows));
   drawLeg(legF, 'f');
-  // an optional layer over the legs (a skirt, an apron): rigs without one are unchanged
-  if (P.over && !pose.rot) stamp(g, P.over.rows, hipX, hipY, P.over.ox, P.over.oy, 'over', { shearTop: 0 });
+  // layers over the legs (a skirt, an apron, coat tails): the top stays on the hips, the hem lags
+  const tr = pose.trail || 0;
+  if (pose.torso !== 'front') for (const o of overs) if (!o.torso) stamp(g, o.rows, hipX + (o.trail ? tr : 0), hipY, o.ox, o.oy, 'over', { shearTop: o.trail ? -tr : 0 });
   const headRows = P.head[pose.head || 'base'] || P.head.base;
   const hDy = pose.headDy != null ? pose.headDy : pose.hips || 0;
   const headX = neck[0] + (pose.headDx || 0);
@@ -108,6 +127,8 @@ export function composeHuman(rig, pose) {
     body = translateGrid(body, pose.shift[0], pose.shift[1]);
     hat = translateGrid(hat, pose.shift[0], pose.shift[1]);
   }
+  const rim = pose.rim ?? rig.rim;
+  if (rim) rimPass(body, rig, rim);
   outline(body, 'k');
   outline(hat, 'k');
 
