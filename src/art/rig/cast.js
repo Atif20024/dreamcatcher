@@ -308,7 +308,8 @@ const TALK = [
   P({ aF: [40, 55], head: 'base' }),
 ];
 const IDLE = [0, 1, 1, 0].map((c, i) => P({ chest: c, head: i === 3 ? 'blink' : 'base' }));
-const WAVE = [0, 1, 2, 1].map((i) => P({ aF: [150, -20 + i * 25], handF: 'up', head: 'talk' }));
+// out ahead of the brow: a hand straight up would pass behind the head and vanish
+const WAVE = [0, 1, 2, 1].map((i) => P({ aF: [130, -10 + i * 20], handF: 'up', head: 'talk' }));
 const SEATED = { hips: -7, fF: [8, 0, 'flat'], fB: [6, 0, 'flat'], aF: [40, 25], aB: [32, 28], handF: 'flat', handB: 'flat' };
 // foes: the notice (3 frames: the head snaps round, the brow drops, the red
 // glint, then a point), the tell (0.4 s, weight back, arms back then up), the
@@ -427,15 +428,19 @@ export function composeCast(rig, pose, held) {
   const H = HELD[held || pose.prop];
   if (H && comp.attach.hand_f && !pose.noHeld) {
     const [hx, hy] = comp.attach.hand_f;
-    // the hand stays in front of the grip
+    // the hand stays in front of the grip, the face in front of whatever is held
     const keep = [];
-    for (let i = 0; i < g.px.length; i++) if (g.part[i] === 'hand_f') keep.push([i, g.px[i]]);
+    for (let i = 0; i < g.px.length; i++) if (g.part[i] === 'hand_f' || g.part[i] === 'head') keep.push([i, g.px[i]]);
     stamp(g, H.rows, Math.round(hx), Math.round(hy), H.ox, H.oy, 'held');
     for (const [i, ch] of keep) g.px[i] = ch;
   }
   // the hat layer over the head
   const hg = comp.hat;
-  for (let i = 0; i < hg.px.length; i++) if (hg.px[i] && hg.px[i] !== 'k') g.px[i] = hg.px[i];
+  for (let i = 0; i < hg.px.length; i++) {
+    if (!hg.px[i] || hg.px[i] === 'k') continue;
+    g.px[i] = hg.px[i];
+    g.part[i] = 'hat';
+  }
   outline(g, 'k');
   return { grid: g, attach: comp.attach, contacts: comp.contacts };
 }

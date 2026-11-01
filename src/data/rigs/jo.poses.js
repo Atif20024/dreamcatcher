@@ -283,7 +283,7 @@ const SLEEP = [P({ ...SEATED, head: 'sleep', lean: -1 }), P({ ...SEATED, head: '
 const LOOK_UP = [P({ head: 'up', lean: -1 }), P({ head: 'up', lean: -1, chest: 1 })];
 const LAUGH = [0, 1, 0, 1].map((c) => P({ head: 'laugh', chest: c, lean: c ? -1 : 0, aF: [20, 70], aB: [15, 60] }));
 const SHRUG = [P({ aF: [20, 60], aB: [15, 60] }), P({ aF: [35, 95], aB: [30, 95], chest: 1, handF: 'flat', handB: 'flat' }), P({ aF: [35, 100], aB: [30, 100], chest: 1, handF: 'flat', handB: 'flat' })];
-const WAVE = [0, 1, 2, 1].map((i) => P({ aF: [150, -20 + i * 25], handF: 'up', head: 'laugh' }));
+const WAVE = [0, 1, 2, 1].map((i) => P({ aF: [130, -10 + i * 20], handF: 'up', head: 'laugh' }));
 
 export const POSES = {
   idle: IDLE, idle_fidget: IDLE_FIDGET, pockets: POCKETS,
