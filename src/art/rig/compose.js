@@ -37,6 +37,9 @@ const tone = (rig, fam, i) => rig.families[fam][Math.max(0, Math.min(3, i))];
 export function stamp(g, rows, x, y, ox, oy, part, opts = {}) {
   const { flip = false, darken = 0, rig = null, shearTop = 0 } = opts;
   const h = opts.shearRows || rows.length;
+  // a scaled body's hx is fractional (scalePose), and px[fraction] is no pixel at all
+  x = Math.round(x);
+  y = Math.round(y);
   rows.forEach((row, r) => {
     const shift = shearTop ? Math.round((shearTop * (h - 1 - r)) / Math.max(1, h - 1)) : 0;
     [...row].forEach((ch, c) => {
@@ -208,6 +211,13 @@ export function translateGrid(g, dx, dy) {
   if (!dx && !dy) return g;
   const out = grid(g.w, g.h);
   for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (g.px[y * g.w + x]) put(out, x + dx, y + dy, g.px[y * g.w + x], g.part[y * g.w + x]);
+  return out;
+}
+
+// how many opaque pixels each part left on the canvas (the frame check, tests/frames.test.js)
+export function partCounts(g) {
+  const out = {};
+  for (let i = 0; i < g.px.length; i++) if (g.px[i]) out[g.part[i]] = (out[g.part[i]] || 0) + 1;
   return out;
 }
 

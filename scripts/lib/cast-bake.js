@@ -147,7 +147,7 @@ export async function bakeCast(ROOT, store) {
         }
       const ct = comps[i].contacts;
       const contacts = [ct.f, ct.b].filter((c) => c != null).map((c) => (c + M.ax - x0) * S);
-      out.push({ name: f.key, img, pivot, foe: family === 'foe', contacts, trim: true });
+      out.push({ name: f.key, img, pivot, foe: family === 'foe', contacts, trim: true, grid: g, owner: key });
     });
     // the standing height: the plain standing pose, whatever the base frame is
     {

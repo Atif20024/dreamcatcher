@@ -66,11 +66,14 @@ export function composeHuman(rig, pose) {
     capsule(g, rig, L.knee, L.ankle, M.shinR, P.shinFamily || 'pants', `shin_${side}`, { darken: dk, ring: !back });
     stamp(g, L.boot.rows, Math.floor(L.ankle[0]), Math.floor(L.ankle[1]), L.boot.ox, L.boot.oy, `boot_${side}`, { darken: dk, rig });
   };
-  const drawArm = (A, side) => {
+  const drawSleeve = (A, side) => {
     const back = side === 'b';
     const dk = back && !flat ? 1 : 0;
     capsule(g, rig, A.sh, A.mid, M.armR, 'jacket', `arm_${side}`, { darken: dk, ring: !back });
     capsule(g, rig, A.mid, A.end, M.foreR, 'jacket', `fore_${side}`, { darken: dk, ring: !back });
+  };
+  const drawHand = (A, side) => {
+    const dk = side === 'b' && !flat ? 1 : 0;
     const hk = (side === 'f' ? pose.handF : pose.handB) || 'open';
     const hand = P.hands[hk] || P.hands.open;
     if (hk !== 'none') stamp(g, hand.rows, Math.floor(A.end[0]), Math.floor(A.end[1]), hand.ox, hand.oy, `hand_${side}`, { darken: dk, rig });
@@ -81,8 +84,9 @@ export function composeHuman(rig, pose) {
   const armF = armChain(pose.aF, shoulderF);
   const armB = armChain(pose.aB, shoulderB);
 
-  // draw order: back arm, back leg, torso, front leg, head, front arm
-  drawArm(armB, 'b');
+  // draw order: back arm, back leg, torso, front leg, head, front arm (a raised one before the head)
+  drawSleeve(armB, 'b');
+  drawHand(armB, 'b');
   drawLeg(legB, 'b');
   const overs = pose.rot ? [] : [].concat(P.over || []);
   const drawTorso = (rows) => {
@@ -96,20 +100,24 @@ export function composeHuman(rig, pose) {
   // layers over the legs (a skirt, an apron, coat tails): the top stays on the hips, the hem lags
   const tr = pose.trail || 0;
   if (pose.torso !== 'front') for (const o of overs) if (!o.torso) stamp(g, o.rows, hipX + (o.trail ? tr : 0), hipY, o.ox, o.oy, 'over', { shearTop: o.trail ? -tr : 0 });
+  // a sleeve raised above the shoulder goes behind the head, never across the face; the hand stays on top
+  const raised = armF.mid[1] < armF.sh[1];
+  if (raised) drawSleeve(armF, 'f');
   const headRows = P.head[pose.head || 'base'] || P.head.base;
   const hDy = pose.headDy != null ? pose.headDy : pose.hips || 0;
   const headX = neck[0] + (pose.headDx || 0);
   const headY = M.hipY - tOy + P.neckAt[1] - hDy - (pose.lift || 0) - chest;
   const headFlip = !!pose.headFlip;
   stamp(g, headRows, headX, headY, P.headAnchor[0], P.headAnchor[1], 'head', { flip: headFlip });
-  drawArm(armF, 'f');
+  if (!raised) drawSleeve(armF, 'f');
+  drawHand(armF, 'f');
 
   // the hat: its own layer (it lags a frame and takes the shop tint)
   let hatAttach = null;
   if (pose.hat !== false) {
     const h = typeof pose.hat === 'object' ? pose.hat : {};
     const rows = h.q ? rotRows(P.hat.rows, h.q) : P.hat.rows;
-    const hx = headX + (h.dx || 0) + (headFlip ? -P.hat.flipShift : 0);
+    const hx = headX + (h.dx || 0) + (headFlip ? -(P.hat.flipShift || 0) : 0);
     const hy = headY + (h.dy || 0);
     stamp(hatG, rows, hx, hy, P.hat.ox, P.hat.oy, 'hat', { flip: headFlip });
     hatAttach = [hx, hy];

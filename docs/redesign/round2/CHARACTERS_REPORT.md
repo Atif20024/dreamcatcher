@@ -97,3 +97,23 @@ These `jo-contrast` numbers were taken before the last tweak (the sous-chef's to
 - **`foe-roadie`'s load** is not drawn above the shoulder. He keeps the coil.
 - **The dark-room foe strip** is a flat dark colour, not a live room. The rim was not checked next to live foes in the musician's alley.
 - **Sheets:** only `cast-lineup`, `jo-overview`, `jo-climb`, `jo-idle` and `gait-foe-bouncer` are committed, to keep the merge easy. `npm run atlas` rebuilds the rest.
+
+## Headless frames (the frame check)
+
+Marguerite's and Bastien's `-idle#7/#8` had lost head and torso. The cause was in the compositor, not in the costumes: the weight-shift idle (`LOOP_FREE`) sets `hx: -1`, `scalePose` scales it by the body's `k`, and on any body but `m` the hip lands on a fraction. `stamp` then wrote to `px[fraction]`, a property on the array and not a pixel, so every stamped part (torso, costume layers, head, hand) disappeared while the capsule limbs stayed.
+
+`tests/frames.test.js` walks all 5793 baked cast frames (from `bakeCast`, the real images) plus Jo's and Wren's pose tables (154 characters; `~b` foe variants count separately). It flags an opaque height under 80% or an area under 50% of the animation's median, a head under 50% or torso under 33% of the character's fullest, a lost hat, and a wave with no hand. Lying (`rot`) frames skip the size rule.
+
+| Found | Frames | Characters | Fix |
+|---|---|---|---|
+| Head and torso gone | 80 | 40 | `stamp` rounds its position (`compose.js`) |
+| Hat gone on a head-flip (head intact) | 113 | 64 | `P.hat.flipShift` was undefined on cast hats, so x was NaN (`human.js`) |
+| Face hidden by a raised sleeve or held prop | 172 | 88 | A sleeve above the shoulder draws behind the head, the hand stays on top, a held thing never covers the face (`human.js`, `cast.js`) |
+
+The wave's hand then passed behind the head, so `WAVE` now reaches out ahead of the brow, in both `cast.js` and `jo.poses.js`. Jo's and Wren's own frames changed only through the draw order and the wave.
+
+Rule tuning, not bugs: 14 kid torso flags (a swinging arm over a small torso) and 8 size flags on Jo and Wren (lying frames, a narrow frame among reaching ones).
+
+**Not checked:** the `scale-chef` scenario needs a browser, so it was not run. The test reads composition, not `public/atlas`; a one-off pass over the built people packs found no size flags in 5793 frames. Gesture frames (a foe scratching his head, wiping his brow) now show the hand on the head with the sleeve behind it; the sheets were read but not played.
+
+**Sheets committed:** `cast-lineup`, `jo-overview`, `jo-wave`, `wren-wave`, `jo-celebrate`, `jo-climb`. `npm run atlas` rebuilds the rest.
