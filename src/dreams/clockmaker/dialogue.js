@@ -87,7 +87,7 @@ export const CONVERSATIONS = {
     nodes: {
       start: { who: 'keeper', text: 'All four. You hang a wheel like a man who was told. Nobody told you why they were down.', next: 'j1' },
       j1: { who: 'jo', text: 'Nell said they slipped.', next: 'k1' },
-      k1: { who: 'keeper', text: 'They did not slip.', next: 'k2' },
+      k1: { who: 'keeper', text: 'Forty-one years and not one tooth. They did not slip.', next: 'k2' },
       k2: { who: 'keeper', text: 'I took them off. After. I went back up the hill and took them off, one by one, and put the hands back to six. This one I kept.', set: { why_told: true }, end: true },
     },
   },
