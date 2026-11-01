@@ -48,6 +48,21 @@ export class BackdropDirector {
     return r.y0 + ((b && b.horizon) ?? r.h - 3) * T;
   }
 
+  // a room's textures ahead of its build, a layer at a time (the painters and
+  // tex() cache them, so build() then only makes the objects)
+  *prepareSteps(roomId) {
+    const b = this.graph.room(roomId)?.data.backdrop;
+    const set = b && this.sets[b.set];
+    if (!set) return;
+    this.tex(`bdsky:${b.set}`, paintSky(set.sky), true);
+    for (const [i, L] of (set.layers || []).entries()) {
+      yield;
+      this.tex(`bd:${b.set}:${i}`, paintBackdropLayer(L.kind, { ...set.palette, ...(L.palette || {}) }, L.seed || i + 1), true);
+    }
+    yield;
+    if (set.landmark) this.tex(`bdlm:${set.landmark.kind}`, paintLandmark(set.landmark.kind, set.palette), true);
+  }
+
   build(roomId) {
     if (this.live.has(roomId)) return this.live.get(roomId);
     const r = this.graph.room(roomId);

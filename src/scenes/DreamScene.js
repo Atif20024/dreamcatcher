@@ -166,6 +166,7 @@ export default class DreamScene extends BaseLevel {
       flags: () => this.F,
       onSpawn: (e, room) => this.spawnEntity(e, room),
       onBuilt: (room) => this.wireRoom(room),
+      onAhead: (id) => this.backdrop.prepareSteps(id),
     });
     Object.assign(this, this.streamer.grids);
     this.built = {

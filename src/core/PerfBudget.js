@@ -15,6 +15,7 @@ export const BUDGET = Object.freeze({
   backdropLayerW: 1920,
   particles: 300,
   atlasMB: 80, // every pack, RGBA, all loaded at boot (65 MB in SPEED_REPORT)
+  doorFrameMs: 60, // any frame on the way through a doorway (100 to 400 ms before SPEED_REPORT round 2)
   renderList: 800, // objects the camera can see, after the off-screen cull
 });
 

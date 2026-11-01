@@ -5,7 +5,7 @@
 // Static props bake into the room's chunks; `live` props (lights, the clock
 // face an encounter animates) stay display objects. Dreams may add their own
 // props (dream.props) with the same shape; these are the shared ones.
-import { mix, rgba, hex, stamp, dab, gradientV, grain, foliage, trunk, clump } from './paint.js';
+import { mix, rgba, hex, stamp, dab, gradientV, grain, grainSteps, foliage, trunk, clump } from './paint.js';
 
 const P0 = {
   lit: 0xf6dcae, deep: 0x161220, warm: 0xf2b45a, glow: 0xffd88a, iron: 0x2a2630, ironLit: 0x6a6070,
@@ -786,6 +786,14 @@ export function propDef(id, extra = {}) {
 
 // a painted canvas for a prop (cached per id + palette)
 export function paintProp(id, palette = {}, extra = {}) {
+  const it = paintPropSteps(id, palette, extra);
+  let s = it.next();
+  while (!s.done) s = it.next();
+  return s.value;
+}
+
+// the same, a piece at a time
+export function* paintPropSteps(id, palette = {}, extra = {}) {
   const def = propDef(id, extra);
   if (!def) return null;
   const key = `${id}|${JSON.stringify(palette)}`;
@@ -795,7 +803,8 @@ export function paintProp(id, palette = {}, extra = {}) {
   c.height = def.h;
   const ctx = c.getContext('2d');
   def.paint(ctx, def.w, def.h, { ...P0, ...palette });
-  if (def.w * def.h < 120000) grain(ctx, 0, 0, def.w, def.h, 0.05, 11);
+  yield;
+  if (def.w * def.h < 120000) yield* grainSteps(ctx, 0, 0, def.w, def.h, 0.05, 11);
   const out = { def, c };
   cache.set(key, out);
   return out;

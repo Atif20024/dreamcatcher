@@ -12,7 +12,7 @@ import { openLadderTop, addLadderCap } from './ladders.js';
 import { classifyRoom, evaluateDecor, materialMap, seedOf, gridView } from './terrainRules.js';
 import { canvas as mkCanvas, T } from '../art/materials/painters.js';
 import { paintDecor } from '../art/materials/decor.js';
-import { paintProp } from '../art/props.js';
+import { paintProp, paintPropSteps } from '../art/props.js';
 import { paintBackWall, paintFgFrame, washCanvas } from './Enclosure.js';
 import { mix, rgba, hex, stamp, gradientV } from '../art/paint.js';
 
@@ -80,7 +80,16 @@ function drawSpecial(ctx, role, x, y, sheet) {
 
 export const Terrain = {
   // paint every static layer of one room; returns canvases + live things
-  paint(room, lib, { propsExtra = {}, palette = {}, decorIds = [] } = {}) {
+  paint(room, lib, opts) {
+    const it = Terrain.paintSteps(room, lib, opts);
+    let s = it.next();
+    while (!s.done) s = it.next();
+    return s.value;
+  },
+
+  // the same paint, a piece at a time: RoomStreamer spreads it over frames
+  *paintSteps(room, lib, { propsExtra = {}, palette = {}, decorIds = [] } = {}) {
+    let n = 0;
     const grid = room.grid;
     const v = gridView(grid);
     const W = v.w * T;
@@ -99,6 +108,7 @@ export const Terrain = {
     const solidMask = mkCanvas(W, H);
     const sm = solidMask.getContext('2d');
     for (const c of tiles) {
+      if (++n % 16 === 0) yield;
       const sheet = lib.sheet(matAt(c.x, c.y));
       if (c.role === 'climbable') {
         tc.clearRect(0, 0, T, T);
@@ -135,6 +145,7 @@ export const Terrain = {
     m.save();
     m.globalCompositeOperation = 'source-atop';
     for (const c of tiles) {
+      if (++n % 64 === 0) yield;
       if (c.top || c.role !== 'solid') continue;
       const kind = lib.def(matAt(c.x, c.y)).kind;
       if (kind !== 'cobble' && kind !== 'meadow') continue;
@@ -185,6 +196,7 @@ export const Terrain = {
       for (let y = 0; y < v.h; y++) if (v.solid(x, y) && !v.solid(x, y - 1)) tops[x].push(y);
     }
     for (let x = 0; x < v.w; x++) {
+      if (x % 8 === 7) yield;
       for (const y of tops[x]) {
         let run = 0;
         while (y + run < v.h && v.solid(x, y + run)) run++;
@@ -205,16 +217,20 @@ export const Terrain = {
       }
     }
     m.restore();
+    yield;
     // a low-frequency wash so the ground reads as one painted mass, not a grid
     const wash = washCanvas(W, H, seed % 997, 64);
+    yield;
     const wc = wash.getContext('2d');
     wc.globalCompositeOperation = 'destination-in';
     wc.drawImage(solidMask, 0, 0);
+    yield;
     m.globalCompositeOperation = 'overlay';
     m.globalAlpha = 0.55;
     m.drawImage(wash, 0, 0);
     m.globalAlpha = 1;
     m.globalCompositeOperation = 'source-over';
+    yield;
     // the non-solid roles
     for (let y = 0; y < v.h; y++)
       for (let x = 0; x < v.w; x++) {
@@ -230,6 +246,7 @@ export const Terrain = {
     const placed = evaluateDecor(rules, grid, { seed, materialAt: matAt });
     const decorPal = (x, y) => lib.sheet(matAt(x, Math.min(v.h - 1, y + 1))).P;
     for (const d of placed) {
+      if (++n % 8 === 0) yield;
       const art = decor(d.key, { ...decorPal(d.x, d.y), ...palette });
       if (!art) continue;
       const ctx = d.layer === 'fg' ? f : m;
@@ -267,7 +284,8 @@ export const Terrain = {
     const live = [];
     const lights = [];
     for (const p of room.props || []) {
-      const art = paintProp(p.prop, { ...palette, ...(p.palette || {}) }, propsExtra);
+      yield;
+      const art = yield* paintPropSteps(p.prop, { ...palette, ...(p.palette || {}) }, propsExtra);
       if (!art) continue;
       const r = propRect(p, art.def);
       if (art.def.light && p.lit !== false) lights.push({ x: r.x + art.def.light.x * (p.scale || 1), y: r.y + art.def.light.y * (p.scale || 1), r: art.def.light.r, color: art.def.light.color, prop: p });
@@ -275,6 +293,7 @@ export const Terrain = {
     for (const l of room.lights || []) lights.push({ x: (l.x + 0.5) * T, y: (l.y + 0.5) * T, r: l.r || 120, color: l.color || 0xffc070 });
     if (room.enclosure && room.enclosure.backWall) paintBackWall(b, room, { ...P, ...(room.enclosure.palette || {}) }, lights);
     for (const p of room.props || []) {
+      if (++n % 4 === 0) yield;
       const art = paintProp(p.prop, { ...palette, ...(p.palette || {}) }, propsExtra);
       if (!art) continue;
       const r = propRect(p, art.def);
@@ -303,6 +322,7 @@ export const Terrain = {
         b.fillRect(r.x - 10, r.cy - 8, r.w + 20, 12);
       }
     }
+    yield;
     if (room.enclosure) paintFgFrame(f, room, { ...P, ...(room.enclosure.palette || {}) });
     void stamp;
     return { W, H, back, mid, fg, live, lights, decorCount: placed.length };

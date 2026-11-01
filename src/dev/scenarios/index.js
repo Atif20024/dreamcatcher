@@ -60,3 +60,6 @@ SCENARIOS.push(...station);
 // the Astronaut and Writer fixes: the first Board, Priya, the pen and the page gates, the press
 import astroWriter from './astroWriter.js';
 SCENARIOS.push(...astroWriter);
+// SPEED_REPORT round 2: walking into a room never hitches
+import roomEntry from './roomEntry.js';
+SCENARIOS.push(...roomEntry);

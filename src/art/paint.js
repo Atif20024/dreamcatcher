@@ -137,9 +137,16 @@ export function gradientV(ctx, x, y, w, h, stops) {
 
 // paper grain over a region: multiplies by fine noise so nothing reads flat
 export function grain(ctx, x, y, w, h, amount = 0.08, seed = 7, scale = 1) {
+  const it = grainSteps(ctx, x, y, w, h, amount, seed, scale);
+  while (!it.next().done);
+}
+
+// the same, a band of rows at a time (RoomStreamer spreads a room's paint over frames)
+export function* grainSteps(ctx, x, y, w, h, amount = 0.08, seed = 7, scale = 1) {
   const img = ctx.getImageData(x, y, w, h);
   const d = img.data;
   for (let j = 0; j < h; j++) {
+    if (j % 24 === 23) yield;
     for (let i = 0; i < w; i++) {
       const k = (j * w + i) * 4;
       if (d[k + 3] === 0) continue;
