@@ -36,20 +36,22 @@ Soft failure: a late ticket is called back with its progress; a second lateness 
 
 ## Balance (seeded bots, `tests/tickets.test.js`, line at difficulty 0)
 
-| Bot | Rush | Served / bailed | Late | Notes |
+| Bot | Rush | Served / Marguerite took | Late | Burnt |
 |---|---|---|---|---|
-| Expert | about 2:50 | all / 0 | 0 | |
-| Ordinary | about 3:50 | most / 1 | 5 | Upper end of what I want |
-| Slow | about 6:30 | half / 7 | 16 | Still finishes |
+| Expert | 2:39 | 14 / 0 | 0 | 1 |
+| Ordinary | 3:35 | 14 / 0 | 5 | 2 |
+| Slow | 6:30 | 9 / 5 | 15 | 6 |
 
-The bots do not jump, and their burner cost is an estimate, so these show relative difficulty, not real times. Difficulty 1 and 2: dues x0.9 and x0.8, burners every 3 and 2 beats, Luc faster, one more ticket at 2. Estimated total 7 to 10 minutes; **nobody has played it by hand**.
+At difficulty 2 the same bots: expert 2:36, 2 late; ordinary 3:39, 9 late, 1 taken; slow 5:46, 21 late, 9 taken. Every bot finishes at every difficulty on every seed tried.
+
+The bots do not jump, and their burner cost is an estimate, so these show relative difficulty, not real times. Difficulty 1 and 2: dues x0.9 and x0.8, burners every 3 and 2 beats, Luc faster, one more ticket at 2. Estimated total 7 to 10 minutes. **Nobody has played it by hand**, so the feel of the burners, Luc, the climb and the prep clock is untested.
 
 ## Checks
 
-- vitest, lint:content, lint:rooms, lint:scale, vite build: see the commit; all green at the end.
-- Scenarios passing: `chef-board chef-places chef-coins chef-rail chef-pocket chef-hands chef-dining-cut chef-pressures chef-old-run chef-playthrough`, `readability-chef`, `scale-chef`, `jo-*`, `shadow-*`, `restart-*`, `checkpoint-label`, `continue-run`, `arrival-train` and the others that used the chef as a test bed.
-- `chef-playthrough`: yard to CAUGHT by real inputs, invulnerable (so hazards are not in it; `chef-pressures` covers burn, spill and cold).
-- `__dc.readability()` empty in every place with the rail up.
+- vitest (333), lint:content, lint:rooms, lint:scale and vite build all pass.
+- 45 scenarios run in the browser (every one with chef in its id, plus those that used the chef as a test bed): 44 pass. `jo-contrast` fails, listing gambler and evening, which this work didn't touch.
+- `chef-playthrough` passes on its own: yard to CAUGHT by real inputs in about 24 s of stepped time. The bot is invulnerable, so hazards are not in it; `chef-pressures` covers burn, spill and cold. It did all three mise tickets, and sent 13 plates in 166 s of rush with none late.
+- `__dc.readability()` was empty in each place checked with the rail up, and in the dining room.
 
 ## Changed outside the dream
 
@@ -65,7 +67,8 @@ Scenarios moved: `shadow-slope` and `slope-*` to the writer's ramp; `gate-hint-v
 
 ## Known, not fixed
 
-- `panel-frame` fails in both the chef and the astronaut (0 panels found) and `chime-events` fails when run alone (needs an earlier boarding). Neither touches this work; I did not check them against the base.
+- `jo-contrast` reports the chef's candle at 2.17:1 local in the service yard, under the 3:1 bar. It is listed as a dark room, not a failure, and Jo reads fine in the screenshots, but the number is what it is.
+- `panel-frame` passed in the last batch only as the astronaut's; it found 0 panels when run by itself earlier, so treat it as order-dependent. `chime-events` needs an earlier boarding when run alone. I did not check either against the base.
 - `checkpoint-label` skips its "Esc closes" check in framework dreams: under the stepped clock the menu doesn't close, on the gambler too. By hand, real Esc opens and closes the menu in the chef.
 - `BaseLevel.js` still names a `chef-crate` texture that no longer exists; it falls through. Left alone because the feel job owns that file.
 - Audio has never been heard (dev is silent): the new beds, the band keys and the drop at the dining room door need a listening check with the owner.
