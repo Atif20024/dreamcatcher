@@ -433,8 +433,9 @@ export function showdown({
             s.events.push('creep');
           }
         }
-      } else if (s.phase === 'decide' && s.tilt >= TILTED) {
+      } else if (s.phase === 'decide' && s.tilt >= TILTED && !(final && menu()[s.cursor].id === 'stand')) {
         // tilted, the bet creeps up by itself: the cursor drifts to the big bet
+        // (never off STAND UP at the last table: standing up is the dream's catch)
         s.creepT += dt;
         if (s.creepT >= creepMs) {
           s.creepT = 0;
