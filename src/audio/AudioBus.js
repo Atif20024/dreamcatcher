@@ -34,7 +34,7 @@ export const flatGain = (bus) => 1 / ((BUS_REFERENCE[bus] || 1) * (BUS_TRIM[bus]
 // -6 dB under a stinger (50 ms in, 800 ms out); ambience -3 dB under
 // dialogue. A wall (room.music.wall): the music of the room next door,
 // low-passed to 900 Hz and 9 dB down.
-export const DUCK = Object.freeze({ dialogue: { music: 0.63, ambience: 0.71, chatter: 0.5 }, sting: 0.5, wall: { lp: 900, gain: 0.355 } });
+export const DUCK = Object.freeze({ dialogue: { music: 0.63, ambience: 0.71, chatter: 0.5, sfx: 0.71 }, sting: 0.5, wall: { lp: 900, gain: 0.355 } });
 
 // Acoustics (THE MASTER'S LADDER, for every dream): music and ambience pass
 // through one room stage, a low-pass (inside is muffled) and a send into a
@@ -87,10 +87,16 @@ class Buses {
     this.wallNodes = { lp: wallLp, lp2: wallLp2, gain: wallG };
     for (const name of Object.keys(BUS_DEFAULTS)) {
       const g = ctx.createGain();
-      // music, ambience and chatter sound the room; sfx and ui are dry
+      // music, ambience and chatter sound the room; sfx stays clear of its
+      // low-pass but rings in its reverb; ui is dry
       if (name === 'music' || name === 'ambience' || name === 'chatter') {
         const d = ctx.createGain();
         g.connect(d).connect(name === 'music' ? wallLp : room);
+        this.duckers[name] = d;
+      } else if (name === 'sfx') {
+        const d = ctx.createGain();
+        g.connect(d).connect(out);
+        d.connect(this.room.send);
         this.duckers[name] = d;
       } else g.connect(out);
       this.nodes[name] = g;

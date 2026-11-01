@@ -940,6 +940,7 @@ export default class ChefScene extends BaseLevel {
       const active = sinceBlow >= 0 && sinceBlow < 500;
       if (active && Math.abs(this.player.x - v.x) < 20 && Math.abs(this.player.y - v.y) < 30) {
         this.player.body.setVelocityY(-760);
+        this.player.jumpRising = false;
         sfx('steam');
       }
       if (active && sinceBlow < 60) {

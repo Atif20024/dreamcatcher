@@ -2438,6 +2438,7 @@ export default class AstronautScene extends BaseLevel {
         sfx('hurt');
         sfx('thump');
         p.body.setVelocity(Math.sign(p.x - b.x || 1) * 160, -260);
+        p.jumpRising = false;
         b.dead = true;
         b.vx *= -0.25;
         this.time.delayedCall(700, () => this.removeBall(b));

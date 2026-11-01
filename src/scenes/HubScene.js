@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { easeFollow } from '../world/CameraDirector.js';
 import Player from '../entities/Player.js';
 import BaseLevel from './BaseLevel.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
@@ -1401,7 +1402,7 @@ export default class HubScene extends BaseLevel {
       this.showCard(['Paused', '', 'The station keeps the time.', '', '← → walk    hold SHIFT (LB) to run', '', '[E] Back'], null);
       return true;
     }
-    this.cameras.main.followOffset.x = this.player.flipX ? 48 : -48;
+    easeFollow(this.cameras.main, this.player, this.game.loop.delta);
     return false;
   }
 

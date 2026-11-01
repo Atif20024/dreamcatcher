@@ -841,7 +841,7 @@ export default class DreamScene extends BaseLevel {
       this.updateChase(time);
       if (this.look) this.look.update(time, dt, null);
       if ((this._cullTick = (this._cullTick || 0) + 1) % 15 === 1) this.cullCoins();
-      this.perf.update();
+      if (import.meta.env.DEV) this.perf.update(); // (sample() still answers the scenarios)
     };
     if (this.sceneBox.active) {
       this.sceneBox.update(dt);

@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { GRAVITY } from './entities/motion.js';
+import { shakeScale } from './world/CameraDirector.js';
 import HubScene from './scenes/HubScene.js';
 import TitleScene from './scenes/TitleScene.js';
 import IntroScene from './scenes/IntroScene.js';
@@ -40,9 +42,12 @@ window.game = new Phaser.Game({
   physics: {
     default: 'arcade',
     arcade: {
-      gravity: { y: 1200 },
+      gravity: { y: GRAVITY },
     },
   },
+  // a hitch costs at most 3 physics steps, not 12: below 20 fps the game slows
+  // rather than leaping Jo across the room
+  fps: { min: 20 },
   // the game opens on the title (Continue / New game / Settings), then the
   // station's front steps.
   // ?at=<phase> is a dev warp straight into the astronaut dream (see
@@ -58,6 +63,12 @@ window.game = new Phaser.Game({
 });
 
 window.game.registry.set('firstScene', firstKey);
+
+// every shake in the game (a dozen scenes call it) obeys the Reduced shake setting
+const cameraShake = Phaser.Cameras.Scene2D.Camera.prototype.shake;
+Phaser.Cameras.Scene2D.Camera.prototype.shake = function (ms, intensity, ...rest) {
+  return cameraShake.call(this, ms, (intensity ?? 0.05) * shakeScale(), ...rest);
+};
 
 // dev-only harness (window.__dc); stripped from production builds
 if (import.meta.env.DEV) import('./dev/harness.js');
