@@ -6,13 +6,6 @@
 // is a line on the board that isn't running yet (see HubScene.board()).
 // livery: [body, trim, window] colours + an emblem, so no two trains match.
 // conductor: the question asked at the door before Jo commits to the journey.
-// Phase 3b: THE BIG STAGE plays on the framework (DreamScene, src/dreams/
-// musician/). ?legacy=1 boards the old MusicianScene instead, for comparison.
-export const LEGACY_MUSICIAN = typeof window !== 'undefined' && !!window.location && new URLSearchParams(window.location.search).get('legacy') === '1';
-// the painter likewise: THE MASTER'S LADDER, or with ?legacy=1 THE YELLOW HOUSE
-export const LEGACY_PAINTER = LEGACY_MUSICIAN;
-// and the gambler: THE LAST HAND aboard the Lantern Queen, or with ?legacy=1 the neon casino
-export const LEGACY_GAMBLER = LEGACY_MUSICIAN;
 
 export const DREAMS = [
   {
@@ -23,7 +16,7 @@ export const DREAMS = [
     roLine: "Kitchen grease. You've been somewhere hot. Sit, I'll get it off.",
   },
   {
-    id: 'musician', platform: 2, title: 'THE BIG STAGE', scene: LEGACY_MUSICIAN ? 'Musician' : 'Dream', propsKind: 'posters', ambientLoop: 'tuning',
+    id: 'musician', platform: 2, title: 'THE BIG STAGE', scene: 'Dream', propsKind: 'posters', ambientLoop: 'tuning',
     coin: { name: 'busker coin', worth: 1, budget: [120, 150], pal: { c: 0x8a5a34, C: 0xc08a50, h: 0xe8c090 } },
     livery: { body: 0x1e2a4a, trim: 0xc4a25c, window: 0x88b8d8, emblem: 'trumpet' },
     conductor: 'The Big Stage. A cellar on a Tuesday, a festival on Saturday, eleven minutes in the lights.\nDo you still want to be heard that badly?',
@@ -43,11 +36,9 @@ export const DREAMS = [
     roLine: 'Ink on your fingers. And you look like you slept at a desk.',
   },
   {
-    // THE MASTER'S LADDER (src/dreams/painter/, DreamScene) replaced THE
-    // YELLOW HOUSE; ?legacy=1 boards the old PainterScene. The save flag
-    // (dreams.painter) is the same id.
-    id: 'painter', platform: 5, title: LEGACY_PAINTER ? 'THE YELLOW HOUSE' : "THE MASTER'S LADDER", scene: LEGACY_PAINTER ? 'Painter' : 'Dream', propsKind: 'easels', ambientLoop: LEGACY_PAINTER ? 'cicadas' : 'rn_street',
-    coin: LEGACY_PAINTER ? { name: 'tube cap', worth: 2, budget: [100, 120], pal: { c: 0xb8862c, C: 0xf2d060, h: 0xfff2a0 } } : { name: 'giglio', worth: 3, budget: [80, 100], pal: { c: 0xa87a24, C: 0xe8c050, h: 0xfff0b0 } },
+    // THE MASTER'S LADDER (src/dreams/painter/, DreamScene)
+    id: 'painter', platform: 5, title: "THE MASTER'S LADDER", scene: 'Dream', propsKind: 'easels', ambientLoop: 'rn_street',
+    coin: { name: 'giglio', worth: 3, budget: [80, 100], pal: { c: 0xa87a24, C: 0xe8c050, h: 0xfff0b0 } },
     livery: { body: 0x22408a, trim: 0xd8a840, window: 0xf2d8a0, emblem: 'lily' },
     conductor: "The Master's Ladder. A city of workshops, one chapel, and a contest at the bell.\nYou start by sweeping the floor, sir. Are you ready to climb?",
     roLine: 'Gold under your nails. And lime. You were up a scaffold somewhere.',
@@ -61,13 +52,12 @@ export const DREAMS = [
   },
   {
     // THE LAST HAND (src/dreams/gambler/, DreamScene): the Lantern Queen on
-    // the Verrane, 1884, Lou Verrick's dream. ?legacy=1 boards the old neon
-    // casino (GamblerScene). The save flag (dreams.gambler) is the same id.
-    id: 'gambler', platform: 7, title: 'THE LAST HAND', scene: LEGACY_GAMBLER ? 'Gambler' : 'Dream', propsKind: 'chips', ambientLoop: LEGACY_GAMBLER ? 'slots' : 'gm_quay',
-    coin: LEGACY_GAMBLER ? { name: 'chip', worth: 25, budget: [40, 50], pal: { c: 0xa8243a, C: 0xe84a5a, h: 0xf8d0c0 } } : { name: 'half dime', worth: 5, budget: [40, 55], hud: 'HALF DIMES', shape: 'round', pal: { c: 0x4e4e5c, C: 0xd8d8e2, h: 0xffffff } },
-    livery: LEGACY_GAMBLER ? { body: 0x12101a, trim: 0xe03a8a, window: 0xf2c078, emblem: 'spade' } : { body: 0x5a1e26, trim: 0xd8c8a0, window: 0xf2c078, emblem: 'spade' },
-    conductor: LEGACY_GAMBLER ? 'The Last Hand. A casino that never closes, and one chip in your pocket.\nTonight is the night, sir. It always is. Still boarding?' : "The Last Hand. A riverboat, a hundred dollars, and a night that ends at the landing.\nThe hard part, sir, is getting up from the table. Still boarding?",
-    roLine: LEGACY_GAMBLER ? 'Cigar smoke and carpet. And your horn case is light. Sit.' : 'River fog on your coat, and lamp oil. Sit. Did you get up in time?',
+    // the Verrane, 1884, Lou Verrick's dream.
+    id: 'gambler', platform: 7, title: 'THE LAST HAND', scene: 'Dream', propsKind: 'chips', ambientLoop: 'gm_quay',
+    coin: { name: 'half dime', worth: 5, budget: [40, 55], hud: 'HALF DIMES', shape: 'round', pal: { c: 0x4e4e5c, C: 0xd8d8e2, h: 0xffffff } },
+    livery: { body: 0x5a1e26, trim: 0xd8c8a0, window: 0xf2c078, emblem: 'spade' },
+    conductor: "The Last Hand. A riverboat, a hundred dollars, and a night that ends at the landing.\nThe hard part, sir, is getting up from the table. Still boarding?",
+    roLine: 'River fog on your coat, and lamp oil. Sit. Did you get up in time?',
   },
   {
     id: 'doctor', platform: 8, title: 'THE WHITE COAT', propsKind: 'lockers', ambientLoop: 'monitors',

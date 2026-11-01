@@ -1,5 +1,5 @@
 // The cast bake (round 2 WP2): every person texture the scenes use — hub
-// regulars, the Evening's town, the writer's/painter's/gambler's people,
+// regulars, the Evening's town, the writer's people, the framework dreams' people,
 // musician and astronaut NPCs, every human foe — rebuilt as a rig at Jo's
 // scale (src/art/rig/cast.js) and baked under the SAME keys, plus the new
 // animation frames (idle, talk, wave; for foes alert, windup, grab, throw,
@@ -22,8 +22,6 @@ export async function bakeCast(ROOT, store) {
   const { CAST_BODIES } = await imp('src/data/scale.js');
   const ev = await imp('src/data/evening/cast.js');
   const wr = await imp('src/data/writer/cast.js');
-  const pt = await imp('src/data/painter/cast.js');
-  const gm = await imp('src/data/gambler/cast.js');
   const { HUB_PEOPLE, HUB_PROP_KEYS } = await imp('src/entities/hubArt.js');
   const props = new Set(HUB_PROP_KEYS); // 'hub-kite' is the kite, not the kid
   const { PEOPLE: FOE_PEOPLE } = await imp('src/entities/foeArt.js');
@@ -35,8 +33,6 @@ export async function bakeCast(ROOT, store) {
   for (const [id, def] of Object.entries(ev.CAST)) list.push([`ev-p-${id}`, def.look, 'people']);
   ev.EXTRAS.forEach((look, i) => list.push([`ev-x-${i}`, look, 'people']));
   for (const [id, look] of Object.entries(wr.PEOPLE)) list.push([`wr-p-${id}`, look, 'people']);
-  for (const [id, look] of Object.entries(pt.PEOPLE)) list.push([`pt-p-${id}`, look, 'people']);
-  for (const [id, look] of Object.entries(gm.PEOPLE)) list.push([`gm-p-${id}`, look, 'people']);
   for (const [id, def] of Object.entries(HUB_PEOPLE)) list.push([`hub-${id}`, def, 'hub']);
   list.push(['hub-traveler', { hat: 'cap', held: 'case', pal: { H: 0x3a3a44, S: 0x9a8a80, T: 0x4a4a56, P: 0x3a3a44, B: 0x1e1e28, A: 0x5a4a3a } }, 'traveler']);
   for (const [key, def] of Object.entries(FOE_PEOPLE)) list.push([key, { ...def.art.look, pal: def.pal }, 'foe']);
@@ -48,14 +44,11 @@ export async function bakeCast(ROOT, store) {
   // THE LAST HAND: the Lantern Queen's people, 1884 (src/dreams/gambler/people.js)
   const lq = await imp('src/dreams/gambler/people.js');
   for (const [key, look] of Object.entries(lq.PEOPLE)) list.push([key, look, 'people']);
-  list.push(['npc-kid', { kid: true, pal: { H: 0xc03a2a, S: 0x8a5a3b, T: 0xe8a030, t: 0xb87820, P: 0x3a5a80, B: 0x2a2a32 } }, 'npc']);
-  list.push(['mus-critic', { pal: { H: 0x9a9aa8, S: 0xc8a888, T: 0x4a4a5a, t: 0xd8d8d8, P: 0x2a2a34, B: 0x1e1e28 } }, 'npc']);
 
   const out = []; // { name, img, pivot, pack }
   const report = [];
   const gaits = {};
   const { NO_RUN, IDLE_FPS } = await imp('src/art/rig/gaits.js');
-  const RUNNERS = new Set(['pt-p-paul']);
   // foes get a second look (variant 'b') so a line of them never reads as clones
   const variants = [];
   for (const [key, look, family] of list) if (family === 'foe') variants.push([`${key}~b`, look, 'foe', key]);
@@ -67,8 +60,8 @@ export async function bakeCast(ROOT, store) {
     const rig = castRig(look, spec);
     const held = spec.held || look.held || null;
     const P = castPoses(rig, held, { key: specKey });
-    // runs: every foe that moves, the npc movers and the painter's Paul
-    const hasRun = (family === 'foe' && !NO_RUN.has(specKey)) || family === 'npc' || RUNNERS.has(specKey);
+    // runs: every foe that moves and the npc movers
+    const hasRun = (family === 'foe' && !NO_RUN.has(specKey)) || family === 'npc';
     const seq = (name, poses, h = held) => poses.map((p) => ({ pose: p, held: h, name }));
     // the frame map: [texture key, pose, held]
     const frames = [];

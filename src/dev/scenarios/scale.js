@@ -14,7 +14,7 @@ import { atlasIndex } from '../../art/baked.js';
 const PLACES = [
   ['hub', null], ['chef', null], ['musician', null], ['astronaut', 'gym'], ['writer', 'attic'], ['painter', 'via'], ['gambler', 'quay'], ['evening', 'square'], ['clockmaker', 'start'],
 ];
-const PERSON = /^(hub-|ev-p-|ev-x-|wr-p-|pt-p-|gm-p-|npc-|foe-|mus-critic)/;
+const PERSON = /^(hub-|ev-p-|ev-x-|wr-p-|npc-|foe-)/;
 const BODY = { m: 'adult', f: 'adult', big: 'big', elderly: 'elderly', teen: 'teen', child: 'child' };
 const DOORS = new Set(Object.keys(PROP_TABLE).filter((k) => /door/.test(PROP_TABLE[k]) || PROP_TABLE[k] === 'door'));
 
@@ -94,7 +94,7 @@ export function measureScale(sc) {
     const h = Math.round(opaqueH(o) * Math.abs(o.scaleY));
     const at = { key, x: Math.round(o.x), y: Math.round(o.y), h };
     if (isPerson) {
-      if (seated.has(key) || /\/hat$/.test((o.frame && o.frame.name) || '') || /-(sit|sitlaugh)$|^mus-critic|-throw|-windup|-grab/.test(key) || Math.abs(o.angle) > 12 || (o.frame && /sit|sleep|death|float/.test(o.frame.name))) {
+      if (seated.has(key) || /\/hat$/.test((o.frame && o.frame.name) || '') || /-(sit|sitlaugh)$|-throw|-windup|-grab/.test(key) || Math.abs(o.angle) > 12 || (o.frame && /sit|sleep|death|float/.test(o.frame.name))) {
         skipped.push({ ...at, why: 'pose' });
         continue;
       }

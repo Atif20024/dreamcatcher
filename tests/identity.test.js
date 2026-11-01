@@ -33,7 +33,7 @@ describe('identity (critique §9)', () => {
     expect(placeOf({ sys: { settings: { key: 'Dream' } }, dreamId: 'clockmaker' })).toBe('clockmaker');
     expect(placeOf({ sys: { settings: { key: 'Intro' } }, levelKey: 'gambler' })).toBe('gambler');
     expect(placeOf('Nowhere')).toBe('hub');
-    expect(accentOf('Painter')).toBe(0xe8b830);
+    expect(accentOf('painter')).toBe(0xe8b830);
     const r = rimOf('hub');
     expect(r).toBeGreaterThan(PLACES.hub.warm & 0xff0000);
   });

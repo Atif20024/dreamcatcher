@@ -340,33 +340,7 @@ export const REDRAW = {
   'wr-piano': ['piano', {}, { W: 0x3a2418, w: 0x2a1810, S: 0xf2ece0, d: 0x1a1210, k: 0x1a1a20 }],
   'wr-washer': ['washer', {}, { S: 0xe8e4d8, s: 0xb8b4a8, M: 0x8a8a94, G: 0x88a8c8, k: 0x2a2a30, K: 0xc03a2a }],
   'wr-lectern': ['lectern', {}, WOOD],
-  // the painter (the house fronts, the café front and the trees are WP4)
-  'pt-bench': ['bench', {}, { W: 0x9a9aa4, w: 0x6a6a72, M: 0x1f3a5f, m: 0x152a48 }],
-  'pt-table': ['table', {}, pal(WOOD, { W: 0xc89a4a, w: 0x8a6a3a })],
-  'pt-chair': ['chair', {}, { W: 0xe8c060, w: 0xb8903a }],
-  'pt-desk': ['desk', {}, pal(WOOD, { W: 0x8a6a4a })],
-  'pt-lamp': ['lamp', {}, { M: 0x1f3a5f, m: 0x152a48, Y: 0xf2d060 }],
-  'pt-bed': ['bed', {}, { W: 0xc89a4a, w: 0x8a6a3a, S: 0xd84a3a, Y: 0xf2ece0 }],
-  'pt-cot': ['bed', { len: 1.8, high: 0.45 }, { W: 0x8a8a94, w: 0x5a5a62, S: 0xd8d0c0, Y: 0xf2ece0 }],
-  'pt-easel': ['easel', { blank: true }, { W: 0xb8884a, w: 0x7a5a32, S: 0xf2ece0, Y: 0xf2ece0, R: 0xe8e0d0 }],
-  'pt-stove': ['stove', {}, { M: 0x2a2a30, m: 0x18181e, Y: 0xe8a030 }],
-  'pt-stove_north': ['stove', {}, { M: 0x2a2a30, m: 0x18181e, Y: 0xe8a030 }],
-  'pt-cart': ['cart', {}, pal(WOOD, IRON, { W: 0x9a7a4a })],
-  'pt-fountain': ['fountain', { len: 3, high: 2 }, { S: 0xd8c8a0, s: 0xa8987a, G: 0x6a9ad8 }],
-  // the gambler
-  'gm-lamp-post': ['lamp', {}, pal(STREET, { Y: 0xf2b060 })],
-  'gm-car': ['car', {}, { R: 0x6a2a3a, r: 0x4a1a28, G: 0x9ab0c8, Y: 0xf2e0a0, d: 0x1a1a20, S: 0xc8c8d0, k: 0x14141a, M: 0x5a5a62, m: 0x2a2a30 }],
-  // (gm-van stays: it is a moving platform Jo rides, 27 px tall; a 2 m van
-  // would be out of jump reach until the carpark is rebuilt — WP2 report)
-  'gm-door': ['door', { revolve: true, wide: 2.0, high: 2.4 }, { F: 0x3a2a1a, D: 0x2a1a30, d: 0x1a1020, G: 0x4a3a5a, K: 0xe9b84a }],
-  'gm-staffdoor': ['door', {}, { F: 0x2a2a30, D: 0x4a4a56, d: 0x32323c, K: 0xe9b84a }],
-  'gm-firedoor': ['door', { bar: true }, { F: 0x2a2a30, D: 0x8a2a24, d: 0x6a1e1a, M: 0xc8c8d0, K: 0xe9b84a }],
-  'gm-videopoker': ['slot', {}, { R: 0xa8243a, M: 0x2a2a36, m: 0x1a1a22, k: 0x0e0e14, Y: 0xe9b84a, K: 0xe84a5a }],
-  'gm-piano': ['piano', {}, { W: 0x14141a, w: 0x0a0a0e, S: 0xf2ece0, d: 0x08080a, k: 0x1a1a20 }],
-  'gm-valet': ['stand', {}, { W: 0x2a1a1a, R: 0xa8243a, r: 0x6e1e2c, K: 0xe9b84a }],
-  'gm-fountain': ['fountain', { len: 3.6, high: 1.8 }, { S: 0xd8d0c0, s: 0xa8a090, G: 0x6ab8d8 }],
   // the musician / astronaut
-  'mus-chair': ['chair', {}, { W: 0x6a4a32, w: 0x4a3222 }],
   'astro-desk': ['desk', {}, { W: 0xb8b8c0, w: 0x8a8a94, d: 0x4a4a54, K: 0x3a5a80 }],
   // the hub (doors, booths, kiosk and trains are WP3)
   'hub-bench': ['bench', {}, pal(WOOD, IRON)],

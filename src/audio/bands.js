@@ -93,55 +93,6 @@ export const BANDS = {
       danger: { voice: 'heartbeat', every: 2, freqs: [55], vol: 0.06 },
     },
   },
-  // the casino: smoky lounge swing, 50s, F Dorian, vibes and a slow horn
-  gambler: {
-    bpm: 124,
-    gain: 0.6,
-    ref: 96,
-    root: F2,
-    mode: 'dorian',
-    parts: {
-      bass: { voice: 'upright', every: 1, walk: [0, 2, 3, 4, 5, 4, 3, 1], oct: 1, vol: 0.15 },
-      brushes: { voice: 'brush', every: 2, offset: 1, vol: 0.14, swing: 0.17 },
-      piano: { voice: 'vibes', every: 4, chord: [0, 2, 4, 6], oct: 4, vol: 0.03 },
-      trumpet: { voice: 'soft_trumpet', every: 4, motif: [10, 12, 15, 12, 10, 7, 5, 7], oct: 4, vol: 0.05 },
-      pad: { voice: 'pad', every: 8, chord: [0, 4], oct: 2, vol: 0.06 },
-      danger: { voice: 'throb', every: 1, freqs: [F2 / 2], vol: 0.05 },
-    },
-  },
-  // the old Musician scene (?legacy=1): rain-night jazz noir, D Dorian
-  musician: {
-    bpm: 96,
-    gain: 1.0,
-    ref: 100,
-    root: D2,
-    mode: 'dorian',
-    parts: {
-      bass: { voice: 'upright', every: 1, walk: [0, 2, 4, 3, 4, 2, 1, 0], oct: 1, vol: 0.15 },
-      brushes: { voice: 'brush', every: 2, offset: 1, vol: 0.13, swing: 0.16 },
-      piano: { voice: 'rhodes', every: 4, chord: [0, 2, 4, 6], oct: 4, vol: 0.03 },
-      trumpet: { voice: 'muted_trumpet', every: 2, motif: [12, 15, 17, null, 15, 12, 10, null], oct: 4, vol: 0.05 },
-      pad: { voice: 'pad', every: 8, chord: [0, 4], oct: 2, vol: 0.06 },
-      danger: { voice: 'throb', every: 1, freqs: [D2 / 2], vol: 0.05 },
-    },
-  },
-  // the old Yellow House (?legacy=1) keeps the swing band it was written
-  // for, its trumpet now filtered
-  painter: {
-    bpm: 100,
-    gain: 1.0,
-    ref: 100,
-    root: G2,
-    mode: 'ionian',
-    parts: {
-      bass: { voice: 'bass', every: 1, walk: [0, 1, 2, 3, 4, 3, 2, 1], oct: 1, vol: 0.18 },
-      brushes: { voice: 'brush', every: 2, offset: 1, vol: 0.14 },
-      piano: { voice: 'piano', every: 4, chord: [3, 5, 7, 9], oct: 2, vol: 0.035 },
-      trumpet: { voice: 'radio_horn', every: 2, motif: [12, 14, 17, 19], oct: 2, vol: 0.05 },
-      pad: { voice: 'pad', every: 8, chord: [3], oct: 1, vol: 0.06 },
-      danger: { voice: 'throb', every: 1, freqs: [G2 / 2], vol: 0.05 },
-    },
-  },
   // the Evening composes its own music (systems/soundscape.js Ensemble):
   // the director only keeps the beat
   evening: { bpm: 76, ref: 76, root: D2, mode: 'ionian', parts: {} },

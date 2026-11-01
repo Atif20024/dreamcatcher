@@ -15,7 +15,6 @@
 //      … then work lights, the crew, the chair, the dream.
 // The rhythm engine is src/engines/rhythm.js; the trumpet is the verb ([Q]).
 // Dev: ?warp=musician:start | :alley | :cellar | :backstage | :escape | :stage
-//      (?legacy=1 plays the old MusicianScene for comparison).
 import street from './rooms/street.js';
 import alley from './rooms/alley.js';
 import cellar from './rooms/cellar.js';

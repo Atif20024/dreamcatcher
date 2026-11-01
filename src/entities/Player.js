@@ -168,7 +168,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       /* no save */
     }
     this.tool = scene.add
-      .image(x, y, scene.scene.key === 'Musician' ? 'tool-trumpet' : 'tool-ladle')
+      .image(x, y, 'tool-ladle')
       .setDepth(13)
       .setAlpha(0.95);
     this.lastPos = { x, y };

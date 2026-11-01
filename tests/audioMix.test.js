@@ -65,7 +65,6 @@ const PLACES = {
   chef_kitchen: { band: 'chef', state: 'explore', boost: { bass: 1 }, loops: { sizzle: 1 }, bed: 'kitchen', acoustics: 'room', bpm: 110 },
   writer_attic: { band: 'writer', state: 'quiet', loops: { typewriter: 1 }, bed: 'writer', acoustics: 'room', bpm: 84 },
   astronaut_hull: { band: 'astronaut', state: 'quiet', boost: { bass: 1 }, loops: { engines: 1 }, bed: 'orbit', acoustics: 'hull', bpm: 72 },
-  gambler_floor: { band: 'gambler', state: 'explore', loops: { slots: 1 }, bed: 'casino', acoustics: 'room', bpm: 112 },
   evening: { evening: true, bed: null, acoustics: 'open' },
 };
 

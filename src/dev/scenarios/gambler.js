@@ -6,7 +6,6 @@
 //                        objective, a board title, under budget, only it and
 //                        its neighbours live, its own music key, loop and acoustics
 //   gambler-coins        40–55 half dimes placed, worth 5 each
-//   gambler-legacy       ?warp=gambler_legacy still plays the neon casino
 //   gambler-quay         Lou, then the slate by real input (buy-in, down $N,
 //                        up $N at the tables), the purse and the HUD slate;
 //                        the saloon door opens
@@ -337,18 +336,6 @@ const coins = {
     clearRun('gambler');
     const pass = placed >= d.coin.budget[0] && placed <= d.coin.budget[1] && s.levelCoins >= 1 && gained === s.levelCoins * d.coin.worth && d.coin.worth === 5;
     return { pass, detail: { placed, budget: d.coin.budget, gained, levelCoins: s.levelCoins } };
-  },
-};
-
-const legacy = {
-  id: 'gambler-legacy',
-  async run(dc) {
-    dc.warp('gambler_legacy', 'arrival');
-    for (let i = 0; i < 100 && keyOf(dc) !== 'Gambler'; i++) await dc.run(2);
-    await dc.run(30);
-    const k = keyOf(dc);
-    clearRun('gambler');
-    return { pass: k === 'Gambler', detail: { scene: k } };
   },
 };
 
@@ -775,4 +762,4 @@ const playthrough = {
   },
 };
 
-export default [board, places, coins, legacy, quayScenario, saloonScenario, cardsScenario, tiltScenario, officeScenario, deckScenario, playthrough];
+export default [board, places, coins, quayScenario, saloonScenario, cardsScenario, tiltScenario, officeScenario, deckScenario, playthrough];
