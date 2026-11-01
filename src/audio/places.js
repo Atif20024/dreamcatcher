@@ -33,7 +33,11 @@ export const BEDS = {
   writer_street: bed(['traffic', 9, 16, 0.7], ['horn', 25, 50, 0.5], ['drain', 15, 30, 0.6]),
   orbit: bed(['console_beep', 4, 9], ['relay', 10, 20], ['airlock', 25, 45, 0.8], ['radio_chirp', 15, 30]),
   campus: bed(['bird', 6, 12, 0.7], ['console_beep', 10, 20, 0.6], ['door', 15, 30, 0.6]),
-  casino: bed(['chips', 3, 7], ['slot_jingle', 8, 15], ['win_bell', 25, 45, 0.8], ['shuffle', 10, 20], ['dice', 12, 24], ['cheer', 30, 50, 0.5]),
+  // THE LAST HAND: the Lantern Queen. On deck the river; below, the wheel through the hull
+  river: bed(['paddle_wheel', 14, 28, 0.7], ['steam_whistle', 40, 80, 0.7], ['deck_bell', 35, 70, 0.6], ['bird', 8, 16, 0.7], ['swifts', 20, 40, 0.5]),
+  boat_saloon: bed(['glass_clink', 5, 11], ['chips', 8, 16, 0.8], ['shuffle', 14, 26, 0.7], ['laugh', 12, 24, 0.7], ['paddle_wheel', 20, 40, 0.5], ['steam_whistle', 60, 110, 0.4]),
+  boat_cards: bed(['shuffle', 7, 14], ['chips', 6, 12, 0.8], ['chair_scrape', 18, 34, 0.6], ['paddle_wheel', 25, 45, 0.4]),
+  boat_cabin: bed(['paddle_wheel', 16, 30, 0.5], ['deck_bell', 40, 80, 0.4], ['steam_whistle', 50, 90, 0.5]),
   // the unlaunched dreams' loops have their beds ready too
   stadium: bed(['starter_pistol', 20, 40], ['cheer', 8, 16]),
   ward: bed(['pager', 15, 30], ['door', 20, 40, 0.6], ['trolley', 25, 50, 0.6]),
@@ -93,7 +97,7 @@ export const LEGACY_ROOMS = {
 };
 
 // a place's default bed, when a room names none
-export const PLACE_BED = { hub: 'hub', chef: 'kitchen', writer: 'writer', astronaut: 'orbit', gambler: 'casino', clockmaker: 'green', musician: 'rain', painter: null, evening: null };
+export const PLACE_BED = { hub: 'hub', chef: 'kitchen', writer: 'writer', astronaut: 'orbit', gambler: 'river', clockmaker: 'green', musician: 'rain', painter: null, evening: null };
 
 export function legacyRoom(place, roomId) {
   const t = LEGACY_ROOMS[place];

@@ -47,7 +47,8 @@ export default class GateSigns {
   update(gates, flags, shown = null) {
     for (const s of this.signs.values()) {
       const vis = !shown || !s.g.room || s.g.room === shown;
-      for (const o of s.objs) o.setVisible(vis);
+      // not the text the zoom rule has hidden (src/ui/text.js): it shows it again itself
+      for (const o of s.objs) if (!(o.dc && o.dc.zoomHidden)) o.setVisible(vis);
     }
     for (const g of gates) {
       if (!g.hint || !(g.requires && g.requires.length)) continue;

@@ -45,6 +45,7 @@ export default {
   light: { tint: 0xf2e6d4 },
   backdrop: null,
   ambience: 'gm_office',
+  events: 'boat_cabin',
   acoustics: 'room',
   music: { state: 'quiet', key: 'office' },
   objective: [{ text: 'corridor' }],

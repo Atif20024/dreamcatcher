@@ -60,6 +60,7 @@ export default {
   light: { tint: 0xf0e8d8 },
   backdrop: null,
   ambience: 'gm_cards',
+  events: 'boat_cards',
   acoustics: 'room',
   music: { state: 'quiet', key: 'cards' },
   objective: [

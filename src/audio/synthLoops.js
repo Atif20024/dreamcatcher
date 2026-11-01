@@ -181,14 +181,6 @@ export const LOOPS = {
     addTone(buf, sr, 5.4, 0.12, 1600, 0.04);
     return seamless(buf, sr, 0.1);
   },
-  cicadas(sr) {
-    const r = rng(24);
-    const n = sr * 6;
-    const buf = new Float32Array(n);
-    const b = band(n, r, 0.4, 0.95);
-    mixInto(buf, b, 0.08, (i) => 0.5 + 0.5 * Math.sin((i / sr) * 2 * Math.PI * 28) * (0.6 + 0.4 * Math.sin((i / n) * Math.PI * 2)));
-    return seamless(buf, sr);
-  },
   engines(sr) {
     const r = rng(25);
     const n = sr * 6;

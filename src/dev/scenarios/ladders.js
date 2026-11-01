@@ -57,6 +57,16 @@ async function walkTo(dc, s, x, max = 900) {
   return Math.abs(p.x - x) < 24;
 }
 
+// A foe's first notice opens a card (SHOVE, SLIDE UNDER) that freezes Jo until
+// a key is pressed; only a first visit on a clean save hits it. The held climb
+// key is no new keydown, so press one, as a player does, and climb on.
+async function play(dc, s, n) {
+  for (let i = 0; i < n; i++) {
+    if (s.tutorialActive) dc.press('enter', 1);
+    await dc.run(1);
+  }
+}
+
 // hold up/down until Jo has climbed off the ladder and stands on something
 async function climb(dc, s, dir, max = 600) {
   const p = s.player;
@@ -64,7 +74,7 @@ async function climb(dc, s, dir, max = 600) {
   let was = false;
   let f = 0;
   for (; f < max; f++) {
-    await dc.run(1);
+    await play(dc, s, 1);
     if (p.climbing) was = true;
     if (was && grounded(p)) break;
   }
@@ -225,27 +235,27 @@ async function bothWays(dc, sc, l, label) {
   sc.invulnUntil = sc.time.now + 1e6;
   // 1. up from the foot
   putFeet(sc, x, floorLine);
-  await dc.run(20);
+  await play(dc, sc, 20);
   const up = await climb(dc, sc, 'up', ceiling ? 120 : 600);
   if (ceiling && p.climbing) {
     dc.press('jump', 1);
-    await dc.run(30);
+    await play(dc, sc, 30);
   }
-  await dc.run(20);
+  await play(dc, sc, 20);
   const top = ceiling ? up.climbed : Math.abs(p.body.bottom - headLine) < 8 && grounded(p);
   // 2. and back down from the top
   putFeet(sc, x, headLine);
-  await dc.run(20);
+  await play(dc, sc, 20);
   let downOk;
   if (ceiling) {
     dc.hold('down');
-    await dc.run(40);
+    await play(dc, sc, 40);
     dc.release('down');
-    await dc.run(10);
+    await play(dc, sc, 10);
     downOk = !p.climbing && grounded(p) && Math.abs(p.body.bottom - headLine) < 8;
   } else {
     const down = await climb(dc, sc, 'down', 600);
-    await dc.run(20);
+    await play(dc, sc, 20);
     downOk = down.climbed && Math.abs(p.body.bottom - floorLine) < 8 && grounded(p);
   }
   const ok = up.climbed && top && downOk;

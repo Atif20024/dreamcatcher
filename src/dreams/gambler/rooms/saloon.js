@@ -57,6 +57,7 @@ export default {
   light: { tint: 0xfff0dc },
   backdrop: null,
   ambience: 'gm_saloon',
+  events: 'boat_saloon',
   acoustics: 'room',
   music: { state: 'explore', key: 'saloon' },
   objective: [

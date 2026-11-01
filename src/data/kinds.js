@@ -59,7 +59,6 @@ export const FOES = {
     scalper: { texture: 'foe-scalper', human: true, speed: 120, steals: true, sight: 130 },
     manager: { texture: 'foe-manager', human: true, speed: 55, cone: true, sight: 200 },
     roadie: { texture: 'foe-roadie', human: true, speed: 50, unkillable: true, sight: 90 },
-    metronome_walker: { texture: 'foe-walker', human: false, speed: 60, onBeat: true, dustColors: [0x8a8494, 0xe86a6a] },
     wisp: { texture: 'foe-wisp', human: false, speed: 55, chases: true, dustColors: [0xa0a8d8, 0x2a2a40] },
   },
 };

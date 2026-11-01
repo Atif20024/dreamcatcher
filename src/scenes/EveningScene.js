@@ -136,7 +136,7 @@ export default class EveningScene extends BaseLevel {
   }
 
   create() {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(import.meta.env.DEV ? window.location.search : ''); // ?first ?weather ?rare ?nohud ?ev: dev only
     this.save = getSave();
     this.firstVisit = !this.save.evening.visited || params.get('first') === '1';
     updateSave((s) => (s.evening.visited = true));
