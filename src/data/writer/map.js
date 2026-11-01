@@ -116,6 +116,10 @@ export function buildWriterMap() {
   // the rain walk: kerbs, a puddle, the house at the end
   ramp(rows, FLOOR, 330, 3, 'r');
   ramp(rows, FLOOR, 352, 2, 'l');
+  // W-S4: three things that cost a stride, none of them a hazard
+  fill(rows, 33, 33, 342, 343, '#'); // the bench's kerb
+  fill(rows, FLOOR, FLOOR, 347, 349, '.'); // the puddle: a dip in the road
+  fill(rows, 32, 33, 361, 361, '#'); // the bus stop's plinth
   fill(rows, 18, 33, 368, 368, 'H'); // the fire escape, again
   // the attic, again (369-393), then the trapdoor and the stairs
   fill(rows, 21, 21, 369, 394, '#');
@@ -146,8 +150,7 @@ export function buildWriterMap() {
   fill(rows, 14, 33, 555, 555, 'H');
   fill(rows, 13, 13, 554, 599, '#');
   fill(rows, 17, 17, 557, 561, '#'); // the feed platform
-  fill(rows, 18, 18, 562, 590, '>'); // web 1
-  put(rows, 18, 591, '^');
+  fill(rows, 18, 18, 562, 581, '>'); // web 1: its end drops him on web 2, at any speed, with the Editor behind
   fill(rows, 23, 23, 560, 588, '<'); // web 2
   put(rows, 23, 559, '^');
   fill(rows, 28, 28, 562, 590, '>'); // web 3

@@ -607,7 +607,9 @@ export default class Horizon {
     // the road crossfade: only ever up on the viaduct, never in the wrap
     const target = onRoad ? Phaser.Math.Clamp((player.x - 396 * T) / ((470 - 396) * T), 0, 1) : 0;
     this.roadMix += (target - this.roadMix) * Math.min(1, dt * 1.5);
-    const town = 1 - this.roadMix;
+    // the town is gone a tenth of the way up the road, the road's land solid
+    // by halfway: both see-through at once read as a ghost row of houses
+    const town = Phaser.Math.Clamp(1 - this.roadMix / 0.15, 0, 1);
 
     for (const [name, b] of Object.entries(this.bands)) {
       if (name === 'road') {
@@ -620,11 +622,11 @@ export default class Horizon {
       const haze = name === 'sea' ? 0.35 : name === 'mtn' || name === 'mtnSnow' ? 0.5 : name === 'town' ? 0.25 : name === 'road' ? 0.2 : name === 'under' ? 0.15 : 0.16;
       b.ts.setTint(lerpC(ambient, horizonColour, haze));
     }
-    this.bands.sea.ts.setAlpha(town * (1 - rain * 0.3));
+    this.bands.sea.ts.setAlpha((1 - this.roadMix) * (1 - rain * 0.3)); // behind the range and the road: no houses to ghost
     this.bands.town.ts.setAlpha(town);
     this.bands.near.ts.setAlpha(town);
     this.bands.under.ts.setAlpha(town);
-    this.bands.road.ts.setAlpha(this.roadMix);
+    this.bands.road.ts.setAlpha(Phaser.Math.Clamp(this.roadMix / 0.5, 0, 1));
     // the mountains take the snow half a minute before the town does
     this.snowCap += ((snow > 0 ? 1 : 0) - this.snowCap) * Math.min(1, dt / (snow > 0 ? 25 : 40));
     this.bands.mtnSnow.ts.setAlpha(this.snowCap);

@@ -161,7 +161,7 @@ const INTROS = {
   chef: {
     ground: 0x2c2c38, // the arrival platform's stone (round 2 WP3)
     caption: 'FIVE-STAR DREAM',
-    sub: 'The kitchen of Le Rêve. Tonight, the critics are in.',
+    sub: 'The kitchen of Le Rêve, 1957. Tonight, the Carnet is in.',
     doorX: 700,
     draw(scene) {
       drawCityBackdrop(scene, 960, 540);
@@ -247,7 +247,7 @@ const INTROS = {
 };
 
 // the scene that plays each dream (framework dreams: 'Dream')
-const LEVEL_SCENES = { clockmaker: 'Dream', chef: 'Chef', musician: 'Dream', astronaut: 'Astronaut', writer: 'Writer', painter: 'Dream', gambler: 'Dream' };
+const LEVEL_SCENES = { clockmaker: 'Dream', chef: 'Dream', musician: 'Dream', astronaut: 'Astronaut', writer: 'Writer', painter: 'Dream', gambler: 'Dream' };
 
 export default class IntroScene extends Phaser.Scene {
   constructor() {

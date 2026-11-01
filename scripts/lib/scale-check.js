@@ -57,7 +57,6 @@ export async function scaleIssues(ROOT) {
     if (h == null) continue;
     check(key, 'creature', cls, h, S.CLASSES[cls].h);
   }
-  for (const key of ['foe-cart']) out.exceptions.push({ key, h: null, range: S.CLASSES.trolley.h, owner: S.SCALE_EXCEPTIONS[key] });
 
   // props
   for (const [key, cls] of Object.entries(S.PROP_TABLE)) {

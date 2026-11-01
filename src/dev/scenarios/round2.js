@@ -128,8 +128,6 @@ const SITES = [
   { id: 'hub-steps', dream: 'hub', c0: 3, c1: 17, row: 22 },
   // THE BIG STAGE on the framework (phase 3b): the theatre's kerb ramp
   { id: 'musician-kerb', dream: 'musician', place: 'street', room: 'street', c0: 9, c1: 19, row: 14, row1: 15 },
-  { id: 'chef-arrival', dream: 'chef', c0: 14, c1: 26, row: 28 },
-  { id: 'chef-freezer-stairs', dream: 'chef', c0: 113, c1: 120, row: 30 },
   { id: 'writer-arrival', dream: 'writer', place: 'arrival', c0: 4, c1: 16, row: 28 },
   { id: 'writer-attic-stairs', dream: 'writer', place: 'attic', c0: 50, c1: 62, row: 23 },
   { id: 'evening-arch', dream: 'evening', place: 'arch', c0: 62, c1: 78, row: 27 },
@@ -148,6 +146,7 @@ const slopeSites = SITES.map((site) => ({
   id: `slope-${site.id}`,
   async run(dc) {
     const sc = await arrive(dc, site.dream, site.place);
+    for (const f of sc.foes || []) f.passive = true; // the ground is under test: the landlady's patrol reaches the attic stairs' foot
     const p = sc.player;
     const ox = origin(sc, site);
     const out = {};
@@ -194,7 +193,7 @@ const shadowJump = {
   async run(dc) {
     const sc = await arrive(dc, 'chef');
     const p = sc.player;
-    placeAt(sc, 8, 28);
+    placeAt(sc, 8, 15);
     dc.step(20);
     const g0 = p.body.bottom;
     dc.press('jump', 14);
@@ -248,7 +247,7 @@ const shadowGap = {
       gap = shadowOf(p);
     }
     p.body.setAllowGravity(true);
-    placeAt(sc, 8, 28);
+    placeAt(sc, 8, 15);
     dc.step(10);
     return { pass: !high.visible && (gap === null || !gap.visible), detail: { floor, high, gapCol: col, gap } };
   },
@@ -257,15 +256,15 @@ const shadowGap = {
 const shadowSlope = {
   id: 'shadow-slope',
   async run(dc) {
-    const sc = await arrive(dc, 'chef'); // the ramp on chef-arrival (SITES)
+    const sc = await arrive(dc, 'writer', 'arrival'); // the ramp on writer-arrival (SITES)
     const p = sc.player;
-    placeAt(sc, 14, 28);
+    placeAt(sc, 4, 28);
     p.speed = 120;
     dc.step(10);
     dc.hold('right');
     let worst = 0;
     let onRamp = 0;
-    for (let f = 0; f < 200 && feetX(p.body) < 24 * T; f++) {
+    for (let f = 0; f < 200 && feetX(p.body) < 16 * T; f++) {
       dc.step(1);
       const s = shadowOf(p);
       if (!s) return { pass: false, detail: { error: 'no player.shadow' } };

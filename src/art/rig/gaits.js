@@ -102,7 +102,6 @@ export const GAITS = {
 // which gait each foe walks with (src/data/kinds.js textures)
 export const FOE_GAITS = {
   'foe-sous-chef': 'busy',
-  'foe-dock-hand': 'carry',
   'foe-bouncer': 'heavy',
   'foe-lounge-bouncer': 'heavy',
   'foe-heckler': 'plain',

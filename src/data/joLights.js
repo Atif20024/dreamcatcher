@@ -21,7 +21,7 @@ export const JO_LIGHTS = Object.freeze({
   hub: { kind: 'oil_lantern', light: 'pool', color: 0xffc070, radius: 120, strength: 0.42, dark: true, rooms: {} },
   // the kitchen is bright; the cold store and the night kerb are not: a
   // candle stub in an enamel saucer from the pass
-  chef: { kind: 'candle', light: 'pool', color: 0xffb860, radius: 100, strength: 0.4, dark: false, rooms: { freezer: true, arrival: true, alley_dock: true, rooftop: true } },
+  chef: { kind: 'candle', light: 'pool', color: 0xffb860, radius: 100, strength: 0.4, dark: false, rooms: { cold: true, yard: true, dining: true } },
   // a wet night in the fifties: a brass petrol lighter, lid flipped. The
   // cellar and the stage have their own lights
   musician: { kind: 'lighter', light: 'pool', color: 0xffb050, radius: 95, strength: 0.4, dark: true, rooms: { cellar: false, stage: false } },

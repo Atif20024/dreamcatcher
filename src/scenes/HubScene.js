@@ -701,6 +701,7 @@ export default class HubScene extends BaseLevel {
     // the dream Jo has just come back from is woven in on his return
     if (this.returnedFrom && caught[this.returnedFrom]) {
       this.weaveNext = this.returnedFrom;
+      this.returnCaught = true; // (weaveNext is spent by the time he reaches the desk)
       delete caught[this.returnedFrom];
     }
     this.webRounds = caughtRounds(caught);
@@ -1028,7 +1029,7 @@ export default class HubScene extends BaseLevel {
     this.leadCoins = [];
     const lay = (key, c, y) => {
       if (leads[key] || !this.coinMgr) return;
-      const coin = this.coinMgr.spawn(px(c), y);
+      const coin = this.coinMgr.spawn(px(c), y, { n: 5 }); // worth going up for: 15 of them, $75
       coin.leadKey = key;
       this.leadCoins.push(coin);
     };
@@ -1255,7 +1256,7 @@ export default class HubScene extends BaseLevel {
       this.visitLines.deskReturn = true;
       // the first dream caught by someone who has already seen the far side
       if (this.N === 1 && this.save.evening.early) return this.say('pemberton', "You've been through the gate. The board noticed. Back for the rest?");
-      return this.say('pemberton', this.N ? pembertonLine(this.N) : 'Back again.');
+      return this.say('pemberton', this.returnCaught ? pembertonLine(this.N) : 'Back again.');
     }
     const hub = this.save.flags.hub;
     const tellOnce = (key, text) => {

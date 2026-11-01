@@ -153,9 +153,29 @@ export const SHOTS = {
   crumple: (v) => {
     for (let i = 0; i < 8; i++) v.noise({ dur: 0.02, vol: 0.03, f: 2500 + Math.random() * 1500, q: 1, when: Math.random() * 0.5 });
   },
+  copier_thunk: (v) => {
+    v.noise({ dur: 0.09, vol: 0.05, f: 240, q: 0.8 });
+    v.noise({ dur: 0.5, vol: 0.02, f: 1800, q: 1.2, env: 'swell', when: 0.1 });
+    v.noise({ dur: 0.07, vol: 0.035, f: 300, q: 0.8, when: 0.62 });
+  },
+  murmur: (v) => v.babble({ f0: 132, secs: 1.8, lp: 900, vol: 0.35 }),
+  press_roar: (v) => {
+    v.noise({ dur: 0.4, vol: 0.07, f: 130, q: 0.6, env: 'lin' });
+    v.noise({ dur: 0.18, vol: 0.03, f: 900, q: 1, when: 0.05 });
+  },
   clock_hour: (v) => [0, 1.6].forEach((w) => bellPartials(v, 784, 0.02, 1.6, w, [[1, 1], [2, 0.3], [3, 0.1]])),
 
   // --- the station in orbit ------------------------------------------------
+  // the gym: a speed bag, a rope on boards, the coach's whistle, a ball, the pool
+  speed_bag: (v) => {
+    for (let i = 0; i < 7; i++) v.noise({ dur: 0.04, vol: 0.045, f: 420, q: 1, when: i * 0.13 });
+  },
+  skip_rope: (v) => {
+    for (let i = 0; i < 6; i++) v.noise({ dur: 0.03, vol: 0.03, f: 2400, q: 2, when: i * 0.36 });
+  },
+  whistle: (v) => v.tone({ freq: 2100, glide: 2050, dur: 0.45, vol: 0.016, attack: 0.01 }),
+  ball_bounce: (v) => [0, 0.42, 0.74].forEach((w, i) => v.noise({ dur: 0.06, vol: 0.05 - i * 0.012, f: 190, q: 0.9, when: w })),
+  pool_echo: (v) => v.noise({ dur: 1.4, vol: 0.022, f: 1400, q: 0.5, env: 'swell' }),
   console_beep: (v) => {
     const n = 1 + Math.floor(Math.random() * 3);
     const f = 1000 + Math.floor(Math.random() * 3) * 400;

@@ -33,10 +33,16 @@ export const BEDS = {
   piazza: bed(['church_bell', 50, 80, 0.8], ['swifts', 15, 30, 0.6]),
   // the scene-built dreams
   kitchen: bed(['pan_clatter', 5, 10], ['ticket_bell', 12, 20], ['chop', 9, 16], ['order_call', 14, 24], ['steam', 10, 18, 0.8]),
-  chef_street: bed(['traffic', 10, 18, 0.7], ['horn', 25, 45, 0.6], ['bird', 8, 16, 0.6]),
+  chef_street: bed(['traffic', 10, 18, 0.7], ['drain', 8, 16, 0.7]),
   writer: bed(['carriage_bell', 15, 30], ['paper', 8, 15], ['crumple', 20, 40, 0.8], ['clock_hour', 60, 90, 0.7]),
+  copyshop: bed(['copier_thunk', 5, 9], ['paper', 8, 15, 0.8]),
+  cafe: bed(['murmur', 3, 6], ['glass_clink', 7, 13, 0.7], ['chair_scrape', 12, 22, 0.6]),
+  library: bed(['paper', 10, 18, 0.6], ['clock_hour', 60, 90, 0.6]),
+  post: bed(['paper', 6, 12], ['door', 15, 30, 0.5], ['carriage_bell', 25, 45, 0.5]),
+  press: bed(['press_roar', 1.6, 2.2], ['paper', 7, 12, 0.7]),
   writer_street: bed(['traffic', 9, 16, 0.7], ['horn', 25, 50, 0.5], ['drain', 15, 30, 0.6]),
   orbit: bed(['console_beep', 4, 9], ['relay', 10, 20], ['airlock', 25, 45, 0.8], ['radio_chirp', 15, 30]),
+  gym: bed(['speed_bag', 7, 13], ['skip_rope', 10, 18, 0.8], ['whistle', 18, 35, 0.6], ['ball_bounce', 9, 16, 0.7], ['pool_echo', 14, 26, 0.6]),
   campus: bed(['bird', 6, 12, 0.7], ['console_beep', 10, 20, 0.6], ['door', 15, 30, 0.6]),
   // THE LAST HAND: the Lantern Queen. On deck the river; below, the wheel through the hull
   river: bed(['paddle_wheel', 14, 28, 0.7], ['steam_whistle', 40, 80, 0.7], ['deck_bell', 35, 70, 0.6], ['bird', 8, 16, 0.7], ['swifts', 20, 40, 0.5]),
@@ -51,37 +57,27 @@ export const BEDS = {
 // the legacy dreams, room by room: acoustics, wall, bed
 const R = (acoustics, events, wall = false) => ({ acoustics, events, wall });
 export const LEGACY_ROOMS = {
-  chef: {
-    // out on the kerb the wireless is inside; the walk-in hears nearly nothing
-    arrival: R('open', 'chef_street', true),
-    alley_dock: R('open', 'chef_street', 1200),
-    freezer: R('room', null, 400),
-    the_line: R('room', 'kitchen'),
-    loft: R('room', 'kitchen', 1400),
-    the_pass: R('room', 'kitchen'),
-    rooftop: R('open', 'chef_street', 700),
-  },
   writer: {
     arrival: R('open', 'writer_street'),
     attic: R('room', 'writer'),
-    copyshop: R('room', 'writer'),
-    cafe: R('room', 'writer'),
-    library: R('hall', 'writer'),
-    postoffice: R('hall', 'writer'),
+    copyshop: R('room', 'copyshop'),
+    cafe: R('room', 'cafe'),
+    library: R('hall', 'library'),
+    postoffice: R('hall', 'post'),
     bus: R('room', 'writer_street'),
     rain: R('open', 'writer_street'),
     rewrite: R('room', 'writer'),
     editor: R('room', 'writer'),
     agent: R('room', 'writer'),
     city: R('open', 'writer_street'),
-    press: R('hall', 'writer'),
+    press: R('hall', 'press'),
     bookshop: R('room', 'writer'),
   },
   astronaut: {
     p0_arrival: R('open', 'campus'),
-    p1_track: R('hall', 'campus'),
-    p1_pool: R('hall', 'campus'),
-    p1_wall_ring: R('hall', 'campus'),
+    p1_track: R('hall', 'gym'),
+    p1_pool: R('hall', 'gym'),
+    p1_wall_ring: R('hall', 'gym'),
     p1_study: R('room', 'campus'),
     p2_gate: R('open', 'campus'),
     p3_centrifuge: R('hall', 'orbit'),
@@ -90,6 +86,12 @@ export const LEGACY_ROOMS = {
     p3_survival: R('open', 'green'),
     p4_pad: R('open', 'orbit'),
     p4_station: R('hull', 'orbit'),
+    // outside the hull, and on the moon, nothing carries: the suit and the music
+    p4_eva: R('open', null),
+    p5_moonfield: R('open', null),
+    p5_crevasse: R('open', null),
+    p5_crater: R('open', null),
+    p6_field: R('open', 'green'),
   },
   // the station: the steps are outside, the rest is the great hall
   hub: {

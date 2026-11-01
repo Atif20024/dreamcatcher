@@ -209,16 +209,14 @@ Object.assign(PROP_CLASSES, {
 
 // creatures and dream things (texture key or prefix → CLASSES entry)
 export const CREATURE_TABLE = {
-  'foe-rat': 'rat', 'foe-crawler': 'roach', 'foe-pigeon': 'pigeon', 'foe-crow': 'crow', 'ev-pigeon': 'pigeon',
-  'chef-cat': 'cat', 'ev-cat': 'cat', 'ev-dog': 'dog', 'ev-heron': 'heron', 'ev-swallow': 'smallbird',
-  'foe-slip': 'thing', 'foe-wisp': 'thing', 'foe-grease': 'thing', 'foe-mill': 'thing', 'foe-meringue': 'thing', 'foe-walker': 'thing',
+  'foe-crawler': 'roach', 'foe-pigeon': 'pigeon', 'foe-crow': 'crow', 'ev-pigeon': 'pigeon',
+  'ev-cat': 'cat', 'ev-dog': 'dog', 'ev-heron': 'heron', 'ev-swallow': 'smallbird',
+  'foe-slip': 'thing', 'foe-wisp': 'thing', 'foe-walker': 'thing',
 };
 
 // known out-of-scale things this pass does not own, with the package that
 // does: the lint lists them (WARN) instead of failing
 export const SCALE_EXCEPTIONS = {
-  'foe-cart': 'framework: the kitchen trolley foe becomes trolley + cook (a two-part foe)',
-  'chef-crate': 'framework room rebuild: 1-tile crates are puzzle geometry (push/stack); 22 / 48 px crates need the chef rooms rebuilt',
   'hub-door': 'WP3 (hub presentation)', 'hub-booth': 'WP3', 'hub-kiosk': 'WP3', 'hub-lamp': 'WP3 (platform lamps with the head-on terminus)', 'hub-pigeon': 'WP3 (hub painter)',
   'ev-tree': 'WP4', 'ev-tree-apple': 'WP4', 'ev-pine': 'WP4', 'ev-hilltree': 'WP4',
   'ev-door': 'WP4 (house rows: doors scale with their buildings)', 'ev-lamp': 'WP4 (house rows)', 'ev-bakery': 'WP4',
@@ -410,6 +408,18 @@ export const CLOCK_PROP_SIZES = {
   window_child: [30, 40, 'windowFigure'],
   window_child_wave: [30, 40, 'windowFigure'],
 };
+// FIVE-STAR DREAM (the chef's dream on the framework): Le Rêve's brigade, 1957
+// (looks in src/dreams/chef/people.js).
+Object.assign(CAST_BODIES, {
+  'npc-rv-marguerite': { sex: 'f', hat: 'wrap', apron: true },
+  'npc-rv-aurelio': { sex: 'm', beard: 'moustache', hat: 'chef_toque', apron: true },
+  'npc-rv-bastien': { body: 'teen', sex: 'm', hat: 'none', apron: true },
+  'npc-rv-tome': { sex: 'm', hat: 'baker', apron: true },
+  'npc-rv-luc': { body: 'teen', sex: 'm', hat: 'none', hair: 'crop' },
+  'npc-rv-porter': { body: 'big', sex: 'm', hat: 'cap' },
+  'npc-rv-commis': { sex: 'm', hat: 'toque', apron: true },
+  'npc-rv-commis2': { sex: 'm', hat: 'toque', apron: true },
+});
 
 // The Long Evening at scale (owner: "last stop is out of proportions"): the
 // props that were still old string art at knee height. Report:

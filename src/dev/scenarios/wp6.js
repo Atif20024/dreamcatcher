@@ -68,7 +68,9 @@ const joContrastSc = {
     const rows = [];
     for (const [dream, place] of PLACES_TO_SAMPLE) {
       const sc = await arrive(dc, dream, place);
-      dc.step(20);
+      // the Evening's camera eases (zoom 1.4 s, follow lerp 0.08): under way, the
+      // mask misses Jo's outline and `local` reads about 1 (characters review r1)
+      dc.step(dream === 'evening' ? 240 : 20);
       const r = await joContrast(dc, sc);
       const L = sc.player.light ? sc.player.light.state() : {};
       rows.push({ place: dream, ...r, lamp: L.kind && L.raised > 0.5 ? L.kind : 'none' });
@@ -81,7 +83,7 @@ const joContrastSc = {
     // a light in dark rooms (src/entities/JoLight.js): the 3:1 is met by
     // that light where it is dark and by his costume where it is lit
     const enforce = true;
-    const detail = rows.map((r) => `${r.place} [${r.lamp}] edge ${r.edgeMedian} local ${r.localMedian} (jo ${r.jo} bg ${r.bg})`).join('; ');
+    const detail = rows.map((r) => `${r.place} [${r.lamp}] edge ${r.edgeMedian} local ${r.localMedian} (jo ${r.jo} bg ${r.bg} drift ${r.drift} box ${r.box})`).join('; ');
     return { pass: !enforce || fails.length === 0, detail: `${litUnder.length ? `lit rooms under ${JO_CONTRAST_MIN}:1 (costume only): ${litUnder.map((r) => r.place).join(', ')}. ` : ''}${detail}` };
   },
 };
@@ -89,7 +91,7 @@ const joContrastSc = {
 const lampCheckpoint = {
   id: 'lamp-checkpoint',
   async run(dc) {
-    const sc = await arrive(dc, 'chef', null);
+    const sc = await arrive(dc, 'astronaut', 'gym');
     const f = sc.flags.getChildren().find((x) => x.texture.key === 'flag');
     if (!f) return { pass: false, detail: 'no lamp' };
     const isLamp = f.texture.key === 'flag' && f.height > 32 && !!sc.textures.get('flag').dcLamp;
@@ -98,7 +100,7 @@ const lampCheckpoint = {
     dc.step(40);
     const lit = f.texture.key === 'flag-lit';
     const glow = !!(f.dcGlow && f.dcGlow.lamp.alpha > 0.3);
-    const rang = chimeLog.filter((c) => c.seq > n0).some((c) => c.event === 'lamp' && c.place === 'chef');
+    const rang = chimeLog.filter((c) => c.seq > n0).some((c) => c.event === 'lamp' && c.place === 'astronaut');
     const respawn = sc.checkpoint && Math.abs(sc.checkpoint.x - f.x) < 1;
     // the lamp stands on its floor: its foot is the old flag's foot (wy + 16)
     const foot = Math.round(f.getBottomRight().y - f.y);
@@ -205,7 +207,7 @@ const chimeEvents = {
 const panelFrame = {
   id: 'panel-frame',
   async run(dc) {
-    const sc = await arrive(dc, 'chef', null);
+    const sc = await arrive(dc, 'astronaut', 'gym');
     sc.openPauseMenu();
     dc.step(10);
     const ui = window.game.scene.getScene('UI');

@@ -47,6 +47,9 @@ export async function bakeCast(ROOT, store) {
   // THE STOPPED HOUR's town (src/dreams/clockmaker/people.js)
   const sh = await imp('src/dreams/clockmaker/people.js');
   for (const [key, look] of Object.entries(sh.PEOPLE)) list.push([key, look, 'people']);
+  // FIVE-STAR DREAM: Le Rêve's brigade, 1957 (src/dreams/chef/people.js)
+  const rv = await imp('src/dreams/chef/people.js');
+  for (const [key, look] of Object.entries(rv.PEOPLE)) list.push([key, look, 'people']);
 
   const out = []; // { name, img, pivot, pack }
   const report = [];
@@ -98,6 +101,7 @@ export async function bakeCast(ROOT, store) {
       for (const a of ['alert', 'windup', 'grab', 'throw', 'search', 'stagger']) P[a].forEach((p, i) => add(`${key}-${a}#${i + 1}`, { pose: p, held: null }));
     } else {
       add(key, { pose: spec.sit ? P.sit[0] : P.idle[0], held });
+      add(`${key}-sit`, { pose: P.sit[0], held });
       P.walk.forEach((p, i) => add(`${key}#${i + 1}`, { pose: p, held }));
     }
     if (hasRun) P.run.forEach((p, i) => add(`${key}-run#${i + 1}`, { pose: p, held }));

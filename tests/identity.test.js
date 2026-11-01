@@ -28,7 +28,7 @@ describe('identity (critique §9)', () => {
     expect(PLACES.evening.accent).toBe(0xf0b45a);
   });
   it('maps scenes and dream ids to places', () => {
-    expect(placeOf('Chef')).toBe('chef');
+    expect(placeOf('chef')).toBe('chef');
     expect(placeOf('clockmaker')).toBe('clockmaker');
     expect(placeOf({ sys: { settings: { key: 'Dream' } }, dreamId: 'clockmaker' })).toBe('clockmaker');
     expect(placeOf({ sys: { settings: { key: 'Intro' } }, levelKey: 'gambler' })).toBe('gambler');

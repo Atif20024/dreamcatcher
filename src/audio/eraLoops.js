@@ -355,6 +355,22 @@ export const RECIPES = {
   // (feedback 4, "the noise in the background is repetitive … not so
   // dominating": long loops, a second crowd of another length under the
   // first (src/audio/synthLoops.js LOOP_LAYERS) and quieter overall)
+  // FIVE-STAR DREAM, Le Rêve, 1957 (the dining room is nearly nothing on purpose)
+  // the service yard in the rain: a drain, far traffic as a wash
+  fs_yard: { seconds: 12, seed: 71, rms: -38, layers: [['rain', { vol: 0.04, f: 2200, drops: 5 }], ['wind', { vol: 0.012 }], ['lapping', { vol: 0.012, rate: 0.4, f: 900 }]] },
+  // the pit: running water, plates knocking, steam, tile echo
+  fs_pit: { seconds: 10, seed: 72, rms: -37, layers: [['fountain', { vol: 0.03, lo: 1400, hi: 5000 }], ['clink', { vol: 0.025, count: 6 }], ['roar', { vol: 0.012, f: 3000, swells: 2 }], ['echo', { delay: 0.06, taps: 3, fb: 0.3 }]] },
+  // the cold store: the compressor, nobody; a hum and its rattle
+  fs_cold: { seconds: 8, seed: 73, rms: -40, layers: [['hum', { f: 55, vol: 0.03 }], ['pump', { vol: 0.014, hz: 0.25, k: 0.02 }], ['ticks', { every: 2.6, vol: 0.012, f: 1200 }], ['echo', { delay: 0.11, taps: 3, fb: 0.35 }]] },
+  // prep: knives on boards, a pot, the far line
+  fs_prep: { seconds: 10, seed: 74, rms: -37, layers: [['chisel', { vol: 0.022, every: 0.28, f: 900, runs: 2 }], ['bubbles', { vol: 0.02, rate: 3 }], ['murmur', { vol: 0.02 }], ['echo', { delay: 0.06, taps: 2, fb: 0.25 }]] },
+  // the line at rush: fat on the fire, pans, voices calling
+  fs_line: { seconds: 14, seed: 75, rms: -33, layers: [['roar', { vol: 0.03, f: 2400, swells: 3 }], ['crackle', { vol: 0.03, pops: 14 }], ['clink', { vol: 0.03, count: 9 }], ['chatter', { voices: 4, vol: 0.022, pitch: 1.05 }], ['echo', { delay: 0.05, taps: 2, fb: 0.2 }]] },
+  // the pass: the kitchen through a door, a heat lamp's hum
+  fs_pass: { seconds: 10, seed: 76, rms: -41, layers: [['murmur', { vol: 0.03, k: 0.012 }], ['hum', { f: 100, vol: 0.008 }], ['clink', { vol: 0.008, count: 3 }]] },
+  // the dining room: almost silence. A long room's air, a candle
+  fs_dining: { seconds: 12, seed: 77, rms: -46, layers: [['wind', { vol: 0.004 }], ['crackle', { vol: 0.003, pops: 2 }]] },
+
   // THE LAST HAND, the Lantern Queen on the Verrane, 1884
   // the quay at dusk: water at the stone, the hull creaking, a bell buoy, gulls
   gm_quay: { seconds: 14, seed: 61, rms: -36, layers: [['lapping', { vol: 0.05, rate: 0.7 }], ['creak', { vol: 0.03, count: 3 }], ['bell', { f: 311, vol: 0.02, at: 5, strikes: 2, gap: 4.5, tail: 5 }], ['gulls', { vol: 0.02, rate: 0.1 }], ['wind', { vol: 0.012 }]] },

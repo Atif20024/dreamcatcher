@@ -354,7 +354,8 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
         return;
       }
       if (this.state !== 'alert') {
-        showTutorial(this.scene, 'shove'); // first notice: how to get past a person
+        // first notice: how to get past a person (a framework dream has no shove key wired)
+        if (!this.scene.def) showTutorial(this.scene, 'shove');
         this.alertAt = time;
       }
       this.enter('alert', 0);

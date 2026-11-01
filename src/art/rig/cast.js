@@ -36,6 +36,10 @@ export function tones(c) {
   return [mix(c, LIGHT, 0.3), c, mix(mix(c, 0x000000, 0.22), COOL, 0.28), mix(mix(c, 0x000000, 0.48), COOL, 0.3)];
 }
 
+// the alert eye's glow: a dim red beside the 2x2 eye, for a dark face in the
+// dark. On light skin it reads as blood or blush, so there it is just skin.
+const alertGlow = (skin) => (lum(skin) >= 0.5 ? skin : 0x8a2a2a);
+
 // ---- bodies ----------------------------------------------------------------------
 // Torsos face right: a coat (base colour) with a lighter placket/collar (the
 // look's trim), a belt and the trouser top. Anchor = the hip point.
@@ -244,7 +248,7 @@ export function castRig(look, spec = {}) {
   const [N, a] = tones(hairC);
   const [Z, Ab, x] = tones(A);
   const palette = {
-    Y: 0x8a2a2a,
+    Y: alertGlow(Ss),
     k: 0x1a1828,
     I, J, j, q, W: mix(W, Wl, 0.3), w, v, Q, P: Pp, p, o, R, S: Ss, s, t, C, B: Bb, b, d, U, H: Hh, h, g, y, r, n,
     a, N, Z, A: Ab, x, F: 0x6a4a32, f: 0x4a3222,
@@ -350,6 +354,7 @@ function dress(rig, key) {
   const c = costumeFor(key, rig.body);
   if (!c) return;
   if (c.pal) Object.assign(rig.palette, c.pal);
+  rig.palette.Y = alertGlow(rig.palette.S);
   if (c.hat && HATS[c.hat]) rig.parts.hat = HATS[c.hat];
   rig.parts.head = headSet(faceRows(HAIR[c.hair || rig.headSpec.hair] || HAIR.short, c.face), rig.headSpec.beard);
   rig.parts.over = [].concat(rig.parts.over || [], costumeLayers(c.over, rig.torsoRows));

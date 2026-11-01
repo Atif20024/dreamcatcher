@@ -268,14 +268,11 @@ const readingPanel = {
 const joLightRooms = {
   id: 'jo-light-rooms',
   async run(dc) {
-    // the chef: a candle on the night kerb, put away in the bright kitchen
+    // the chef: a candle in the night yard, put away in the bright kitchen
     let sc = await arrive(dc, 'chef', null);
     dc.step(30);
     const kerb = sc.player.light.state();
-    const kitchen = sc.built.rooms.find((r) => r.id === 'the_line' || r.id === 'the_pass');
-    sc.player.light.isDark = () => false; // as in a lit room
-    sc._room = kitchen;
-    delete sc.player.light.isDark;
+    sc = await arrive(dc, 'chef', 'pit');
     dc.step(30);
     const lit = sc.player.light.state();
     // the painter: none in the bottega by day

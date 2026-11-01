@@ -95,18 +95,19 @@ const JUMP_ANTICIPATE = [
   P({ hips: -4, lean: 2, fF: [2, 0, 'flat'], fB: [-2, 0, 'flat'], aF: [-45, 20], aB: [-35, 20], head: 'down' }),
 ];
 // bent elbows, not two sticks. The hat follows through: it stays down on the
-// way up, floats at the top, and lifts off his head on the way down
+// way up and over the top, then lifts off his head on the way down (2 px or
+// none: a 1 px lift reads as a speck of dirt over the crown)
 const RISE = [
   P({ hips: 1, lean: 1, fF: [2, 2, 'toe'], fB: [-3, 4, 'point'], aF: [115, 45], aB: [60, 50], handF: 'fist', head: 'up', trail: -1 }),
   P({ hips: 1, fF: [4, 6, 'point'], fB: [-2, 4, 'point'], aF: [125, 40], aB: [75, 45], handF: 'fist', head: 'up', trail: -1 }),
   P({ hips: 1, fF: [4, 7, 'point'], fB: [-2, 5, 'point'], aF: [120, 40], aB: [70, 45], handF: 'fist', head: 'up' }),
 ];
 const APEX = [
-  P({ hips: 1, fF: [5, 6, 'point'], fB: [-3, 6, 'point'], aF: [95, 40], aB: [65, 40], hat: { dy: -1 } }),
-  P({ hips: 1, fF: [5, 6, 'point'], fB: [-3, 6, 'point'], aF: [90, 45], aB: [60, 45], hat: { dy: -1 } }),
+  P({ hips: 1, fF: [5, 6, 'point'], fB: [-3, 6, 'point'], aF: [95, 40], aB: [65, 40] }),
+  P({ hips: 1, fF: [5, 6, 'point'], fB: [-3, 6, 'point'], aF: [90, 45], aB: [60, 45] }),
 ];
 const FALL = [
-  P({ hips: 1, fF: [3, 2, 'flat'], fB: [-3, 3, 'point'], aF: [120, 25], aB: [85, 40], head: 'down', hat: { dy: -1 }, trail: 1 }),
+  P({ hips: 1, fF: [3, 2, 'flat'], fB: [-3, 3, 'point'], aF: [120, 25], aB: [85, 40], head: 'down', hat: { dy: -2 }, trail: 1 }),
   P({ hips: 1, fF: [3, 1, 'flat'], fB: [-3, 2, 'point'], aF: [130, 20], aB: [95, 35], head: 'down', hat: { dy: -2 }, trail: 1 }),
   P({ hips: 1, fF: [3, 1, 'flat'], fB: [-3, 2, 'point'], aF: [125, 25], aB: [90, 40], head: 'down', hat: { dy: -2 }, trail: 1 }),
 ];
@@ -139,30 +140,34 @@ const CROUCH_WALK = withHeadLag(
   ].map((f, i) => P({ ...CROUCHED, ...f, aF: [30 + (i % 3) * 8, 50], aB: [36 - (i % 3) * 8, 50] }))
 );
 
-// ---- ladder: square-on and from behind (he faces the rungs). Hands and feet
-// alternate, one high, one low with the elbow out; hips sway +-1 ----------------
+// ---- ladder: square-on and from behind (he faces the rungs). Every frame one
+// hand is high on a rung and the other at the chest, and the knee opposite the
+// high hand is up, the other leg straight: never both fists up, both knees out
 const ON_LADDER = { torso: 'front', head: 'back', headDx: -1, flat: true, sF: [7, 1], sB: [1, 1], hipSep: 2, kneeB: -1, handF: 'fist', handB: 'fist' };
-// t: 0 the hand at the top of its reach ... 3 at its lowest
-const reach = (t, sign) => {
-  const [a, b] = [[172, 4], [135, 40], [80, 80], [35, 120]][t];
-  return [sign * a, sign * b];
-};
+// t: 0 just took the rung ... 3 pulled down to it as the body rises
+const HIGH = [[176, 2], [172, 6], [168, 10], [164, 14]];
+const CHEST = [[18, 130], [20, 128], [22, 126], [24, 124]];
+const CLIMB_KNEE = [6, 5, 4, 3]; // the raised foot, sinking as he stands on it
 const CLIMB = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
   const up = i < 4; // the right hand is high on the first half
   const t = i % 4;
-  const hi = [8, 5, 2, 0][t];
   const hx = up ? 1 : -1;
+  const [hi, lo] = [HIGH[t], CHEST[t]];
+  const neg = ([a, b]) => [-a, -b];
   return P({
     ...ON_LADDER,
-    hips: [0, 1, 0, -1][t],
+    hips: [1, 1, 0, 0][t],
     hx,
-    fF: [3 - hx, up ? hi : 8 - hi, 'front'],
-    fB: [-3 - hx, up ? 8 - hi : hi, 'front'],
-    aF: reach(up ? t : 3 - t, 1),
-    aB: reach(up ? 3 - t : t, -1),
+    // the raised knee comes in toward the ladder's middle, never out sideways
+    fF: [3 - hx, up ? 0 : CLIMB_KNEE[t], 'front'],
+    fB: [-3 - hx, up ? CLIMB_KNEE[t] : 0, 'front'],
+    kneeF: up ? 1 : -1,
+    kneeB: up ? 1 : -1,
+    aF: up ? hi : lo,
+    aB: neg(up ? lo : hi),
   });
 });
-const CLIMB_IDLE = [P({ ...ON_LADDER, fF: [3, 4, 'front'], fB: [-3, 0, 'front'], aF: reach(0, 1), aB: reach(2, -1) })];
+const CLIMB_IDLE = [P({ ...ON_LADDER, fF: [3, 0, 'front'], fB: [-3, 4, 'front'], kneeB: 1, aF: HIGH[1], aB: [-CHEST[1][0], -CHEST[1][1]] })];
 
 // ---- walls -----------------------------------------------------------------
 const WALL_SLIDE = [
