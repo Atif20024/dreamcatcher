@@ -399,7 +399,7 @@ Object.assign(CAST_BODIES, {
 // painters (src/dreams/clockmaker/props.js) draw from these numbers, lint:scale reads them
 Object.assign(CAST_BODIES, {
   'npc-sh-watch': { sex: 'm', hat: 'bowler', beard: 'moustache' },
-  'npc-sh-pie': { sex: 'f', hat: 'none', hair: 'bun', dress: true },
+  'npc-sh-pie': { sex: 'f', hat: 'none', hair: 'bun', dress: true, eats: true },
   'npc-sh-keeper': { body: 'elderly', sex: 'm', hat: 'none', hair: 'grey', beard: 'moustache', apron: true },
 });
 Object.assign(PROP_CLASSES, {

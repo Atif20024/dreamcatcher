@@ -94,7 +94,7 @@ export function measureScale(sc) {
     const h = Math.round(opaqueH(o) * Math.abs(o.scaleY));
     const at = { key, x: Math.round(o.x), y: Math.round(o.y), h };
     if (isPerson) {
-      if (seated.has(key) || /^hub-sleeper/.test(key) || /\/hat$/.test((o.frame && o.frame.name) || '') || /-(sit|sitlaugh)$|-throw|-windup|-grab/.test(key) || Math.abs(o.angle) > 12 || (o.frame && /sit|sleep|death|float/.test(o.frame.name))) {
+      if (seated.has(key) || /^hub-sleeper/.test(key) || /\/hat$/.test((o.frame && o.frame.name) || '') || /-(sit|sitlaugh|siteat)$|-throw|-windup|-grab/.test(key) || Math.abs(o.angle) > 12 || (o.frame && /sit|sleep|death|float/.test(o.frame.name))) {
         skipped.push({ ...at, why: 'pose' });
         continue;
       }

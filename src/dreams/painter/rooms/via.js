@@ -28,10 +28,10 @@ export default {
   decor: [],
   props: [
     { prop: 'bottega_front', x: 6, y: 16, layer: 'back' },
-    { prop: 'via_house', x: 18, y: 16, layer: 'back', palette: { wall: 0xe8d4a8, shutter: 0x5a6a7a, seed: 22 } },
+    { prop: 'via_house', x: 18, y: 16, dx: -10, layer: 'back', palette: { wall: 0xe8d4a8, shutter: 0x5a6a7a, seed: 22 } },
     { prop: 'dori_front', x: 30, y: 16, layer: 'back' },
     { prop: 'speziale_front', x: 44, y: 16, dx: -10, layer: 'back' },
-    { prop: 'via_house', x: 56, y: 16, dx: -14, layer: 'back', palette: { wall: 0xc89a70, shutter: 0x4a6a4a, seed: 24 } },
+    { prop: 'via_house', x: 56, y: 16, dx: -20, layer: 'back', palette: { wall: 0xc89a70, shutter: 0x4a6a4a, seed: 24 } },
     { prop: 'washing_line', x: 12, y: 5, layer: 'back' },
     { prop: 'washing_line', x: 50, y: 6, layer: 'back' },
     { prop: 'pentice', x: 2, y: 12, dx: -16, dy: 21 },

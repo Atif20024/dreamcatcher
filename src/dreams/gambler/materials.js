@@ -9,6 +9,18 @@ export default {
     palette: { body: 0x4a4a52, stone: 0x7a7880, mortar: 0x2e2c34, lit: 0xd8c8b0, deep: 0x14121a, moss: 0x3a4a3a, grassLit: 0x8a9078 },
     decor: [],
   },
+  // the top of the quay's freight: a ledge in the bales' and crates' own colours,
+  // with no plank's bracket under it
+  cotton_top: {
+    id: 'cotton_top', kind: 'stone', surface: 'carpet',
+    palette: { body: 0xb8ac90, stone: 0xd8ccb0, mortar: 0x8a7a60, lit: 0xf0e8d0, deep: 0x5a4a36, moss: 0x3a4a3a, grassLit: 0x8a9078 },
+    decor: [],
+  },
+  crate_top: {
+    id: 'crate_top', kind: 'stone', surface: 'wood',
+    palette: { body: 0x6a4e30, stone: 0x8a6a42, mortar: 0x4a3620, lit: 0xc8a878, deep: 0x3a2a18, moss: 0x3a4a3a, grassLit: 0x8a9078 },
+    decor: [],
+  },
   main_deck: {
     id: 'main_deck', kind: 'boards', surface: 'wood',
     palette: { body: 0x3a2e24, wood: 0x8a7458, lit: 0xe8d0a0, deep: 0x14100e },

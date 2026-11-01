@@ -11,7 +11,7 @@
 import { busTone } from '../../../audio/AudioBus.js';
 import { showContract, contractLeft, resetContract } from '../contract.js';
 import { hud } from '../../../ui/hud.js';
-import { streetFlags, loseLapis } from '../logic.js';
+import { streetFlags, loseLapis, rankKey } from '../logic.js';
 
 const RADIUS = 130;
 const REST_MS = 420;
@@ -30,6 +30,8 @@ export default {
     const F = ctx.flags;
     const st = ctx.state;
     streetFlags(F);
+    const rank = rankKey(s.roomId, F);
+    if (rank && s.music) s.music.setKey(rank);
     // a green cap's grab with the stone in the satchel: it is gone, and Orazio
     // will have bought it back by the time Jo gets there
     if (s.thrownOut && !st.thrown && F.lapis_carry) {

@@ -38,6 +38,7 @@ export default {
   vents: VENTS,
   props: [
     { prop: 'cabin_door_white', x: 3, y: 26, layer: 'back' },
+    { prop: 'skylight_hatch', x: 8, y: 30, layer: 'back' },
     { prop: 'ship_bell', x: 12, y: 26 },
     { prop: 'rope_coil', x: 5, y: 26 },
     { prop: 'rope_coil', x: 43, y: 26 },
