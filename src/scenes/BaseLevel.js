@@ -9,6 +9,7 @@ import { setupLook, setupGrade } from '../art/look.js';
 import Foe from '../entities/Foe.js';
 import { createFoeTextures } from '../entities/foeArt.js';
 import { FOES } from '../data/kinds.js';
+import { heartsMax } from '../systems/wallet.js';
 import { showTutorial, updateTeach, seenInDream } from '../play/Teach.js';
 import { roomObjective } from '../play/Objectives.js';
 import GateSigns from '../play/GateSigns.js';
@@ -54,6 +55,13 @@ const ORB = {
 // Shared level plumbing: lives/hearts (3 + dreams caught, max 5), hurt and
 // respawn, cards, pause, objective HUD, dialogue host, darkness tint,
 // camera polish. Subclasses build the world and call setupCommon().
+// what a postcard draws in the world, over a small moment or a heart shard
+export function postcardMark(scene, x, y) {
+  const mk = uiText(scene, x, y, '\u2318', { size: 'body', color: '#f2c078' }).setOrigin(0.5).setDepth(21).setAlpha(0.9);
+  scene.tweens.add({ targets: mk, y: y - 5, duration: 1100, yoyo: true, repeat: -1, ease: 'sine.inout' });
+  return mk;
+}
+
 export default class BaseLevel extends Phaser.Scene {
   // ---- failure / checkpoint state lives in services (plan §2.8); these
   // accessors keep every scene's old field names working.
@@ -94,7 +102,7 @@ export default class BaseLevel extends Phaser.Scene {
   setupCommon({ worldW, worldH, levelName, spawn }) {
     this.difficulty = getDifficulty();
     const save = getSave();
-    const max = Math.min(6, 3 + this.difficulty + Math.floor((save.shards || 0) / 3));
+    const max = heartsMax(this.difficulty, save.shards);
     // one HealthModel for every dream (the Painter's wells are a skin on it)
     this.health = new HealthModel({ max, bus: events, flavour: this.healthFlavour || 'hearts', noFail: !!this.noFail });
     this.checkpoints = new CheckpointService(this, { spawn, bus: events, onLit: (cp) => this.onCheckpointLit(cp) });
@@ -120,6 +128,7 @@ export default class BaseLevel extends Phaser.Scene {
     if (save.shop && save.shop.tea && this.scene.key !== 'Hub') {
       this.lives += 1;
       updateSave((sv) => (sv.shop.tea = false));
+      this.time.delayedCall(1200, () => this.player && this.floatText(this.player.x, this.player.y - 70, "Bilal's tea: a heart to the good.", '#f2d580'));
     }
     this.cardActive = false;
     this.dialogActive = false;
@@ -443,14 +452,10 @@ export default class BaseLevel extends Phaser.Scene {
         const dy = o.dy || 0;
         for (let i = 0; i < n; i++) place(o.wx + i * dx * T, o.wy + i * dy * T);
       } else if (o.type === 'moment' && getSave().shop.postcards[this.dream && this.dream.id]) {
-        // the postcard marks the small moments (§2)
-        const mk = uiText(this, o.wx, o.wy - 54, '\u2318', { size: 'body', color: '#f2c078' })
-          .setOrigin(0.5)
-          .setDepth(21)
-          .setAlpha(0.9);
-        this.tweens.add({ targets: mk, y: mk.y - 5, duration: 1100, yoyo: true, repeat: -1, ease: 'sine.inout' });
+        postcardMark(this, o.wx, o.wy - 54); // the postcard marks the small moments (§2)
       } else if (o.type === 'shard') {
         const img = this.add.image(o.wx, o.wy, 'heart-shard').setDepth(21);
+        if (getSave().shop.postcards[this.dream && this.dream.id]) img.mark = postcardMark(this, o.wx, o.wy - 30);
         img.pickKey = `${Math.round(o.wx)},${Math.round(o.wy)}`;
         this.tweens.add({ targets: img, y: o.wy - 4, duration: 900, yoyo: true, repeat: -1, ease: 'sine.inout' });
         this.tweens.add({ targets: img, alpha: 0.6, duration: 1400, yoyo: true, repeat: -1 });
@@ -470,6 +475,7 @@ export default class BaseLevel extends Phaser.Scene {
     for (const img of this.shardItems || []) {
       if (!img.active) continue;
       if (Phaser.Math.Distance.Between(this.player.x, this.player.y, img.x, img.y) < 22) {
+        if (img.mark) img.mark.destroy();
         img.destroy();
         sfx('shard');
         const sv = updateSave((x) => (x.shards = (x.shards || 0) + 1));
@@ -972,7 +978,7 @@ export default class BaseLevel extends Phaser.Scene {
       if (was && this.player && this.player.locate) this.player.locate('room', room.id ?? rooms.indexOf(room));
       if (room.music) this._roomState = room.music.state || 'explore';
     }
-    if (this.placeAudio) this.placeAudio.update(this.time.now);
+    if (this.placeAudio && !this.greyHold) this.placeAudio.update(this.time.now); // (the astronaut's grey year: real silence)
     if (this.parallax) {
       this.parallax.update();
       // vista zoom on the same t; written only while it changes, so other

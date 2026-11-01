@@ -896,8 +896,8 @@ export default class AstronautScene extends BaseLevel {
     const cx = cam.width / 2;
     const cy = cam.height / 2;
     const fixed = (o) => o.setScrollFactor(0).setDepth(205);
-    const frame = [fixed(this.add.rectangle(cx, cy, cam.width, cam.height, 0x14141a))];
-    const figure = (dx) => [fixed(this.add.circle(cx + dx, cy - 40, 14, 0x050508)), fixed(this.add.rectangle(cx + dx, cy - 6, 52, 40, 0x050508))];
+    const frame = [fixed(this.add.rectangle(cx, cy, cam.width, cam.height, 0x14141a)), fixed(this.add.rectangle(cx, cy - 40, 560, 170, 0x6a7080))];
+    const figure = (dx) => [fixed(this.add.circle(cx + dx, cy - 40, 14, 0x0c0c12)), fixed(this.add.rectangle(cx + dx, cy - 6, 52, 40, 0x0c0c12))];
     const standing = figure(0);
     frame.push(...figure(-140), ...figure(140), ...standing);
     const light = fixed(this.add.circle(cx + 250, cy - 100, 8, 0x2a1010));
@@ -1487,7 +1487,7 @@ export default class AstronautScene extends BaseLevel {
 
     const pd = this.obj('priya_down');
     this.priyaDown = this.add.image(pd.wx, pd.wy + 8, 'npc-priya').setDepth(D.FOE).setAngle(80).setVisible(false);
-    this.priyaLight = this.add.circle(pd.wx, pd.wy, 8, 0xf2e0a0, 0.5).setDepth(D.FOE).setVisible(false);
+    this.priyaLight = this.add.circle(pd.wx, pd.wy, 64, 0xf2e0a0, 0.3).setBlendMode('ADD').setDepth(D.FOE - 1).setVisible(false); // her helmet lamp: she's the one lit thing down there
     this.addInteract(pd.wx, pd.wy, 'Priya', () => {
       this.carryingPriya = true;
       this.setObjective(this.alarmOn ? 'out of the crater, with her.' : 'the winch, at the rim — hold [F]'); // or picked up again, after a fall

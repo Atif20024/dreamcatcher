@@ -8,18 +8,20 @@ const prop = (id, paint) => ({ w: S[id][0], h: S[id][1], anchor: [0.5, 1], paint
 
 // the child at the lit window of the lane's house (the window is 30 × 40)
 function child(ctx, w, h, wave) {
-  ctx.fillStyle = hex(0xe8dcb0);
+  // (the same child as the caption's chip: ev-p-waiting_kid's bun, skin and blue)
+  ctx.fillStyle = hex(0x6a4630);
   ctx.beginPath();
   ctx.arc(w / 2, h - 18, 7, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = hex(0x6a3a22);
+  ctx.fillStyle = hex(0x1e1a20);
   ctx.fillRect(w / 2 - 7, h - 26, 14, 6);
-  ctx.fillStyle = hex(0x2a2028);
+  ctx.fillRect(w / 2 - 3, h - 30, 6, 4);
+  ctx.fillStyle = hex(0xf2e6cc);
   ctx.fillRect(w / 2 - 3, h - 19, 2, 2);
   ctx.fillRect(w / 2 + 2, h - 19, 2, 2);
-  ctx.fillStyle = hex(0x8a4a5a);
+  ctx.fillStyle = hex(0x50a0c0);
   ctx.fillRect(w / 2 - 8, h - 11, 16, 11);
-  ctx.fillStyle = hex(0xe8dcb0);
+  ctx.fillStyle = hex(0x6a4630);
   if (wave) ctx.fillRect(w / 2 + 8, h - 24, 4, 16);
   else ctx.fillRect(w / 2 + 6, h - 8, 4, 6);
 }

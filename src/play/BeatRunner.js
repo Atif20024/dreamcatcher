@@ -1,7 +1,7 @@
 // BeatRunner (plan 2.1): scripted story beats as data. A beat is an array
 // of steps; each step is one object whose single known key names a handler:
 //
-//   { say: { who: 'wren', text: 'Evening.' } }      a caption bar line (non-blocking unless wait:true)
+//   { say: { who: 'nell', text: 'Evening.' } }      a caption bar line (non-blocking unless wait:true)
 //   { talk: 'wren_first' }                          a scene-box conversation (awaited)
 //   { camera: { push: 1.3, to: 'npc:wren', ms: 600 } } / { camera: 'pop' } / { camera: { vista: 0.8 } }
 //   { wait: 400 }                                   ms

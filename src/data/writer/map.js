@@ -153,8 +153,8 @@ export function buildWriterMap() {
   fill(rows, 18, 18, 562, 581, '>'); // web 1: its end drops him on web 2, at any speed, with the Editor behind
   fill(rows, 23, 23, 560, 588, '<'); // web 2
   put(rows, 23, 559, '^');
-  fill(rows, 28, 28, 562, 590, '>'); // web 3
-  put(rows, 28, 591, '^');
+  fill(rows, 28, 28, 562, 596, '>'); // web 3: long enough that a run off web 2 lands on it (FOLD), not on the floor past it
+  fill(rows, 26, 27, 597, 597, '#'); // the stop at its end: stand on the belt and it doesn't tip you off
   put(rows, 27, 580, '.'); // the folder sits here (runtime)
   fill(rows, FLOOR, FLOOR, 560, 585, '<'); // the delivery belt into the tray
   put(rows, 33, 586, '~~~~'); // the ink trough

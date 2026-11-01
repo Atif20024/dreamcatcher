@@ -162,7 +162,7 @@ export default class HudGrid {
   update() {
     const s = hud.s;
     const owner = hud.owner;
-    const show = !!owner && s.profile !== 'none';
+    const show = !!owner && s.profile !== 'none' && !(owner.sceneBox && owner.sceneBox.active); // a conversation's letterbox would cut the plates
     // the prompt follows its world point every frame
     // a modal (dialogue, card, panel) owns the bottom of the screen: the
     // footer, caption, satchel line and prompt step aside while one is up
@@ -254,7 +254,7 @@ export default class HudGrid {
     // §8: no two HUD rects within 8 px. A two-line goal reaches down past the
     // level line's row, so the level line (and the shards under it) drop
     const objLines = show && s.objective ? (obj.getTextBounds(false).lines.lengths || []).length : 0;
-    const levelY = objLines > 1 ? 64 : SLOTS.level.y;
+    const levelY = objLines > 1 ? 28 + 20 * objLines : SLOTS.level.y; // the plate's 20 px a line, and the §8 margin
     this.texts.level.setY(levelY);
     this.texts.shards.setY(this.texts.level.visible ? levelY + 36 : levelY);
 

@@ -61,7 +61,7 @@ export const CONVERSATIONS = {
     },
     menu: { who: 'jo', text: 'One leaf. It takes the breath of a whole room to lay it flat.', set: { finish: 'menu' }, end: true },
     own: { who: 'jo', text: 'A spoon of the staff pot, dark and sweet, where nobody will see it. Then the gold on top.', set: { finish: 'own' }, end: true },
-    plain: { who: 'jo', text: 'He is watching. Jo closes the tin.', set: { finish: 'plain' }, end: true },
+    plain: { who: 'jo', text: 'He is watching. I close the tin.', set: { finish: 'plain' }, end: true },
   }),
   take_it: conv('take_it', ['marguerite', 'jo'], {
     // (a node whose `if` fails is skipped to its `next`)

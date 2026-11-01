@@ -14,17 +14,21 @@ export const PEOPLE = {
   reader4: { hat: 'cap', held: null, pal: { H: 0x2e6a4a, S: 0x8a5a3b, T: 0x9a8a5a, t: 0x6e6240, P: 0x2e2e3a, B: 0x1e1e28 } },
 };
 
-export const NAMES = { wren: 'WREN', emmerich: 'OLD EMMERICH', tomasz: 'TOMASZ', isolde: 'ISOLDE MARR', landlady: 'MRS. ADESANYA', hat: 'THE MAN IN THE HAT' };
+// (`wren` stays her id in code and saves: the name on screen is Maren. The one Wren is the Evening's.)
+export const NAMES = { wren: 'MAREN', emmerich: 'OLD EMMERICH', tomasz: 'TOMASZ', isolde: 'ISOLDE MARR', landlady: 'MRS. ADESANYA', hat: 'THE MAN IN THE HAT' };
 
 const say = (who, text) => ({ name: NAMES[who] || who.toUpperCase(), portrait: `portrait-${who}`, text });
 
 export const DIALOGUES = {
   d0: [{ name: 'JO', portrait: 'portrait-jo', text: 'Morning.' }],
-  d1: [
-    say('wren', "You're stealing lines. Good. Everyone in here is somebody's chapter."),
+  d1: [{ ...say('wren', "You're stealing lines. Good. Everyone in here is somebody's chapter."), choices: [{ label: "I'm only listening.", value: 'listening' }, { label: 'Is it that obvious?', value: 'stealing' }] }],
+  d1_listening: [say('wren', 'Listening. Sure. You write it down with your eyes.')],
+  d1_stealing: [say('wren', 'Your lips move. Fix that, or they will start being careful.')],
+  d1_end: [
     say('wren', "Take that one — the man in the hat's been saying 'it was never about the money' for a year and it's *always* about the money."),
     say('wren', 'Here. A napkin. There\'s one honest word on it. Keep it.'),
   ],
+  d1b_listening: [say('wren', 'Eight overheard lines, Mr. Only Listening. Make them one thought.')],
   d1b: [say('wren', 'Eight overheard lines. Make them one thought.')],
   d2: [
     say('emmerich', 'Page three. Cut it.'),

@@ -7,6 +7,7 @@
 //     ceiling down a tile (a solid plank across, painted), to three tiles at
 //     the least, and dims its lamps a notch. Nobody has to sign one.
 import { isTilted } from '../../../engines/purse.js';
+import { TUNING, tier } from '../../../data/tuning.js';
 
 const T = 32;
 
@@ -44,8 +45,9 @@ export default {
     for (const v of ctx.state.vents) {
       if (v.when && !F[v.when]) continue; // a pipe that has not let go yet
       const period = v.period;
-      const on = tilted ? v.on * 1.35 : v.on;
-      const warn = tilted ? 0 : 450;
+      const d = tier(s.difficulty);
+      const on = (tilted ? v.on * 1.35 : v.on) * TUNING.gambler.ventOn[d];
+      const warn = tilted ? 0 : TUNING.gambler.ventWarnMs[d];
       const t = (now + v.phase) % period;
       const blowing = t < on;
       const warning = !blowing && t > period - warn;

@@ -37,7 +37,7 @@ export class Encounters {
     if (this.active) return Promise.reject(new Error(`Encounters: "${this.active.id}" is already running`));
     // params may depend on the run (a choice made earlier): (flags) → params
     const params = typeof def.params === 'function' ? def.params(ctx.flags || {}) : def.params || {};
-    const engine = def.engine(params);
+    const engine = def.engine(this.host.tune ? this.host.tune(params) : params);
     const presenter = this.host.makePresenter ? this.host.makePresenter(def, engine, ctx) : null;
     return new Promise((resolve) => {
       this.active = { id, def, engine, presenter, ctx, resolve, t: 0, ending: false };

@@ -166,7 +166,7 @@ export function craftWorld(scene, def, engine, ctx) {
     },
     destroy() {
       g.destroy();
-      if (img) img.destroy();
+      if (img && !(work.keep && engine.done)) img.destroy(); // keep: the finished piece stays where it was painted
       tool.setText('').setVisible(false);
       if (plaster) plaster.setVisible(false);
       if (rival) rival.setVisible(false);

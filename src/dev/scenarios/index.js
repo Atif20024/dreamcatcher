@@ -60,3 +60,6 @@ SCENARIOS.push(...station);
 // the Astronaut and Writer fixes: the first Board, Priya, the pen and the page gates, the press
 import astroWriter from './astroWriter.js';
 SCENARIOS.push(...astroWriter);
+// every kind of person: standing still is grabbed, a duck or a step away isn't
+import foeGrab from './foeGrab.js';
+SCENARIOS.push(...foeGrab);
