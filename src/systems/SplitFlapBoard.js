@@ -7,7 +7,7 @@ import { uiText } from '../ui/text.js';
 // where you could be. Each cell is a glyph that flips (4-frame scaleY) when
 // its character changes, with one clack per cell, throttled so a full-row
 // update sounds like a board and not a drum roll.
-const COLS = { platform: 0, title: 5, departs: 28, status: 38 };
+const COLS = { platform: 0, title: 5, departs: 28, status: 34, word: 46 };
 const CELL_W = 11;
 const ROW_H = 20;
 
@@ -24,7 +24,7 @@ export default class SplitFlapBoard {
       scene.add.rectangle(0, 0, this.width, this.height, 0x141418).setStrokeStyle(3, 0xc4a25c)
     );
     // the column heads sit over their columns (body ×1, cap 9: §8)
-    const heads = { platform: 'PLAT', title: 'DESTINATION', departs: 'DEPARTS', status: 'STATUS' };
+    const heads = { platform: 'PLAT', title: 'DESTINATION', departs: 'DEPARTS', status: 'STATUS', word: 'THE NIGHT' };
     for (const [k, label] of Object.entries(heads)) {
       const header = uiText(scene, -this.width / 2 + 12 + COLS[k] * CELL_W + 2, -this.height / 2 + 6, label, { size: 'body', scale: 1, color: '#c4a25c', backing: 0x141418 });
       this.container.add(header);
@@ -52,8 +52,9 @@ export default class SplitFlapBoard {
     const put = (col, str) => [...String(str)].forEach((ch, k) => (s[col + k] = ch));
     put(COLS.platform, `  ${r.platform}`.slice(-3));
     put(COLS.title, r.title.slice(0, 22));
-    put(COLS.departs, r.departs.slice(0, 9));
-    put(COLS.status, r.status.slice(0, 18));
+    put(COLS.departs, r.departs.slice(0, 5));
+    put(COLS.status, r.status.slice(0, 22));
+    if (r.word) put(COLS.word, r.word.slice(0, 10));
     return s;
   }
 

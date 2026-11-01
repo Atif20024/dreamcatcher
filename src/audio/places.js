@@ -15,6 +15,8 @@ export const BEDS = {
   // Crossroads: the PA, pigeons in the roof, a train somewhere, a trolley
   // (spaced out and softer: now and then, not all the time)
   hub: bed(['announce', 50, 100, 0.7], ['pigeon', 15, 40, 0.8], ['wings', 30, 70, 0.6], ['train_far', 40, 90, 0.8], ['trolley', 35, 80, 0.6], ['door', 25, 60, 0.5], ['turnstile', 25, 60, 0.45]),
+  // the service gate: no PA, no crowd, one counter clicking over
+  gate_hum: bed(['turnstile', 20, 40, 0.35]),
   // the clockmaker's green and lane: birds, swifts, a far dog, the church
   green: bed(['bird', 4, 9], ['swifts', 12, 25], ['dog_far', 25, 50, 0.7], ['church_bell', 40, 60, 0.8]),
   dusk: bed(['bird', 7, 14, 0.7], ['dog_far', 20, 40, 0.6], ['cat', 30, 60, 0.6]),
@@ -92,7 +94,7 @@ export const LEGACY_ROOMS = {
     hall: R('hall', 'hub'),
     platforms_a: R('hall', 'hub'),
     platforms_b: R('hall', 'hub'),
-    gate: R('hall', 'hub'),
+    gate: R('hall', 'gate_hum'),
   },
 };
 

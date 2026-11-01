@@ -51,3 +51,6 @@ SCENARIOS.push(...touch);
 // every ladder climbs both ways and leads somewhere (the undercroft's grate)
 import ladders from './ladders.js';
 SCENARIOS.push(...ladders);
+// the station that counts every running dream, its rewards, and the Evening's way out
+import station from './station.js';
+SCENARIOS.push(...station);

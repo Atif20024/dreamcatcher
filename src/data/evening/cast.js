@@ -46,7 +46,7 @@ export const CAST = {
       'Wrong note. On purpose. Jazz.',
       'Four notes. I only ever learned the first four.',
       "Hum it back to me. No — the other way.",
-      "I used to play the tutorial street. Now I play wherever the light's good.",
+      'I play the station hall, mostly. The acoustics lie.',
       "The dog likes the minor keys. Won't hear a word against them.",
       "Somebody on a balcony is singing along. Badly. I love them.",
       'I tune to the fountain. The fountain is flat.',
@@ -177,6 +177,7 @@ export const CAST = {
       'Cardamom tonight. The kettle chose.',
       "Everyone's tea is different. I don't ask. I know.",
       'The station was busy. This is not busy. I like this.',
+      "Kettle's on at the station too. Don't ask how.",
     ],
   },
   waiting_kid: {

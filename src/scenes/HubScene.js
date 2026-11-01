@@ -12,7 +12,9 @@ import hubRooms, { BAYS, bayIndex } from '../data/hub/rooms.js';
 import hubTiles from '../data/hub/tiles.js';
 import { HUB_ROWS, buildHubMap } from '../data/hub/map.js';
 import { reachGrid } from '../world/reach.js';
-import { DREAMS, LAST_STOP, dreamById } from '../data/dreams.js';
+import { DREAMS, LAST_STOP, dreamById, BOARD_WORD, GENTLE_DREAM, WAITING_LINE } from '../data/dreams.js';
+import { FINDS } from '../data/evening/rooms.js';
+import { bayPropTex, lapelFlower } from '../art/bayProps.js';
 import { createHubTextures, HUB_PROP_KEYS } from '../entities/hubArt.js';
 import { stationTex, pigeonTex, doorWingTex } from '../art/trainArt.js';
 import { hubTex } from '../art/hubArt.js';
@@ -21,11 +23,11 @@ import SplitFlapBoard from '../systems/SplitFlapBoard.js';
 import Train from '../entities/Train.js';
 import Silhouettes from '../entities/Silhouette.js';
 import Phrases from '../systems/rhythm.js';
-import { hubState, HEADLINES } from '../systems/hubState.js';
+import { hubState, headline, pembertonLine, teaLine, runningDreams, caughtRunning, progress } from '../systems/hubState.js';
 import { getSave, updateSave, getRun } from '../utils/save.js';
-import { getWallet, spend } from '../systems/wallet.js';
+import { getWallet, spend, addCoins } from '../systems/wallet.js';
 import { HATS, hatById } from '../data/hats.js';
-import { sfx, music, musicDirector, sting, accordion, chime } from '../systems/audio.js';
+import { sfx, music, musicDirector, sting, accordion, chime, playFx } from '../systems/audio.js';
 import { ambience } from '../audio/Ambience.js';
 import { dreamcatcherTexture, caughtRounds, WEB_ORDER, glowTexture } from '../art/identityArt.js';
 import { PLACES } from '../ui/theme.js';
@@ -44,25 +46,12 @@ const ROOF = line(HUB_ROWS.ROOF - 1); // 256
 const UNDER = line(HUB_ROWS.UNDER - 1); // 1056
 const DREAMCATCHER_PX = 128; // the hall's dreamcatcher: a 2.9 m hoop (WP6)
 const DOORS_X = px(22);
+const BAY_PROP_X = 5.4 * T; // on the concourse, between the gate and the bay's lamp
+const LUGGAGE_COINS = 5; // what a tagged case holds, in that dream's coin
+const ROOF_HINT = "There's a bench at the far end. And one on the clock, if you can jump.";
 const SHED_END_X = px(156);
 
 // --- the people of the station: what they say, per dreamsCaught -----------
-const PEMBERTON_RETURN = [
-  null,
-  'Back already. Was it everything?',
-  'Two. The service gate will have noticed.',
-  'Three. You look… thinner around the eyes.',
-  'Four. Most people stop at two.',
-  "Five. The board's out of dreams, sir.",
-];
-const BILAL_TEA = [
-  'On the house.',
-  'On the house.',
-  'Still on the house.',
-  "You're not sleeping.",
-  "Drink it here. Don't take it on the train.",
-  null, // silence, then the line about the sweeper
-];
 const LAST_WALK = {
   pemberton: 'Mind the gap.',
   ro: 'Sit a minute.',
@@ -89,7 +78,9 @@ export default class HubScene extends BaseLevel {
     createHubTextures(this);
     void HUB_PROP_KEYS;
     this.save = getSave();
-    this.N = Math.min(5, this.save.dreamsCaught);
+    this.N = caughtRunning(this.save); // every running dream counts: nothing closes short of them
+    this.k = progress(this.N);
+    this.allCaught = this.k >= 1;
     this.state = hubState(this.N);
     this.firstVisit = this.save.flags.hub.visits === 0 && !this.returnedFrom;
     updateSave((s) => (s.flags.hub.visits += 1));
@@ -129,6 +120,8 @@ export default class HubScene extends BaseLevel {
     this.hudProfile = 'hub'; // nothing here can hurt you: no hearts on the HUD
     this.setupCommon({ worldW: built.worldW, worldH: built.worldH, levelName: 'CROSSROADS STATION', spawn });
 
+    this.lapel = null; // (Phaser reuses the scene: nothing of the last visit's)
+    this.sleeperAwake = false;
     this.interacts = [];
     this.npcs = {};
     this.trains = {};
@@ -145,6 +138,7 @@ export default class HubScene extends BaseLevel {
     this.buildSafetyNet();
     this.buildUndercroft();
     this.buildRoof();
+    this.buildRewards();
     this.buildTravelers();
     this.buildDayCycle();
     this.applyState();
@@ -161,7 +155,8 @@ export default class HubScene extends BaseLevel {
     musicDirector.setMix(this.state.music); // the station's band (setupCommon)
     // the hall's air and its crowd, thinner with every dream caught
     // (kept under the band: a bed, not a wall of noise)
-    ambience.set({ hub_hall: 0.7, hub_crowd: Math.min(0.6, 0.1 + this.state.travelers / 60) });
+    this._ambAt = 0;
+    this.updateBayAmbience(0);
     this.events.once('shutdown', () => ambience.stop());
     this.boardIdle = this.time.addEvent({ delay: this.state.boardIdleMs, loop: true, callback: () => this.board.idleClack() });
     this.clockTick = this.time.addEvent({ delay: 1000, loop: true, callback: () => this.tickClock() });
@@ -169,9 +164,10 @@ export default class HubScene extends BaseLevel {
 
     const worn = hatById(getSave().shop.hat);
     if (worn) this.wearHat(worn);
+    if (this.hasFlower()) this.wearFlower();
     if (this.returnedFrom) this.runReturn();
-    else if (this.firstVisit) this.setObjective('');
-    else this.setObjective('board any train — or the last stop');
+    else if (this.firstVisit) this.setObjective('the board, in the hall');
+    else this.setObjective(this.hubObjective());
     // the place's name on the board (WP6, §9): not over the opening (it has
     // its own) and not over a train coming home
     if (!this.returnedFrom && !this.firstVisit) this.placeBoard = boardTitle(this, 'CROSSROADS STATION', { sub: "NINE O'CLOCK", y: 64, place: 'hub', hold: 1800 });
@@ -361,8 +357,9 @@ export default class HubScene extends BaseLevel {
     return this.objects.filter((o) => o.type === type && pred(o));
   }
 
-  addInteract(x, y, label, cb, { radius = 44, once = false, when = () => true } = {}) {
-    const it = { x, y, label, cb, radius, once, when, used: false };
+  // label: an id; verb: what the prompt offers (a string or a function)
+  addInteract(x, y, label, cb, { radius = 44, once = false, when = () => true, verb = label } = {}) {
+    const it = { x, y, label, cb, radius, once, when, verb, used: false };
     this.interacts.push(it);
     return it;
   }
@@ -403,7 +400,7 @@ export default class HubScene extends BaseLevel {
   }
 
   say(who, text, portrait = true) {
-    const names = { pemberton: 'Mr. Pemberton', ro: 'Auntie Ro', bilal: 'Bilal', busker: 'The Busker', kite: 'Kite Kid', flower: 'Flower Seller', jo: 'Jo', gate: '…' };
+    const names = { pemberton: 'Mr. Pemberton', ro: 'Auntie Ro', bilal: 'Bilal', busker: 'Bo', kite: 'Kite Kid', flower: 'Flower Seller', jo: 'Jo', gate: '…' };
     return this.dialog.show([{ name: names[who] || who, text, portrait: portrait && who !== 'gate' && who !== 'jo' ? `hub-${who}` : undefined }]);
   }
 
@@ -422,19 +419,29 @@ export default class HubScene extends BaseLevel {
     const k = this.obj('kiosk');
     this.add.image(k.wx, street, stationTex(this, 'hub-news-kiosk')).setOrigin(0.5, 1).setDepth(D.INTERACT - 2);
     this.add.image(k.wx, street - 110 - 24, hubTex(this, 'signboard', 118, 50, { body: 0x1a1a22, trim: 0xc4a25c })).setDepth(D.INTERACT - 2);
-    uiText(this, k.wx, street - 110 - 25, HEADLINES[this.N], { size: 'body', color: '#f2e6cc', wordWrap: { width: 104 }, align: 'center', backing: 0x1a1a22 })
+    uiText(this, k.wx, street - 110 - 25, headline(this.N), { size: 'body', color: '#f2e6cc', wordWrap: { width: 104 }, align: 'center', backing: 0x1a1a22 })
       .setOrigin(0.5)
       .setDepth(D.INTERACT - 1);
     // feedback 3: [E] reads the paper on a page, large
-    this.addInteract(k.wx, street - 20, 'read the paper', () => readDocument(this, { title: 'The Evening Crossroads', text: HEADLINES[this.N], name: 'paper' }));
+    this.addInteract(k.wx, street - 20, 'read the paper', () => readDocument(this, { title: 'The Evening Crossroads', text: headline(this.N), name: 'paper' }));
 
     // three station doors at full size (2.6 m pairs, a 2.4 m revolving door
     // in the middle); only the middle one turns
+    this.chains = [];
     this.doors = this.objs('door').map((o) => {
       if (o.chained) {
         const img = this.add.image(o.wx, FLOOR, stationTex(this, 'hub-double-door')).setOrigin(0.5, 1).setDepth(D.INTERACT - 2);
-        this.add.image(o.wx, FLOOR - 50, 'hub-chain').setDepth(D.INTERACT - 1);
-        uiText(this, o.wx, FLOOR - 36, '🔒', { fontSize: '10px' }).setOrigin(0.5).setDepth(D.INTERACT - 1).setAlpha(0.8);
+        // the chains hold until every running dream is caught, and fall the
+        // first time Jo sees those doors after that
+        if (!this.save.flags.hub.chainsFell) {
+          const chain = this.add.image(o.wx, FLOOR - 50, 'hub-chain').setDepth(D.INTERACT - 1);
+          const lock = this.add.graphics({ x: o.wx, y: FLOOR - 36 }).setDepth(D.INTERACT - 1);
+          lock.lineStyle(2, 0x8a7a4a, 1).strokeCircle(0, -5, 4);
+          lock.fillStyle(0xc4a25c, 1).fillRect(-5, -4, 10, 9);
+          lock.fillStyle(0x2a2230, 1).fillRect(-1, -1, 2, 3);
+          this.chains.push(chain, lock);
+        }
+        if (this.allCaught) this.warmDoor(o.wx);
         return img;
       }
       const img = this.add.image(o.wx, FLOOR, stationTex(this, 'hub-revolving-door')).setOrigin(0.5, 1).setDepth(D.INTERACT - 3);
@@ -445,13 +452,6 @@ export default class HubScene extends BaseLevel {
       return img;
     });
     this.hallEntryX = this.obj('hall_entry').wx;
-
-    // Auntie Ro at her shoeshine stand
-    const ro = this.obj('npc', (o) => o.who === 'ro');
-    this.add.image(this.obj('shoeshine').wx, FLOOR - 14, 'hub-shoeshine').setDepth(D.INTERACT - 2);
-    const roS = this.npc('ro', ro, { still: true });
-    roS.y = FLOOR - 26;
-    this.addInteract(ro.wx, FLOOR - 20, 'ro', () => this.talkRo());
 
     // rain on the wet stone
     const rainObj = this.obj('rain');
@@ -466,6 +466,17 @@ export default class HubScene extends BaseLevel {
     this.clockFace = this.add.image(c.wx + 16, c.wy + 56, 'hub-clock').setDepth(D.INTERACT - 2).setScale(1.4);
     this.clockHands = this.add.graphics().setDepth(D.INTERACT - 1);
     this.drawClock();
+  }
+
+  // every running dream caught: the side doors stand open onto the amber of
+  // the last stop, and either of them goes there
+  warmDoor(x) {
+    // over the grey wash (applyState): this is the one warm thing left here
+    const over = D.INTERACT + 7;
+    this.add.rectangle(x, FLOOR - 46, 62, 90, 0xf2c078, 0.6).setBlendMode('ADD').setDepth(over);
+    this.add.image(x, FLOOR - 46, glowTexture(this)).setBlendMode('ADD').setTint(0xf2c078).setAlpha(0.45).setScale(2, 2.6).setDepth(over);
+    this.add.rectangle(x, FLOOR + 3, 118, 6, 0xf2c078, 0.3).setBlendMode('ADD').setDepth(over);
+    this.addInteract(x, FLOOR - 20, 'warm-door', () => this.boardLastStop(), { verb: 'go through', radius: 60 });
   }
 
   buildRain(x0, w) {
@@ -505,7 +516,31 @@ export default class HubScene extends BaseLevel {
       this.time.delayedCall(2000, () => (this.clockTick.paused = false));
       return;
     }
-    sfx('tick');
+    // (placed in the world: heard on the steps and in the hall, under the clock)
+    const room = this._room && this._room.id;
+    const p = this.player;
+    if ((room === 'steps' || room === 'hall') && p.y > ROOF + T && p.y < FLOOR + T) sfx('tick');
+  }
+
+  // the room's bed, and within five tiles of a train still waiting, a breath of
+  // its dream. A caught train is silent.
+  updateBayAmbience(time) {
+    if (time < (this._ambAt || 0)) return;
+    this._ambAt = time + 250;
+    const p = this.player;
+    const room = this._room && this._room.id;
+    const levels = room === 'gate' ? { gate_hum: 0.6 } : { hub_hall: 0.7, hub_crowd: Math.min(0.6, 0.1 + this.state.travelers / 60) };
+    this.bayLoop = null;
+    if (Math.abs(p.y - (FLOOR - 24)) < 120) {
+      for (const d of DREAMS) {
+        const t = this.trains[d.id];
+        const dist = t && Math.abs(p.x - t.gateX);
+        if (!t || !d.ambientLoop || this.save.dreams[d.id] || dist > 5 * T) continue;
+        if (!this.bayLoop || dist < this.bayLoop.dist) this.bayLoop = { name: d.ambientLoop, dist, level: 0.7 * (1 - dist / (5 * T)) };
+      }
+    }
+    if (this.bayLoop) levels[this.bayLoop.name] = this.bayLoop.level;
+    ambience.set(levels);
   }
 
   persistClock() {
@@ -525,7 +560,7 @@ export default class HubScene extends BaseLevel {
     const pem = this.npc('pemberton', this.obj('npc', (o) => o.who === 'pemberton'));
     pem.y = FLOOR - 40;
     pem.setDepth(D.INTERACT - 2); // behind the counter
-    this.addInteract(desk.wx, FLOOR - 20, 'pemberton', () => this.talkPemberton());
+    this.addInteract(desk.wx, FLOOR - 20, 'pemberton', () => this.talkPemberton(), { verb: 'ask' });
 
     // ticket booths, phone booths, lost & found
     const booths = this.obj('booths');
@@ -536,7 +571,13 @@ export default class HubScene extends BaseLevel {
     [4, 48].forEach((dx) => this.add.image(phones.wx + dx, FLOOR, stationTex(this, 'hub-phone-box')).setOrigin(0.5, 1).setDepth(D.INTERACT - 3));
     const lf = this.obj('lostfound');
     this.add.image(lf.wx, lf.wy, hubTex(this, 'lostfound', 90, 40)).setDepth(D.INTERACT - 3);
-    uiText(this, lf.wx, lf.wy - 8, 'LOST & FOUND', { fontSize: '9px', color: '#c4a25c', backing: 0x2a2230 }).setOrigin(0.5).setDepth(D.INTERACT - 2);
+    uiText(this, lf.wx, lf.wy - 11, 'LOST & FOUND', { fontSize: '9px', color: '#c4a25c', backing: 0x2a2230 }).setOrigin(0.5).setDepth(D.INTERACT - 2);
+    // what Jo has pocketed at the last stop turns up on these two shelves
+    const found = this.save.evening.finds || {};
+    const pocketed = FINDS.filter((f) => found[f.id]);
+    pocketed.forEach((f, i) => this.add.rectangle(lf.wx - 36 + (i % 6) * 14, lf.wy + 3 + Math.floor(i / 6) * 10, 6, 6, f.tint).setStrokeStyle(1, 0x14141c, 0.8).setDepth(D.INTERACT - 2));
+    // (anchored high: the prompt sits above the window, not on it or on Jo)
+    this.addInteract(lf.wx, FLOOR - 70, 'lostfound', () => this.lostAndFound(pocketed), { verb: 'look', radius: 66 });
 
     // the bench and the man who sleeps on it under a coat
     const bench = this.obj('bench', (o) => o.sleeper);
@@ -545,7 +586,13 @@ export default class HubScene extends BaseLevel {
     sl.y = FLOOR - 22;
     sl.lamp.setAlpha(0.06);
     this.sleeperCoat = this.add.image(sl.x, FLOOR - 18, hubTex(this, 'coat', 30, 22)).setDepth(D.INTERACT + 2);
-    this.tweens.add({ targets: this.sleeperCoat, scaleY: 1.04, duration: 2600, yoyo: true, repeat: -1, ease: 'sine.inout' });
+    if (this.allCaught) {
+      // the bench is empty, the coat folded: he has gone where he was going
+      sl.setVisible(false);
+      sl.lamp.setVisible(false);
+      this.sleeperCoat.setScale(0.8, 0.5).setPosition(sl.x - 8, FLOOR - 25).setDepth(D.INTERACT + 7);
+    } else this.tweens.add({ targets: this.sleeperCoat, scaleY: 1.04, duration: 2600, yoyo: true, repeat: -1, ease: 'sine.inout' });
+    this.addInteract(sl.x, FLOOR - 20, 'sleeper', () => this.talkSleeper(), { verb: 'look', radius: 40 });
 
     // fountain, pigeons, flowers, luggage carts
     const f = this.obj('fountain');
@@ -560,6 +607,7 @@ export default class HubScene extends BaseLevel {
     this.flowerCart = this.add.image(fl.wx, FLOOR - 12, 'hub-flowers').setDepth(D.INTERACT - 2);
     const fs = this.npc('flower', this.obj('npc', (o) => o.who === 'flower'), { still: true, flip: true });
     fs.y = FLOOR - 26;
+    this.addInteract(fs.x, FLOOR - 20, 'flower', () => this.talkFlower(), { verb: () => (this.hasFlower() ? 'talk' : 'a flower') });
     // luggage carts roll when Jo bumps them but never block him: a cart
     // shoved into a corner must not become a wall between him and a train
     this.carts = this.objs('cart').slice(0, 1).map((o) => {
@@ -577,7 +625,15 @@ export default class HubScene extends BaseLevel {
     // the busker at the far pillar
     const bk = this.npc('busker', this.obj('npc', (o) => o.who === 'busker'), { flip: true });
     this.buskerNote = this.time.addEvent({ delay: 1500, loop: true, callback: () => this.buskerPuff(bk) });
-    this.addInteract(bk.x, FLOOR - 20, 'busker', () => this.duet(), { when: () => !this.moments.moment1 && this.N < 3 });
+    this.addInteract(bk.x, FLOOR - 20, 'busker', () => this.talkBusker(), { verb: () => (this.moments.moment1 ? 'talk' : 'play along') });
+
+    // Auntie Ro at her shoeshine stand, under the dreamcatcher: everyone
+    // passes her on the way to a train, and she is there when one comes back
+    const ro = this.obj('npc', (o) => o.who === 'ro');
+    this.add.image(this.obj('shoeshine').wx, FLOOR - 14, 'hub-shoeshine').setDepth(D.INTERACT - 2);
+    const roS = this.npc('ro', ro, { still: true, flip: true });
+    roS.y = FLOOR - 26;
+    this.addInteract(ro.wx, FLOOR - 20, 'ro', () => this.talkRo(), { verb: 'talk' });
 
     // the mezzanine is a balcony: brass columns under it, a rail along it
     const mezzY = line(HUB_ROWS.MEZZ - 1);
@@ -609,7 +665,7 @@ export default class HubScene extends BaseLevel {
     const cafe = this.obj('cafe');
     this.add.image(cafe.wx, line(cafe.ty) - 12, 'hub-cafe').setDepth(D.INTERACT - 2);
     const bl = this.npc('bilal', this.obj('npc', (o) => o.who === 'bilal'), { still: true });
-    this.addInteract(bl.x, bl.y, 'bilal', () => this.tea());
+    this.addInteract(bl.x, bl.y, 'bilal', () => this.tea(), { verb: 'have tea' });
     this.dumbwaiters = this.objs('dumbwaiter').map((o) => this.add.image(o.wx, line(o.ty) - 12, 'hub-dumbwaiter').setDepth(D.INTERACT - 2));
     this.bilalUpstairs = true;
 
@@ -670,6 +726,10 @@ export default class HubScene extends BaseLevel {
     const rounds = this.webRounds;
     const left = WEB_ORDER.length - rounds.length - 1;
     const st = { p: 0 };
+    // the hall's lamp takes up the dream's colour while it is woven: a thin
+    // line on a big hoop needs the light to be seen from the floor
+    const halo = this.add.image(this.dreamcatcher.x, this.dreamcatcher.y + DREAMCATCHER_PX / 2, glowTexture(this)).setBlendMode('ADD').setTint(color).setAlpha(0).setScale(3.4).setDepth(D.INTERACT - 4.5);
+    this.tweens.add({ targets: halo, alpha: 0.55, duration: 800, yoyo: true, hold: 900, onComplete: () => halo.destroy() });
     this.tweens.add({
       targets: st,
       p: 1,
@@ -695,8 +755,11 @@ export default class HubScene extends BaseLevel {
   }
 
   buskerPuff(bk) {
-    if (this.N >= 3 || this.duetting) return; // the busker has stopped
-    const t = uiText(this, bk.x + 14, bk.y - 30, '♪', { fontSize: '13px', color: '#f2d580' }).setDepth(D.INTERACT + 2);
+    // a horn left on a bench at the last stop: he can hear it, and answers
+    const horn = this.save.evening.trumpet_left;
+    if ((this.k >= 0.6 && !horn) || this.duetting) return; // the busker has stopped
+    if (horn && Math.abs(this.player.x - bk.x) < 300) playFx(523, 0.5, 'triangle', 0.012);
+    const t = uiText(this, bk.x + 14, bk.y - 30, '♪', { fontSize: '13px', color: horn ? '#ffc870' : '#f2d580' }).setDepth(D.INTERACT + 2);
     this.tweens.add({ targets: t, y: t.y - 24, alpha: 0, duration: 1200, onComplete: () => t.destroy() });
   }
 
@@ -706,11 +769,11 @@ export default class HubScene extends BaseLevel {
       return caught
         ? { platform: d.platform, title: d.title, departs: '—', status: 'CAUGHT — NO RETURN', dim: true }
         : getRun(d.id)
-          ? { platform: d.platform, title: d.title, departs: 'NOW', status: 'CONTINUE', dim: false, hot: true }
-          : { platform: d.platform, title: d.title, departs: 'NOW', status: d.scene ? 'BOARDING' : 'DELAYED', dim: false };
+          ? { platform: d.platform, title: d.title, departs: 'NOW', status: 'CONTINUE', word: BOARD_WORD[d.id], dim: false, hot: true }
+          : { platform: d.platform, title: d.title, departs: 'NOW', status: d.scene ? 'BOARDING' : 'NOT IN SERVICE', word: d.scene ? BOARD_WORD[d.id] : '', dim: false };
     });
     // the last stop is a train like any other: no chain, no count to clear
-    rows.push({ platform: LAST_STOP.platform, title: LAST_STOP.title, departs: 'NOW', status: 'BOARDING', hot: true });
+    rows.push({ platform: LAST_STOP.platform, title: LAST_STOP.title, departs: 'NOW', status: 'BOARDING', word: 'WARM', hot: true });
     return rows;
   }
 
@@ -738,6 +801,8 @@ export default class HubScene extends BaseLevel {
       // the overhead sign: readable from the far end of the shed
       this.platformSign(d, bayMid, caught, running);
       // the kitchen line smells of its dream
+      // nine bays, nine places: what that dream left on its platform
+      if (d.propsKind) this.add.image(bayX0 + BAY_PROP_X, FLOOR, bayPropTex(this, d.propsKind)).setOrigin(0.5, 1).setDepth(D.INTERACT - 2).setAlpha(caught ? 0.6 : 1);
       if (d.propsKind === 'produce' && running) this.time.addEvent({ delay: 900, loop: true, callback: () => this.smell(train.gateX - 30, FLOOR - 110) });
 
       if (caught) {
@@ -746,7 +811,8 @@ export default class HubScene extends BaseLevel {
         this.add.image(train.gateX - 26, FLOOR - 52, pigeonTex(this)).setDepth(D.INTERACT - 1);
         this.add.image(train.lampX + 4, FLOOR - 160, pigeonTex(this)).setDepth(D.INTERACT - 1).setFlipX(true);
       }
-      this.addInteract(train.gateX, FLOOR - 20, 'train', () => this.board_(d), { radius: 56, when: () => this.trains[d.id].state === 'idle' });
+      const verb = caught || !running ? 'ask' : d !== LAST_STOP && getRun(d.id) ? 'continue' : 'board';
+      this.addInteract(train.gateX, FLOOR - 20, 'train', () => this.board_(d), { radius: 56, when: () => this.trains[d.id].state === 'idle', verb });
       d._lamp = train;
     }
   }
@@ -774,7 +840,8 @@ export default class HubScene extends BaseLevel {
       this.add.image(x, y + 30, hubTex(this, 'redbar', w, 16)).setDepth(D.INTERACT - 1);
       uiText(this, x, y + 30, 'NOT IN SERVICE', { fontSize: '10px', color: '#f2e6cc', backing: 0xc03a2a }).setOrigin(0.5).setDepth(D.INTERACT);
     } else {
-      const tag = uiText(this, x, y + 30, '● BOARDING', { fontSize: '10px', color: '#7ec87e' }).setOrigin(0.5).setDepth(D.INTERACT - 1);
+      const word = BOARD_WORD[d.id] || (d === LAST_STOP ? 'WARM' : '');
+      const tag = uiText(this, x, y + 30, word ? `● BOARDING · ${word}` : '● BOARDING', { fontSize: '10px', color: '#7ec87e' }).setOrigin(0.5).setDepth(D.INTERACT - 1);
       this.tweens.add({ targets: tag, alpha: 0.35, duration: 900, yoyo: true, repeat: -1, ease: 'sine.inout' });
     }
   }
@@ -831,7 +898,7 @@ export default class HubScene extends BaseLevel {
       if (i % 5 === 4) tg.lineBetween(tx0 - 13, ty0 + 5, tx0 - 2, ty0);
       else tg.lineBetween(tx0, ty0, tx0, ty0 + 5);
     }
-    this.addInteract(gx - 40, FLOOR - 20, 'gate', () => this.pushGate(), { radius: 76 }); // the turnstile step raises Jo
+    this.addInteract(gx - 40, FLOOR - 20, 'gate', () => this.pushGate(), { radius: 76, verb: () => (this.save.flags.hub.gateSpoke ? 'go through' : 'push the gate') }); // the turnstile step raises Jo
   }
 
   drawTally(count) {
@@ -882,7 +949,7 @@ export default class HubScene extends BaseLevel {
     uiText(this, tk.wx, UNDER - 66, "THE EXPRESS · BILAL'S", { fontSize: '9px', color: '#f2d580' })
       .setOrigin(0.5)
       .setDepth(D.INTERACT - 2);
-    this.addInteract(tk.wx, UNDER - 20, 'shop', () => this.shop());
+    this.addInteract(tk.wx, UNDER - 20, 'shop', () => this.shop(), { verb: 'browse' });
     const cg = this.obj('cages');
     [-44, 0, 44].forEach((dx) => this.add.image(cg.wx + dx, UNDER - 12, 'hub-cage').setDepth(D.INTERACT - 2));
 
@@ -893,7 +960,7 @@ export default class HubScene extends BaseLevel {
       sfx('clang');
       const l = Phaser.Utils.Array.GetRandom(levers);
       this.tweens.add({ targets: l, angle: l.angle === 0 ? -30 : 0, duration: 150 });
-    });
+    }, { verb: 'pull' });
 
     // the wall of lost dreams: one row per catchable dream; a "JO" tag per catch
     const ld = this.obj('lost_dreams');
@@ -905,6 +972,7 @@ export default class HubScene extends BaseLevel {
       }
     });
     uiText(this, ld.wx, UNDER - 106, 'LEFT LUGGAGE', { fontSize: '9px', color: '#8a8478' }).setOrigin(0.5).setDepth(D.INTERACT - 2);
+    this.addInteract(ld.wx, UNDER - 20, 'luggage', () => this.readTags(), { verb: 'read the tags', radius: 130 });
 
     // the slot: the far side of the service gate. A corridor of tally under
     // one bulb, receding. Nothing moves in it.
@@ -912,7 +980,7 @@ export default class HubScene extends BaseLevel {
     const sx = slot.wx;
     const sy = UNDER - 40;
     this.add.image(sx, sy, hubTex(this, 'slot', 56, 40)).setDepth(D.INTERACT - 3);
-    this.addInteract(sx, sy + 10, 'slot', () => this.floatText(sx, sy - 40, 'a corridor. tally marks. one bulb.\nnothing moves.', '#8a8478'));
+    this.addInteract(sx, sy + 10, 'slot', () => this.floatText(sx, sy - 40, 'a corridor. tally marks. one bulb.\nnothing moves.', '#8a8478'), { verb: 'look' });
   }
 
   buildRoof() {
@@ -927,7 +995,7 @@ export default class HubScene extends BaseLevel {
     kid.y = ROOF - 24;
     this.kite = this.add.image(kid.x + 60, ROOF - 120, 'hub-kite').setDepth(D.INTERACT - 1);
     this.kiteString = this.add.graphics().setDepth(D.INTERACT - 2);
-    this.addInteract(kid.x, ROOF - 20, 'kite', () => this.holdKite(), { when: () => !this.moments.moment3 });
+    this.addInteract(kid.x, ROOF - 20, 'kite', () => (this.moments.moment3 ? this.say('kite', ROOF_HINT) : this.holdKite()), { verb: () => (this.moments.moment3 ? 'talk' : 'hold the kite') });
   }
 
   buildTravelers() {
@@ -949,6 +1017,98 @@ export default class HubScene extends BaseLevel {
     });
   }
 
+  // ---- what the leads pay for walking them (collectibles §3-4) -------------
+  // Coins from the hatch both ways, in plain sight, drawing the line to what
+  // sits at each end of the roof: the far bench over the last platforms, and
+  // the bench on the clock tower, a jump up from its bridge. Each coin and the
+  // shard is paid once, ever.
+  buildRewards() {
+    const fl = this.save.flags.hub;
+    const leads = fl.leads || {};
+    this.leadCoins = [];
+    const lay = (key, c, y) => {
+      if (leads[key] || !this.coinMgr) return;
+      const coin = this.coinMgr.spawn(px(c), y);
+      coin.leadKey = key;
+      this.leadCoins.push(coin);
+    };
+    const onLeads = ROOF - 26;
+    [66, 70, 74, 142, 145, 148, 151].forEach((c) => lay(`e${c}`, c, onLeads));
+    [56, 50, 44, 28].forEach((c) => lay(`w${c}`, c, onLeads));
+    // up the bridge's end and onto the tower: the jump, in coins
+    const towerTop = line(3);
+    [[19.2, ROOF - 62], [18.4, ROOF - 112], [17.2, towerTop - 34], [15.8, towerTop - 26]].forEach(([c, y], i) => lay(`t${i}`, c, y));
+
+    // the far bench and its lamp
+    const eastX = px(155);
+    this.add.image(eastX, ROOF - 10, 'hub-bench').setDepth(D.INTERACT - 2);
+    this.add.image(px(157.5), ROOF, stationTex(this, 'hub-platform-lamp')).setOrigin(0.5, 1).setDepth(D.INTERACT - 3);
+    // a skylight in the leads over the gate room: dark until he has sat up here
+    this.add.rectangle(px(160), ROOF + 3, 44, 6, 0x2a2a34).setDepth(D.TERRAIN + 1);
+    this.farWindow = this.add.rectangle(px(160), ROOF + 3, 40, 3, 0xffd890).setDepth(D.TERRAIN + 2).setVisible(!!fl.roofBench);
+    this.farGlow = this.add.image(px(160), ROOF - 14, glowTexture(this)).setBlendMode('ADD').setTint(0xf2c078).setAlpha(0.6).setScale(1.8, 1.1).setDepth(D.TERRAIN + 2).setVisible(!!fl.roofBench);
+
+    // the clock's bench and the pigeon that keeps it
+    const towerX = px(14.5);
+    this.add.image(towerX, towerTop - 10, 'hub-bench').setDepth(D.INTERACT - 2);
+    this.towerPigeon = this.add.image(towerX + 34, towerTop - 6, pigeonTex(this)).setDepth(D.INTERACT - 1).setFlipX(true);
+    if (!fl.towerShard) {
+      this.towerShard = this.add.image(px(12.6), towerTop - 22, 'heart-shard').setDepth(D.INTERACT + 1);
+      this.towerShard.pickKey = 'hub-tower';
+      (this.shardItems ||= []).push(this.towerShard);
+    }
+    this.benchSpots = [
+      { id: 'sleeper', x: px(38), y: FLOOR - 24 },
+      { id: 'roofBench', x: eastX, y: ROOF - 24, ms: 4000, done: () => this.farBench() },
+      { id: 'towerBench', x: towerX, y: towerTop - 24, ms: 5000, done: () => this.towerBench() },
+    ];
+    this.sitPrompt = uiText(this, 0, 0, '[\u2193] sit', { fontSize: '12px', color: '#88b8d8', backgroundColor: '#14101c' }).setOrigin(0.5).setDepth(80).setVisible(false);
+  }
+
+  // sit on a roof bench long enough and something small happens, once
+  updateBenches(dt) {
+    const p = this.player;
+    const spot = this.benchSpots.find((b) => Math.abs(p.x - b.x) < 44 && Math.abs(p.y - b.y) < 40);
+    const paid = spot && spot.done && this.save.flags.hub[spot.id];
+    const show = spot && !p.crouching && !p.climbing && !paid && !(spot.id === 'sleeper' && this.moments.moment2);
+    this.sitPrompt.setVisible(!!show);
+    if (show) this.sitPrompt.setPosition(spot.x, spot.y - 56);
+    if (spot && spot.done && !paid && p.crouching) {
+      this.sitT = (this.sitT || 0) + dt * 1000;
+      if (this.sitT > spot.ms) {
+        this.sitT = 0;
+        this.save.flags.hub[spot.id] = true;
+        updateSave((s) => (s.flags.hub[spot.id] = true));
+        spot.done();
+      }
+    } else if (!spot || !p.crouching) this.sitT = 0;
+    // what the leads have paid so far stays paid
+    for (const coin of this.leadCoins) {
+      if (coin.img.active || coin.banked) continue;
+      coin.banked = true;
+      updateSave((s) => ((s.flags.hub.leads ||= {})[coin.leadKey] = true));
+    }
+    if (this.towerShard && !this.towerShard.active) {
+      this.towerShard = null;
+      updateSave((s) => (s.flags.hub.towerShard = true));
+    }
+  }
+
+  farBench() {
+    chime('board', 'hub');
+    this.farWindow.setVisible(true).setAlpha(0);
+    this.farGlow.setVisible(true).setAlpha(0);
+    this.tweens.add({ targets: this.farWindow, alpha: 1, duration: 1800 });
+    this.tweens.add({ targets: this.farGlow, alpha: 0.6, duration: 1800 });
+    this.floatText(this.player.x, this.player.y - 70, 'one window came on, over the last stop.\nnobody asked it to.', '#f2d580');
+  }
+
+  towerBench() {
+    sting.secret();
+    this.tweens.add({ targets: this.towerPigeon, x: this.player.x + 22, y: this.towerPigeon.y - 4, duration: 500, ease: 'quad.out' });
+    this.floatText(this.player.x, this.player.y - 70, 'The pigeon let him stay.', '#f2d580');
+  }
+
   // a 6-minute day: light bars sweep across the floor, the sky warms and cools
   buildDayCycle() {
     this.lightBars.forEach((bar, i) => {
@@ -964,7 +1124,7 @@ export default class HubScene extends BaseLevel {
   // §4 applied in one place
   // the hall grows larger and emptier as dreams are caught (advice §2)
   acousticsTweak() {
-    const k = this.N / 5;
+    const k = this.k;
     return this._room && this._room.id !== 'steps' ? { wet: 0.14 + 0.16 * k } : null;
   }
 
@@ -1073,9 +1233,17 @@ export default class HubScene extends BaseLevel {
       { name: 'Mr. Pemberton', text: 'New face. Which dream, sir? They all leave at the same time.', portrait: 'hub-pemberton' },
       { name: 'Jo', text: 'How do I choose?' },
       { name: 'Mr. Pemberton', text: "People usually don't. They just get on the first one that stops.", portrait: 'hub-pemberton' },
+      { name: 'Mr. Pemberton', text: `Though platform ${dreamById(GENTLE_DREAM).platform} is a gentle one, sir. If you were asking.`, portrait: 'hub-pemberton' },
     ]);
-    this.setObjective('board any train');
-    this.floatText(this.hatchX, FLOOR - 90, 'the grate past the fountain goes down', '#88b8d8');
+    this.setObjective(this.hubObjective());
+  }
+
+  // what the HUD asks for when nothing else is going on
+  hubObjective() {
+    if (this.allCaught) return 'the last stop';
+    const g = dreamById(GENTLE_DREAM);
+    if (this.N === 0 && g && g.scene) return `platform ${g.platform}: a gentle one`;
+    return 'board any train — or the last stop';
   }
 
   async talkPemberton() {
@@ -1085,23 +1253,121 @@ export default class HubScene extends BaseLevel {
     }
     if (this.returnedFrom && !this.visitLines.deskReturn) {
       this.visitLines.deskReturn = true;
-      return this.say('pemberton', PEMBERTON_RETURN[this.N] || 'Back again.');
+      // the first dream caught by someone who has already seen the far side
+      if (this.N === 1 && this.save.evening.early) return this.say('pemberton', "You've been through the gate. The board noticed. Back for the rest?");
+      return this.say('pemberton', this.N ? pembertonLine(this.N) : 'Back again.');
     }
-    if (this.N >= 2) return this.say('pemberton', 'Mind the gap.');
-    if (this.N > 0 && !this.visitLines.luggage) {
-      this.visitLines.luggage = true;
-      return this.say('pemberton', "Left luggage is downstairs, sir -- the grate past the fountain. You'll want to see whose name is on the tag.");
+    const hub = this.save.flags.hub;
+    const tellOnce = (key, text) => {
+      hub[key] = true;
+      updateSave((s) => (s.flags.hub[key] = true));
+      return this.say('pemberton', text);
+    };
+    if (this.save.evening.finished && !hub.pemEnd) return tellOnce('pemEnd', "You've been to the end of the line, sir. I've never. Is it as warm as they say?");
+    if (this.save.evening.posted && !hub.pemPosted) return tellOnce('pemPosted', 'Somebody posted a coat\'s worth of coin at the last stop, sir. I put it in the ledger. It wanted to be put somewhere.');
+    if (this.N > 0 && !hub.pemLuggage) return tellOnce('pemLuggage', "Left luggage is downstairs, sir -- the grate past the fountain. You'll want to see whose name is on the tag.");
+    if (this.N > 0 && !this.visitLines.pemN) {
+      this.visitLines.pemN = true;
+      return this.say('pemberton', pembertonLine(this.N));
     }
     return this.say('pemberton', this.N === 0 ? `Any platform, sir. They all leave now. The ledger has you at $${getWallet().total}.` : `${this.N} caught, $${getWallet().total} carried. The board keeps one count, I keep the other.`);
   }
 
+  // Ro does the job: a short shine, a glint at his toes, then what she noticed
+  async shoeshine() {
+    if (this.visitLines.shine) return;
+    this.visitLines.shine = true;
+    const p = this.player;
+    p.controlLockUntil = this.time.now + 1500;
+    p.body.setVelocityX(0);
+    p.setFlipX(this.npcs.ro.x < p.x);
+    [0, 400, 800].forEach((ms) => this.time.delayedCall(ms, () => sfx('scratch')));
+    await new Promise((res) => this.time.delayedCall(1400, res));
+    const x = p.x + (p.flipX ? -14 : 14);
+    const glint = this.add.rectangle(x, p.y + 20, 5, 5, 0xfff2c8).setAngle(45).setDepth(D.PLAYER_ATTACH);
+    this.tweens.add({ targets: glint, scale: 0, angle: 135, duration: 500, onComplete: () => glint.destroy() });
+  }
+
   async talkRo() {
+    const first = !this.visitLines.shine;
+    await this.shoeshine();
     if (this.returnedFrom && !this.visitLines.ro) {
       this.visitLines.ro = true;
       const d = dreamById(this.returnedFrom);
       return this.say('ro', d ? d.roLine : 'You have been somewhere.');
     }
-    return this.say('ro', this.N === 0 ? 'Shoes first. Dreams after. Sit.' : 'Sit a minute. The trains wait, whatever the board says.');
+    if (this.N === 0) return this.say('ro', first ? 'Shoes first. Dreams after.' : 'Sit a minute. The trains wait, whatever the board says.');
+    return this.say('ro', 'Sit a minute. The trains wait, whatever the board says.');
+  }
+
+  // Bo: his name first, and only then the tune (the same man plays the last stop)
+  talkBusker() {
+    if (!this.moments.moment1) {
+      if (!this.visitLines.bo) {
+        this.visitLines.bo = true;
+        this.floatText(this.npcs.busker.x, this.npcs.busker.y - 56, 'Bo.', '#f2e6cc');
+      }
+      return this.duet();
+    }
+    if (this.save.evening.trumpet_left) return this.say('busker', 'Somebody left a horn on a bench out there. I can hear it from here.');
+    return this.say('busker', 'I play the station hall, mostly. The acoustics lie.');
+  }
+
+  hasFlower() {
+    return !!this.save.flags.hub.lastFlower;
+  }
+
+  wearFlower() {
+    if (!this.lapel) this.lapel = lapelFlower(this, this.player, D.PLAYER_ATTACH);
+  }
+
+  talkFlower() {
+    if (this.hasFlower()) return this.say('flower', "One's plenty. It'll outlast the night.");
+    this.save.flags.hub.lastFlower = true;
+    updateSave((s) => (s.flags.hub.lastFlower = true));
+    sfx('pickup');
+    this.wearFlower();
+    return this.say('flower', this.state.flowers === 0 ? 'I kept one back. Take it.' : this.state.flowers === 1 ? '…the last one. Take it.' : "On the house. They don't keep.");
+  }
+
+  // the man the last stop is for: it is his line up there, too
+  talkSleeper() {
+    const sl = this.npcs.sleeper;
+    if (this.allCaught) return this.floatText(sl.x, sl.y - 40, '(a coat, folded. still warm.)', '#c8c0b0');
+    this.floatText(sl.x, sl.y - 40, this.sleeperAwake ? '…is it still evening? good.' : '…mm. five more minutes.', '#c8c0b0');
+  }
+
+  // the window shows what Jo pocketed at the last stop, as it is handed in
+  lostAndFound(pocketed) {
+    const text = pocketed.length
+      ? [`pocket: ${pocketed.length}/${FINDS.length}`, '', ...pocketed.map((f) => f.name)].join('\n')
+      : 'Nothing handed in tonight.\n\nPeople lose things at the last stop. They turn up here, when somebody pockets them.';
+    return readDocument(this, { title: 'Lost & Found', text, name: 'lostfound' });
+  }
+
+  // the wall of cases: one in each row has Jo's tag once its dream is caught,
+  // and what that dream paid him is still inside. Paid in its own coin.
+  readTags() {
+    const hub = this.save.flags.hub;
+    const tags = hub.tags || {};
+    const caught = runningDreams().filter((d) => this.save.dreams[d.id]);
+    let paid = 0;
+    const lines = caught.map((d) => {
+      const fresh = !tags[d.id];
+      if (fresh) {
+        addCoins(d.id, LUGGAGE_COINS);
+        paid += d.coin.worth * LUGGAGE_COINS;
+      }
+      return `JO \u2014 ${d.title}\n   ${fresh ? `inside: ${LUGGAGE_COINS} of the ${d.coin.name}, and no note.` : 'empty now.'}`;
+    });
+    if (paid) {
+      hub.tags = { ...tags, ...Object.fromEntries(caught.map((d) => [d.id, true])) };
+      updateSave((s) => (s.flags.hub.tags = hub.tags));
+      sfx('buy');
+      this.updateCoinHud();
+      this.floatText(this.player.x, this.player.y - 70, `$${paid}, from the cases with your name on`, '#f2d580');
+    }
+    return readDocument(this, { title: 'Left Luggage', text: lines.length ? lines.join('\n\n') : 'Row on row of cases, every tag in someone else\'s hand.\n\nCatch a dream, and one of them will have your name on it.', name: 'tags' });
   }
 
   async tea() {
@@ -1110,7 +1376,12 @@ export default class HubScene extends BaseLevel {
     sfx('tea');
     const cup = this.add.image(this.player.x, this.player.y - 40, 'hub-teapot').setDepth(D.INTERACT + 3).setScale(0.6);
     this.tweens.add({ targets: cup, y: cup.y - 20, alpha: 0, duration: 1800, onComplete: () => cup.destroy() });
-    const lineN = BILAL_TEA[this.N];
+    if (!this.save.flags.hub.stallTold) {
+      this.save.flags.hub.stallTold = true;
+      updateSave((s) => (s.flags.hub.stallTold = true));
+      return this.say('bilal', "On the house. The real stall's under the floor: the grate past the fountain, by the Left Luggage sign. Bring change.");
+    }
+    const lineN = teaLine(this.N);
     if (lineN) return this.say('bilal', lineN);
     await this.dialog.show([{ name: 'Bilal', text: '…', portrait: 'hub-bilal' }]);
     return this.say('bilal', "You know the sweeper's been here longer than the trains?");
@@ -1120,7 +1391,7 @@ export default class HubScene extends BaseLevel {
   runReturn() {
     const d = dreamById(this.returnedFrom);
     const train = d && this.trains[d.id];
-    this.player.controlLockUntil = this.time.now + 7500;
+    this.player.controlLockUntil = this.time.now + 99999;
     this.setObjective('');
     if (train) {
       // the row still says BOARDING while the train stands there; it flips
@@ -1137,14 +1408,48 @@ export default class HubScene extends BaseLevel {
         sfx('scratch');
         this.time.delayedCall(300, () => sfx('scratch'));
         this.drawTally(this.state.tally);
-        // its lamp is out; its round is woven into the hall's dreamcatcher
-        this.time.delayedCall(600, () => this.weaveStrand());
-        // then, and only then, the tint darkens
-        this.tweens.add({ targets: this.washRect, fillAlpha: this.state.sat * 0.55, duration: 2400 });
-        this.setObjective('board any train — or the last stop');
+        // its lamp is out: now the ritual, where Jo can see it
+        this.stageReturn();
       });
       this.washRect.setFillStyle(0x3a3a44, hubState(Math.max(0, this.N - 1)).sat * 0.55);
-    }
+    } else this.player.controlLockUntil = 0;
+  }
+
+  // Back in the hall, under the dreamcatcher: its new round is woven with him
+  // standing there, and control comes back with Ro beside him and Pemberton
+  // calling from the desk. (A return with nothing caught just gives control.)
+  stageReturn() {
+    const free = () => {
+      this.player.controlLockUntil = 0;
+      this.setObjective(this.hubObjective());
+    };
+    if (!this.weaveNext) return free();
+    const cam = this.cameras.main;
+    dipThroughDark(
+      this,
+      DIPS.inin,
+      () => {
+        this.placePlayer({ x: px(71.5), y: FLOOR - 24 });
+        this.player.setFlipX(false);
+        this.player.setVelocity(0, 0);
+        this._room = null;
+        this.updateThreshold();
+        cam.centerOn(this.player.x, this.player.y - 60);
+      },
+      () => {
+        this.time.delayedCall(350, () => this.weaveStrand());
+        // then, and only then, the tint darkens
+        this.tweens.add({ targets: this.washRect, fillAlpha: this.state.sat * 0.55, duration: 2400 });
+        this.time.delayedCall(2500, () => {
+          free();
+          this.floatText(this.npcs.ro.x, this.npcs.ro.y - 56, 'You. Over here.', '#f2e6cc');
+          this.time.delayedCall(1200, () => {
+            this.visitLines.pemCall = true;
+            this.floatText(cam.scrollX + 170, FLOOR - 120, 'from the desk, down the hall:\n"Welcome back, sir."', '#f2e6cc');
+          });
+        });
+      }
+    );
   }
 
   // ---- boarding --------------------------------------------------------------
@@ -1155,7 +1460,7 @@ export default class HubScene extends BaseLevel {
       return;
     }
     if (!d.scene) {
-      await this.dialog.show([{ name: 'Conductor', text: `${d.title}? Not in service. The rails go out that way, but nothing runs on them yet.` }]);
+      await this.dialog.show([{ name: 'Conductor', text: WAITING_LINE[d.id] || `Platform ${d.platform} hasn't left in years, sir. Whoever dreams it hasn't fallen asleep yet.` }]);
       return;
     }
     // a dream in progress (plan §2.8): continue it from its last flag
@@ -1214,7 +1519,7 @@ export default class HubScene extends BaseLevel {
   // stands open onto THE LONG EVENING, and that part is here.
   boardLastStop() {
     this.showCard(
-      ['THE LAST STOP', '', 'No ticket. No count to clear.', 'Past the turnstile, a door stands open.', 'It is warm on the other side.', '', '[E] Go through      [Q] Not yet'],
+      ['THE LAST STOP', '', 'Past the turnstile, a door stands open. It is warm.', '', '[E] Go through      [Q] Not yet'],
       () => {
         this.persistClock();
         this.player.controlLockUntil = this.time.now + 99999;
@@ -1231,36 +1536,35 @@ export default class HubScene extends BaseLevel {
   // ---- Bilal's stall (collectibles §2) -----------------------------------
 
   async shop() {
-    if (this.N >= 5) {
-      await this.say('bilal', 'Keep the change.');
-      return;
-    }
+    // every running dream caught: the shelf is his to give, and the coat Jo's to keep
+    const free = this.allCaught;
+    const pay = (cost) => free || spend(cost);
     for (;;) {
       const sv = getSave();
       const w = getWallet().total;
       const shardCost = [150, 300, 600][Math.min(2, sv.shop.shardsBought)];
       const choices = [
-        { label: `tea ·20`, value: 'tea' },
-        { label: `shard ·${shardCost}`, value: 'shard' },
-        { label: `postcard ·100`, value: 'postcard' },
-        { label: `ticket ·250`, value: 'ticket' },
+        { label: free ? 'tea' : `tea ·20`, value: 'tea' },
+        { label: free ? 'shard' : `shard ·${shardCost}`, value: 'shard' },
+        { label: free ? 'postcard' : `postcard ·100`, value: 'postcard' },
+        { label: free ? 'ticket' : `ticket ·250`, value: 'ticket' },
         { label: 'hats…', value: 'hats' },
         { label: 'done', value: 'done' },
       ];
       const pick = await this.dialog.show([
-        { name: 'Bilal', portrait: 'hub-bilal', text: `The Express. You're carrying $${w}. Tea steadies the first stretch of a dream; a shard is a piece of a heart; a postcard marks a dream's small moments; a ticket forgives one bad night.`, choices },
+        { name: 'Bilal', portrait: 'hub-bilal', text: free ? 'Everything left on the shelf is yours. I never found a price for it.' : `The Express. You're carrying $${w}. Tea steadies the first stretch of a dream; a shard is a piece of a heart; a postcard marks a dream's small moments; a ticket forgives one bad night.`, choices },
       ]);
       if (!pick || pick === 'done') return;
       if (pick === 'tea') {
         if (sv.shop.tea) await this.say('bilal', 'One is enough. Drink that one first.');
-        else if (spend(20)) {
+        else if (pay(20)) {
           updateSave((x) => (x.shop.tea = true));
           sfx('buy');
           await this.say('bilal', 'On the counter when you board. Warm through the first section.');
         } else await this.say('bilal', 'Twenty. Come back with change in your coat.');
       } else if (pick === 'shard') {
         if (sv.shop.shardsBought >= 3) await this.say('bilal', 'Three is all I ever find.');
-        else if (spend(shardCost)) {
+        else if (pay(shardCost)) {
           updateSave((x) => {
             x.shop.shardsBought += 1;
             x.shards = (x.shards || 0) + 1;
@@ -1270,23 +1574,17 @@ export default class HubScene extends BaseLevel {
           await this.say('bilal', 'Found it under a seat on the 4:15. Careful with it.');
         } else await this.say('bilal', `That one costs ${shardCost}.`);
       } else if (pick === 'postcard') {
-        const target = await this.dialog.show([
-          { name: 'Bilal', portrait: 'hub-bilal', text: 'A postcard from which dream? It marks the three small moments on your way.', choices: [
-            { label: 'chef', value: 'chef' },
-            { label: 'musician', value: 'musician' },
-            { label: 'never mind', value: null },
-          ] },
-        ]);
+        const target = await this.pickPostcard(sv);
         if (!target) continue;
         if (sv.shop.postcards[target]) await this.say('bilal', 'You have that one. Read the back again.');
-        else if (spend(100)) {
+        else if (pay(100)) {
           updateSave((x) => (x.shop.postcards[target] = true));
           sfx('buy');
           await this.say('bilal', 'Somebody mailed it and never came back for it. The X marks are theirs.');
         } else await this.say('bilal', 'A hundred. The stamps alone, you understand.');
       } else if (pick === 'ticket') {
         if (sv.shop.ticket) await this.say('bilal', 'You still have one. Try not to need it.');
-        else if (spend(250)) {
+        else if (pay(250)) {
           updateSave((x) => (x.shop.ticket = true));
           sfx('buy');
           await this.say('bilal', 'A return ticket. One bad night, forgiven. Once.');
@@ -1308,7 +1606,7 @@ export default class HubScene extends BaseLevel {
           updateSave((x) => (x.shop.hat = hat.id));
           this.wearHat(hat);
           await this.say('bilal', 'Wearing it well.');
-        } else if (spend(hat.cost)) {
+        } else if (pay(hat.cost)) {
           updateSave((x) => {
             x.shop.hats.push(hat.id);
             x.shop.hat = hat.id;
@@ -1318,6 +1616,23 @@ export default class HubScene extends BaseLevel {
           await this.say('bilal', 'It found the right head.');
         } else await this.say('bilal', `${hat.cost} for that one.`);
       }
+    }
+  }
+
+  // a postcard from any dream still running, a few to a page
+  async pickPostcard(sv) {
+    const open = runningDreams().filter((d) => !this.save.dreams[d.id]);
+    if (!open.length) {
+      await this.say('bilal', "No more postcards. You've been everywhere they were sent from.");
+      return null;
+    }
+    const PAGE = 3;
+    for (let page = 0; ; page = (page + 1) % Math.ceil(open.length / PAGE)) {
+      const choices = open.slice(page * PAGE, (page + 1) * PAGE).map((d) => ({ label: `${d.title}${sv.shop.postcards[d.id] ? ' ✓' : ''}`, value: d.id }));
+      if (open.length > PAGE) choices.push({ label: 'more…', value: 'more' });
+      choices.push({ label: 'never mind', value: 'none' });
+      const pick = await this.dialog.show([{ name: 'Bilal', portrait: 'hub-bilal', text: 'A postcard from which dream? It marks the small moments on your way.', choices }]);
+      if (pick !== 'more') return pick === 'none' ? null : pick;
     }
   }
 
@@ -1400,7 +1715,7 @@ export default class HubScene extends BaseLevel {
       return true;
     }
     if (Phaser.Input.Keyboard.JustDown(this.keyEsc)) {
-      this.showCard(['Paused', '', 'The station keeps the time.', '', '← → walk    hold SHIFT (LB) to run', '', '[E] Back'], null);
+      this.showCard(['Paused', '', 'The station keeps the time.', '', '← → walk    hold SHIFT (LB) to run', '↓ on a bench: sit', '', '[E] Back'], null);
       return true;
     }
     easeFollow(this.cameras.main, this.player, this.game.loop.delta);
@@ -1431,7 +1746,9 @@ export default class HubScene extends BaseLevel {
       if (d < it.radius && (!nearest || d < nearest.d)) nearest = { it, d };
     }
     if (nearest && !this.phrase) {
-      this.promptText.setVisible(true).setPosition(nearest.it.x, nearest.it.y - 34);
+      const verb = typeof nearest.it.verb === 'function' ? nearest.it.verb() : nearest.it.verb;
+      if (this.promptText.text !== `[E] ${verb}`) this.promptText.setText(`[E] ${verb}`);
+      this.promptText.setVisible(true).setPosition(nearest.it.x, nearest.it.y - 80);
       if (Phaser.Input.Keyboard.JustDown(p.keys.E)) {
         nearest.it.used = true;
         nearest.it.cb();
@@ -1455,26 +1772,45 @@ export default class HubScene extends BaseLevel {
     if (pem && !this.visitLines.pemCall && (this.openingDone || !this.firstVisit) && Math.abs(p.x - pem.x) < 110 && Math.abs(p.y - pem.y) < 60) {
       if ((this.N === 0 && !this.visitLines.desk0) || (this.returnedFrom && !this.visitLines.deskReturn)) {
         this.visitLines.pemCall = true;
-        this.floatText(pem.x, pem.y - 56, this.N === 0 ? 'Sir? A word, at the desk.  [E]' : 'Welcome back, sir.  [E]', '#f2e6cc');
+        this.floatText(pem.x, pem.y - 92, this.N === 0 ? 'Sir? A word, at the desk.  [E]' : 'Welcome back, sir.  [E]', '#f2e6cc');
       }
     }
     // the last walk: single lines, no box, as Jo passes each lamp
-    if (this.N >= 2) {
+    if (this.k >= 0.4) {
       for (const [who, text] of Object.entries(LAST_WALK)) {
         const s = this.npcs[who];
         if (!s || this.visitLines[`walk_${who}`]) continue;
+        // she only says it while it is true and there is one to take
+        if (who === 'flower' && (this.hasFlower() || this.state.flowers > 1)) continue;
         if (Math.abs(p.x - s.x) < 40 && Math.abs(p.y - s.y) < 50) {
           this.visitLines[`walk_${who}`] = true;
           this.floatText(s.x, s.y - 50, text, '#f2e6cc');
-          if (who === 'flower' && this.state.flowers <= 1) updateSave((sv) => (sv.flags.hub.lastFlower = true));
         }
       }
-      if (this.moments.moment1 && this.moments.moment2 && this.moments.moment3 && !this.sleeperAwake) {
-        this.sleeperAwake = true;
-        this.sleeperCoat.setVisible(false);
-        this.npcs.sleeper.setTexture('hub-sleeper#1');
-        this.tweens.add({ targets: this.npcs.sleeper, y: this.npcs.sleeper.y - 3, duration: 600, yoyo: true, repeat: 2 });
-      }
+    }
+    // the hub's three small moments found: the sleeper wakes, and can be spoken to
+    if (this.moments.moment1 && this.moments.moment2 && this.moments.moment3 && !this.sleeperAwake && !this.allCaught) {
+      this.sleeperAwake = true;
+      this.sleeperCoat.setVisible(false);
+      this.npcs.sleeper.setTexture('hub-sleeper#1');
+      this.tweens.add({ targets: this.npcs.sleeper, y: this.npcs.sleeper.y - 3, duration: 600, yoyo: true, repeat: 2 });
+    }
+    if (this.lapel) this.lapel();
+    this.updateBenches(dt);
+    this.updateBayAmbience(time);
+    // the chains: at the end of the board they fall the first time he sees them
+    if (this.allCaught && this.chains.length && Math.abs(p.x - this.chains[0].x) < 500) {
+      sfx('scratch');
+      this.tweens.add({ targets: this.chains, y: FLOOR - 4, alpha: 0, duration: 500, ease: 'quad.in', onComplete: () => this.chains.forEach((c) => c.destroy()) });
+      this.chains = [];
+      updateSave((s) => (s.flags.hub.chainsFell = true));
+    }
+    // the kid has seen the whole roof: a word, once, as Jo reaches him
+    const kid = this.npcs.kite;
+    if (kid && !this.save.flags.hub.roofHint && Math.abs(p.x - kid.x) < 150 && Math.abs(p.y - kid.y) < 60) {
+      this.save.flags.hub.roofHint = true;
+      updateSave((s) => (s.flags.hub.roofHint = true));
+      this.floatText(kid.x, kid.y - 56, ROOF_HINT, '#f2e6cc');
     }
 
     // the bench: sit next to the sleeping man for 8 s
