@@ -926,7 +926,7 @@ function drawLandmark(scene, name) {
     }
     case 'lane_numbers':
       add(scene.add.rectangle(0, -60, 260, 40, 0x2e4a56));
-      add(uiText(scene, 0, -60, 'LANES  1 · 9 · 7 · 4', { fontSize: '14px', color: '#9ac4dc' }).setOrigin(0.5));
+      add(uiText(scene, 0, -60, 'EST. 1974 · LANE 1', { fontSize: '14px', color: '#9ac4dc' }).setOrigin(0.5));
       break;
     case 'fight_poster':
       add(scene.add.rectangle(0, -84, 120, 150, 0x4a2020).setAngle(-2));

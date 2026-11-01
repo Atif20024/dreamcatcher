@@ -37,6 +37,7 @@ export const BEDS = {
   press: bed(['press_roar', 1.6, 2.2], ['paper', 7, 12, 0.7]),
   writer_street: bed(['traffic', 9, 16, 0.7], ['horn', 25, 50, 0.5], ['drain', 15, 30, 0.6]),
   orbit: bed(['console_beep', 4, 9], ['relay', 10, 20], ['airlock', 25, 45, 0.8], ['radio_chirp', 15, 30]),
+  gym: bed(['speed_bag', 7, 13], ['skip_rope', 10, 18, 0.8], ['whistle', 18, 35, 0.6], ['ball_bounce', 9, 16, 0.7], ['pool_echo', 14, 26, 0.6]),
   campus: bed(['bird', 6, 12, 0.7], ['console_beep', 10, 20, 0.6], ['door', 15, 30, 0.6]),
   casino: bed(['chips', 3, 7], ['slot_jingle', 8, 15], ['win_bell', 25, 45, 0.8], ['shuffle', 10, 20], ['dice', 12, 24], ['cheer', 30, 50, 0.5]),
   // the unlaunched dreams' loops have their beds ready too
@@ -75,9 +76,9 @@ export const LEGACY_ROOMS = {
   },
   astronaut: {
     p0_arrival: R('open', 'campus'),
-    p1_track: R('hall', 'campus'),
-    p1_pool: R('hall', 'campus'),
-    p1_wall_ring: R('hall', 'campus'),
+    p1_track: R('hall', 'gym'),
+    p1_pool: R('hall', 'gym'),
+    p1_wall_ring: R('hall', 'gym'),
     p1_study: R('room', 'campus'),
     p2_gate: R('open', 'campus'),
     p3_centrifuge: R('hall', 'orbit'),
@@ -86,6 +87,12 @@ export const LEGACY_ROOMS = {
     p3_survival: R('open', 'green'),
     p4_pad: R('open', 'orbit'),
     p4_station: R('hull', 'orbit'),
+    // outside the hull, and on the moon, nothing carries: the suit and the music
+    p4_eva: R('open', null),
+    p5_moonfield: R('open', null),
+    p5_crevasse: R('open', null),
+    p5_crater: R('open', null),
+    p6_field: R('open', 'green'),
   },
   // the station: the steps are outside, the rest is the great hall
   hub: {

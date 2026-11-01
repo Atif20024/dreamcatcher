@@ -166,6 +166,16 @@ export const SHOTS = {
   clock_hour: (v) => [0, 1.6].forEach((w) => bellPartials(v, 784, 0.02, 1.6, w, [[1, 1], [2, 0.3], [3, 0.1]])),
 
   // --- the station in orbit ------------------------------------------------
+  // the gym: a speed bag, a rope on boards, the coach's whistle, a ball, the pool
+  speed_bag: (v) => {
+    for (let i = 0; i < 7; i++) v.noise({ dur: 0.04, vol: 0.045, f: 420, q: 1, when: i * 0.13 });
+  },
+  skip_rope: (v) => {
+    for (let i = 0; i < 6; i++) v.noise({ dur: 0.03, vol: 0.03, f: 2400, q: 2, when: i * 0.36 });
+  },
+  whistle: (v) => v.tone({ freq: 2100, glide: 2050, dur: 0.45, vol: 0.016, attack: 0.01 }),
+  ball_bounce: (v) => [0, 0.42, 0.74].forEach((w, i) => v.noise({ dur: 0.06, vol: 0.05 - i * 0.012, f: 190, q: 0.9, when: w })),
+  pool_echo: (v) => v.noise({ dur: 1.4, vol: 0.022, f: 1400, q: 0.5, env: 'swell' }),
   console_beep: (v) => {
     const n = 1 + Math.floor(Math.random() * 3);
     const f = 1000 + Math.floor(Math.random() * 3) * 400;

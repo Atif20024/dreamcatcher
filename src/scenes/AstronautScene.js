@@ -10,10 +10,10 @@ import Parallax from '../builders/parallax.js';
 import { D } from '../builders/depths.js';
 import astroRooms from '../data/astronaut/rooms.js';
 import astroTiles from '../data/astronaut/tiles.js';
-import { A_DIALOGUES, A_MOMENTS, NOTEBOOK } from '../data/astronautData.js';
+import { A_DIALOGUES, A_MOMENTS, NOTEBOOK, CARDS_TO_PASS, FLASHCARDS, SEAT_QUESTION, SEAT_REPLY, numbersLine, boutPlan, windupChance } from '../data/astronautData.js';
 import { systemsCards, selectionBoard, docking, hinge, BOLT_ORDER } from '../systems/astroPuzzles.js';
 import { completeDream, recordMoment, markMet } from '../utils/save.js';
-import { sfx, music, sting } from '../systems/audio.js';
+import { sfx, music, sting, musicDirector } from '../systems/audio.js';
 import { showTutorial } from '../systems/tutorial.js';
 import { readDocument } from '../ui/ReadingPanel.js';
 import { uiText } from '../ui/text.js';
@@ -30,6 +30,8 @@ const MEDBALL_R = 9;
 const HOOP = { rx: 15, ry: 44, tube: 5, inX: 18, inY: 34 };
 // lane-rope floats (0.25 x 0.2 m); the far rope, 2.5 m back, sits a few px up
 const ROPE = { w: 11, h: 9, gap: 6 };
+// the training rooms: the band gets a pulse here (bands.js astronaut `hum`)
+const GYM_ROOMS = ['p1_track', 'p1_pool', 'p1_wall_ring'];
 // the one stat each gym room trains (the HUD shows only that one)
 const ROOM_STAT = { p1_track: 'legs', p1_pool: 'lungs' };
 
@@ -75,6 +77,11 @@ export default class AstronautScene extends BaseLevel {
     this.m1Added = false;
     this.bout = null;
     this.priyaFollow = null;
+    this.priyaStumbled = false;
+    this.evaStruck = false;
+    this.evaSnapUntil = 0;
+    this.plateNudged = false;
+    this.greyHold = false;
     this.carryPix = null;
     this.tetherLine = null;
     this.priyaOnHatch = false;
@@ -204,8 +211,11 @@ export default class AstronautScene extends BaseLevel {
     // model changes, then it fades
     this.hintText = { setText: (t) => this.hud && this.hud.set('caption', t) };
 
-    if (!this.devWarp()) this.setObjective('reach 3 pips in every stat');
+    if (!this.devWarp()) this.setObjective('the intake. then train.');
     music.bass();
+    this.events.once('shutdown', () => {
+      musicDirector.boost.hum = 0;
+    });
     if (!this.warped)
       this.time.delayedCall(900, async () => {
         if (this.resuming && this.F.d0) return; // a continued run: already heard
@@ -604,8 +614,9 @@ export default class AstronautScene extends BaseLevel {
     const fc = this.obj('flashcards');
     this.addInteract(fc.wx + 20, fc.wy, 'flashcards, with Priya', async () => {
       const right = await systemsCards(this);
-      this.floatText(fc.wx, fc.wy - 50, right >= 8 ? `${right}/10. "you're ready."` : `${right}/10. "again, before Thursday."`, right >= 8 ? '#7ec87e' : '#c8c0b0');
-      if (right >= 8) this.setFlag('cards_done');
+      const ready = right >= CARDS_TO_PASS;
+      this.floatText(fc.wx, fc.wy - 50, ready ? `${right}/${FLASHCARDS.length}. "you can afford one wrong answer now."` : `${right}/${FLASHCARDS.length}. "again, before Thursday."`, ready ? '#7ec87e' : '#c8c0b0');
+      if (ready) this.setFlag('cards_done');
     }, { once: false });
     const nb = this.obj('notebook');
     this.add.image(nb.wx, nb.wy + 8, 'astro-notebook').setDepth(D.INTERACT);
@@ -634,6 +645,10 @@ export default class AstronautScene extends BaseLevel {
     const p = this.player;
     p.controlLockUntil = this.time.now + 99999;
     p.body.setVelocity(0, 0);
+    // a thin bar over Jo: this is a test being read, not a wait
+    const BAR = 48;
+    const back = this.add.rectangle(p.x, p.y - 44, BAR, 5, 0x2a2a34).setDepth(D.INTERACT + 1);
+    const bar = this.add.rectangle(p.x - BAR / 2, p.y - 44, 1, 5, 0x88b8d8).setOrigin(0, 0.5).setDepth(D.INTERACT + 2);
     const hold = (label, ms) =>
       new Promise((res) => {
         this.floatText(p.x, p.y - 70, label, '#88b8d8');
@@ -643,6 +658,7 @@ export default class AstronautScene extends BaseLevel {
           loop: true,
           callback: () => {
             if (p.keys.SPACE.isDown) held += 100;
+            bar.setSize(Math.max(1, (BAR * Math.min(held, ms)) / ms), 5);
             if (held >= ms) {
               ev.remove();
               sfx('chime');
@@ -652,11 +668,16 @@ export default class AstronautScene extends BaseLevel {
         });
       });
     await hold('TREADMILL — hold [Space]', 1800);
-    await hold(`BREATH — hold [Space]  (lungs ${this.stats.lungs}/5)`, 1200 + this.stats.lungs * 300);
+    // better lungs, a shorter test: the gauge settles sooner
+    await hold(`BREATH — hold [Space]  (lungs ${this.stats.lungs}/5)`, 2400 - this.stats.lungs * 200);
     await hold('GRIP — hold [Space], don\'t shake', 1500);
+    back.destroy();
+    bar.destroy();
     this.cameras.main.flash(300, 255, 255, 255);
     p.controlLockUntil = 0;
-    await this.dialog.show(A_DIALOGUES.d1);
+    this.statHud.setColor('#f2d580'); // the clipboard lights while he reads it
+    this.time.delayedCall(2400, () => this.statHud.setColor('#e8dcc8'));
+    await this.dialog.show([{ name: 'Dr. Halvorsen', text: numbersLine(this.stats, this.minStat) }, ...A_DIALOGUES.d1]);
     this.setFlag('physical');
     this.setObjective('the Board. Thursday.');
   }
@@ -666,11 +687,12 @@ export default class AstronautScene extends BaseLevel {
   async boxing() {
     if (this.bout) return;
     const ring = this.obj('ring');
-    const round = this.stats.nerve < 3 ? this.stats.nerve + 1 : 4; // 1..3 then Priya
-    const vsPriya = round >= 4;
+    const plan = boutPlan(this.stats.nerve);
+    const { round, vsPriya } = plan;
     this.bout = {
       round,
       vsPriya,
+      plan,
       hits: 0,
       taken: 0,
       lastAttack: this.time.now,
@@ -683,11 +705,12 @@ export default class AstronautScene extends BaseLevel {
     else this.bout.opp.body.setSize(20, 40);
     this.physics.add.collider(this.bout.opp, this.solids);
     attachStride(this, this.bout.opp, vsPriya ? 'npc-priya' : 'foe-gym-rat', { face: false }); // circles, backs off, lunges: feet stay put
-    this.floatText(ring.wx, px(29), vsPriya ? 'ROUND 4 — PRIYA.\nshe parries everything. wait her out.' : `ROUND ${round} — land 5, eat none you can duck.`, '#f2d580');
+    if (plan.tint) this.bout.opp.setTint(plan.tint);
+    this.floatText(ring.wx, px(29), vsPriya ? 'ROUND 4 — PRIYA.\nshe parries everything. wait her out.' : `ROUND ${round} — ${plan.who}.\n${plan.brief}`, '#f2d580');
     sfx('bell');
   }
 
-  updateBoxing(time) {
+  updateBoxing(time, delta) {
     const b = this.bout;
     if (!b || !b.opp.active) return;
     const p = this.player;
@@ -697,9 +720,10 @@ export default class AstronautScene extends BaseLevel {
 
     if (b.state === 'circle') {
       opp.setVelocityX(Math.abs(d) > 60 ? Math.sign(d) * 70 : -Math.sign(d) * 30);
-      if (Math.abs(d) < 70 && time > b.stateUntil && Math.random() < 0.012) {
+      if (Math.abs(d) < 70 && time > b.stateUntil && Math.random() < windupChance(delta)) {
         b.state = 'windup';
-        b.stateUntil = time + 400;
+        b.feinting = !!b.plan.feint && Math.random() < b.plan.feint;
+        b.stateUntil = time + (b.feinting ? 250 : 400);
         opp.setTint(0xffa0a0);
         sfx('click');
       }
@@ -716,10 +740,18 @@ export default class AstronautScene extends BaseLevel {
       }
     } else if (b.state === 'windup') {
       opp.setVelocityX(0);
-      if (time > b.stateUntil) {
+      if (time > b.stateUntil && b.feinting) {
+        // the bluff: he pulls it, and the real one comes while Jo is still down
+        b.state = 'circle';
+        b.stateUntil = time + 300;
+        if (b.plan.tint) opp.setTint(b.plan.tint);
+        else opp.clearTint();
+        this.floatText(opp.x, opp.y - 50, 'feint.', '#c8c0b0');
+      } else if (time > b.stateUntil) {
         b.state = 'swing';
         b.stateUntil = time + 200;
-        opp.clearTint();
+        if (b.plan.tint) opp.setTint(b.plan.tint);
+        else opp.clearTint();
         if (Math.abs(p.x - opp.x) < 60 && !p.crouching) {
           b.taken += 1;
           sfx('hurt');
@@ -742,7 +774,10 @@ export default class AstronautScene extends BaseLevel {
       const rect = p.swingLadle();
       if (rect && Phaser.Geom.Rectangle.Contains(rect, opp.x, opp.y)) {
         const lands = !b.vsPriya || b.openUntil > time;
-        if (lands) {
+        if (b.plan.blocksDuck && p.crouching) {
+          sfx('snap');
+          this.floatText(opp.x, opp.y - 44, 'blocked. stand up to him.', '#c8c0b0');
+        } else if (lands) {
           b.hits += 1;
           sfx('clang');
           opp.setVelocityX(-Math.sign(d) * 140);
@@ -798,38 +833,84 @@ export default class AstronautScene extends BaseLevel {
       this.doorLight.setFillStyle(0xf2d580);
       return;
     }
-    const res = await selectionBoard(this, { attempt });
-    if (!res || !res.passed) {
+    const res = await selectionBoard(this, { attempt, spare: !!this.F.cards_done });
+    if (res === false) return; // [Esc]: he walked out; the chairs are still there
+    const short = this.statsReady() ? [] : [{ name: 'Dr. Halvorsen', text: `The questions were never the problem.\n\n${this.shortStatLine()}` }];
+    if (!res.passed) {
       this.doorLight.setFillStyle(0xe83a2a);
-      this.floatText(this.player.x, this.player.y - 60, attempt === 1 ? 'three red blinks. the door does not open.' : 'the letter again. "reapply." the year passes. read the notebook.', '#e86a6a');
-      if (attempt === 1) await this.rejection();
+      if (attempt === 1) {
+        await this.boardVerdict();
+        await this.rejection([A_DIALOGUES.d_rejected[0], ...short]);
+      } else this.floatText(this.player.x, this.player.y - 60, 'the letter again. "reapply." read the notebook.', '#e86a6a');
       return;
     }
-    if (!this.statsReady()) {
-      // §5 — rigged: even at 7/7, the numbers are the numbers. Say WHICH
-      // numbers, or a perfect score reads as a broken door.
-      await this.dialog.show([
-        ...A_DIALOGUES.d_rejected,
-        { name: 'Dr. Halvorsen', text: `Seven out of seven. That was never the problem.\n\n${this.shortStatLine()}` },
-      ]);
-      await this.rejection();
+    // the seventh question is a choice: it colours the line, never the outcome
+    const seat = await this.dialog.show([SEAT_QUESTION]);
+    await this.dialog.show([{ name: 'The Board', text: SEAT_REPLY[seat] || SEAT_REPLY.earn }]);
+    if (seat === 'priya') {
+      if (this.F.gave_seat) this.setFlag('gave_seat_twice');
+      this.setFlag('gave_seat');
+    }
+    // A-M1: the first intake always ends in the letter, by the story's own
+    // logic: one seat, and it is Priya's. A player who trained and passed gets
+    // the plainest version; the stat gate belongs to the second attempt, and
+    // the numbers already earned carry into the year.
+    if (attempt === 1) {
+      await this.boardVerdict();
+      await this.rejection(short.length ? [A_DIALOGUES.d_rejected[0], ...short] : A_DIALOGUES.d_seat);
       return;
     }
     await this.dialog.show(A_DIALOGUES.d_selected);
     this.setFlag('selected');
     sting.checkpoint();
-    this.setObjective('the bus is waiting — training campus');
+    this.setObjective('the training campus is through the gate');
     this.statHud.setVisible(false);
+    // the year lifts
+    if (this.greyYear) {
+      const grey = this.greyYear;
+      this.greyYear = null;
+      this.tweens.add({ targets: grey, alpha: 0, duration: 1800, onComplete: () => grey.destroy() });
+    }
   }
 
-  async rejection() {
+  // the verdict, so it cannot be read as a lost quiz: the three silhouettes in
+  // a still frame, three red blinks, and one of them stands up
+  async boardVerdict() {
+    const cam = this.cameras.main;
+    const cx = cam.width / 2;
+    const cy = cam.height / 2;
+    const fixed = (o) => o.setScrollFactor(0).setDepth(205);
+    const frame = [fixed(this.add.rectangle(cx, cy, cam.width, cam.height, 0x14141a))];
+    const figure = (dx) => [fixed(this.add.circle(cx + dx, cy - 40, 14, 0x050508)), fixed(this.add.rectangle(cx + dx, cy - 6, 52, 40, 0x050508))];
+    const standing = figure(0);
+    frame.push(...figure(-140), ...figure(140), ...standing);
+    const light = fixed(this.add.circle(cx + 250, cy - 100, 8, 0x2a1010));
+    frame.push(light);
+    const wait = (ms) => new Promise((res) => this.time.delayedCall(ms, res));
+    await wait(350);
+    for (let i = 0; i < 3; i++) {
+      light.setFillStyle(0xe83a2a);
+      sfx('click');
+      await wait(220);
+      light.setFillStyle(0x2a1010);
+      await wait(200);
+    }
+    this.tweens.add({ targets: standing, y: '-=22', duration: 500, ease: 'sine.out' });
+    await wait(1000);
+    frame.forEach((o) => o.destroy());
+  }
+
+  async rejection(lead = [A_DIALOGUES.d_rejected[0]]) {
     if (this.F.rejected) return;
     this.setFlag('rejected');
     const cam = this.cameras.main;
     // the grey year: palette drops, the posters fade, Priya is packing
     this.greyYear = this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x50525e, 0.4).setScrollFactor(0).setDepth(89);
+    // real silence, held through the year: music.stop alone only drops the boosts
     music.stop();
-    await this.dialog.show(A_DIALOGUES.d_rejected);
+    musicDirector.setMix({});
+    this.greyHold = true;
+    await this.dialog.show([...lead, A_DIALOGUES.d_rejected[1]]);
     this.cameras.main.fadeOut(900, 20, 20, 24);
     await new Promise((res) => this.time.delayedCall(1000, res));
     this.player.setPosition(px(115), px(33));
@@ -837,8 +918,12 @@ export default class AstronautScene extends BaseLevel {
     await this.dialog.show(A_DIALOGUES.d2);
     this.priyaStudy.setAlpha(0.4);
     this.floatText(px(115), px(31), 'TWELVE MONTHS LATER', '#c8c0b0');
-    this.setObjective(`a year to train. read the notebook.\n${this.shortStatLine()}`);
-    music.bass();
+    this.setObjective(this.statsReady() ? 'a year on. the numbers are there. the Board.' : `a year to train. read the notebook.\n${this.shortStatLine()}`);
+    this.time.delayedCall(2600, () => {
+      this.greyHold = false;
+      musicDirector.clearMix();
+      music.bass();
+    });
   }
 
   // ------- Phase 3: the Ground -------------------------------------------
@@ -942,13 +1027,14 @@ export default class AstronautScene extends BaseLevel {
       this.snap(this.add.triangle(camp.wx, camp.wy, 0, 57, 96, 57, 48, 0, 0x4a5a42).setDepth(D.INTERACT - 1));
       sfx('clang');
       this.setFlag('shelter');
-      this.floatText(camp.wx, camp.wy - 40, 'the shelter holds. now the beacon — and Priya is not answering.', '#f2d580');
+      this.floatText(camp.wx, camp.wy - 40, 'the shelter holds. behind you, a sound. Priya is not answering.', '#f2d580');
     }, { once: false, when: () => this.F.sim && !this.F.shelter });
     const ph = this.obj('priya_hurt');
-    this.addInteract(ph.wx, ph.wy, 'Priya — her ankle', () => {
+    // the prompt moves to wherever she went down (updatePriya)
+    this.priyaHurtPrompt = this.addInteract(ph.wx, ph.wy, 'Priya — her ankle', () => {
       this.carryingPriya = true;
       this.priyaFollow && this.priyaFollow.setVisible(false);
-      this.floatText(ph.wx, ph.wy - 40, 'she says nothing. you pick her up.\n(slow. no big jumps. the beacon.)', '#88b8d8');
+      this.floatText(this.player.x, this.player.y - 60, 'she says nothing. you pick her up.\n(slow. no big jumps. the beacon.)', '#88b8d8');
     }, { once: false, when: () => this.F.shelter && !this.carryingPriya && !this.F.survival });
     const bc = this.obj('beacon');
     this.beaconImg = this.snap(this.add.image(bc.wx, bc.wy, 'astro-beacon').setDepth(D.INTERACT));
@@ -1087,6 +1173,11 @@ export default class AstronautScene extends BaseLevel {
         this.floatText(air.wx, air.wy - 40, 'O₂ topped. outside, the tether is life:\n[F] clips to the next hook. never push off unclipped.', '#88b8d8');
         this.setFlag('eva_out');
       } else {
+        // why the moon: said here, before the fade, once
+        if (!this.F.moon_briefed) {
+          this.setFlag('moon_briefed');
+          await this.dialog.show(A_DIALOGUES.d_moon);
+        }
         await this.descend();
       }
     }, { once: false, when: () => this.F.reported });
@@ -1099,12 +1190,13 @@ export default class AstronautScene extends BaseLevel {
     this.addInteract(arr.wx, arr.wy, 'the jammed hinge', async () => {
       const ok = await hinge(this);
       if (!ok) return;
+      this.evaSnapUntil = 0;
       this.setFlag('array_fixed');
       this.setFlag('eva_done');
       this.tweens.add({ targets: this.arrayImg, angle: 0, duration: 1200, ease: 'sine.out' });
       this.cameras.main.flash(600, 255, 250, 220);
       this.floatText(arr.wx, arr.wy - 60, 'the array unfolds. light floods the hull.\nOsei: "copy." (that is all.)', '#f2e0a0');
-      this.setObjective('back to the airlock — the moon is next');
+      this.setObjective('back to the airlock. Osei is calling.');
     }, { once: false, when: () => this.F.eva_out && !this.F.array_fixed });
 
     // "cupola" is the real word for it and means nothing to a player: this is
@@ -1512,7 +1604,7 @@ export default class AstronautScene extends BaseLevel {
     await new Promise((res) => this.time.delayedCall(1800, res));
     const lines = ['"Eleven days."', '"Was it enough?"'];
     if (this.F.notebook_read) lines.push('"She\'d written the answers for him."');
-    if (this.rejectedTwice) lines.push('"Twelve months, twice. He\'d have done twelve more."');
+    if (this.F.gave_seat_twice) lines.push('"He\'d have given it away twice."');
     const txt = uiText(this, cam.width / 2, cam.height / 2, '', { fontSize: '20px', color: '#2a2a34', align: 'center' }).setOrigin(0.5).setScrollFactor(0).setDepth(241);
     for (const l of lines) {
       txt.setText(l).setAlpha(0);
@@ -1756,6 +1848,21 @@ export default class AstronautScene extends BaseLevel {
           this.power = Math.max(0, this.power - 5 * (delta / 1000));
         }
       }
+      // A-S3: the plate, the first time it comes in sight; then, once on the
+      // third hook, the line is cut and the rule is real for two seconds
+      this.nudgePlate();
+      const third = this.hooks[2];
+      const fourth = this.hooks[3];
+      if (!this.evaStruck && third && this.tether === third && p.x > third.x + T && Phaser.Math.Distance.Between(p.x, p.y, fourth.x, fourth.y) < 6 * T) this.evaStrike();
+      if (this.evaSnapUntil) {
+        if (this.tether) this.evaSnapUntil = 0;
+        else if (time > this.evaSnapUntil) {
+          this.evaSnapUntil = 0;
+          this.evaStruck = false; // the same hook will do it again: now he knows
+          if (touching) this.floatText(p.x, p.y - 56, 'the hull held you. clip on.', '#e8b84a');
+          else this.driftAway();
+        }
+      }
       if (this.tether) {
         const d = Phaser.Math.Distance.Between(p.x, p.y, this.tether.x, this.tether.y);
         if (d > 7.5 * T) {
@@ -1766,6 +1873,44 @@ export default class AstronautScene extends BaseLevel {
         this.tetherLine.setTo(p.x, p.y, this.tether.x, this.tether.y).setVisible(true);
       } else if (this.tetherLine) this.tetherLine.setVisible(false);
     }
+  }
+
+  // a telegraphed streak, Osei's warning, then the line parts. The next hook is
+  // always in [F]'s reach from here (hooks 6 tiles apart, reach 6.5).
+  evaStrike() {
+    this.evaStruck = true;
+    const hook = this.tether;
+    const next = this.hooks[this.hooks.indexOf(hook) + 1];
+    this.floatText(this.player.x, this.player.y - 56, 'Osei: "debris. clip the next one."', '#e8b84a');
+    const streak = this.add.rectangle(hook.x + 460, hook.y - 280, 28, 2, 0xfff2c8).setAngle(-31).setDepth(D.PLAYER + 1);
+    this.tweens.add({
+      targets: streak,
+      x: hook.x,
+      y: hook.y,
+      duration: 900,
+      ease: 'quad.in',
+      onComplete: () => {
+        streak.destroy();
+        if (!this.tether) return;
+        this.tether = null;
+        this.evaSnapUntil = this.time.now + 2200;
+        sfx('snap');
+        this.cameras.main.shake(160, 0.006);
+        this.floatText(next.x, next.y - 30, 'clip!', '#e86a6a');
+        const ring = this.add.circle(next.x, next.y, 10).setStrokeStyle(2, 0xe86a6a).setDepth(D.INTERACT + 1);
+        this.tweens.add({ targets: ring, scale: 3, alpha: 0, duration: 500, repeat: 3, onComplete: () => ring.destroy() });
+      },
+    });
+  }
+
+  // the bolt order is on the plate and only there: show him the plate
+  nudgePlate() {
+    const plate = this.obj('code_plate');
+    if (this.plateNudged || Math.abs(this.player.x - plate.wx) > 10 * T) return;
+    this.plateNudged = true;
+    this.floatText(plate.wx, plate.wy - 30, 'the code plate. bolt order.', '#f2d580');
+    const ring = this.add.rectangle(plate.wx, plate.wy, 76, 26).setStrokeStyle(2, 0xf2d580).setDepth(D.INTERACT + 1);
+    this.tweens.add({ targets: ring, alpha: 0, duration: 700, yoyo: true, repeat: 2, onComplete: () => ring.destroy() });
   }
 
   // the first unclipped push-off: refused, the hook shown, the card taught
@@ -1994,7 +2139,8 @@ export default class AstronautScene extends BaseLevel {
     this.updateTrack(time, delta);
     this.updateHoops();
     if (p.body.onFloor()) this.groundedSinceBell = true;
-    if (this.bout) this.updateBoxing(time);
+    if (this.bout) this.updateBoxing(time, delta);
+    musicDirector.boost.hum = GYM_ROOMS.includes(room.id) && !this.greyHold ? 0.8 : 0;
 
     // the forest night: present only in the forest, until the course is done
     if (this.darkZone && this.rainZone) {
@@ -2517,6 +2663,19 @@ export default class AstronautScene extends BaseLevel {
     if (this.priyaFollow) {
       this.priyaFollow.setVisible(want);
       if (!want) return;
+      // A-S1: when the shelter is up she goes down, where she stands, and stays
+      if (this.F.shelter) {
+        const pr = this.priyaFollow;
+        pr.setVelocityX(0);
+        if (!this.priyaStumbled) {
+          this.priyaStumbled = true;
+          pr.setAngle(pr.flipX ? -78 : 78);
+          sfx('hurt');
+        }
+        this.priyaHurtPrompt.x = pr.x;
+        this.priyaHurtPrompt.y = pr.y;
+        return;
+      }
       const d = this.player.x - 54 * (this.player.flipX ? -1 : 1) - this.priyaFollow.x;
       this.priyaFollow.setVelocityX(Math.abs(d) > 24 ? Math.sign(d) * Math.min(200, Math.abs(d) * 2) : 0);
       this.priyaFollow.setFlipX(d < 0);
