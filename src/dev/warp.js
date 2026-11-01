@@ -4,7 +4,7 @@
 
 export const DREAM_WARP = {
   hub: { scene: 'Hub', param: null },
-  chef: { scene: 'Chef', param: null },
+  chef: { scene: 'Dream', param: null, framework: true },
   musician: { scene: 'Dream', param: null, framework: true },
   astronaut: { scene: 'Astronaut', param: 'at', fallback: 'gym' },
   writer: { scene: 'Writer', param: 'wr', fallback: 'attic' },

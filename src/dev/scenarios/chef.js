@@ -1,0 +1,510 @@
+// FIVE-STAR DREAM on the framework (src/dreams/chef/, docs/dream_chef.md).
+//   chef-board        platform 1 opens DreamScene in the service yard
+//   chef-places       every ?warp=chef:<place> lands in its room with an
+//                     objective, a board title, under budget, its own loop,
+//                     music key and acoustics
+//   chef-coins        60-80 brass tips placed, worth 5
+//   chef-rail         the pit by real input: the prompt says what [E] will do,
+//                     a wrong station says why not, hands hold the plate, the
+//                     last ticket clears the rail and opens the door
+//   chef-pocket       the gold leaf bug: a pocket full of things never blocks a
+//                     plate, a hit spills only the plate, the pocket survives
+//   chef-hands        readHands on the run's flags, the "Hands" scene plays,
+//                     the dining room door then has the plate
+//   chef-dining-cut   the kitchen drops out at the door: no loop but the room
+//                     tone, no music, no bed, hall acoustics, Jo can't run
+//   chef-old-run      an old saved Chef run (old scene key) is dropped, not resumed
+//   chef-playthrough  real inputs from the yard to the orb: every place, every
+//                     ticket on the line played by a bot pressing keys, CAUGHT
+import { clearRun, setRun, getRun } from '../../utils/save.js';
+import { dreamById } from '../../data/dreams.js';
+import { uncatch } from './phase3.js';
+import { BUDGET } from '../../core/PerfBudget.js';
+import { buses } from '../../audio/AudioBus.js';
+import { SERVICES } from '../../dreams/chef/services.js';
+import { readHands } from '../../engines/tickets.js';
+
+const T = 32;
+const keyOf = (dc) => dc.scene() && dc.scene().sys.settings.key;
+// a long scenario lets the page breathe (and the dev tools read its progress)
+let lastYield = 0;
+async function breathe(note) {
+  if (note) (window.__chefLog ||= []).push(note);
+  if (performance.now() - lastYield < 500) return;
+  await new Promise((r) => setTimeout(r, 0));
+  lastYield = performance.now();
+}
+
+function safe(s) {
+  s.invulnUntil = Infinity;
+  if (s.health && s.health.setInvulnerable) s.health.setInvulnerable(s.time.now, 1e9);
+  for (const f of s.foes || []) f.passive = true;
+}
+
+async function clearCards(dc, s) {
+  for (let i = 0; i < 6 && (s.tutorialActive || s.cardActive); i++) {
+    dc.press('action', 2);
+    await dc.run(12);
+  }
+}
+
+async function boot(dc, place = 'start', { keepSafe = true } = {}) {
+  clearRun('chef');
+  dc.warp('chef', place);
+  await dc.run(40);
+  for (let k = 0; k < 3 && !(keyOf(dc) === 'Dream' && dc.scene().dreamId === 'chef' && dc.scene().roomId); k++) {
+    dc.warp('chef', place);
+    await dc.run(40);
+  }
+  const s = dc.scene();
+  if (keepSafe) safe(s);
+  await clearCards(dc, s);
+  return s;
+}
+
+async function walkTo(dc, s, x, { frames = 1200, tol = 28 } = {}) {
+  let stuck = 0;
+  let lastX = s.player.x;
+  for (let f = 0; f < frames; f++) {
+    safe(s);
+    if (s.tutorialActive) await clearCards(dc, s);
+    const p = s.player;
+    const d = x - p.x;
+    if (Math.abs(d) < 40) {
+      dc.releaseAll();
+      for (let i = 0; i < 30 && Math.abs(p.body.velocity.x) > 5; i++) await dc.run(1);
+      await dc.run(2);
+      if (Math.abs(x - p.x) <= tol) return true;
+      dc.hold(x - p.x > 0 ? 'right' : 'left');
+      await dc.run(2);
+      dc.releaseAll();
+      continue;
+    }
+    await breathe();
+    const dir = d > 0 ? 'right' : 'left';
+    for (const o of ['left', 'right']) if (o !== dir && dc.state().held.includes(o)) dc.release(o);
+    dc.hold(dir);
+    const b = p.body;
+    const blocked = (d > 0 && b.blocked.right) || (d < 0 && b.blocked.left);
+    stuck = Math.abs(p.x - lastX) < 0.5 ? stuck + 1 : 0;
+    lastX = p.x;
+    if ((blocked || stuck > 6) && b.blocked.down) {
+      dc.hold('jump');
+      await dc.run(16);
+      dc.release('jump');
+    }
+    await dc.run(1);
+  }
+  dc.releaseAll();
+  return false;
+}
+
+async function talkThrough(dc, s, pick = 0, limit = 1600) {
+  for (let i = 0; i < limit && s.sceneBox.active; i += 12) {
+    if (s.sceneBox.choosing && pick > 0) {
+      for (let k = 0; k < pick; k++) dc.press('down', 2);
+      pick = 0;
+      await dc.run(4);
+    }
+    dc.press('action', 2);
+    await dc.run(10);
+  }
+  return !s.sceneBox.active;
+}
+
+async function waitBeats(dc, s, pick = 0, limit = 1600) {
+  for (let i = 0; i < limit && (s.beats.busy || s.sceneBox.active); i++) {
+    await breathe();
+    if (s.sceneBox.active) await talkThrough(dc, s, pick);
+    await dc.run(1);
+  }
+  await clearCards(dc, s);
+}
+
+async function door(dc, s, want) {
+  for (let k = 0; k < 4 && s.roomId !== want; k++) {
+    for (let i = 0; i < 30 && !s.player.body.blocked.down; i++) await dc.run(1);
+    dc.press('interact', 3);
+    for (let i = 0; i < 150 && s.roomId !== want; i++) await dc.run(1);
+  }
+  await dc.run(10);
+  await clearCards(dc, s);
+  return s.roomId === want;
+}
+
+const worldX = (s, room, c) => (s.graph.room(room).tx + c) * T + T / 2;
+
+// a jump held for `frames`, steering to world x while in the air
+async function jumpTo(dc, s, x, { hold = 20 } = {}) {
+  dc.releaseAll();
+  await dc.run(2);
+  const p = s.player;
+  dc.hold('jump');
+  dc.hold(x > p.x ? 'right' : 'left');
+  for (let i = 0; i < 70; i++) {
+    if (i === hold) dc.release('jump');
+    if (Math.abs(x - p.x) < 12) {
+      dc.release('left');
+      dc.release('right');
+    }
+    await dc.run(1);
+    if (i > 8 && p.body.blocked.down) break;
+  }
+  dc.releaseAll();
+  await dc.run(4);
+}
+
+// hold up or down on the ladder column until Jo has climbed off it
+async function climb(dc, s, x, dir = 'up') {
+  await walkTo(dc, s, x, { tol: 12 });
+  dc.hold(dir);
+  for (let i = 0; i < 400; i++) {
+    await dc.run(1);
+    await breathe();
+    if (i > 30 && s.player.body.blocked.down && !s.player.climbing) break;
+  }
+  dc.release(dir);
+  await dc.run(4);
+}
+
+// the way up to a station that is not on the floor (real inputs)
+const ROUTES = {
+  'pit:hooks': async (dc, s) => {
+    if (s.player.y > (s.graph.room('pit').ty + 8) * T) {
+      await walkTo(dc, s, worldX(s, 'pit', 25));
+      await jumpTo(dc, s, worldX(s, 'pit', 27));
+      await jumpTo(dc, s, worldX(s, 'pit', 31));
+    }
+    await walkTo(dc, s, worldX(s, 'pit', 32), { tol: 30 });
+  },
+  'prep:sacks': async (dc, s) => {
+    if (s.player.y > (s.graph.room('prep').ty + 8) * T) await climb(dc, s, worldX(s, 'prep', 11));
+    await walkTo(dc, s, worldX(s, 'prep', 6));
+  },
+  'prep:window': async (dc, s) => {
+    if (s.player.y > (s.graph.room('prep').ty + 9) * T) {
+      await walkTo(dc, s, worldX(s, 'prep', 32));
+      await jumpTo(dc, s, worldX(s, 'prep', 36));
+    }
+    await walkTo(dc, s, worldX(s, 'prep', 36));
+  },
+};
+
+// come down off a shelf to the floor (a step off the end)
+async function toFloor(dc, s, room) {
+  const floorY = (s.graph.room(room).ty + 12) * T;
+  if (s.player.body.bottom > floorY - 4) return;
+  const px = s.player.x - s.graph.room(room).tx * T;
+  if (room === 'pit') await walkTo(dc, s, worldX(s, 'pit', px > 26 * T ? 37 : 24));
+  else if (room === 'prep') {
+    if (px < 12 * T) await climb(dc, s, worldX(s, 'prep', 11), 'down');
+    else await walkTo(dc, s, worldX(s, 'prep', px > 30 * T ? 40 : 12));
+  }
+  for (let i = 0; i < 40 && !s.player.body.blocked.down; i++) await dc.run(1);
+}
+
+async function goToStation(dc, s, key, id) {
+  const def = SERVICES[key].stations[id];
+  const route = ROUTES[`${key}:${id}`];
+  if (route) return route(dc, s);
+  await toFloor(dc, s, s.roomId);
+  return walkTo(dc, s, worldX(s, s.roomId, def.x), { tol: 30 });
+}
+
+// the bot: reads the rail as a player does, presses [E] at the station
+function nextStop(sv) {
+  if (sv.hands) return sv.hands.to;
+  for (const [id, sl] of Object.entries(sv.slots)) if (sl.some((x) => x && x.state !== 'cooking')) return id;
+  const c = sv.rail.filter((k) => !k.firing && k.idx < k.stops.length);
+  c.sort((a, b) => (a.due ? a.left : 1e9) - (b.due ? b.left : 1e9));
+  if (!c.length) return null;
+  const st = c[0].stops[c[0].idx];
+  if (sv.stock[st] !== undefined && sv.stock[st] <= 0) return 'reserve';
+  return st;
+}
+
+async function playService(dc, s, key, { limit = 16000, pick = 0 } = {}) {
+  for (let f = 0; f < limit && !s.F[`rail_${key}`]; f += 8) {
+    await breathe();
+    if (s.sceneBox.active || s.beats.busy) await waitBeats(dc, s, pick);
+    const sv = s.railApi.service();
+    if (!sv || sv.done) {
+      await dc.run(8);
+      continue;
+    }
+    if (sv.working) {
+      await dc.run(4);
+      continue;
+    }
+    const id = nextStop(sv);
+    if (!id) {
+      await dc.run(8);
+      continue;
+    }
+    await goToStation(dc, s, key, id);
+    dc.press('interact', 3);
+    await dc.run(8);
+  }
+  await dc.run(4);
+  await waitBeats(dc, s, pick);
+  return !!s.F[`rail_${key}`];
+}
+
+const PLACES = [
+  { place: 'start', room: 'yard', key: 'yard', loop: 'fs_yard' },
+  { place: 'pit', room: 'pit', key: 'pit', loop: 'fs_pit' },
+  { place: 'cold', room: 'cold', key: 'cold', loop: 'fs_cold' },
+  { place: 'prep', room: 'prep', key: 'prep', loop: 'fs_prep' },
+  { place: 'line', room: 'line', key: 'line1', loop: 'fs_line' },
+  { place: 'pass', room: 'pass', key: 'pass', loop: 'fs_pass' },
+  { place: 'dining', room: 'dining', key: 'dining', loop: 'fs_dining' },
+];
+
+const chefBoard = {
+  id: 'chef-board',
+  async run(dc) {
+    const d = dreamById('chef');
+    return { pass: d.scene === 'Dream' && d.platform === 1, detail: { scene: d.scene } };
+  },
+};
+
+const chefPlaces = {
+  id: 'chef-places',
+  async run(dc) {
+    const out = [];
+    let ok = true;
+    for (const pl of PLACES) {
+      const s = await boot(dc, pl.place);
+      await dc.run(30);
+      const r = s.graph.room(s.roomId).data;
+      const perf = s.perf.sample();
+      const good = s.roomId === pl.room && !!s.objectiveText.text && r.ambience === pl.loop && (r.music || {}).key === pl.key && perf.objects < BUDGET.objects;
+      ok = ok && good;
+      out.push(`${pl.place}:${good ? 'ok' : 'BAD'}:${perf.objects}`);
+    }
+    clearRun('chef');
+    return { pass: ok, detail: out };
+  },
+};
+
+const chefCoins = {
+  id: 'chef-coins',
+  async run(dc) {
+    const s = await boot(dc, 'start');
+    const d = dreamById('chef');
+    const placed = (s.placedCoins || []).length;
+    clearRun('chef');
+    return { pass: placed >= d.coin.budget[0] && placed <= d.coin.budget[1] && d.coin.worth === 5, detail: { placed, budget: d.coin.budget } };
+  },
+};
+
+const chefRail = {
+  id: 'chef-rail',
+  async run(dc) {
+    const s = await boot(dc, 'pit');
+    const log = [];
+    await dc.run(160); // the breath on arrival
+    const sv = s.railApi.service();
+    log.push(`service:${!!sv}`);
+    // the rack first: nothing in hands, it says so, nothing happens
+    await walkTo(dc, s, worldX(s, 'pit', 26));
+    await dc.run(4);
+    const prompt = s.interaction.current && s.interaction.current.prompt;
+    log.push(`refusal:${/rack wants/i.test(prompt || '')}`);
+    dc.press('interact', 3);
+    await dc.run(4);
+    log.push(`noPlate:${!sv.hands}`);
+    await walkTo(dc, s, worldX(s, 'pit', 12));
+    await dc.run(4);
+    const p2 = s.interaction.current && s.interaction.current.prompt;
+    log.push(`verb:${/Bastien/.test(p2 || '')}`);
+    dc.press('interact', 3);
+    await dc.run(6);
+    log.push(`hands:${sv.hands && sv.hands.id === 'p1'}`);
+    log.push(`carrying:${s.player.carrying === true}`);
+    await walkTo(dc, s, worldX(s, 'pit', 26));
+    dc.press('interact', 3);
+    await dc.run(6);
+    log.push(`served:${sv.tally.served === 1}`);
+    log.push(`next:${sv.rail[0] && sv.rail[0].id === 'p2'}`);
+    log.push(`locked:${!s.F.apron}`);
+    const played = await playService(dc, s, 'pit');
+    log.push(`clear:${played}`);
+    await waitBeats(dc, s);
+    log.push(`apron:${!!s.F.apron}`);
+    clearRun('chef');
+    return { pass: log.every((l) => l.endsWith(':true')), detail: log };
+  },
+};
+
+const chefPocket = {
+  id: 'chef-pocket',
+  async run(dc) {
+    const s = await boot(dc, 'line');
+    const log = [];
+    Object.assign(s.F, { mise_done: true, apron: true, saffron: true, onions: true });
+    await dc.run(160);
+    const sv = s.railApi.service();
+    log.push(`service:${!!sv}`);
+    await walkTo(dc, s, worldX(s, 'line', 20));
+    dc.press('interact', 3);
+    await dc.run(6);
+    log.push(`plate:${sv.hands && sv.hands.dish === 'VELOUTE'}`);
+    // a hit spills only the plate
+    s.invulnUntil = 0;
+    if (s.health.setInvulnerable) s.health.setInvulnerable(s.time.now, 0);
+    s.dropCarry();
+    await dc.run(4);
+    log.push(`spilled:${!sv.hands && sv.tally.spilled === 1}`);
+    log.push(`pocket:${s.F.saffron === true && s.F.onions === true}`);
+    log.push(`stillOnRail:${sv.rail.some((k) => k.dish === 'VELOUTE')}`);
+    // and the same station gives it again
+    dc.press('interact', 3);
+    await dc.run(6);
+    log.push(`again:${sv.hands && sv.hands.dish === 'VELOUTE'}`);
+    clearRun('chef');
+    return { pass: log.every((l) => l.endsWith(':true')), detail: log };
+  },
+};
+
+const chefHands = {
+  id: 'chef-hands',
+  async run(dc) {
+    const s = await boot(dc, 'pass');
+    const log = [];
+    Object.assign(s.F, { mise_done: true, apron: true, saffron: true, onions: true, table1_sent: true, burns: 2, frost: true, mise: 2 });
+    const read = readHands(s.F);
+    log.push(`read:${read.lines.length >= 3}`);
+    await dc.run(160);
+    const done = await playService(dc, s, 'pass', { pick: 1 });
+    log.push(`played:${done}`);
+    log.push(`own:${s.F.finish === 'own'}`);
+    log.push(`handsDone:${!!s.F.hands_done}`);
+    await waitBeats(dc, s);
+    log.push(`carry:${!!s.F.carry_out}`);
+    await walkTo(dc, s, worldX(s, 'pass', 23));
+    log.push(`door:${await door(dc, s, 'dining')}`);
+    await dc.run(10);
+    log.push(`walkOnly:${s.player.walkOnly === true}`);
+    log.push(`holding:${s.player.carrying === true}`);
+    clearRun('chef');
+    return { pass: log.every((l) => l.endsWith(':true')), detail: log };
+  },
+};
+
+const chefCut = {
+  id: 'chef-dining-cut',
+  async run(dc) {
+    const s = await boot(dc, 'dining');
+    await dc.run(20);
+    const r = s.graph.room('dining').data;
+    const pass = r.ambience === 'fs_dining' && r.events === null && r.acoustics === 'hall' && (r.music || {}).key === 'dining' && s.music.cur && s.music.cur.gain === 0 && buses.acoustics !== 'open';
+    clearRun('chef');
+    return { pass: !!pass, detail: { amb: r.ambience, gain: s.music.cur && s.music.cur.gain } };
+  },
+};
+
+const chefOldRun = {
+  id: 'chef-old-run',
+  async run(dc) {
+    setRun('chef', { dreamId: 'chef', sceneKey: 'Chef', checkpointId: 'cp_old', pos: { x: 9000, y: 900 }, flags: { d0: true }, lit: [], inventory: [], extra: {} });
+    const gone = getRun('chef') === null || getRun('chef') === undefined;
+    return { pass: gone, detail: { run: getRun('chef') } };
+  },
+};
+
+const chefPlaythrough = {
+  id: 'chef-playthrough',
+  async run(dc) {
+    uncatch('chef');
+    const s = await boot(dc, 'start');
+    const log = [];
+    const mark = (n, v) => {
+      log.push(`${n}:${v ? 'ok' : 'BAD'}`);
+      (window.__chefLog ||= []).push(`${log[log.length - 1]} ${s.roomId} ${Math.round(s.player.x / T)},${Math.round(s.player.y / T)}`);
+    };
+    // the yard: Marguerite, the door
+    await walkTo(dc, s, worldX(s, 'yard', 20));
+    dc.press('interact', 3);
+    await dc.run(12);
+    await waitBeats(dc, s);
+    mark('met', s.F.met_m);
+    await walkTo(dc, s, worldX(s, 'yard', 24));
+    mark('pit', await door(dc, s, 'pit'));
+    // the pit
+    await dc.run(160);
+    mark('pitclear', await playService(dc, s, 'pit'));
+    await toFloor(dc, s, 'pit');
+    mark('apron', s.F.apron);
+    await walkTo(dc, s, worldX(s, 'pit', 42));
+    mark('cold', await door(dc, s, 'cold'));
+    // the moment by the warm pipe, and the racks
+    await climb(dc, s, worldX(s, 'cold', 5));
+    await climb(dc, s, worldX(s, 'cold', 14));
+    await walkTo(dc, s, worldX(s, 'cold', 21));
+    await dc.run(4);
+    dc.press('interact', 3);
+    await dc.run(10);
+    await waitBeats(dc, s);
+    mark('cat', s.F['moment:m2']);
+    mark('deckB', true);
+    await climb(dc, s, worldX(s, 'cold', 17));
+    mark('deckC', true);
+    await climb(dc, s, worldX(s, 'cold', 4));
+    await climb(dc, s, worldX(s, 'cold', 13));
+    mark('topDeck', s.player.y < (s.graph.room('cold').ty + 9) * T);
+    await walkTo(dc, s, worldX(s, 'cold', 24));
+    await dc.run(10);
+    await waitBeats(dc, s);
+    mark('saffron', s.F.saffron);
+    // down again: off the end of each deck in turn
+    for (const c of [8, 16, 20, 8, 17, 24]) {
+      await walkTo(dc, s, worldX(s, 'cold', c));
+      for (let i = 0; i < 80 && !s.player.body.blocked.down; i++) await dc.run(1);
+    }
+    mark('prep', await door(dc, s, 'prep'));
+    await dc.run(160);
+    // Tomé, the onions
+    await walkTo(dc, s, worldX(s, 'prep', 18));
+    await dc.run(4);
+    dc.press('interact', 3);
+    await dc.run(10);
+    await waitBeats(dc, s);
+    mark('onions', s.F.onions);
+    mark('mise', await playService(dc, s, 'prep'));
+    log.push(`mise=${s.F.mise || 0}`);
+    await toFloor(dc, s, 'prep');
+    await walkTo(dc, s, worldX(s, 'prep', 45));
+    mark('line', await door(dc, s, 'line'));
+    await dc.run(160);
+    const t0 = s.time.now;
+    mark('rush', await playService(dc, s, 'line', { limit: 60000 }));
+    log.push(`rush=${Math.round((s.time.now - t0) / 1000)}s plates=${s.F.plates} late=${s.F.late || 0} bails=${s.F.bails || 0}`);
+    await waitBeats(dc, s);
+    mark('sent', s.F.table1_sent);
+    await walkTo(dc, s, worldX(s, 'line', 59));
+    mark('pass', await door(dc, s, 'pass'));
+    await dc.run(160);
+    mark('hands', await playService(dc, s, 'pass', { pick: 1 }));
+    mark('own', s.F.finish === 'own');
+    await waitBeats(dc, s);
+    await walkTo(dc, s, worldX(s, 'pass', 23));
+    mark('dining', await door(dc, s, 'dining'));
+    await dc.run(160);
+    mark('walk', s.player.walkOnly);
+    mark('set', await playService(dc, s, 'dining'));
+    await waitBeats(dc, s);
+    mark('orbOn', s.F.orb_on);
+    await walkTo(dc, s, worldX(s, 'dining', 57));
+    for (let i = 0; i < 600 && !(s.ending.active && s.ending.waitingForReturn); i++) await dc.run(1);
+    mark('caught', s.ending.caught);
+    dc.press('interact', 3);
+    await dc.run(10);
+    if (s.ending.finish) s.ending.finish();
+    uncatch('chef');
+    clearRun('chef');
+    return { pass: log.every((l) => !l.endsWith(':BAD')), detail: log };
+  },
+};
+
+export default [chefBoard, chefPlaces, chefCoins, chefRail, chefPocket, chefHands, chefCut, chefOldRun, chefPlaythrough];

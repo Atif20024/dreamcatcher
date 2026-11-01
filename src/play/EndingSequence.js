@@ -74,10 +74,11 @@ export class EndingSequence {
       const H = e.imageH ?? 300; // a dream with a long ledger gives the picture's height to its lines
       const top = 40;
       if (e.paint) {
-        const key = `ending:${s.dreamId}`;
+        // (a picture may depend on the run: ending.variant(F) names it, paint gets F)
+        const key = `ending:${s.dreamId}${e.variant ? `:${e.variant(s.F || {})}` : ''}`;
         if (!s.textures.exists(key)) {
           const ct = s.textures.createCanvas(key, W, H);
-          e.paint(ct.getContext(), W, H);
+          e.paint(ct.getContext(), W, H, s.F || {});
           ct.refresh();
         }
         h.add(panel(s, cam.width / 2, top + H / 2, W + 16, H + 16, { depth: 231, accent: 0xe9b84a }));

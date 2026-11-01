@@ -194,6 +194,8 @@ export function memoryAdapter(initial = null) {
 }
 
 // ---- the store ---------------------------------------------------------------
+const GONE_SCENES = new Set(['Chef']);
+
 export class SaveStore {
   constructor(adapter = localStorageAdapter()) {
     this.adapter = adapter;
@@ -278,6 +280,13 @@ export class SaveStore {
   // ---- in-dream runs --------------------------------------------------------
   run(dreamId) {
     const r = (this.slot().runs || {})[dreamId];
+    // a run saved by a scene that no longer exists (the old Chef's map, its
+    // flags and coordinates mean nothing to the new dream): the board offers
+    // a fresh boarding; what was caught stays caught
+    if (r && GONE_SCENES.has(r.sceneKey)) {
+      this.clearRun(dreamId);
+      return null;
+    }
     return r ? clone(r) : null;
   }
 

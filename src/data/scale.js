@@ -388,6 +388,19 @@ Object.assign(CAST_BODIES, {
   'foe-lq-crake': { sex: 'm', hat: 'silk', dress: true },
 });
 
+// FIVE-STAR DREAM (the chef's dream on the framework): Le Rêve's brigade, 1957
+// (looks in src/dreams/chef/people.js).
+Object.assign(CAST_BODIES, {
+  'npc-rv-marguerite': { sex: 'f', hat: 'wrap', apron: true },
+  'npc-rv-aurelio': { sex: 'm', beard: 'moustache', hat: 'chef_toque', apron: true },
+  'npc-rv-bastien': { body: 'teen', sex: 'm', hat: 'none', apron: true },
+  'npc-rv-tome': { sex: 'm', hat: 'baker', apron: true },
+  'npc-rv-luc': { body: 'teen', sex: 'm', hat: 'none', hair: 'crop' },
+  'npc-rv-porter': { body: 'big', sex: 'm', hat: 'cap' },
+  'npc-rv-commis': { sex: 'm', hat: 'toque', apron: true },
+  'npc-rv-commis2': { sex: 'm', hat: 'toque', apron: true },
+});
+
 // The Long Evening at scale (owner: "last stop is out of proportions"): the
 // props that were still old string art at knee height. Report:
 // docs/redesign/round2/LAST_STOP_SCALE_REPORT.md
