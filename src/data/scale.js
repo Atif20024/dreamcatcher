@@ -390,6 +390,26 @@ Object.assign(CAST_BODIES, {
   'foe-lq-crake': { sex: 'm', hat: 'silk', dress: true },
 });
 
+// THE STOPPED HOUR's town, and its own painted props: w, h (px) and class; the
+// painters (src/dreams/clockmaker/props.js) draw from these numbers, lint:scale reads them
+Object.assign(CAST_BODIES, {
+  'npc-sh-watch': { sex: 'm', hat: 'bowler', beard: 'moustache' },
+  'npc-sh-pie': { sex: 'f', hat: 'none', hair: 'bun', dress: true },
+});
+Object.assign(PROP_CLASSES, {
+  greatBell: { h: [100, 130], m: 2.5 },
+  clockWeight: { h: [100, 150], m: 2.8 },
+  towerFoot: { h: [150, 190], m: 3.8 },
+  windowFigure: { h: [36, 44] },
+});
+export const CLOCK_PROP_SIZES = {
+  great_bell: [110, 120, 'greatBell'],
+  clock_weight: [40, 130, 'clockWeight'],
+  tower_foot: [96, 176, 'towerFoot'],
+  window_child: [30, 40, 'windowFigure'],
+  window_child_wave: [30, 40, 'windowFigure'],
+};
+
 // The Long Evening at scale (owner: "last stop is out of proportions"): the
 // props that were still old string art at knee height. Report:
 // docs/redesign/round2/LAST_STOP_SCALE_REPORT.md

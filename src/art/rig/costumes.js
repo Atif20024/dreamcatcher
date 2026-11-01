@@ -228,6 +228,8 @@ export const COSTUMES = {
   'npc-rn-steward': { face: 'long', over: ['lapel', 'tails'] },
   'npc-rn-inspector': { face: 'long', over: ['chain'] },
   // the last hand
+  'npc-sh-watch': { face: 'long', over: ['waistcoat', 'chain'] },
+  'npc-sh-pie': { face: 'round', over: ['bib', 'shawl'] },
   'npc-lq-lou': { face: 'thin', over: ['waistcoat', 'cravat'] },
   'npc-lq-pell': { face: 'long', over: ['badge', 'epaulette'] },
   'npc-lq-voe': { face: 'round', over: ['waistcoat', 'cravat'], prop: 'cane' },

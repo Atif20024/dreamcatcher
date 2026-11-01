@@ -12,6 +12,7 @@ import { hud } from '../ui/hud.js';
 import { playTone, trumpet, bassNote, sfx } from '../systems/audio.js';
 import { craftWorld } from './craftPresenter.js';
 import { slatePresenter, faroPresenter, showdownPresenter } from '../dreams/gambler/table.js';
+import { escapementWorld } from '../dreams/clockmaker/presenter.js';
 
 const RAD = Math.PI / 180;
 
@@ -25,7 +26,8 @@ function drawDial(g, cx, cy, R, st, flash) {
     const a0 = (w.center - w.half - 90) * RAD;
     const a1 = (w.center + w.half - 90) * RAD;
     const col = seated ? 0x7ec87e : cur ? (st.inWindow ? 0xf6d98a : 0xe9b84a) : 0x6b4a1f;
-    g.lineStyle(cur ? 10 : 7, col, seated ? 0.9 : cur ? 0.95 : 0.6);
+    // the brass window glows for the first half second of each sweep
+    g.lineStyle(cur ? (st.angle < 70 ? 14 : 10) : 7, col, seated ? 0.9 : cur ? 0.95 : 0.6);
     g.beginPath();
     g.arc(cx, cy, R - 8, a0, a1, false);
     g.strokePath();
@@ -52,7 +54,7 @@ function clockworkWorld(scene, def, engine, ctx) {
   const tool = hud.toolLine(3, 'accent');
   let flash = null;
   let flashT = 0;
-  const marks = (st) => Array.from({ length: st.gears }, (_, i) => (i < st.seated ? '●' : '○')).join(' ');
+  const marks = (st) => Array.from({ length: def.gearTotal || st.gears }, (_, i) => (i < st.seated ? '●' : '○')).join(' ');
   return {
     enter(st) {
       drawDial(g, a.x, a.y, R, st, null);
@@ -74,6 +76,7 @@ function clockworkWorld(scene, def, engine, ctx) {
       if (flash && scene.time.now - flashT > 220) flash = null;
       drawDial(g, a.x, a.y, R, st, flash);
       tool.setText(`GEARS ${marks(st)}`);
+      if (def.onRender) def.onRender(scene, st);
     },
     outro() {
       return new Promise((res) => {
@@ -285,6 +288,8 @@ function rhythmWorld(scene, def, engine, ctx) {
 
 export const PRESENTERS = {
   clockwork: { world: clockworkWorld, modal: clockworkModal },
+  // THE STOPPED HOUR: the third gear, the seven strikes
+  escapement: { world: escapementWorld },
   rhythm: { world: rhythmWorld },
   // THE MASTER'S LADDER: grind, drapery, the masterpiece, the giornata
   craft: { world: craftWorld },

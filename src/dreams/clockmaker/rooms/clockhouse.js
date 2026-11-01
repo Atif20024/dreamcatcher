@@ -1,6 +1,7 @@
 // THE CLOCK HOUSE: an interior behind a door. Panelled back wall, beams and
 // pillars in the foreground, a mezzanine reached by two shelves, and the
-// great clock on the wall: its encounter is staged in the room.
+// great clock on the wall: the first gear's encounter is staged in the room.
+// When it is seated the hatch at the end of the mezzanine opens on the shaft.
 export default {
   id: 'clockhouse',
   origin: { tx: 0, ty: 30 },
@@ -42,18 +43,20 @@ export default {
     { prop: 'hanging_lamp', x: 9, y: 2 },
     { prop: 'hanging_lamp', x: 17, y: 2 },
     { prop: 'wall_clock', x: 24, y: 4, live: true },
+    { prop: 'door_wood', x: 21, y: 8 },
   ],
   lights: [{ x: 24, y: 4, r: 110, color: 0xffd890 }],
   enclosure: { backWall: 'panelled', wainscot: true, posts: 7, ceiling: true, pillars: true, frames: [{ x: 3, y: 9, w: 2, h: 4 }], palette: { wall: 0xc4a47c, wood: 0x6a4428, accent: 0x9a5a4a } },
   light: { tint: 0xfff0e0 },
   backdrop: null,
-  ambience: 'clock_room',
+  ambience: 'gm_office', // a stopped clock does not tick: the tick comes with the music key
   acoustics: 'room',
-  events: 'clockhouse',
+  events: 'clock_still',
   music: { state: 'quiet', key: 'clockhouse' },
   objective: [
     { text: 'wind_clock' },
-    { text: 'back_out', flag: 'clock_wound' },
+    { text: 'to_shaft', flag: 'gear1' },
+    { text: 'back_up', flag: 'clock_wound' },
   ],
   titleCard: 'THE CLOCK HOUSE',
   entities: [
@@ -65,6 +68,7 @@ export default {
     { type: 'coins', id: 'c_table', x: 10, y: 9, n: 3 },
     { type: 'coin', id: 'c_mezz1', x: 21, y: 6 },
     { type: 'coin', id: 'c_mezz2', x: 28, y: 6 },
-    { type: 'encounter', id: 'clockwork', x: 24, y: 7, anchor: { x: 24, y: 4 }, prompt: 'wind the clock', unless: 'clock_wound' },
+    { type: 'encounter', id: 'clockwork', x: 24, y: 7, anchor: { x: 24, y: 4 }, prompt: 'seat the first gear', unless: 'gear1' },
+    { type: 'portal', id: 'clock>shaft', kind: 'door', x: 21, y: 7, to: { room: 'shaft', portal: 'shaft>clock' }, door: { prompt: 'through the hatch', fade: 250, requires: ['gear1'], locked: 'the dial first', lockedLine: 'Shut. The dial first: it holds the latch.' } },
   ],
 };

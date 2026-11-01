@@ -23,8 +23,6 @@ export const MUSIC_KEYS = {
     leadEvery: 1,
     leadOctave: 4,
     pad: { voice: 'fiddle', every: 6, notes: [12, 11, 9, 7], oct: 2, vol: 0.05 },
-    tick: 'tick',
-    tickVol: 0.025,
   },
   // the lane at dusk: the same waltz, slower, no fiddle
   lane: { bpm: 72, gain: 1.5, root: G2, mode: 'ionian', meter: 3, motif: WALTZ, voices: { base: 'pizz', pulse: 'pizz', lead: 'music_box', danger: 'throb' }, walk: [0, 4, 3, 4], pulseRoot: G2 * 2, pulseChord: [4, 7], leadEvery: 1, leadOctave: 4 },
@@ -56,9 +54,13 @@ export const MUSIC_KEYS = {
     voices: { base: null, pulse: null, lead: 'music_box', danger: 'throb' },
     leadEvery: 1,
     leadOctave: 4,
-    tick: 'tick',
-    tickVol: 0.1,
     dangerEvery: 1,
     droneAlways: false,
   },
 };
+
+// the tick is the payoff: no key has it until the clock is wound; then these
+// take over in every room that can hear it (verbs/works.js)
+MUSIC_KEYS.green_going = { ...MUSIC_KEYS.green, tick: 'tick', tickVol: 0.025 };
+MUSIC_KEYS.lane_going = { ...MUSIC_KEYS.lane, tick: 'tick', tickVol: 0.02 };
+MUSIC_KEYS.clockhouse_going = { ...MUSIC_KEYS.clockhouse, tick: 'tick', tickVol: 0.1 };

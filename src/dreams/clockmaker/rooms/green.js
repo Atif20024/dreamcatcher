@@ -1,6 +1,7 @@
 // THE GREEN: the lamplighter waits by a dark lamp; the clock house stands
 // on its terrace (a door: fade through black); the iron gate to the bell
-// yard opens when the clock strikes. A lantern flag by the arch.
+// yard opens when the clock strikes. A lantern flag by the arch. A woman on the
+// bench with a pie gone cold. Nell's own lamp stays dark until she lights it.
 export default {
   id: 'green',
   origin: { tx: 44, ty: 0 },
@@ -35,8 +36,12 @@ export default {
   props: [
     { prop: 'arch_hedge', x: 3, y: 16 },
     { prop: 'tree', x: 15, y: 16, dx: -20, layer: 'back' },
-    { prop: 'lamp_post_dark', x: 21, y: 16, unless: 'clock_wound', live: true },
-    { prop: 'lamp_post', x: 21, y: 16, when: 'clock_wound', live: true },
+    { prop: 'lamp_post_dark', x: 6, y: 16, unless: 'struck', live: true },
+    { prop: 'lamp_post', x: 6, y: 16, when: 'struck', live: true },
+    { prop: 'lamp_post_dark', x: 21, y: 16, unless: 'nell_lamp', live: true },
+    { prop: 'lamp_post', x: 21, y: 16, when: 'nell_lamp', live: true },
+    { prop: 'lamp_post_dark', x: 43, y: 16, unless: 'struck', live: true },
+    { prop: 'lamp_post', x: 43, y: 16, when: 'struck', live: true },
     { prop: 'house_clock', x: 32, y: 13, dx: 16 },
     { prop: 'bush', x: 26, y: 13 },
     { prop: 'bush', x: 39, y: 13, scale: 0.8 },
@@ -49,12 +54,13 @@ export default {
   backdrop: { set: 'dusk_green', horizon: 16 },
   ambience: 'meadow_dusk',
   acoustics: 'open',
-  events: 'green',
+  events: 'green_still',
   music: { state: 'explore', key: 'green' },
   objective: [
     { text: 'find_lamplighter' },
-    { text: 'wind_clock', flag: 'met_wren' },
-    { text: 'to_bell', flag: 'clock_wound' },
+    { text: 'wind_clock', flag: 'met_nell' },
+    { text: 'back_up', flag: 'clock_wound' },
+    { text: 'catch_dream', flag: 'green_lit' },
   ],
   titleCard: 'THE GREEN',
   entities: [
@@ -62,7 +68,8 @@ export default {
     { type: 'portal', id: 'green>yard', kind: 'seam', x: 55, y: 15, to: { room: 'yard', portal: 'yard<green' }, seam: { prop: 'yard_lychgate' } },
     { type: 'portal', id: 'green>clock', kind: 'door', x: 33, y: 12, to: { room: 'clockhouse', portal: 'clock>green' }, door: { prompt: 'go in', fade: 250 } },
     { type: 'checkpoint', id: 'cp_green', label: 'THE GREEN', x: 8, y: 15 },
-    { type: 'npc', id: 'wren', rig: 'wren', x: 18, y: 15, facing: -1, talk: [{ conv: 'wren_done', if: 'clock_wound' }, { conv: 'wren_after', if: 'met_wren' }, { conv: 'wren_first' }] },
+    { type: 'npc', id: 'nell', rig: 'nell', x: 18, y: 15, facing: -1, talk: [{ conv: 'nell_done', if: 'struck' }, { conv: 'nell_wound', if: 'clock_wound' }, { conv: 'nell_after', if: 'met_nell' }, { conv: 'nell_first' }] },
+    { type: 'npc', id: 'pie', cast: 'npc-sh-pie', x: 11, y: 15, pose: 'sit', facing: 1, talk: [{ conv: 'pie_after', if: 'struck' }, { conv: 'pie' }] },
     // coins: the high stone ledge west of the tree (a full jump), the far
     // end of the terrace past the clock house, an arc over the well
     { type: 'coins', id: 'c_ledge', x: 10, y: 10, n: 4 },
@@ -70,6 +77,6 @@ export default {
     { type: 'coin', id: 'c_well1', x: 44, y: 13 },
     { type: 'coin', id: 'c_well2', x: 45, y: 12 },
     { type: 'coin', id: 'c_well3', x: 46, y: 13 },
-    { type: 'gate', id: 'g_yard', x: 52, y: 10, h: 6, requires: ['clock_wound'], hint: 'OPENS WHEN THE CLOCK STRIKES' },
+    { type: 'gate', id: 'g_yard', x: 52, y: 10, h: 6, requires: ['struck'], hint: 'OPENS WHEN THE CLOCK STRIKES' },
   ],
 };

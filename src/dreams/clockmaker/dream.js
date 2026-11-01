@@ -2,53 +2,104 @@
 // wanted to be the one who keeps a town's time: the work nobody sees until
 // the evening it stops. At six every lamp in the town went out with the
 // clock; the lamplighter Nell needs steady hands to seat its three gears.
-// Wind it, step back out onto the lit green, and the gate to the bell yard
-// opens on the dream.
-// Built on the phase-3 framework (it began as the framework's proof dream):
-// one seam (lane → green), one door (green ↔ clock house), an interior with
-// enclosure, one NPC with a scene-box conversation and barks, one encounter
-// (the clock), one gate with a sign, checkpoints, coins, an ending.
+// This is the dream a first-time player is pointed to: the gentlest. A place
+// per aim, inside opens outside:
+//   THE LANE         a window, a man with a watch; the arch to the green
+//   THE GREEN        Nell, a woman with a cold pie; the door under the clock
+//   THE CLOCK HOUSE  gear 1, the dial
+//   THE WEIGHT SHAFT gear 2, up past loose pendulums (danger, softly)
+//   THE BELL CHAMBER gear 3, on the beat: the clock is going, the tick starts
+//   THE BELL YARD    out on the hill: strike seven, the lamps come up, the gate opens
+//   THE GREEN again  everyone answers; Nell lights the last lamp
+//   THE BELL YARD    up the hill to the dream
+// Built on the phase-3 framework (it began as the framework's proof dream).
 // Boarded from the hub (platform 9); dev: ?warp=clockmaker:start (alias
 // ?warp=proof:start).
 import lane from './rooms/lane.js';
 import green from './rooms/green.js';
 import clockhouse from './rooms/clockhouse.js';
+import shaft from './rooms/shaft.js';
+import belfry from './rooms/belfry.js';
 import yard from './rooms/yard.js';
 import { MUSIC_KEYS } from './music.js';
 import beats from './beats.js';
 import { CAST, CONVERSATIONS, BARKS } from './dialogue.js';
-import clockworkEnc from './encounters/clockwork.js';
+import clockworkEnc, { escapement, strike } from './encounters/clockwork.js';
 import whistle from './verbs/whistle.js';
+import works from './verbs/works.js';
+import props from './props.js';
+import { hud } from '../../ui/hud.js';
 import { paintSky, paintBackdropLayer } from '../../art/backdrops/painted.js';
 
 const DUSK = { sky: 0xd88a78, hill: 0x4a3a5a, house: 0x3a3048, roof: 0x4a2e3e, window: 0xffc870, light: 0xf2c890, rim: 0xf2a878, deep: 0x1a1420, leaf: 0x3a5040, trunk: 0x2a2028, mist: 0xe8a088, mistA: 0.28 };
 const DUSK_SKY = { top: 0x2a2a58, mid: 0x8a5a7a, bottom: 0xf2a676, sun: { x: 360, y: 470, r: 16, color: 0xffc070 }, clouds: 8, stars: 24, cloud: 0x6a4a6a, cloudLit: 0xf2a070, seed: 4 };
 const NIGHT = { ...DUSK, sky: 0x5a4a78, hill: 0x2a2a44, house: 0x2a2438, mist: 0x8a6a8a, mistA: 0.3, leaf: 0x2a3a3a };
 
+const items = {
+  gear2: {
+    name: 'THE SECOND GEAR',
+    card: 'THE SECOND GEAR: brass, palm-sized, one tooth bright where it slipped.',
+    w: 26, h: 26,
+    paint(ctx, w, h) {
+      ctx.fillStyle = '#8a6a2c';
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        ctx.fillRect(w / 2 + Math.cos(a) * 10 - 2, h / 2 + Math.sin(a) * 10 - 2, 4, 4);
+      }
+      ctx.beginPath();
+      ctx.arc(w / 2, h / 2, 9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#f2d580';
+      ctx.beginPath();
+      ctx.arc(w / 2 - 1, h / 2 - 1, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#4a3a2a';
+      ctx.beginPath();
+      ctx.arc(w / 2, h / 2, 2, 0, Math.PI * 2);
+      ctx.fill();
+    },
+  },
+};
+
+const calls = {
+  // the gear is out of the satchel and in the clock
+  seated(scene) {
+    scene.satchel = (scene.satchel || []).filter((n) => n !== items.gear2.name);
+    hud.toolLine(1, 'accent').setText('').setVisible(false);
+  },
+};
+
 export default {
   id: 'clockmaker',
   title: 'THE STOPPED HOUR',
   enabled: true,
   profile: { failure: 'default', hud: 'default', camera: { zoom: 1 } },
-  rooms: [lane, green, clockhouse, yard],
+  rooms: [lane, green, clockhouse, shaft, belfry, yard],
   start: { room: 'lane', spawn: 'start' },
-  verbs: [whistle],
+  verbs: [whistle, works],
   beats,
+  calls,
   onStart: 'start',
   cast: CAST,
   conversations: CONVERSATIONS,
   barks: BARKS,
-  encounters: { clockwork: clockworkEnc },
+  encounters: { clockwork: clockworkEnc, escapement, strike },
+  items,
   objectives: {
     find_lamplighter: 'the lamps are out: find the lamplighter on the green',
-    wind_clock: 'wind the clock in the clock house',
-    back_out: 'the clock is going: back out to the green',
-    to_bell: 'the gate is open: up to the bell',
+    wind_clock: 'the clock house, up the steps: seat the first gear at the dial',
+    to_shaft: 'through the hatch: the second gear is up the weight shaft',
+    climb_shaft: 'climb the weight shaft: the second gear is at the top',
+    to_belfry: 'up to the bell chamber with the gear',
+    seat_third: 'the third gear, under the bell: seat it on the beat',
+    strike_seven: 'out on the hill, by the old bell: strike seven',
+    back_up: 'back up through the clock house: the door out on the hill',
+    to_green: 'the gate is open: down the hill to the green',
     catch_dream: 'up the hill: catch the dream by the bell',
   },
   materials: {},
   decorRules: {},
-  props: {},
+  props,
   palette: {},
   backdrops: {
     dusk_town: {
@@ -91,7 +142,7 @@ export default {
   ending: {
     orb: true,
     title: "SEVEN O'CLOCK",
-    lines: ['The clock struck seven, an hour late.', 'Nobody on the green noticed it had stopped.', 'Somebody noticed it start.'],
+    lines: ['The clock struck seven, an hour late.', 'By morning nobody on the green could say it had ever stopped.', 'Nell knew. Nell lit the last lamp.'],
     vista: 0.8,
     paint(ctx, w, h) {
       // the town from the bell yard, every lamp lit
