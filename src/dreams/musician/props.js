@@ -359,7 +359,7 @@ const escape_landing = {
 
 const roller_door = {
   // a 3 × 3 m loading-dock shutter, its stencil, a hazard kerb
-  w: 3.4 * K, h: 3.4 * K, anchor: [0.5, 1], light: { x: 75, y: 6, r: 90, color: 0xf2e6cc },
+  lit: [[68, 0, 14, 14]], w: 3.4 * K, h: 3.4 * K, anchor: [0.5, 1], light: { x: 75, y: 6, r: 90, color: 0xf2e6cc },
   paint(ctx, w, h) {
     box(ctx, 0, 0, w, h, 0x3a3a44);
     for (let y = 14; y < h - 4; y += 7) {
