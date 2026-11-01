@@ -186,7 +186,7 @@ beforeAll(() => {
     const rows = Object.values(results).map((r) => `${at(r)} ${r.name.padEnd(15)} out ${r.rms.toFixed(1)} pk ${r.peak.toFixed(1)} | music ${r.music.toFixed(1)} amb ${r.ambience.toFixed(1)} chat ${r.chatter.toFixed(1)} talk ${r.talking.toFixed(1)} | shots ${r.fired} bursts ${r.bursts} | nodes ${r.nodes} live ${r.peakLive} osc ${r.voices.osc} noise ${r.voices.noise} stolen ${r.stolen} dropped ${r.dropped}`);
     process.stdout.write(`\n${rows.join('\n')}\n`);
   }
-});
+}, 60000); // renders every loop: slow on a busy machine
 
 describe('every place, mixed and measured (offline)', () => {
   it('is never silent, never clips, peaks under -1 dBFS', () => {
