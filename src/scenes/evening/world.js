@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { EV } from '../../data/evening/map.js';
 import { isSolidChar, roleOf, slopeSurface } from '../../builders/legend.js';
 import { uiText } from '../../ui/text.js';
+import { px as mpx, ROPE_SWING } from '../../data/scale.js';
 
 // THE LONG EVENING — the world's furniture and the ground queries every
 // walker in it uses. Split out of EveningScene so the scene can be read as
@@ -217,16 +218,17 @@ export function buildWorld(scene, objects) {
       case 'arch': {
         const arch = stand('ev-arch', o, 11.6);
         // the doorway he came through: dark, until he steps out of it
-        const door = scene.add.rectangle(o.wx, arch.y - 44, 40, 86, 0x07060c, 1).setDepth(11.4);
+        const door = scene.add.image(o.wx, arch.y, 'ev-archdoor').setOrigin(0.5, 1).setDepth(11.4);
         out.arch = { arch, door, x: o.wx };
         break;
       }
       case 'sign': {
         const y = scene.groundY(o.wx, o.wy - 64);
-        scene.add.rectangle(o.wx, y - 20, 4, 40, 0x6a4a32).setDepth(6);
+        // a signpost: its board at 1.3 m, Jo's chest
+        scene.add.rectangle(o.wx, y - 30, 4, 60, 0x6a4a32).setDepth(6);
         const w = o.text.length * 8 + 16;
-        scene.add.rectangle(o.wx, y - 40, w, 18, 0xe8dcc0).setDepth(6).setStrokeStyle(2, 0x6a4a32).setAngle(-2);
-        uiText(scene, o.wx, y - 40, o.text, { fontSize: '11px', color: '#3a2a22', backing: 0xe8dcc0 }).setOrigin(0.5).setDepth(6.1); // level (feedback 3)
+        scene.add.rectangle(o.wx, y - 58, w, 18, 0xe8dcc0).setDepth(6).setStrokeStyle(2, 0x6a4a32).setAngle(-2);
+        uiText(scene, o.wx, y - 58, o.text, { fontSize: '11px', color: '#3a2a22', backing: 0xe8dcc0 }).setOrigin(0.5).setDepth(6.1); // level (feedback 3)
         break;
       }
       case 'bench': {
@@ -258,10 +260,16 @@ export function buildWorld(scene, objects) {
       }
       case 'swing': {
         const y = scene.groundY(o.wx, o.wy - 64);
-        const pivot = { x: o.wx, y: y - 66 };
+        // a rope swing hung from a real bough: 2.4 m up, the seat at 0.45 m
+        const pivot = { x: o.wx, y: y - mpx(ROPE_SWING.boughM) };
+        const r = mpx(ROPE_SWING.boughM - ROPE_SWING.seatM);
+        // the bough reaches out of the apple tree two columns west
+        const trunk = o.wx - 2 * T;
+        const bough = scene.add.graphics().setDepth(-11.1);
+        bough.fillStyle(0x5a4028, 1).fillPoints([{ x: trunk, y: pivot.y + 16 }, { x: pivot.x + 22, y: pivot.y - 3 }, { x: pivot.x + 22, y: pivot.y }, { x: trunk, y: pivot.y + 26 }], true);
         const rope = scene.add.graphics().setDepth(6);
-        const seat = scene.add.rectangle(pivot.x, pivot.y + 50, 22, 4, 0x6a4a32).setDepth(6.2);
-        out.swing = { pivot, rope, seat, x: o.wx, angle: 0, v: 0 };
+        const seat = scene.add.rectangle(pivot.x, pivot.y + r, 24, 4, 0x6a4a32).setDepth(6.2);
+        out.swing = { pivot, r, rope, seat, x: o.wx, angle: 0, v: 0 };
         out.anchors.push({ id: 'swing', x: o.wx, y: y - 10 });
         break;
       }
@@ -288,7 +296,8 @@ export function buildWorld(scene, objects) {
         break;
       }
       case 'awning': {
-        const img = scene.add.image(o.wx, o.wy + 8, 'ev-awning').setDepth(8).setOrigin(0.5, 0).setScale((o.w || 4) / 4.5, 1);
+        const img = scene.add.image(o.wx, o.wy + 8, 'ev-awning').setDepth(8).setOrigin(0.5, 0);
+        img.setScale(((o.w || 4) * T) / img.width, 1); // as wide as the shelter it gives
         out.awnings.push({ x0: o.wx - (o.w || 4) * 16, x1: o.wx + (o.w || 4) * 16, y: o.wy, img });
         break;
       }
@@ -301,8 +310,8 @@ export function buildWorld(scene, objects) {
           loop: true,
           callback: () => {
             if (!scene.cameras.main.worldView.contains(o.wx, f.y - 20)) return;
-            const d = scene.add.circle(o.wx + Phaser.Math.Between(-2, 2), f.y - 36, 1.5, 0xc8e0f0, 0.9).setDepth(7.1);
-            scene.tweens.add({ targets: d, x: d.x + Phaser.Math.Between(-22, 22), y: f.y - 16, alpha: 0.2, duration: 700, ease: 'quad.in', onComplete: () => d.destroy() });
+            const d = scene.add.circle(o.wx + Phaser.Math.Between(-2, 2), f.y - 84, 1.5, 0xc8e0f0, 0.9).setDepth(7.1);
+            scene.tweens.add({ targets: d, x: d.x + Phaser.Math.Between(-22, 22), y: f.y - 44, alpha: 0.2, duration: 700, ease: 'quad.in', onComplete: () => d.destroy() });
           },
         });
         break;
@@ -341,7 +350,8 @@ export function buildWorld(scene, objects) {
         break;
       }
       case 'narrowboat': {
-        const b = scene.add.image(o.wx, o.wy + 34, 'ev-narrowboat').setOrigin(0.5, 1).setDepth(-9.2);
+        // moored behind the towpath: the deck hides her waterline
+        const b = scene.add.image(o.wx, scene.groundY(o.wx, o.wy - 64) + 4, 'ev-narrowboat').setOrigin(0.5, 1).setDepth(-10.3);
         scene.tweens.add({ targets: b, y: b.y + 1.5, duration: 2600, yoyo: true, repeat: -1, ease: 'sine.inout' });
         break;
       }
@@ -370,11 +380,11 @@ export function buildWorld(scene, objects) {
         rg.lineStyle(2, 0x3a3a44, 0.9);
         for (let c = o.tx; c <= o.to; c++) {
           const x = px(c);
-          const y = scene.groundY(x, 0) - 26;
-          rg.lineBetween(x, y, x, y + 24);
+          const y = scene.groundY(x, 0) - 44; // a handrail at 1 m
+          rg.lineBetween(x, y, x, y + 42);
           if (c < o.to) {
             const x2 = px(c + 1);
-            rg.lineBetween(x, y, x2, scene.groundY(x2, 0) - 26);
+            rg.lineBetween(x, y, x2, scene.groundY(x2, 0) - 44);
           }
         }
         break;
@@ -387,19 +397,22 @@ export function buildWorld(scene, objects) {
         break;
       case 'chillies': {
         const y = scene.groundY(o.wx, o.wy - 64);
-        scene.add.rectangle(o.wx - 20, y - 16, 2, 32, 0x6a4a32).setDepth(6);
-        scene.add.rectangle(o.wx + 20, y - 16, 2, 32, 0x6a4a32).setDepth(6);
-        scene.add.image(o.wx, y - 30, 'ev-chillies').setDepth(6.1).setOrigin(0.5, 0);
+        // a drying rack: 1.5 m, 1.8 m wide
+        scene.add.rectangle(o.wx - 40, y - 33, 3, 66, 0x6a4a32).setDepth(6);
+        scene.add.rectangle(o.wx + 40, y - 33, 3, 66, 0x6a4a32).setDepth(6);
+        scene.add.image(o.wx, y - 64, 'ev-chillies').setDepth(6.1).setOrigin(0.5, 0);
         break;
       }
       case 'charpoy':
         stand('ev-charpoy', o, 7);
+        out.marks.charpoy = { x: o.wx }; // somebody sitting here needs no chair
         break;
       case 'radio': {
         const y = scene.groundY(o.wx, o.wy - 64);
-        scene.add.rectangle(o.wx, y - 34, 26, 30, 0x4a3a44).setDepth(-10.7);
-        scene.add.image(o.wx, y - 20, 'ev-radio').setDepth(-10.6);
-        out.marks.radio = { x: o.wx, y: y - 20 };
+        // on an upturned crate, 0.7 m, standing on the roof
+        scene.add.rectangle(o.wx, y - 15, 26, 30, 0x4a3a44).setDepth(-10.7);
+        scene.add.image(o.wx, y - 30, 'ev-radio').setOrigin(0.5, 1).setDepth(-10.6);
+        out.marks.radio = { x: o.wx, y: y - 30 };
         break;
       }
       case 'yardgate': // the school gate: a railing, not a level gate
@@ -410,7 +423,7 @@ export function buildWorld(scene, objects) {
         const y = scene.groundY(o.wx, o.wy - 64);
         const hg = scene.add.graphics().setDepth(-9.5);
         hg.lineStyle(1, 0xf2ece0, 0.7);
-        for (let i = 0; i < 6; i++) hg.strokeRect(o.wx - 40 + i * 14, y - 3, 12, 5);
+        for (let i = 0; i < 6; i++) hg.strokeRect(o.wx - 60 + i * 20, y - 3, 18, 5); // 0.4 m squares
         break;
       }
       case 'swingset': {
@@ -433,7 +446,7 @@ export function buildWorld(scene, objects) {
       }
       case 'greenhouse':
         stand('ev-greenhouse', o, -10.8);
-        out.marks.greenhouse = { x0: o.wx - 40, x1: o.wx + 40 };
+        out.marks.greenhouse = { x0: o.wx - 70, x1: o.wx + 70 };
         break;
       case 'plots': {
         const y = scene.groundY(o.wx, o.wy - 64);
@@ -455,12 +468,13 @@ export function buildWorld(scene, objects) {
       }
       case 'shed':
         stand('ev-shed', o, -10.8);
-        out.marks.shed = { x0: o.wx - 24, x1: o.wx + 24 };
+        out.marks.shed = { x0: o.wx - 66, x1: o.wx + 66 };
         break;
       case 'camera': {
         const y = scene.groundY(o.wx, o.wy - 64);
-        const img = scene.add.image(o.wx + 8, y - 16, 'ev-camera').setDepth(7.2);
-        out.camera = { x: o.wx, y: y - 16, img };
+        // left on the bench's 0.45 m seat
+        const img = scene.add.image(o.wx + 8, y - 26, 'ev-camera').setDepth(7.2);
+        out.camera = { x: o.wx, y: y - 26, img };
         break;
       }
       case 'board': {
@@ -530,7 +544,7 @@ export function buildWorld(scene, objects) {
       }
       case 'mill': {
         const m = stand('ev-mill', o, -10.8);
-        const wheel = scene.add.image(o.wx + 36, m.y - 22, 'ev-wheel').setDepth(-10.7);
+        const wheel = scene.add.image(o.wx + 140, m.y - 76, 'ev-wheel').setDepth(-10.7); // on the east wall
         scene.tweens.add({ targets: wheel, angle: 360, duration: 14000, repeat: -1 });
         break;
       }
@@ -538,7 +552,7 @@ export function buildWorld(scene, objects) {
         stand('ev-firering', o, 7);
         const y = scene.groundY(o.wx, o.wy - 64);
         const flames = [0, 1, 2].map((i) =>
-          scene.add.triangle(o.wx - 6 + i * 6, y - 10, 0, 10, 6, 10, 3, 0, [0xf2a040, 0xf8d060, 0xe86a3a][i], 0.9).setDepth(7.1).setOrigin(0.5, 1)
+          scene.add.triangle(o.wx - 8 + i * 8, y - 10, 0, 24, 10, 24, 5, 0, [0xf2a040, 0xf8d060, 0xe86a3a][i], 0.9).setDepth(7.1).setOrigin(0.5, 1)
         );
         flames.forEach((f, i) => scene.tweens.add({ targets: f, scaleY: { from: 0.7, to: 1.35 }, duration: 180 + i * 60, yoyo: true, repeat: -1 }));
         const glow = scene.add.image(o.wx, y - 12, 'ev-glow').setScale(4).setTint(0xf2a040).setAlpha(0.5).setDepth(7).setBlendMode(Phaser.BlendModes.ADD);

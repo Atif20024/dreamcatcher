@@ -389,3 +389,381 @@ export function redrawProp(scene, key, oldW, oldH, paintRig = shadePainter) {
 // street lamp (they belonged to the house rows, now at scale)
 REDRAW['ev-lamp'] = ['lamp', {}, pal(STREET, { Y: 0xf2d580 })];
 REDRAW_KEYS.push('ev-lamp');
+
+// ---- the Long Evening at scale (owner: "last stop is out of proportions") ----------
+// Everything Jo walks past in the Evening that was still old string art at
+// knee height, from real metres. Sizes are in docs/redesign/round2/LAST_STOP_SCALE_REPORT.md
+// and held by lint:scale (PROP_TABLE).
+const disc = (g, cx, cy, rx, ry, ch) => {
+  for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) if ((x * x) / (rx * rx) + (y * y) / (ry * ry) <= 1) g.p(cx + x, cy + y, ch);
+};
+const line = (g, x0, y0, x1, y1, ch, thick = 1) => {
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
+  for (let i = 0; i <= n; i++) g.r(Math.round(x0 + ((x1 - x0) * i) / n), Math.round(y0 + ((y1 - y0) * i) / n), thick, thick, ch);
+};
+const wheel = (g, cx, cy, r, tyre, spoke, hub) => {
+  disc(g, cx, cy, r, r, tyre);
+  disc(g, cx, cy, r - 2, r - 2, '.');
+  for (let a = 0; a < 8; a++) line(g, cx, cy, Math.round(cx + Math.cos((a * Math.PI) / 4) * (r - 1)), Math.round(cy + Math.sin((a * Math.PI) / 4) * (r - 1)), spoke);
+  disc(g, cx, cy, Math.max(1, r >> 3), Math.max(1, r >> 3), hub);
+};
+Object.assign(P, {
+  // a playground A-frame: 3 m wide, 2.3 m high, two seats at 0.45 m
+  swingset() {
+    const w = cells(3);
+    const h = cells(2.3);
+    const g = new G(w, h);
+    const seat = h - cells(0.45);
+    for (const x of [Math.round(w * 0.3), Math.round(w * 0.68)]) {
+      g.v(x - 5, 2, seat - 2, 'r').v(x + 5, 2, seat - 2, 'r');
+      g.r(x - 6, seat, 13, 2, 's');
+    }
+    for (const [top, a, b] of [[4, 0, 8], [w - 6, w - 2, w - 10]]) {
+      line(g, top, 1, a, h - 2, 'F', 2);
+      line(g, top, 1, b, h - 2, 'f', 2);
+    }
+    g.r(0, 0, w, 2, 'F').h_(0, 1, w, 'f');
+    return g;
+  },
+  // a school gate: iron pales 1.5 m high, 2 m wide, between two posts
+  gate() {
+    const w = cells(2);
+    const h = cells(1.5);
+    const g = new G(w, h);
+    for (let x = 4; x < w - 4; x += 4) g.v(x, 2, h - 2, 'G').p(x, 1, 'g');
+    g.h_(0, 6, w, 'G').h_(0, h - 7, w, 'G');
+    g.r(0, 0, 3, h, 'G').r(w - 3, 0, 3, h, 'G').v(2, 0, h, 'g').v(w - 1, 0, h, 'g');
+    return g;
+  },
+  // an orchard fence, 1.1 m high, one rail come down
+  fence() {
+    const w = cells(2.4);
+    const h = cells(1.1);
+    const g = new G(w, h);
+    g.h_(0, 5, w, 'F').h_(0, 6, w, 'f').h_(0, 14, 28, 'F').h_(0, 15, 28, 'f');
+    line(g, 29, 14, 42, 21, 'F', 2);
+    for (const x of [1, 26, w - 3]) g.r(x, 0, 3, h, 'F').v(x + 2, 0, h, 'f');
+    return g;
+  },
+  // a clothes post: 2.3 m with a crosstree the line ties to
+  post() {
+    const w = cells(0.6);
+    const h = cells(2.3);
+    const g = new G(w, h);
+    const c = w >> 1;
+    g.r(c - 1, 0, 3, h, 'P').v(c + 1, 0, h, 'p');
+    g.h_(0, 3, w, 'P').h_(0, 4, w, 'p');
+    return g;
+  },
+  // a hung sheet: 1.35 × 1.1 m (the plain one with a blue border, the other striped)
+  sheet(o = {}) {
+    const w = cells(1.35);
+    const h = cells(1.1);
+    const g = new G(w, h);
+    g.r(0, 0, w, h, 'W');
+    if (o.striped) for (let y = 4; y < h; y += 7) g.r(0, y, w, 2, 'b');
+    else g.h_(0, h - 3, w, 'b').h_(0, 1, w, 'w');
+    g.v(w - 2, 0, h, 'w').v(Math.round(w * 0.4), 2, h - 4, 'w');
+    return g;
+  },
+  // Bilal's tea stall: 2.4 m wide, 2.5 m under a striped canopy, the counter at 1.05 m
+  teastall() {
+    const w = cells(2.4);
+    const h = cells(2.5);
+    const g = new G(w, h);
+    const counter = h - cells(1.05);
+    g.r(2, 6, 2, h - 6, 'B').r(w - 4, 6, 2, h - 6, 'B');
+    g.r(1, counter, w - 2, 2, 'B').r(2, counter + 2, w - 4, h - counter - 4, 'G').h_(2, counter + 6, w - 4, 'g').h_(2, h - 3, w - 4, 'B');
+    g.r(1, h - 2, 3, 2, 'k').r(w - 4, h - 2, 3, 2, 'k');
+    // the samovar and the glasses on the counter
+    g.r(10, counter - 11, 7, 11, 'K').r(12, counter - 13, 3, 2, 'k').p(17, counter - 4, 'k');
+    for (let x = 24; x < 42; x += 5) g.r(x, counter - 3, 3, 3, 'w');
+    g.r(0, 0, w, 2, 'g');
+    for (let x = 0; x < w; x++) g.v(x, 2, x % 8 < 4 ? 5 : 4, x % 8 < 4 ? 'G' : 'w');
+    return g;
+  },
+  // the bicycle man's stall: 3 × 2.4 m, a real bicycle (1.7 m, 0.68 m wheels) on the stand
+  bikestall() {
+    const w = cells(3);
+    const h = cells(2.4);
+    const g = new G(w, h);
+    g.r(0, 0, w, 3, 'T').h_(0, 3, w, 'd').r(2, 4, 2, h - 4, 'T').r(w - 4, 4, 2, h - 4, 'T');
+    const cy = h - 8;
+    const a = 21;
+    const b = 45;
+    wheel(g, a, cy, 7, 'k', 's', 's');
+    wheel(g, b, cy, 7, 'k', 's', 's');
+    line(g, a, cy, 30, cy, 'R');
+    line(g, 30, cy, 27, cy - 11, 'R');
+    line(g, 27, cy - 11, 40, cy - 11, 'R');
+    line(g, 30, cy, 40, cy - 11, 'R');
+    line(g, 40, cy - 13, b, cy, 'R');
+    line(g, a, cy, 27, cy - 11, 'R');
+    g.r(24, cy - 13, 6, 2, 'k').r(38, cy - 15, 5, 2, 's');
+    // a spare wheel on the back wall
+    wheel(g, 12, 15, 6, 'k', 's', 's');
+    return g;
+  },
+  // a short narrowboat: 8.4 m, the cabin 1.1 m above a 0.9 m hull
+  narrowboat() {
+    const w = cells(8.4);
+    const h = cells(2);
+    const g = new G(w, h);
+    const deck = h - cells(0.9);
+    for (let y = deck; y < h; y++) {
+      const inset = Math.round(((y - deck) / (h - deck)) * 8);
+      g.h_(inset, y, w - inset * 2, y < deck + 4 ? 'R' : 'g');
+    }
+    g.h_(0, deck + 4, w, 'Y');
+    g.r(22, 3, w - 44, deck - 3, 'G').r(20, 1, w - 40, 2, 'R');
+    for (let x = 30; x < w - 34; x += 18) g.r(x, 7, 9, 7, 'w').v(x + 4, 7, 7, 'G');
+    g.v(4, deck - 12, 12, 'g').h_(4, deck - 12, 12, 'g'); // the tiller
+    g.r(w - 16, deck - 8, 2, 8, 'Y'); // the bow's brass
+    return g;
+  },
+  // a rowing boat: 3.2 m long, 0.6 m deep
+  rowboat() {
+    const w = cells(3.2);
+    const h = cells(0.6);
+    const g = new G(w, h);
+    for (let y = 0; y < h; y++) {
+      const inset = Math.round(((y * y) / (h * h)) * 12);
+      g.h_(inset, y, w - inset * 2, y < 2 ? 'w' : y < 7 ? 'B' : 'b');
+    }
+    g.r(0, 0, 2, 2, 'B').r(w - 2, 0, 2, 2, 'B');
+    return g;
+  },
+  // a pigeon loft on legs: 2.4 × 2.4 m
+  loft() {
+    const w = cells(2.4);
+    const h = cells(2.4);
+    const g = new G(w, h);
+    const legs = cells(0.7);
+    const eave = 10;
+    for (let y = 0; y < eave; y++) g.h_(Math.round(w / 2 - 3 - y * 2.3), y, Math.round(6 + y * 4.6), y % 3 === 2 ? 'b' : 'B');
+    g.r(3, eave, w - 6, h - legs - eave, 'A');
+    for (let i = 0; i < 2; i++) for (let j = 0; j < 4; j++) g.r(7 + j * 10, eave + 3 + i * 10, 6, 7, 'b').h_(6 + j * 10, eave + 10 + i * 10, 8, 'B');
+    g.h_(3, h - legs - 1, w - 6, 'b');
+    for (const x of [6, w - 8]) g.r(x, h - legs, 2, legs, 'b');
+    return g;
+  },
+  // a water tank on its stand: 1.6 m wide, 2.4 m high
+  tank() {
+    const w = cells(1.6);
+    const h = cells(2.4);
+    const g = new G(w, h);
+    const legs = cells(0.8);
+    const b = h - legs;
+    g.r(3, 0, w - 6, 2, 'T').r(1, 2, w - 2, 2, 'T').r(0, 4, w, b - 6, 'T').r(1, b - 2, w - 2, 2, 't');
+    g.v(w - 3, 4, b - 6, 't');
+    for (let y = 8; y < b - 2; y += 8) g.h_(0, y, w, 't');
+    for (const x of [3, w - 5]) g.r(x, b, 2, legs, 'l');
+    line(g, 4, b + 1, w - 5, h - 2, 'l');
+    line(g, w - 4, b + 1, 4, h - 2, 'l');
+    return g;
+  },
+  // a greenhouse: 3.2 m long, 2.4 m to the ridge
+  greenhouse() {
+    const w = cells(3.2);
+    const h = cells(2.4);
+    const g = new G(w, h);
+    const eave = 18;
+    for (let y = 0; y < eave; y++) {
+      const half = 2 + (y * (w / 2 - 2)) / eave;
+      g.h_(Math.round(w / 2 - half), y, Math.round(half * 2), y === 0 ? 'F' : 'g');
+    }
+    g.r(0, eave, w, h - eave, 'g');
+    line(g, w >> 1, 0, 0, eave, 'F');
+    line(g, w >> 1, 0, w - 1, eave, 'F');
+    for (let x = 0; x < w; x += 14) g.v(x, eave, h - eave, 'F');
+    g.v(w - 1, eave, h - eave, 'F').h_(0, eave, w, 'F').r(0, h - 5, w, 5, 'F');
+    for (let x = 3; x < w - 3; x += 4) g.r(x, h - 9 - (x % 3) * 2, 2, 4 + (x % 3) * 2, 'p');
+    g.v(w >> 1, 0, h, 'F');
+    return g;
+  },
+  // a beehive on legs: 0.55 m wide, 0.95 m high
+  hive() {
+    const w = cells(0.55);
+    const h = cells(0.95);
+    const g = new G(w, h);
+    g.r(0, 0, w, 2, 'y').r(1, 2, w - 2, h - 6, 'Y');
+    for (let y = 6; y < h - 4; y += 4) g.h_(1, y, w - 2, 'y');
+    g.r(4, h - 7, 4, 1, 'k').r(1, h - 4, 2, 4, 'k').r(w - 3, h - 4, 2, 4, 'k');
+    return g;
+  },
+  // a scarecrow: a man's height (1.9 m on his pole) with a straw hat
+  scarecrow() {
+    const w = cells(1.2);
+    const h = cells(1.9);
+    const g = new G(w, h);
+    const c = w >> 1;
+    g.r(c - 1, 16, 3, h - 16, 'W').v(c + 1, 16, h - 16, 'w');
+    g.r(c - 4, 0, 9, 3, 'H').r(1, 3, w - 2, 2, 'H');
+    g.r(c - 3, 5, 7, 7, 'S').r(c - 2, 7, 1, 1, 'k').r(c + 2, 7, 1, 1, 'k');
+    g.r(0, 13, w, 3, 'C').h_(0, 15, w, 'c');
+    g.r(c - 5, 13, 11, 13, 'C').v(c + 4, 16, 10, 'c');
+    return g;
+  },
+  // a garden shed: 3 m wide, 2.6 m high (its door is the 2.25 m one the street has)
+  shed() {
+    const w = cells(3);
+    const h = cells(2.6);
+    const g = new G(w, h);
+    for (let y = 0; y < 5; y++) g.h_(0, y, w, y % 2 ? 'r' : 'R');
+    g.r(1, 5, w - 2, h - 5, 'B');
+    for (let x = 4; x < w; x += 5) g.v(x, 5, h - 5, 'b');
+    g.r(5, 14, 9, 11, 'k').v(9, 14, 11, 'B').h_(5, 19, 9, 'B');
+    return g;
+  },
+  // a tractor: 4 m long, 2.6 m to the cab roof, 1.6 m back wheels
+  tractor() {
+    const w = cells(4);
+    const h = cells(2.6);
+    const g = new G(w, h);
+    g.r(36, h - 30, 46, 16, 'R').h_(36, h - 14, 46, 'r').r(74, h - 40, 3, 10, 'k');
+    g.r(4, h - 30, 34, 8, 'r');
+    for (const x of [8, 36]) g.r(x, 2, 2, h - 30, 'r');
+    g.r(6, 0, 34, 3, 'R').r(10, 5, 26, h - 35, 'w');
+    disc(g, 24, h - 17, 16, 16, 'k');
+    disc(g, 24, h - 17, 9, 9, 'R');
+    disc(g, 24, h - 17, 3, 3, 'k');
+    disc(g, 72, h - 10, 9, 9, 'k');
+    disc(g, 72, h - 10, 5, 5, 'R');
+    return g;
+  },
+  // a farm cart: 3.6 m with its shafts, 1.2 m wheels, a load of hay
+  horsecart() {
+    const w = cells(3.6);
+    const h = cells(1.5);
+    const g = new G(w, h);
+    const bed = h - 14;
+    disc(g, 24, bed - 8, 22, 8, 'y');
+    disc(g, 34, bed - 7, 16, 6, 'Y');
+    g.r(0, bed - 6, 54, 8, 'B').h_(0, bed - 6, 54, 'b').h_(0, bed + 1, 54, 'b');
+    line(g, 54, bed - 1, 78, bed - 5, 'b', 2);
+    wheel(g, 27, h - 13, 12, 'k', 'b', 'b');
+    return g;
+  },
+  // the mill: 6 m wide, 6.5 m high under its roof, a door you could carry a sack through
+  mill() {
+    const w = cells(6);
+    const h = cells(6.5);
+    const g = new G(w, h);
+    const eave = 40;
+    for (let y = 0; y < eave; y++) g.h_(Math.round(w / 2 - 4 - y * 1.55), y, Math.round(8 + y * 3.1), y % 4 === 3 ? 'r' : 'R');
+    g.r(4, eave, w - 8, h - eave, 'S');
+    for (let y = eave + 6, i = 0; y < h; y += 7, i++) {
+      g.h_(4, y, w - 8, 's');
+      for (let x = 8 + (i % 2) * 7; x < w - 4; x += 14) g.v(x, y - 6, 6, 's');
+    }
+    const win = (x, y) => g.r(x - 1, y - 1, 22, 35, 's').r(x, y, 20, 33, 'k').r(x + 2, y + 2, 16, 13, 'y').v(x + 10, y, 33, 's').h_(x, y + 16, 20, 's');
+    win(22, eave + 8);
+    win(w - 42, eave + 8);
+    g.r((w >> 1) - 12, h - 50, 24, 50, 's').r((w >> 1) - 10, h - 48, 20, 48, 'k');
+    g.h_(4, h - 2, w - 8, 's').h_(4, h - 1, w - 8, 's');
+    return g;
+  },
+  // the mill wheel: 3.5 m across
+  millwheel() {
+    const d = cells(3.5) | 1;
+    const r = d >> 1;
+    const g = new G(d, d);
+    for (let a = 0; a < 16; a++) {
+      const t = (a * Math.PI) / 8;
+      const c = Math.cos(t);
+      const s = Math.sin(t);
+      line(g, Math.round(r + c * (r - 7)), Math.round(r + s * (r - 7)), Math.round(r + c * (r - 1)), Math.round(r + s * (r - 1)), 'W', 2);
+    }
+    for (const R of [r - 2, r - 8]) for (let a = 0; a < 360; a++) g.r(Math.round(r + Math.cos((a * Math.PI) / 180) * R), Math.round(r + Math.sin((a * Math.PI) / 180) * R), 2, 2, 'W');
+    for (let a = 0; a < 8; a++) line(g, r, r, Math.round(r + Math.cos((a * Math.PI) / 4) * (r - 8)), Math.round(r + Math.sin((a * Math.PI) / 4) * (r - 8)), 'W', 2);
+    disc(g, r, r, 4, 4, 'w');
+    return g;
+  },
+  // chillies drying: strings of them on a rail, 1.8 m long
+  chillies() {
+    const w = cells(1.8);
+    const g = new G(w, 12);
+    g.h_(0, 0, w, 's');
+    for (let x = 2, i = 0; x < w - 2; x += 6, i++) {
+      const ch = i % 2 ? 'R' : 'r';
+      const n = 8 + (i % 3);
+      g.r(x, 1, 2, n - 2, ch).p(x, n - 1, ch);
+    }
+    return g;
+  },
+  // an awning: 5 m of striped canvas, 0.7 m deep (the scene sets its width)
+  awning() {
+    const w = cells(5);
+    const h = cells(0.7);
+    const g = new G(w, h);
+    for (let x = 0; x < w; x++) g.v(x, 2, h - 2 - (x % 8 === 0 || x % 8 === 7 ? 1 : 0), x % 16 < 8 ? 'R' : 'W');
+    g.r(0, 0, w, 2, 'p');
+    return g;
+  },
+  // a sheep: 1.3 m long, 0.95 m at the head
+  sheep() {
+    const w = cells(1.3);
+    const h = cells(0.95);
+    const g = new G(w, h);
+    for (const x of [6, 9, 18, 21]) g.r(x, 13, 2, h - 13, 'k');
+    disc(g, 12, 8, 11, 7, 'w');
+    disc(g, 12, 12, 9, 3, 'W');
+    g.r(23, 3, 5, 6, 'k').p(22, 3, 'k');
+    return g;
+  },
+  // a goat: 1 m long, 0.85 m to the horns
+  goat() {
+    const w = cells(1);
+    const h = cells(0.85);
+    const g = new G(w, h);
+    for (const x of [3, 5, 13, 15]) g.v(x, 11, h - 11, 'G');
+    g.r(1, 6, 15, 7, 'g').h_(1, 12, 15, 'G').p(0, 5, 'g');
+    g.r(14, 4, 3, 4, 'g').r(15, 2, 6, 5, 'g').p(19, 3, 'e').v(15, 7, 2, 'G');
+    line(g, 15, 2, 12, 0, 'h');
+    return g;
+  },
+  // a red deer stag: 1.6 m to the antlers, 1.5 m long
+  deer() {
+    const w = cells(1.5);
+    const h = cells(1.6);
+    const g = new G(w, h);
+    const back = 15;
+    for (const x of [5, 8, 22, 25]) g.r(x, back + 6, 2, h - back - 6, 'd');
+    g.r(3, back, 25, 10, 'd').h_(4, back + 9, 22, 'w').r(2, back + 1, 2, 3, 'w');
+    line(g, 25, back + 2, 27, 7, 'd', 4);
+    g.r(26, 5, 6, 5, 'd').p(30, 6, 'e');
+    line(g, 27, 5, 23, 0, 'a');
+    line(g, 25, 2, 21, 2, 'a');
+    line(g, 29, 5, 30, 0, 'a');
+    return g;
+  },
+});
+const EVENING_REDRAW = {
+  'ev-swingset': ['swingset', {}, { F: 0x3a6a8a, f: 0x2a5068, r: 0x8a8a94, s: 0x8a5a34 }],
+  'ev-gate': ['gate', {}, { G: 0x2e3a52, g: 0x1e2838 }],
+  'ev-fence': ['fence', {}, { F: 0x8a6a4a, f: 0x5a4028 }],
+  'ev-post': ['post', {}, { P: 0x6a4a32, p: 0x4a3222 }],
+  'ev-sheet': ['sheet', {}, { W: 0xf2ece0, w: 0xd8d0c0, b: 0x88b8d8 }],
+  'ev-sheet-b': ['sheet', { striped: true }, { W: 0xe8c060, w: 0xc89a3a, b: 0xc03a2a }],
+  'ev-teastall': ['teastall', {}, { G: 0x2e6a4a, g: 0x1e4a34, B: 0x6a4a32, w: 0xf2e6cc, K: 0xc4a25c, k: 0x2a2a30 }],
+  'ev-bikestall': ['bikestall', {}, { T: 0x6a4a32, d: 0x3a2a1e, k: 0x1a1a20, s: 0x8a8a94, R: 0xc03a2a }],
+  'ev-narrowboat': ['narrowboat', {}, { G: 0x2e6a4a, g: 0x1e3a30, R: 0xc03a2a, w: 0xf2d580, Y: 0xd8b858 }],
+  'ev-rowboat': ['rowboat', {}, { B: 0x8a5a34, b: 0x5a3a22, w: 0xf2e6cc }],
+  'ev-loft': ['loft', {}, { B: 0x6a5a4a, A: 0x8a7a64, b: 0x3a2e24 }],
+  'ev-tank': ['tank', {}, { T: 0x6a6e7a, t: 0x4a4c54, l: 0x3a3a44 }],
+  'ev-greenhouse': ['greenhouse', {}, { g: 0xb8d8e0, F: 0xe8e4d8, p: 0x6a9a4a }],
+  'ev-hive': ['hive', {}, { Y: 0xe8c060, y: 0xb8903a, k: 0x3a2a22 }],
+  'ev-scarecrow': ['scarecrow', {}, { H: 0xc8a050, S: 0xe8d8b0, C: 0x6a4a5a, c: 0x4a3240, W: 0x8a6a4a, w: 0x5a4028, k: 0x1a1a20 }],
+  'ev-shed': ['shed', {}, { B: 0x6a5a3a, b: 0x4a3a22, R: 0x8a8a94, r: 0x6a6a72, k: 0x2a2a30 }],
+  'ev-tractor': ['tractor', {}, { R: 0xc03a2a, r: 0x8a2a20, k: 0x1a1a20, w: 0x88b8d8 }],
+  'ev-horsecart': ['horsecart', {}, { B: 0x8a6a4a, b: 0x5a4028, k: 0x2a2a30, y: 0xc8a850, Y: 0xe8cc70 }],
+  'ev-mill': ['mill', {}, { S: 0xc8b898, s: 0xa8987a, R: 0x6a3a2a, r: 0x4a2a20, k: 0x2a2230, y: 0xf2d580 }],
+  'ev-wheel': ['millwheel', {}, { W: 0x5a4028, w: 0x3a2a1e }],
+  'ev-chillies': ['chillies', {}, { s: 0xc8b890, r: 0xd83a2a, R: 0xa82a20 }],
+  'ev-awning': ['awning', {}, { R: 0xc03a2a, W: 0xf2e6cc, p: 0x5a4a3a }],
+  'ev-sheep': ['sheep', {}, { w: 0xe8e4d8, W: 0xc8c4b8, k: 0x2a2a30 }],
+  'ev-goat': ['goat', {}, { g: 0xe8e0d0, G: 0xb8b0a0, h: 0x8a7a62, e: 0x1a1a20 }],
+  'ev-deer': ['deer', {}, { d: 0x9a6a42, a: 0x6a5a4a, e: 0x1a1a20, w: 0xe8dcc8 }],
+};
+Object.assign(REDRAW, EVENING_REDRAW);
+REDRAW_KEYS.push(...Object.keys(EVENING_REDRAW));

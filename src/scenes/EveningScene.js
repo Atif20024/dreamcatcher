@@ -832,6 +832,8 @@ export default class EveningScene extends BaseLevel {
       p.body.setSize(24, 44, false).setOffset(4, 2);
     }
     let bench = null;
+    const wall = this.world.marks.wall_seat;
+    const onWall = wall && Math.abs(wall.x - p.x) < 24 && Math.abs(wall.y - (p.y + 24)) < 30;
     if (x === null) {
       bench = this.world.benches.find((b) => Math.abs(b.x - p.x) < 34 && Math.abs(b.y - (p.y + 24)) < 30);
       if (bench) x = bench.x + (p.x < bench.x ? -10 : 10);
@@ -849,7 +851,7 @@ export default class EveningScene extends BaseLevel {
       if (!this.joSitting) return;
       this.sitAnim = 'jo-sit';
       p.poseDy = 8;
-      p.artDy = bench ? -10 : 0;
+      p.artDy = bench || onWall ? -6 : 0; // his seat on the 0.45 m slats, feet just off the ground
     });
     this.sitT = 0;
     // the camera drifts out a little, the music thins, the place comes forward
@@ -891,6 +893,7 @@ export default class EveningScene extends BaseLevel {
       this.joSeated.bx = b.img.x;
       this.joSeated.dir = 1;
       this.tweens.killTweensOf(b.img);
+      b.img.setDepth(12.5); // the hull in front of his legs: he sits IN the boat
     }
   }
 
@@ -904,10 +907,10 @@ export default class EveningScene extends BaseLevel {
       sw.v += (right ? 1 : left ? -1 : 0) * dt * 1.4 - sw.angle * dt * 2.2;
       sw.v *= 0.995;
       sw.angle = Phaser.Math.Clamp(sw.angle + sw.v * dt * 2, -0.9, 0.9);
-      const r = 50;
+      const r = sw.r;
       const sx = sw.pivot.x + Math.sin(sw.angle) * r;
       const sy = sw.pivot.y + Math.cos(sw.angle) * r;
-      sw.rope.clear().lineStyle(1, 0x6a4a32, 1).lineBetween(sw.pivot.x - 9, sw.pivot.y, sx - 9, sy).lineBetween(sw.pivot.x + 9, sw.pivot.y, sx + 9, sy);
+      sw.rope.clear().lineStyle(2, 0x6a4a32, 1).lineBetween(sw.pivot.x - 9, sw.pivot.y, sx - 9, sy).lineBetween(sw.pivot.x + 9, sw.pivot.y, sx + 9, sy);
       sw.seat.setPosition(sx, sy).setAngle(Phaser.Math.RadToDeg(-sw.angle) * 0.4);
       s.img.setPosition(sx, sy + 18).setAngle(Phaser.Math.RadToDeg(-sw.angle) * 0.4).setTint(this.lightCache ? this.lightCache.ambient : 0xffffff);
       s.hat.setPosition(sx, sy + 18).setAngle(Phaser.Math.RadToDeg(-sw.angle) * 0.4);
@@ -919,10 +922,11 @@ export default class EveningScene extends BaseLevel {
       const b = this.world.rowboat;
       const lg = this.world.lakeglass;
       s.bx += s.dir * 14 * dt;
-      if (s.bx > lg.x1 - 40 || s.bx < lg.x0 + 40) s.dir *= -1;
+      if (s.bx > lg.x1 - 80 || s.bx < lg.x0 + 80) s.dir *= -1;
       b.img.setPosition(s.bx, b.y + Math.sin(time / 900) * 1.5).setFlipX(s.dir < 0);
-      s.img.setPosition(s.bx, b.y + 2).setFlipX(s.dir < 0).setTint(this.lightCache ? this.lightCache.ambient : 0xffffff);
-      s.hat.setPosition(s.bx, b.y + 2).setFlipX(s.dir < 0);
+      // feet on the boards, his seat on the thwart, the hull in front of his legs
+      s.img.setPosition(s.bx, b.y - 6).setFlipX(s.dir < 0).setTint(this.lightCache ? this.lightCache.ambient : 0xffffff);
+      s.hat.setPosition(s.bx, b.y - 6).setFlipX(s.dir < 0);
       p.setPosition(s.bx, b.y - 30);
       p.body.reset(s.bx, b.y - 30);
       if (left || right || jump || this.pressed('E')) this.leaveSeat(s.bx, true);
@@ -936,6 +940,7 @@ export default class EveningScene extends BaseLevel {
     if (this._pressed) this._pressed.E = false;
     s.img.destroy();
     s.hat.destroy();
+    if (boat) this.world.rowboat.img.setDepth(-9);
     this.joSeated = null;
     p.shown = true;
     p.body.setAllowGravity(true);
@@ -1483,7 +1488,7 @@ export default class EveningScene extends BaseLevel {
   updateArrival() {
     const a = this.world.arch;
     if (!a || a.opened) return;
-    if (this.player.x > a.x + 40) {
+    if (this.player.x > a.x + 60) {
       a.opened = true;
       this.tweens.add({ targets: a.door, alpha: 0, duration: 1600, ease: 'Sine.easeInOut', onComplete: () => a.door.destroy() });
     }
@@ -2243,10 +2248,10 @@ export default class EveningScene extends BaseLevel {
     sw.v += -sw.angle * dt * 2.2;
     sw.v *= 0.99;
     sw.angle = Phaser.Math.Clamp(sw.angle + sw.v * dt * 2 + Math.sin(this.time.now / 1400) * this.weather.wind * 0.002, -0.9, 0.9);
-    const r = 50;
+    const r = sw.r;
     const sx = sw.pivot.x + Math.sin(sw.angle) * r;
     const sy = sw.pivot.y + Math.cos(sw.angle) * r;
-    sw.rope.clear().lineStyle(1, 0x6a4a32, 1).lineBetween(sw.pivot.x - 9, sw.pivot.y, sx - 9, sy).lineBetween(sw.pivot.x + 9, sw.pivot.y, sx + 9, sy);
+    sw.rope.clear().lineStyle(2, 0x6a4a32, 1).lineBetween(sw.pivot.x - 9, sw.pivot.y, sx - 9, sy).lineBetween(sw.pivot.x + 9, sw.pivot.y, sx + 9, sy);
     sw.seat.setPosition(sx, sy).setAngle(Phaser.Math.RadToDeg(-sw.angle) * 0.4);
   }
 

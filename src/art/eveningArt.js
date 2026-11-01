@@ -3,7 +3,7 @@ import { paintTexture, stamp, dab, clump, gradientV, grain, wash, mix, shade, hs
 import { TOP, RIGHT, BOTTOM, LEFT } from '../builders/autotile.js';
 import { paintTreeTexture } from './treeKit.js';
 import { paintFrontTexture, paintDoorTexture } from './buildingKit.js';
-import { FRONT_TABLE } from '../data/scale.js';
+import { FRONT_TABLE, EVENING_ARCH, WHEAT_PX } from '../data/scale.js';
 
 // THE LONG EVENING, painted. Every texture here replaces a gridded or
 // primitive one of the same key and size, so nothing in the scene moves.
@@ -169,60 +169,77 @@ export function paintTrees(scene) {
 
 // ---- the arch ---------------------------------------------------------------------
 export function paintArch(scene) {
-  paintTexture(scene, 'ev-arch', 80, 92, (ctx, w, h, rand) => {
+  // a garden arch at scale: Jo (82 px) walks through a 2.4 m opening, and the
+  // dark doorway he came out of is exactly that opening
+  const { w: W, h: H, openW, openH } = EVENING_ARCH;
+  const cx = W / 2;
+  const R = W / 2;
+  const r = openW / 2;
+  const pier = (W - openW) / 2;
+  const spring = H - openH + r; // where the opening's round top starts
+  paintTexture(scene, 'ev-arch', W, H, (ctx, w, h, rand) => {
     const stone = 0xd4c4a4;
     // the two piers and the ring, in cut stone
     ctx.fillStyle = hex(stone);
     ctx.beginPath();
-    ctx.rect(0, 30, 20, 62);
-    ctx.rect(60, 30, 20, 62);
-    ctx.moveTo(0, 30);
-    ctx.arc(40, 30, 40, Math.PI, 0);
-    ctx.lineTo(80, 30);
-    ctx.lineTo(0, 30);
+    ctx.rect(0, spring, pier, H - spring);
+    ctx.rect(W - pier, spring, pier, H - spring);
+    ctx.moveTo(0, spring);
+    ctx.arc(cx, spring, R, Math.PI, 0);
+    ctx.lineTo(W, spring);
+    ctx.lineTo(0, spring);
     ctx.fill();
     // the opening
     ctx.globalCompositeOperation = 'destination-out';
     ctx.beginPath();
-    ctx.rect(20, 34, 40, 58);
-    ctx.moveTo(20, 34);
-    ctx.arc(40, 34, 20, Math.PI, 0);
+    ctx.rect(cx - r, spring, openW, H - spring);
+    ctx.moveTo(cx - r, spring);
+    ctx.arc(cx, spring, r, Math.PI, 0);
     ctx.fill();
     ctx.globalCompositeOperation = 'source-over';
     // stone courses
     ctx.strokeStyle = rgba(0x8a7a5a, 0.5);
     ctx.lineWidth = 1;
-    for (let y = 40; y < h; y += 9) {
+    for (let y = spring + 8; y < h; y += 11) {
       ctx.beginPath();
       ctx.moveTo(0, y);
-      ctx.lineTo(20, y);
-      ctx.moveTo(60, y);
-      ctx.lineTo(80, y);
+      ctx.lineTo(pier, y);
+      ctx.moveTo(W - pier, y);
+      ctx.lineTo(W, y);
       ctx.stroke();
     }
-    for (let a = Math.PI; a <= Math.PI * 2 + 0.01; a += Math.PI / 9) {
+    for (let a = Math.PI; a <= Math.PI * 2 + 0.01; a += Math.PI / 11) {
       ctx.beginPath();
-      ctx.moveTo(40 + Math.cos(a) * 21, 32 + Math.sin(a) * 21);
-      ctx.lineTo(40 + Math.cos(a) * 40, 30 + Math.sin(a) * 40);
+      ctx.moveTo(cx + Math.cos(a) * (r + 1), spring + Math.sin(a) * (r + 1));
+      ctx.lineTo(cx + Math.cos(a) * R, spring + Math.sin(a) * R);
       ctx.stroke();
     }
     wash(ctx, 0, 0, w, h, 0xb8a080, 0xe8dcc0, 0.3, 5, 0.06);
     // the sun from the west: the left pier lit, the right in shade
     ctx.fillStyle = rgba(0xfff0c8, 0.25);
-    ctx.fillRect(0, 30, 6, 62);
+    ctx.fillRect(0, spring, 8, H - spring);
     ctx.fillStyle = rgba(0x3a2a30, 0.22);
-    ctx.fillRect(72, 30, 8, 62);
-    ctx.fillRect(60, 34, 4, 58);
+    ctx.fillRect(W - 10, spring, 10, H - spring);
+    ctx.fillRect(W - pier, spring, 5, H - spring);
     grain(ctx, 0, 0, w, h, 0.09, 4);
     // ivy: from the top corners down
-    for (let i = 0; i < 26; i++) {
+    for (let i = 0; i < 40; i++) {
       const left = i % 2 === 0;
-      const x = left ? 4 + rand.frac() * 18 : 58 + rand.frac() * 18;
-      const y = 10 + rand.frac() * 60;
+      const x = left ? 4 + rand.frac() * (pier - 4) : W - pier + rand.frac() * (pier - 4);
+      const y = spring * 0.5 + rand.frac() * (H * 0.55);
       const c = rand.frac() < 0.4 ? 0x4a7a3a : rand.frac() < 0.5 ? 0x5a8a4a : 0x6a9a50;
       clump(ctx, x, y, 3 + rand.frac() * 2.5, c, 0.95, rand, 4);
     }
-    for (let i = 0; i < 12; i++) clump(ctx, 22 + rand.frac() * 36, 4 + rand.frac() * 12, 3 + rand.frac() * 2, i % 2 ? 0x5a8a4a : 0x4a7a3a, 0.95, rand, 4);
+    for (let i = 0; i < 18; i++) clump(ctx, cx - r + rand.frac() * openW, 3 + rand.frac() * (spring - r - 4), 3 + rand.frac() * 2, i % 2 ? 0x5a8a4a : 0x4a7a3a, 0.95, rand, 4);
+  });
+  // the doorway he came through, the same shape as the opening
+  paintTexture(scene, 'ev-archdoor', openW, openH, (ctx) => {
+    ctx.fillStyle = '#07060c';
+    ctx.beginPath();
+    ctx.rect(0, r, openW, openH - r);
+    ctx.moveTo(0, r);
+    ctx.arc(r, r, r, Math.PI, 0);
+    ctx.fill();
   });
 }
 
@@ -394,6 +411,24 @@ export function paintProps(scene) {
       }
     });
   }
+  // a clump of wheat, up to Jo's belt: painted stalks like the tufts, ears on top
+  paintTexture(scene, 'ev-wheat', WHEAT_PX[0], WHEAT_PX[1], (ctx, w, h, rand) => {
+    for (let i = 0; i < 4; i++) {
+      const x0 = 3 + i * 3.2 + rand.frac() * 1.5;
+      const lean = (rand.frac() - 0.5) * 3;
+      const top = 8 + rand.frac() * 6;
+      ctx.strokeStyle = rgba(i % 2 ? 0xc89a3a : 0xb08838, 1);
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(x0, h);
+      ctx.quadraticCurveTo(x0, h * 0.5, x0 + lean, top);
+      ctx.stroke();
+      ctx.fillStyle = rgba(i % 2 ? 0xe8c060 : 0xf2d580, 1);
+      ctx.beginPath();
+      ctx.ellipse(x0 + lean, top - 3, 1.8, 5.5, lean * 0.08, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
   // the long shadow every standing thing casts east: softer at the far end
   paintTexture(scene, 'ev-shadow', 64, 8, (ctx, w, h) => {
     const g = ctx.createLinearGradient(0, 0, w, 0);
