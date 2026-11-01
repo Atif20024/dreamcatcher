@@ -4,7 +4,8 @@ import { AnimationController } from '../art/AnimationController.js';
 import { characterManifest, bakeFromAtlas } from '../art/baked.js';
 import { sfx } from '../systems/audio.js';
 import { solveGround } from './ground.js';
-import { SPEED, JUMP, JUMP_CUT_BELOW, TERMINAL_FALL, perFrame, cutSpeed, landImpact, isLanding } from './motion.js';
+import { SPEED, JUMP, JUMP_CUT_BELOW, TERMINAL_FALL, perFrame, cutSpeed, landImpact, isLanding, cornerNudge } from './motion.js';
+import { roleOf } from '../builders/legend.js';
 import PlayerShadow from './PlayerShadow.js';
 import { showTutorial } from '../play/Teach.js';
 import { JO_DUST } from './jo.js';
@@ -219,6 +220,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   syncAttachments() {
+    this.prevVy = this.body.velocity.y; // Arcade zeroes it on a ceiling: tryCorner reads this
     const { x: sx, y: sy } = this.visualScale();
     const f = this.feet();
     if (!this.hasAtlas) return this.syncLegacy(sx, sy);
@@ -513,6 +515,19 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     return this.inputMap ? this.inputMap.isDown('down') : this.cursors.down.isDown || this.keys.S.isDown;
   }
 
+  // a rising Jo who clipped a tile's corner carries on past it (motion.js).
+  // Not on a frame without a step: its flags are stale. (wasTouching: at 30 Hz
+  // a second step has already cleared `blocked`.)
+  tryCorner(body) {
+    const built = this.scene.built;
+    if (!built || !built.solidAt || !this.scene.physics.world.stepsLastFrame) return;
+    if (!body.blocked.up && !body.wasTouching.up) return;
+    const dx = cornerNudge(body, this.prevVy, { solidAt: built.solidAt, hazardAt: (c, r) => roleOf(built.charAt(c, r)) === 'hazard' }, T);
+    if (!dx) return;
+    this.x += dx;
+    body.setVelocityY(this.prevVy);
+  }
+
   update(time, delta) {
     const body = this.body;
     const dt = Math.min(delta, 50);
@@ -711,6 +726,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       this.fallSpeed = body.velocity.y;
     }
     if (jumpJust && !locked) this.lastJumpPressed = time;
+    // (before the jump cut below: a ceiling's zero would shut its window)
+    if (!grounded && !locked && !this.floating && body.allowGravity && body.moves) this.tryCorner(body);
 
     // horizontal
     if (!locked) {

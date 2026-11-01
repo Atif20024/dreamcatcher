@@ -68,7 +68,9 @@ const joContrastSc = {
     const rows = [];
     for (const [dream, place] of PLACES_TO_SAMPLE) {
       const sc = await arrive(dc, dream, place);
-      dc.step(20);
+      // the Evening's camera eases (zoom 1.4 s, follow lerp 0.08): under way, the
+      // mask misses Jo's outline and `local` reads about 1 (characters review r1)
+      dc.step(dream === 'evening' ? 240 : 20);
       const r = await joContrast(dc, sc);
       const L = sc.player.light ? sc.player.light.state() : {};
       rows.push({ place: dream, ...r, lamp: L.kind && L.raised > 0.5 ? L.kind : 'none' });
@@ -81,7 +83,7 @@ const joContrastSc = {
     // a light in dark rooms (src/entities/JoLight.js): the 3:1 is met by
     // that light where it is dark and by his costume where it is lit
     const enforce = true;
-    const detail = rows.map((r) => `${r.place} [${r.lamp}] edge ${r.edgeMedian} local ${r.localMedian} (jo ${r.jo} bg ${r.bg})`).join('; ');
+    const detail = rows.map((r) => `${r.place} [${r.lamp}] edge ${r.edgeMedian} local ${r.localMedian} (jo ${r.jo} bg ${r.bg} drift ${r.drift} box ${r.box})`).join('; ');
     return { pass: !enforce || fails.length === 0, detail: `${litUnder.length ? `lit rooms under ${JO_CONTRAST_MIN}:1 (costume only): ${litUnder.map((r) => r.place).join(', ')}. ` : ''}${detail}` };
   },
 };

@@ -4,7 +4,7 @@
 // loop at 30/60/144 Hz, and against the old per-frame controller at 60 Hz:
 // 60 Hz must stay what the levels were built on.
 import { describe, it, expect, afterEach } from 'vitest';
-import { GRAVITY, SPEED, JUMP, JUMP_CUT_BELOW, TERMINAL_FALL, perFrame, cutSpeed, landImpact, isLanding } from '../src/entities/motion.js';
+import { GRAVITY, SPEED, JUMP, JUMP_CUT_BELOW, TERMINAL_FALL, perFrame, cutSpeed, landImpact, isLanding, cornerNudge, CORNER_MAX, CORNER_RISE } from '../src/entities/motion.js';
 import { REACH } from '../src/world/reach.js';
 import { easeFollow, shakeScale } from '../src/world/CameraDirector.js';
 import { InputMap, attachInput } from '../src/input/InputMap.js';
@@ -304,5 +304,38 @@ describe('InputMap', () => {
     key('keyup', 'KeyA');
     map.poll();
     expect(map.isDown('left')).toBe(false);
+  });
+});
+
+describe('corner help (motion.cornerNudge)', () => {
+  // Jo's 24 x 44 body, top flush under a ceiling tile at col 3 row 2 (y 64..96)
+  const box = (left) => ({ left, right: left + 24, top: 96, bottom: 140 });
+  const tiles = (solid, hazard = []) => {
+    const has = (l) => (c, r) => l.some(([x, y]) => x === c && y === r);
+    return { solidAt: has(solid), hazardAt: has(hazard) };
+  };
+  const CEIL = [[3, 2]]; // spans x 96..128
+  const rising = -400;
+
+  it('clips of 1 and 4 px slide past, on the near side', () => {
+    expect(cornerNudge(box(127), rising, tiles(CEIL))).toBe(1); // his left edge 1 px under it
+    expect(cornerNudge(box(124), rising, tiles(CEIL))).toBe(4);
+    expect(cornerNudge(box(73), rising, tiles(CEIL))).toBe(-1); // his right edge
+    expect(cornerNudge(box(76), rising, tiles(CEIL))).toBe(-4);
+  });
+  it('a clip of 6 px is a ceiling, and so is a run of tiles', () => {
+    expect(cornerNudge(box(122), rising, tiles(CEIL))).toBe(0);
+    expect(cornerNudge(box(100), rising, tiles([[3, 2], [4, 2]]))).toBe(0);
+  });
+  it('never nudges into a hazard or a solid tile', () => {
+    expect(cornerNudge(box(127), rising, tiles(CEIL, [[4, 3]]))).toBe(0); // a spike where he would go
+    expect(cornerNudge(box(127), rising, tiles([[3, 2], [4, 3]]))).toBe(0); // a wall there
+    expect(cornerNudge(box(127), rising, tiles(CEIL, [[9, 9]]))).toBe(1); // a spike elsewhere changes nothing
+  });
+  it('only when he was rising, and only for a tile', () => {
+    expect(cornerNudge(box(127), -CORNER_RISE + 1, tiles(CEIL))).toBe(0);
+    expect(cornerNudge(box(127), 200, tiles(CEIL))).toBe(0);
+    expect(cornerNudge(box(127), rising, tiles([]))).toBe(0); // a body, not a tile
+    expect(CORNER_MAX).toBe(4);
   });
 });

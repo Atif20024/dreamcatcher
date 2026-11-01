@@ -1238,15 +1238,15 @@ export default class EveningScene extends BaseLevel {
   postbox() {
     // money's ending: what he carried here means nothing unless it goes
     // somewhere. All of it, on a second press: the stall will miss it.
-    const line = (text) => {
-      const t = uiText(this, this.player.x, this.player.y - 60, text, { fontSize: '12px', color: '#c8c0b0' }).setOrigin(0.5).setDepth(90);
+    const line = (text, lift = 0) => {
+      const t = uiText(this, this.player.x, this.player.y - 60 - lift, text, { fontSize: '12px', color: '#c8c0b0' }).setOrigin(0.5).setDepth(90);
       this.tweens.add({ targets: t, y: t.y - 20, alpha: 0, duration: 2600, onComplete: () => t.destroy() });
     };
     const w = getWallet().total;
     if (w <= 0) return line('(nothing to post.)');
     if (this.time.now > this.postArmedUntil) {
       this.postArmedUntil = this.time.now + 3000;
-      return line(`($${w}. all of it? [E])`);
+      return line(`($${w}. all of it? [E])`, 14); // clear of the postbox's own label
     }
     this.postArmedUntil = 0;
     spend(w);
