@@ -108,25 +108,33 @@ export default class HudGrid {
     const ab = above && above._bg ? above._bg.getBounds() : null;
     let y = ab ? ab.bottom + 8 : SLOTS.coins.y - PLATE.padY;
     const B = TOOL_BARS;
-    for (const m of list) {
+    const placed = [];
+    for (let i = 0; i < list.length; i++) {
+      const m = list[i];
       let r = this.meterRows.get(m.id);
       if (!r) {
         // (a quiet plate: no brass line, feedback 3)
         const plate = this.ui.add.rectangle(0, 0, 10, 10, PLATE.dark, PLATE.alpha).setOrigin(0, 0).setDepth(DEPTH - 0.01);
         plate.name = `hud-meter-${m.id}`;
-        const label = uiText(this.ui, 0, 0, '', { size: 'small', scale: 2, align: 'right' }).setOrigin(1, 0).setDepth(DEPTH);
+        const label = uiText(this.ui, 0, 0, '', { size: 'small', scale: 2, align: 'right', backing: PLATE.dark }).setOrigin(1, 0).setDepth(DEPTH);
         label.name = `hud-meter-label-${m.id}`;
         const back = this.ui.add.rectangle(0, 0, B.w, B.h, 0x2a2a34).setOrigin(0, 0.5).setDepth(DEPTH);
         const bar = this.ui.add.rectangle(0, 0, B.w, B.h, 0xffffff).setOrigin(0, 0.5).setDepth(DEPTH + 0.01);
         r = { plate, label, back, bar };
         this.meterRows.set(m.id, r);
       }
-      const h = 14 + PLATE.padY * 2;
-      const cy = y + h / 2;
+      // a grouped row tucks under the one above it on the same plate
+      const next = list[i + 1];
+      const joinNext = !!(m.group && next && next.group === m.group);
+      const joinPrev = !!(m.group && i > 0 && list[i - 1].group === m.group);
+      const h = 14 + (joinPrev ? 2 : PLATE.padY) + (joinNext ? 2 : PLATE.padY);
+      const top = joinPrev ? 2 : PLATE.padY;
+      const cy = y + top + 7;
+      const hasBar = m.bar !== false;
       if (r.label.rawText !== m.label) r.label.setText(m.label);
-      r.label.setColor(m.color).setPosition(B.right - B.w - 8, y + PLATE.padY);
-      r.back.setPosition(B.right - B.w, cy);
-      r.bar.setPosition(B.right - B.w, cy).setFillStyle(toColor(m.color)).setSize(Math.round(B.w * m.frac), B.h);
+      r.label.setColor(m.color).setPosition(hasBar ? B.right - B.w - 8 : B.right, y + top);
+      r.back.setVisible(hasBar).setPosition(B.right - B.w, cy);
+      r.bar.setVisible(hasBar).setPosition(B.right - B.w, cy).setFillStyle(toColor(m.color)).setSize(Math.round(B.w * m.frac), B.h);
       // marks on the bar (hud.meter().setTicks): a 2 px post, 4 px proud of it
       const ticks = m.ticks || [];
       r.ticks = r.ticks || [];
@@ -136,10 +144,18 @@ export default class HudGrid {
         t.setVisible(!!k);
         if (k) t.setPosition(Math.round(B.right - B.w + B.w * k.at), cy).setFillStyle(toColor(k.color));
       });
-      const x0 = B.right - B.w - 8 - (m.label ? r.label.width : -8) - PLATE.padX;
-      r.plate.setPosition(Math.round(x0), Math.round(y)).setSize(Math.round(B.right + PLATE.padX - x0), h);
-      r.plate.setDisplaySize(r.plate.width, r.plate.height);
-      y += h + 8;
+      const x0 = hasBar ? B.right - B.w - 8 - (m.label ? r.label.width : -8) - PLATE.padX : B.right - r.label.width - PLATE.padX;
+      placed.push({ r, x0, y, h, group: m.group, joinPrev });
+      y += h + (joinNext ? 0 : 8);
+    }
+    // one plate per group: every row of a group as wide as its widest
+    const left = new Map();
+    for (const q of placed) if (q.group) left.set(q.group, Math.min(left.get(q.group) ?? Infinity, q.x0));
+    for (const q of placed) {
+      const x0 = q.group ? left.get(q.group) : q.x0;
+      q.r.plate.setPosition(Math.round(x0), Math.round(q.y)).setSize(Math.round(B.right + PLATE.padX - x0), q.h);
+      q.r.plate.setDisplaySize(q.r.plate.width, q.r.plate.height);
+      q.r.plate.hudGroup = q.group || null;
     }
   }
 
@@ -266,9 +282,17 @@ export default class HudGrid {
     }
     const cam = owner.cameras.main;
     const wv = cam.worldView;
-    const x = Math.round((p.x - wv.x) * cam.zoom + cam.x);
-    const y = Math.round((p.y - wv.y) * cam.zoom + cam.y) + 10;
+    let x = Math.round((p.x - wv.x) * cam.zoom + cam.x);
+    let y = Math.round((p.y - wv.y) * cam.zoom + cam.y) + 10;
     if (t.rawText !== p.text) t.setText(p.text);
+    // clamp on screen, plate and all (origin 0.5, 1): a prompt over a door
+    // at the room's edge is not clipped by the screen's edge
+    const sw = this.ui.scale.width;
+    const sh = this.ui.scale.height;
+    const m = PLATE.padX + 6;
+    const half = t.width / 2 + PLATE.padX;
+    x = Math.round(Math.max(m + half, Math.min(sw - m - half, x)));
+    y = Math.round(Math.max(m + t.height + PLATE.padY, Math.min(sh - m - PLATE.padY, y)));
     t.setPosition(x, y).setVisible(true);
   }
 }

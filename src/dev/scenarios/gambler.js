@@ -10,7 +10,9 @@
 //   gambler-quay         Lou, then the slate by real input (three numbers), the
 //                        purse and the HUD slate; the saloon door opens
 //   gambler-saloon       a comp on Mr Pell's book (TILT), the faro bank by real
-//                        input to $80 (a bust goes back to the quay, bar reset)
+//                        input to $80: the first sitting bets $20 (the true
+//                        odds: a bust puts Jo at the saloon door, what is left
+//                        of the stack kept), then $10 a bet (the careful way)
 //   gambler-cards        the three tables played on the tells by real input
 //                        (STAND UP after a pot), the third opens, the rake and
 //                        the folds go to the ledger
@@ -181,13 +183,14 @@ async function playSlate(dc, s, moves = [0, 0, 0]) {
   return !s.encounters.busy;
 }
 
-// the faro bank: BET $20 on the seven until the bank is doubled or busted
-async function playFaro(dc, s, limit = 4000) {
+// the faro bank: BET $20 (pick 1) or $10 (pick 0) on the seven until the
+// bank is doubled or busted
+async function playFaro(dc, s, limit = 4000, pick = 1) {
   const a = s.encounters.active;
   if (!a) return null;
   await dc.run(20);
   const e = a.engine;
-  await cursorTo(dc, e, 1, 'pick');
+  await cursorTo(dc, e, pick, 'pick');
   let bets = 0;
   for (let i = 0; i < limit && s.encounters.busy; i++) {
     const st = e.state();
@@ -355,7 +358,7 @@ async function quayPart(dc, s, ok) {
   await dc.run(4);
   const P = s.F.purse;
   ok('purse', !!s.F.slate_set && P.buyin === 100 && P.stop === 50 && P.goal === 160 && P.stack === 100);
-  ok('hud-slate', /STOP \$50 GOAL \$160/.test(JSON.stringify(hud.get('tool'))) && hud.get('meters').some((m) => m.id === 'stack' && m.ticks && m.ticks.length === 2));
+  ok('hud-slate', hud.get('meters').some((m) => m.id === 'slate' && m.visible && /STOP \$50 · GOAL \$160/.test(m.label)) && hud.get('meters').some((m) => m.id === 'stack' && m.ticks && m.ticks.length === 2));
   p = at(s, 'quay', 70, 15);
   ok('reach-door', await walkTo(dc, s, p.x, { frames: 2400, tol: 20 }));
   ok('into-saloon', await door(dc, s, 'saloon'));
@@ -373,7 +376,7 @@ const quayScenario = {
   },
 };
 
-// the saloon: a comp, then the faro bank (a bust is the quay; come back)
+// the saloon: a comp, then the faro bank (a bust is the saloon door; sit again)
 async function saloonPart(dc, s, ok, { comp = true } = {}) {
   safe(s);
   if (comp) {
@@ -386,27 +389,26 @@ async function saloonPart(dc, s, ok, { comp = true } = {}) {
   }
   let res = null;
   let busts = 0;
+  let stack0 = s.F.purse.stack;
   for (let tries = 0; tries < 8 && !s.F.faro_done; tries++) {
     const p = at(s, 'saloon', 43, 11);
     put(s, p.x - 40, p.y);
     await dc.run(10);
     await walkTo(dc, s, p.x, { frames: 300, tol: 14 });
     if (!(await sitDown(dc, s))) break;
-    res = await playFaro(dc, s);
+    stack0 = s.F.purse.stack;
+    res = await playFaro(dc, s, 4000, tries === 0 ? 1 : 0);
     await waitBeats(dc, s, 2400);
     if (res && res.result && res.result.bust) {
       busts += 1;
-      for (let i = 0; i < 200 && s.roomId !== 'quay'; i++) await dc.run(1);
+      const door0 = at(s, 'saloon', 6, 11);
+      for (let i = 0; i < 200 && Math.abs(s.player.x - door0.x) > 40; i++) await dc.run(1);
       await dc.run(60);
-      if (busts === 1) ok('bust-to-quay', s.roomId === 'quay' && s.F.purse.stack === s.F.purse.buyin && s.F.purse.busts === 1);
-      // back aboard, through the door
-      const d = at(s, 'quay', 70, 15);
-      put(s, d.x, d.y);
-      await dc.run(10);
-      await door(dc, s, 'saloon');
+      // the saloon door, not the quay; Lou keeps what the bank left him
+      if (busts === 1) ok('bust-to-saloon-door', s.roomId === 'saloon' && Math.abs(s.player.x - door0.x) < 40 && s.F.purse.stack === Math.max(0, stack0 - 40) && s.F.purse.busts === 1);
     }
   }
-  ok('faro-doubled', !!s.F.faro_done && s.F.purse.stack >= s.F.purse.buyin + 40 - 4);
+  ok('faro-doubled', !!s.F.faro_done && s.F.purse.stack >= stack0 + 40 - 4);
   return { busts, faro: res && res.result };
 }
 

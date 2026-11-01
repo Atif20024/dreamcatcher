@@ -107,7 +107,7 @@ export function hudRects(scene) {
     if (o.isDCText && !o._text.trim()) continue;
     const b = o._bg && o._bg.visible ? o._bg.getBounds() : o.getBounds();
     if (b.width <= 0) continue;
-    rects.push({ name: o.name, x: b.x, y: b.y, w: b.width, h: b.height });
+    rects.push({ name: o.name, group: o.hudGroup || null, x: b.x, y: b.y, w: b.width, h: b.height });
   }
   // the hearts are one group
   const hearts = rects.filter((r) => r.name === 'hud-heart');
@@ -124,7 +124,8 @@ export function auditHud(scene) {
   const out = [];
   const rects = hudRects(scene);
   // the coin icon belongs to the coin count
-  const pairOk = (a, b) => [a.name, b.name].sort().join() === 'hud-coin-icon,hud-coins';
+  // and the rows of one meter group share a plate on purpose
+  const pairOk = (a, b) => [a.name, b.name].sort().join() === 'hud-coin-icon,hud-coins' || (a.group && a.group === b.group);
   for (let i = 0; i < rects.length; i++) {
     for (let j = i + 1; j < rects.length; j++) {
       if (pairOk(rects[i], rects[j])) continue;

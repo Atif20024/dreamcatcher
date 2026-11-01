@@ -4,6 +4,7 @@ import ModalManager from '../ui/ModalManager.js';
 import { uiText } from '../ui/text.js';
 import { THEME } from '../ui/theme.js';
 import { panel, dim } from '../ui/Panel.js';
+import { keysFromHint } from '../input/touchLayout.js';
 
 // Full-screen modal puzzle overlays. Keyboard-driven. Each puzzle resolves
 // true on success; Esc closes (retry later). scene.puzzleActive gates update.
@@ -23,6 +24,9 @@ export class Modal {
       name: title,
       freeze: 'physics',
       onKey: (e) => this.keyHandler && this.keyHandler(e),
+      // touch: the keys its instructions name ([1–4], [Enter], [C] …) get
+      // context buttons (src/ui/TouchControls.js)
+      touchKeys: () => this.touchKeys || keysFromHint(instruction),
     });
     const cx = cam.width / 2;
     const cy = cam.height / 2;

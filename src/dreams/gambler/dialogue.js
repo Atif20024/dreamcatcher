@@ -113,7 +113,7 @@ export const CONVERSATIONS = {
   // ---- the purser's office ----
   pell_first: conv('pell_first', ['pell', 'jo'], {
     start: { who: 'pell', text: "Mr Jo, isn't it? Lou's young friend. I make it my business to know my guests.", next: 'p2' },
-    p2: { who: 'pell', text: "If your line is running thin, the boat can help. A marker: fifty dollars on your word. No paper but this book.", next: 'j1' },
+    p2: { who: 'pell', text: "If your line is running thin, the boat can help. A marker: fifty dollars on your word, settled at the landing. No paper but this book.", next: 'j1' },
     j1: {
       who: 'jo',
       text: '…',

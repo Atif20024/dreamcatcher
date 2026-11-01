@@ -34,6 +34,9 @@ class ModalHandle {
     // (a menu row, a choice). Without one, a tap on a dialogue, card or
     // tutorial is its confirm key (src/ui/TouchControls.js).
     this.tap = spec.tap || null;
+    // touch screens: the keys this modal reads that the pad has no button
+    // for (['KeyC', 'Digit1'] or a function returning them): context buttons
+    this.touchKeys = spec.touchKeys || null;
     this.onClose = spec.onClose || null;
     this.onShow = spec.onShow || null;
     this.guardMs = spec.guardMs || 0;

@@ -12,12 +12,18 @@
 //   tutorial; with no modal, a tap zone (src/input/touchTaps.js: the title,
 //   the tables at THE LAST HAND). While a dialogue, card or menu is up the
 //   play buttons step aside; pause stays.
+// - Context buttons: a key the pad has no button for (F, C, V, 1–6, R, L,
+//   Tab, Enter …) gets a small button over the right cluster only while the
+//   scene in front uses it: scene.touchKeys() or the top modal's touchKeys
+//   (a puzzle panel names its keys in its instructions). ABC opens the
+//   device keyboard (the Writer's typing: src/input/softKeyboard.js).
 // - Portrait: a "turn your phone sideways" card, the world paused under it.
 // - The first tap on a real touch device asks for fullscreen and, once in,
 //   a landscape lock (both may be refused: errors are swallowed).
 // - The DOM listeners sit on window in the capture phase: a touch on a
 //   button never reaches Phaser (the HUD footer is a music button there).
-import { layoutTouch, controlsAt, TOUCH_KEYS, toGame, isPortrait, GAME_W, GAME_H } from '../input/touchLayout.js';
+import { layoutTouch, layoutContext, controlsAt, keyOf, TOUCH_KEYS, toGame, isPortrait, GAME_W, GAME_H } from '../input/touchLayout.js';
+import { openSoftKeyboard, closeSoftKeyboard } from '../input/softKeyboard.js';
 import { routeZoneTap, zonesHideControls } from '../input/touchTaps.js';
 import { touchState } from '../input/touchState.js';
 import { dispatchKey } from '../input/virtualKeys.js';
@@ -114,6 +120,7 @@ export default class TouchControls {
     if (!this.layout || this.layoutKey !== key) {
       this.layoutKey = key;
       this.layout = layoutTouch({ cssW: r.width || GAME_W, cssH: r.height || GAME_H });
+      this.ctxSig = null;
       this.sig = '';
       setHudInsets(this.layout.insets);
     }
@@ -130,7 +137,16 @@ export default class TouchControls {
       this.sync();
       return !!(had && had.onControl);
     }
-    const keys = this.portrait ? [] : controlsAt(L, p.x, p.y, { play: this.play }).map((c) => TOUCH_KEYS[c]);
+    let keys = this.portrait ? [] : controlsAt(L, p.x, p.y, { play: this.play }).map(keyOf);
+    // ABC is no key: it opens the device keyboard (a gesture, as iOS wants)
+    if (keys.includes('Keyboard')) {
+      if (type === 'start') openSoftKeyboard();
+      keys = keys.filter((k) => k !== 'Keyboard');
+      if (type === 'start') {
+        this.fingers.set(id, { x: p.x, y: p.y, keys: [], onControl: true });
+        return true;
+      }
+    }
     const prev = this.fingers.get(id);
     const onControl = (prev && prev.onControl) || (type === 'start' && keys.length > 0);
     this.fingers.set(id, { x: p.x, y: p.y, keys, onControl });
@@ -245,6 +261,7 @@ export default class TouchControls {
     for (const t of taps) this.tap(t.x, t.y);
     const owner = ownerScene(this.game);
     const play = !this.portrait && this.wantPlay(owner);
+    this.updateContext(owner, play);
     if (play !== this.play) {
       this.play = play;
       // a hidden button lets go of its key
@@ -252,6 +269,37 @@ export default class TouchControls {
       this.sync();
     }
     this.draw();
+  }
+
+  // the keys the scene in front reads that the pad lacks: the top modal's
+  // touchKeys, else the scene's own touchKeys() (codes, or { code } objects)
+  contextCodes(owner, play) {
+    if (!owner || !play) return [];
+    const mm = owner.modals;
+    const top = mm && !mm.dead && mm.active ? mm.top : null;
+    let src = top ? top.touchKeys : owner.touchKeys;
+    try {
+      if (typeof src === 'function') src = top ? src() : src.call(owner);
+    } catch {
+      src = null;
+    }
+    return (Array.isArray(src) ? src : []).map((k) => (typeof k === 'string' ? k : k && k.code)).filter(Boolean);
+  }
+
+  updateContext(owner, play) {
+    const L = this.layout;
+    const codes = this.contextCodes(owner, play);
+    const sig = codes.join(',');
+    if (sig === this.ctxSig) return;
+    this.ctxSig = sig;
+    const gone = new Set((L.context || []).map((c) => c.code));
+    L.context = layoutContext(L, codes);
+    if (!codes.includes('Keyboard')) closeSoftKeyboard();
+    // a finger on a button that went away lets go of its key
+    for (const c of L.context) gone.delete(c.code);
+    for (const f of this.fingers.values()) f.keys = f.keys.filter((k) => !gone.has(k));
+    this.sync();
+    this.sig = '';
   }
 
   // ---- drawing ------------------------------------------------------------------
@@ -267,11 +315,11 @@ export default class TouchControls {
 
   draw() {
     const L = this.layout;
-    const sig = `${this.layoutKey}|${this.play}|${this.portrait}|${[...this.held].sort().join(',')}`;
+    const sig = `${this.layoutKey}|${this.play}|${this.portrait}|${this.ctxSig}|${[...this.held].sort().join(',')}`;
     if (sig === this.sig) return;
     this.sig = sig;
     const g = this.g.clear();
-    const on = (id) => this.held.has(TOUCH_KEYS[id]);
+    const on = (id) => this.held.has(keyOf(id));
     const show = !this.portrait;
     const plate = (x, y, r, lit) => {
       g.fillStyle(THEME.panel, lit ? PLATE_ON : PLATE_A).fillCircle(x, y, r);
@@ -303,6 +351,19 @@ export default class TouchControls {
         g.fillRect(b.x - w * 1.6, b.y - h / 2, w, h).fillRect(b.x + w * 0.6, b.y - h / 2, w, h);
       }
     }
+    // the context buttons (only those the scene uses now)
+    const ctxIds = new Set();
+    for (const c of L.context || []) {
+      ctxIds.add(c.id);
+      const vis = show && this.play;
+      const t = this.label(c.id, c.label, c.x, c.y + 1, 'body');
+      t.setVisible(vis).setColor(on(c.id) ? 'brass-light' : 'ink');
+      if (t.rawText !== c.label) t.setText(c.label);
+      // a label wider than its plate (OK, TAB, ABC) drops to the small face
+      if (t.width > c.r * 1.7 && t.scaleX > 1) t.setScale(1);
+      if (vis) plate(c.x, c.y, c.r, on(c.id));
+    }
+    for (const [id, t] of Object.entries(this.labels)) if (id.startsWith('ctx:') && !ctxIds.has(id)) t.setVisible(false);
     this.drawCard();
   }
 

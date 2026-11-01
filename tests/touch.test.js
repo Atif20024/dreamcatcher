@@ -1,6 +1,6 @@
 // Touch controls: the pure half (src/input/touchLayout.js, touchTaps.js).
 import { describe, it, expect, beforeEach } from 'vitest';
-import { touchWanted, layoutTouch, buttonCss, padDirections, controlsAt, keysAt, pickRect, toGame, isPortrait, TOUCH_KEYS, GAME_W, GAME_H } from '../src/input/touchLayout.js';
+import { touchWanted, layoutTouch, buttonCss, padDirections, controlsAt, keysAt, pickRect, toGame, isPortrait, TOUCH_KEYS, GAME_W, GAME_H, keysFromHint, layoutContext, keyOf, contextLabel } from '../src/input/touchLayout.js';
 import { addTapZone, routeZoneTap, zonesHideControls, _clearZones } from '../src/input/touchTaps.js';
 import { HUD_INSETS_NONE, hudInsets, setHudInsets } from '../src/ui/hud.js';
 
@@ -193,5 +193,53 @@ describe('HUD insets', () => {
     expect(hudInsets.left).toBe(80);
     setHudInsets();
     expect({ ...hudInsets }).toEqual(HUD_INSETS_NONE);
+  });
+});
+
+// ---- context buttons and the smaller pad (CASINO_POLISH_REPORT) -------------
+describe('context buttons', () => {
+  it('a puzzle panel names its keys; keys on the pad are left out', () => {
+    expect(keysFromHint("Priya's cards. [1–4] answer")).toEqual(['Digit1', 'Digit2', 'Digit3', 'Digit4']);
+    expect(keysFromHint('←/→ choose the stake · [Enter] sit down')).toEqual(['Enter']);
+    expect(keysFromHint('[H] hit · [S] stand · [D] double')).toEqual(['KeyH', 'KeyS', 'KeyD']);
+    expect(keysFromHint('[E] interact · [Tab] visor · [F] tether / Priya · [Space] jump')).toEqual(['Tab', 'KeyF']);
+    expect(keysFromHint('[1] [2] [3] a well · [Esc] step away')).toEqual(['Digit1', 'Digit2', 'Digit3']);
+    expect(keysFromHint('no keys here')).toEqual([]);
+  });
+  it('labels and keys', () => {
+    expect(contextLabel('KeyF')).toBe('F');
+    expect(contextLabel('Digit2')).toBe('2');
+    expect(contextLabel('Enter')).toBe('OK');
+    expect(keyOf('ctx:KeyF')).toBe('KeyF');
+    expect(keyOf('jump')).toBe('Space');
+  });
+  for (const [name, v] of Object.entries(VIEWPORTS)) {
+    it(`${name}: up to six sit on screen, clear of every other plate, and each hits itself`, () => {
+      const L = layoutTouch(v);
+      L.context = layoutContext(L, ['KeyF', 'KeyC', 'KeyV', 'Digit1', 'Digit2', 'Digit3', 'Tab']);
+      expect(L.context.length).toBe(6);
+      const all = [...circles(L), ...L.context];
+      for (const c of L.context) expect(inside(c), c.id).toBe(true);
+      for (let i = 0; i < all.length; i++)
+        for (let j = i + 1; j < all.length; j++) expect(Math.hypot(all[i].x - all[j].x, all[i].y - all[j].y), `${all[i].id}/${all[j].id}`).toBeGreaterThan(all[i].r + all[j].r);
+      for (const c of L.context) expect(controlsAt(L, c.x, c.y)).toEqual([c.id]);
+      // and they stay on the right, over the thumb's cluster
+      for (const c of L.context) expect(c.x).toBeGreaterThan(GAME_W / 2);
+    });
+  }
+  it('none are drawn when the scene uses none', () => {
+    const L = layoutTouch(VIEWPORTS['iPhone SE landscape (568×320)']);
+    expect(layoutContext(L, [])).toEqual([]);
+    expect(layoutContext(L, ['KeyE', 'Space'])).toEqual([]);
+  });
+});
+
+describe('the pad on a small phone', () => {
+  it('is a size smaller under 420 CSS px tall, never under 44 CSS px an arm', () => {
+    const se = layoutTouch(VIEWPORTS['iPhone SE landscape (568×320)']);
+    const ipad = layoutTouch(VIEWPORTS['iPad landscape (1024×768 → 1024×576)']);
+    expect((se.pad.r * 2) / se.k).toBeLessThan(se.b / se.k);
+    expect((se.pad.r * 2) / se.k).toBeGreaterThanOrEqual(43);
+    expect(ipad.pad.r * 2).toBeCloseTo(ipad.b, -1);
   });
 });

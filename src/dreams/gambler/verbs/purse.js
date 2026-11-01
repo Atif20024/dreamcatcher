@@ -1,7 +1,8 @@
 // The purse on the HUD, and the air (THE LAST HAND; no keys of its own).
 // The stack is a bar with the slate on it: a red post at the stop-loss, a
-// gold one at the goal; under it TILT. The slate's numbers ride the tool
-// line all night. Nothing tells Jo to leave: the slate speaks.
+// gold one at the goal; under it the slate's numbers, then TILT, all on one
+// plate under the coins (hud.meter groups). Nothing tells Jo to leave:
+// the slate speaks.
 // TILT comes down only in the air: walking an open deck (a room's `air`
 // columns: the card room's guard, the hurricane deck) cools it, ten seconds
 // from full to nothing. Tilted, the edges of the world blur (a vignette
@@ -36,9 +37,11 @@ export default {
   create(ctx) {
     const s = ctx.scene;
     if (!ctx.flags.purse) ctx.flags.purse = newPurse();
-    ctx.state.stack = hud.meter('stack', { label: 'STACK $100', color: COLORS.between, order: 3 });
-    ctx.state.tilt = hud.meter('tilt', { label: 'TILT', color: '#c86a8a', order: 4, visible: false });
-    ctx.state.slate = hud.toolLine(2, 'ink');
+    // one block under the coins (a single plate): the stack and its bar,
+    // the slate's two numbers, TILT
+    ctx.state.stack = hud.meter('stack', { label: 'STACK $100', color: COLORS.between, order: 3, group: 'purse' });
+    ctx.state.slate = hud.meter('slate', { label: '', color: '#f2e9d8', order: 3.5, group: 'purse', bar: false, visible: false });
+    ctx.state.tilt = hud.meter('tilt', { label: 'TILT', color: '#c86a8a', order: 4, group: 'purse', visible: false });
     // the blur at the edges: in the world (zoomed with it), scaled to cover the view
     ctx.state.vig = s.add.image(0, 0, vignetteKey(s)).setScrollFactor(0).setDepth(90).setAlpha(0).setOrigin(0.5);
     ctx.state.vig.keepInWorld = true;
@@ -56,7 +59,7 @@ export default {
       { at: p.stop / top, color: '#d5443c' },
       { at: p.goal / top, color: '#f6d98a' },
     ]);
-    st.slate.setText(F.slate_set ? `STOP $${p.stop} GOAL $${p.goal}` : 'LOU: $100').setColor(ln === 'below' ? 'danger' : 'ink');
+    st.slate.setLabel(`STOP $${p.stop} · GOAL $${p.goal}`).setColor(ln === 'below' ? '#e86a5a' : '#f2e9d8').setVisible(!!F.slate_set);
     st.tilt.set(p.tilt).setVisible(!!F.slate_set);
     // the air: walking an open deck cools the head
     const pl = ctx.player;

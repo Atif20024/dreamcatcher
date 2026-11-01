@@ -329,6 +329,26 @@ export default class AstronautScene extends BaseLevel {
     return it;
   }
 
+  // touch screens (src/ui/TouchControls.js): the F button shows only while
+  // [F] does something here (a hook in reach, a two-person job, the rescue)
+  touchKeys() {
+    const p = this.player;
+    if (!p || !this.built) return [];
+    const near = (id, r) => {
+      const o = this.obj(id);
+      return !!o && Math.abs(p.x - o.wx) < r;
+    };
+    const hook = (this.hooks || []).some((h) => Math.abs(h.x - p.x) < 6.5 * T && Math.abs(h.y - p.y) < 6.5 * T);
+    const f =
+      hook ||
+      !!this.tether ||
+      !!this.carryingPriya ||
+      !!this.alarmOn ||
+      (this.F.centrifuge && !this.tankHatchOpen && near('tank_hatch', 160)) ||
+      (this.F.docked && !this.F.coolant && !this.priyaOnHatch && near('valve', 200));
+    return f ? ['KeyF'] : [];
+  }
+
   obj(id, n = 0) {
     const all = this.built.objects.filter((o) => o.id === id || (o.type === 'mark' && o.id === id));
     return all[n];
