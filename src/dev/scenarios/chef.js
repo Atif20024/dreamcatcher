@@ -551,7 +551,9 @@ const chefPlaythrough = {
     for (let i = 0; i < 600 && !(s.ending.active && s.ending.waitingForReturn); i++) await dc.run(1);
     mark('caught', s.ending.caught);
     dc.press('interact', 3);
-    await dc.run(10);
+    // the press ends the dream; wait out the train wipe, or it lands on the next scenario
+    for (let i = 0; i < 300 && keyOf(dc) !== 'Hub'; i++) await dc.run(2);
+    mark('hub', keyOf(dc) === 'Hub');
     uncatch('chef');
     clearRun('chef');
     return { pass: log.every((l) => !l.endsWith(':BAD')), detail: log };

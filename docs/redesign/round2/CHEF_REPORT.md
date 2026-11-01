@@ -119,7 +119,13 @@ The ramp is untested by hand too. With fewer tickets, sitting 1 has one less pla
 
 ### Checks
 
-vitest 357 pass; lint:content, lint:rooms, lint:scale and vite build clean. All 20 scenarios with chef in the id pass, including the five new ones and `readability-chef` and `scale-chef`. `__dc.readability()` was empty in the pit, prep, the line (rail up, out of stock, stirring), the hands and the dining room.
+After merging `redesign`: vitest 471 pass; lint:content, lint:rooms, lint:scale and vite build clean. All 20 scenarios with chef in the id ran on the merge. 19 pass every time; `scale-chef` is flaky (see Known). `__dc.readability()` was empty in the pit, prep, the line (rail up, out of stock, stirring), the hands and the dining room, checked before the merge; `readability-chef` passes after it.
+
+`chef-playthrough` no longer calls `s.ending.finish()`. Removing it was not enough: the interact press starts a train wipe that landed on the next scenario, and `musician-playthrough` threw. The scenario now waits for the Hub. The two pass in that order.
+
+`jo-contrast`, Chef candle at spawn, after the merge: edge 2.18 (was 1.95), local 2.53. **Better, still under 3:1, so `jo-contrast` still fails on the Chef.**
+
+Brann after the merge: his feet are at floor level (body and drawn bottom both 384, floor 384, same as Jo), and `chef-busy-brann` passes.
 
 The hands box text ("A burn on the left thumb.") reads cleanly at 1:1 in `chef2_hands1.jpg`: not garbled in this capture.
 
@@ -128,7 +134,7 @@ The hands box text ("A burn on the left thumb.") reads cleanly at 1:1 in `chef2_
 - The yard is under 3:1 (above).
 - On a Continue during the rush, the line's stock goes back to full. Small, in the player's favour.
 - `THE LINE: DOORS 7:30` is body type at ×1 under a bulb's glare and reads a little soft.
-- In the yard, Marguerite looked very narrow in two captures taken soon after arrival, and normal in a later one from the same distance. Cause not found; worth a look when played.
+- **Headless idle frames.** `npc-rv-marguerite-idle#7` and `#8` in the baked atlas are a narrow body with no head or arms (22 x 58 px, against 24 x 80 for `#1`), and Bastien's are the same (22 x 56). Marguerite is the first person the player sees in the yard, so she flickers this way for 2 frames of her 8-frame idle. It also makes `scale-chef` flaky: it failed 2 of 6 runs in a row, each time naming those frames. Composing Marguerite's pose in Node with `composeCast` gives a head, though I built her from a lookup in `data/scale.js` rather than the bake's own inputs, so the cause is not found. The art is shared, so I left it alone.
 - `src/entities/Foe.js` and `src/scenes/DreamScene.js` each have a small shared change (`player.busy`; `fx.call` in `applyEffect`). No other dream sets or uses either. Only chef scenarios were run on them, plus the casino boarding in `chef-hooks-clear`.
 
 Screenshots: `chef2_<name>.jpg` in the session scratchpad.
