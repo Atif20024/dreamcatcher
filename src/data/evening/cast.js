@@ -274,6 +274,13 @@ export const CAST = {
     idle: ["They light themselves out here. I go round anyway. Somebody should look at them.", "Steady hands. That's all it ever wanted.", 'Seven, every evening, and nobody looks up. Good.'],
     roast: ["You were the only one awake. That is all anyone is, at the start.", 'The man with the watch got his train. He never did ask who.'],
   },
+  // the clockmaker's dreamer: only if Jo saw him home (dream.persist home → save.met.ansel)
+  ansel: {
+    name: 'Ansel', voice: 0.8, home: 'square', greets: 'ansel', knows: 'ansel', ordinary: 'lamps',
+    look: { hat: 'none', held: 'wheel', pal: P(0xc8c4bc, 0xc8a088, 0x5a5660, 0xd8d0c0, 0x3a3440, 0x1e1a1e, 0xc8a050) },
+    idle: ['I was late. I went in. It took me a long while to do the second part.', 'Seven, an hour late. I am told that is still seven.', 'Forty-one years and not one tooth. And then one evening.'],
+    roast: ['You hang a wheel like a man who was told.'],
+  },
   // the painter's: a girl the guild would not take, and the master who signed her work
   bice: {
     name: 'Bice', voice: 1.12, home: 'laundry', greets: 'painter', knows: 'painter', ordinary: 'drawing',

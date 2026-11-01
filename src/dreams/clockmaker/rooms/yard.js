@@ -2,8 +2,8 @@
 // tower stands in the backdrop with its belfry lit. Jo first comes out on it
 // from above, by the belfry's little door: the rope is at his hand, the seven
 // dark lamps run down the hill to the shut gate. Seven strikes light them, in
-// order, up toward him, and the gate opens. The dream waits at the top of the
-// hill, once he has been down to see what he did.
+// order, up toward him, and the gate opens. The keeper is out here too: he goes
+// on down the hill as Jo strikes, or he stays at the rope, as Jo asked him.
 export default {
   id: 'yard',
   origin: { tx: 100, ty: 0 },
@@ -50,7 +50,6 @@ export default {
   objective: [
     { text: 'strike_seven' },
     { text: 'to_green', flag: 'struck' },
-    { text: 'catch_dream', flag: 'green_lit' },
   ],
   titleCard: 'THE BELL YARD',
   entities: [
@@ -66,6 +65,6 @@ export default {
     { type: 'coins', id: 'c_hop2', x: 5, y: 12, n: 2 },
     { type: 'coin', id: 'c_hop3', x: 7, y: 13 },
     { type: 'coins', id: 'c_top', x: 31, y: 10, n: 2 },
-    { type: 'orb', id: 'orb', x: 24, y: 9, when: 'green_lit' },
+    { type: 'npc', id: 'keeper_hill', cast: 'npc-sh-keeper', x: 25, y: 11, walks: true, facing: -1, when: 'clock_wound', unless: 'keeper_left' },
   ],
 };

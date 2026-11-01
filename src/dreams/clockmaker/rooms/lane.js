@@ -1,7 +1,9 @@
 // THE LANE: THE STOPPED HOUR opens here, outdoors at dusk. Cobbles, a low
 // stone wall to hop, a raised pavement with ramps, a puddle in a dip, and
 // the hedge arch into the green at its right edge (a seam: no cut). A child at
-// a lit window asks a question; a man waits by the arch with a watch.
+// a lit window asks a question; a man waits by the arch with a watch. The first
+// house is the keeper's: a table laid for two in its window, and his door, the
+// dream's last stop (the orb is on the step once he has gone in).
 // where the child's window is (room columns: the lit window of the house at x22)
 export const CHILD = { x: 23.3 };
 export default {
@@ -34,6 +36,9 @@ export default {
   decor: [],
   props: [
     { prop: 'house_small', x: 5, y: 16 },
+    // the lit window of his house (the same place on the house as the child's, unflipped)
+    { prop: 'window_table', x: 4, y: 13, dx: -9, dy: 14 },
+    { prop: 'door_lit', x: 5, y: 16, when: 'home', live: true },
     { prop: 'lamp_post_dark', x: 10, y: 16, unless: 'struck', live: true },
     { prop: 'lamp_post', x: 10, y: 16, when: 'struck', live: true },
     { prop: 'barrel', x: 17, y: 16 },
@@ -53,11 +58,18 @@ export default {
   acoustics: 'open',
   events: 'dusk',
   music: { state: 'quiet', key: 'lane' },
-  objective: 'find_lamplighter',
+  objective: [
+    { text: 'find_lamplighter' },
+    { text: 'see_him_home', flag: 'green_lit' },
+    { text: 'catch_dream', flag: 'home' },
+  ],
   titleCard: 'THE LANE, AFTER SIX',
   entities: [
     { type: 'spawn', id: 'start', x: 3, y: 15 },
     { type: 'checkpoint', id: 'cp_lane', label: 'THE LANE', x: 8, y: 15 },
+    { type: 'moment', id: 'm_table', x: 4, y: 15, prompt: 'look in at the window', beat: 'moment_table' },
+    { type: 'npc', id: 'keeper_door', cast: 'npc-sh-keeper', x: 7, y: 15, walks: true, facing: 1, when: 'keeper_stays', unless: 'home' },
+    { type: 'orb', id: 'orb', x: 7, y: 13, when: 'home' },
     { type: 'sign', text: 'THE GREEN', size: 'small', x: 41, y: 13, dy: 2, board: 0x6a4a2e, padX: 6, padY: 3, scale: 2 },
     { type: 'npc', id: 'watch', cast: 'npc-sh-watch', x: 42, y: 15, facing: 1, talk: [{ conv: 'watch_after', if: 'struck' }, { conv: 'watch' }] },
     // coins (brass cogs, worth 3): on top of the low wall (a hop) and in an

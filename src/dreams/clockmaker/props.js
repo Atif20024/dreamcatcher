@@ -26,6 +26,26 @@ function child(ctx, w, h, wave) {
   else ctx.fillRect(w / 2 + 6, h - 8, 4, 6);
 }
 
+// a house's lit window from outside (the window is 30 × 40): a lamp, the table
+// across it, two plates, one chair pulled out
+function tableWindow(ctx, w, h) {
+  ctx.fillStyle = rgba(0x3a2418, 0.45);
+  ctx.fillRect(4, 22, 22, 18);
+  ctx.fillStyle = hex(0x5a3820);
+  ctx.fillRect(3, 26, 24, 3); // the table
+  ctx.fillRect(5, 29, 2, 11);
+  ctx.fillRect(23, 29, 2, 11);
+  ctx.fillStyle = hex(0xf2ece0);
+  ctx.fillRect(7, 24, 6, 2); // a plate
+  ctx.fillRect(17, 24, 6, 2); // a plate
+  ctx.fillStyle = hex(0x3a2418);
+  ctx.fillRect(25, 22, 2, 18); // the chair, pulled out
+  ctx.fillRect(25, 32, 5, 2);
+  ctx.fillStyle = hex(0xffd890);
+  ctx.fillRect(14, 10, 2, 6); // the lamp over it
+  ctx.fillRect(12, 16, 6, 3);
+}
+
 export default {
   // the great bell, hanging from its beam (1.6 m across the lip)
   great_bell: prop('great_bell', (ctx, w, h, P) => {
@@ -83,6 +103,40 @@ export default {
     ctx.fillRect(w / 2 - 25, h - 99, 50, 99);
     ctx.fillStyle = hex(P.brassLit);
     ctx.fillRect(w / 2 + 16, h - 50, 4, 4);
+  }),
+  window_table: prop('window_table', tableWindow),
+  // his door, open a hand: warm light, and nothing to see past it (the 40 x 74 of the house's door)
+  door_lit: prop('door_lit', (ctx, w, h, P) => {
+    const g = ctx.createLinearGradient(0, 0, w, 0);
+    g.addColorStop(0, hex(0xffe0a0));
+    g.addColorStop(1, hex(0xf2a860));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = hex(mix(P.leaf, P.deep, 0.35));
+    ctx.beginPath(); // the door itself, swung in
+    ctx.moveTo(w, 0);
+    ctx.lineTo(w * 0.62, 6);
+    ctx.lineTo(w * 0.62, h - 4);
+    ctx.lineTo(w, h);
+    ctx.fill();
+  }),
+  // the drawer of the bench, run out (the bench train opened it)
+  bench_drawer: prop('bench_drawer', (ctx, w, h, P) => {
+    ctx.fillStyle = hex(P.wood);
+    ctx.fillRect(0, 2, w, h - 2);
+    ctx.fillStyle = hex(mix(P.wood, P.deep, 0.5));
+    ctx.fillRect(2, 2, w - 4, 3);
+    ctx.fillStyle = hex(P.brassLit);
+    ctx.fillRect(w / 2 - 3, h - 7, 6, 3);
+  }),
+  // an iron cage over the gear's stand; the shaft's train lifts it
+  gear_cage: prop('gear_cage', (ctx, w, h, P) => {
+    ctx.fillStyle = hex(P.iron);
+    for (let x = 1; x < w; x += 8) ctx.fillRect(x, 4, 3, h - 4);
+    ctx.fillRect(0, 0, w, 6);
+    ctx.fillRect(0, h - 4, w, 4);
+    ctx.fillStyle = rgba(P.lit, 0.35);
+    for (let x = 1; x < w; x += 8) ctx.fillRect(x, 6, 1, h - 12);
   }),
   window_child: prop('window_child', (ctx, w, h) => child(ctx, w, h, false)),
   window_child_wave: prop('window_child_wave', (ctx, w, h) => child(ctx, w, h, true)),

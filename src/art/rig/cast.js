@@ -192,6 +192,7 @@ const HELD = {
   book: { rows: ['ZAA', 'AAx', 'xxx'], ox: 1, oy: 1, arm: [12, 80] },
   bass: { rows: ['....F', '....F', '...FF', '..AAA', '.ZAxA', 'AZAAA', 'AAxAA', '.AAA.'], ox: 3, oy: 3, arm: [20, 70], back: [40, 50] },
   can: { rows: ['F.....', '.FZAA.', '..AAAA', '..AxAA', '..AAA.'], ox: 3, oy: 1, arm: [10, 10] },
+  wheel: { rows: ['.ZA.', 'ZxxA', 'AxxA', '.AA.'], ox: 1, oy: 2, arm: [36, 80] },
   brush: { rows: ['A', 'F', 'F', 'F'], ox: 0, oy: 2, arm: [30, 70] },
   broom: { rows: ['.F.', '.F.', '.F.', '.F.', '.F.', '.F.', '.F.', '.F.', '.F.', '.F.', '.F.', 'ZAA', 'AxA', 'AxA'], ox: 1, oy: 4, arm: [28, 40] },
   ledger: { rows: ['ZZZ', 'AxA', 'AAA', 'AxA'], ox: 1, oy: 1, arm: [12, 80] },

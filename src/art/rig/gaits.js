@@ -93,6 +93,9 @@ export const GAITS = {
   kid: (b) => ({ walk: { n: 6, step: 2, lift: 3, hips: [0, -2, 2], arms: swing(30, 20, 10) }, runAbove: 90 }),
   // the elderly: a short, stooped stroll
   stroll: (b) => ({ walk: { n: 8, step: 2, lift: 1, hips: [0, 0, 0, 1], lean: 1, arms: swing(10, 14) }, runAbove: 100 }),
+  // Ansel Dunmarrow: a stiff left hip. Ten frames, a hitch in the hips, weight rocked
+  // over the good leg, one hand kept to itself (the wheel)
+  hitch: (b) => ({ walk: { n: 10, step: 2, lift: 1, hips: [0, -1, -1, 0, 1], lean: 1, sway: 1.5, arms: swing(8, 40, 6, 6) }, runAbove: 200 }),
   // the gym rat: chest out, arms held off the lats
   swagger: (b) => ({ walk: { n: 8, step: 3, lift: 3, hips: [0, -1, 0, 1], chest: 1, lean: -1, arms: swing(18, 30, 10, 12) }, runAbove: 95 }),
   // farmers, cleaners: a plodding, heavy-footed walk
@@ -132,6 +135,9 @@ export const FOE_GAITS = {
   'foe-rn-porter': 'plod',
   // THE LAST HAND: Crake, the debt man, walks with his hands behind him; he never runs
   'foe-lq-crake': 'measured',
+  // (the table also names people with a gait of their own)
+  'npc-sh-keeper': 'hitch',
+  'ev-p-ansel': 'hitch',
 };
 // people who stand still for a living get no run (saves atlas space)
 export const NO_RUN = new Set(['foe-heckler', 'foe-talker', 'foe-lq-crake']);
@@ -200,6 +206,8 @@ const LOOP = {
   coil: [0, 1, 2, 3, 2, 1, 0, 0].map((t) => P({ aB: [30 + t * 10, 60], handB: 'fist', head: 'down' })),
   rope: [0, 1, 2, 3, 2, 1, 0, 0].map((t) => P({ aB: [30 + t * 10, 60], handB: 'fist', head: 'down' })),
   basket: [0, 0, 1, 1, 0, 0, 0, 0].map((t, i) => P({ hips: t ? -1 : 0, hx: 0, chest: t, head: i === 5 ? 'blink' : 'base', headFlip: i === 6 })),
+  // the keeper turning a small brass wheel over, looking at it
+  wheel: [0, 1, 2, 3, 2, 1, 0, 0].map((t, i) => P({ heldArm: [36 + t * 4, 80 - t * 6], aB: [16, 40 + t * 8], head: i === 6 ? 'blink' : 'down', lean: 1 })),
   crate: [0, 0, 1, 1, 0, 0, 0, 0].map((t) => P({ hips: t ? -1 : 0, lean: -t, chest: t })),
   case: [0, 0, 1, 1, 0, 0, 0, 0].map((t, i) => P({ chest: t, headFlip: i === 4 || i === 5 })),
 };

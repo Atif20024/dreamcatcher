@@ -50,7 +50,7 @@ const T = 32;
 const px = (t) => t * T + T / 2;
 const WRAP_DX = EV.E0 * T;
 const HEART = { rows: ['.hh.hh.', 'hhhhhhh', 'hhhhhhh', '.hhhhh.', '..hhh..', '...h...'], pal: { h: 0xe86a6a } };
-const DREAM_CAST = ['priya', 'nia', 'delphine', 'ray', 'marguerite', 'bastien', 'nell', 'bice', 'gualtiero', 'lou', 'fenn'];
+const DREAM_CAST = ['priya', 'nia', 'delphine', 'ray', 'marguerite', 'bastien', 'nell', 'bice', 'gualtiero', 'lou', 'fenn', 'ansel'];
 const wait = (scene, ms) => new Promise((res) => scene.time.delayedCall(ms, res));
 
 export default class EveningScene extends BaseLevel {

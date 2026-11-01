@@ -46,7 +46,7 @@ export class Npc {
   // beat walked to and fro with pauses (a steward with his tray, a deckhand);
   // `follow: [x0, x1]` keeps a step behind Jo's shoulder inside that span
   // (Lou). Legs are stepped by the ground covered (Stride): no slide.
-  constructor(scene, { id, x, y, rig, cast = null, pose = null, outfit = 'street', facing = -1, task = null, depth = D.PLAYER - 1, turns = true, pace = null, follow = null }) {
+  constructor(scene, { id, x, y, rig, cast = null, pose = null, outfit = 'street', facing = -1, task = null, depth = D.PLAYER - 1, turns = true, pace = null, follow = null, walks = false }) {
     this.scene = scene;
     this.id = id;
     this.rig = rig || cast;
@@ -58,7 +58,7 @@ export class Npc {
     if (cast) {
       this.body = new CastBody(scene, cast, x, y, depth, pose);
       this.ok = this.body.ok;
-      if ((pace || follow) && pose !== 'sit') {
+      if ((pace || follow || walks) && pose !== 'sit') {
         this.stride = new Stride(scene, cast);
         this.pace = pace ? { a: Math.min(pace[0], pace[1]), b: Math.max(pace[0], pace[1]), dir: facing < 0 ? -1 : 1, wait: 1500, speed: 40 } : null;
         this.follow = follow ? { a: Math.min(follow[0], follow[1]), b: Math.max(follow[0], follow[1]) } : null;
@@ -121,7 +121,16 @@ export class Npc {
     else if (this.hat) this.hat.setVisible(false);
   }
 
-  // one frame of walking (pace or follow): returns the walk frame, or null
+  // a beat walks a cast person (`walks: true`) to a world x; floorAt(x) gives the
+  // ground if it is not level. Resolves on arrival.
+  walkTo(x, speed = 60, floorAt = null) {
+    return new Promise((res) => {
+      if (this.goal) this.goal.res();
+      this.goal = { x, speed, floorAt, res };
+    });
+  }
+
+  // one frame of walking (pace, follow or a beat's walkTo): returns the walk frame, or null
   // when standing (the idle and talk loops play then)
   walk(dt, jo) {
     let vx = 0;
@@ -129,7 +138,22 @@ export class Npc {
       this.stride.next(0, dt);
       return null;
     }
-    if (this.follow && jo) {
+    if (this.goal) {
+      const g = this.goal;
+      const d = g.x - this.x;
+      const step = (g.speed * dt) / 1000;
+      if (Math.abs(d) <= step) {
+        this.goal = null;
+        this.x = g.x;
+        if (g.floorAt) this.y = g.floorAt(this.x);
+        g.res();
+        this.stride.next(0, dt);
+        return null;
+      }
+      vx = Math.sign(d) * g.speed;
+      this.facing = Math.sign(vx);
+      if (g.floorAt) this.y = g.floorAt(this.x + (vx * dt) / 1000);
+    } else if (this.follow && jo) {
       // a step behind Jo's shoulder, on the side he came from
       const jf = jo.flipX ? -1 : 1;
       const want = Math.max(this.follow.a, Math.min(this.follow.b, jo.x - jf * 58));

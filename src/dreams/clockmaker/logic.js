@@ -28,3 +28,24 @@ export function pendulumToll(hitsBefore, hearts) {
 export function lampFlags(F, count) {
   for (let i = 1; i <= 7; i++) if (i <= count) F[`lamp_${i}`] = true;
 }
+
+// where a dropped wheel comes to rest: the top of the first floor under (x, y),
+// room-local px. Ladders are not floors. null if nothing is under it
+export function floorUnder(rows, x, y) {
+  const col = Math.floor(x / T);
+  for (let row = Math.max(0, Math.floor(y / T)); row < rows.length; row++) if ('#=/\\'.includes(rows[row][col] || '.')) return row * T;
+  return null;
+}
+
+// the yard's hill under a walker (room px x → room px y of the ground): the floor
+// is row 16, stepping up a row on each slope tile to row 12 at the top
+const HILL = [[9, 16], [13, 15], [17, 14], [20, 13]];
+export function hillFloor(x) {
+  const col = x / T;
+  let row = 16;
+  for (const [c, r] of HILL) if (col >= c) row = col >= c + 1 ? r - 1 : r - (col - c);
+  return row * T;
+}
+
+// what the seven strikes make of the keeper, if he went on ahead: how far down the hill (a column)
+export const keeperAtStrike = (count) => 25 - (22 * Math.min(count, 7)) / 7;

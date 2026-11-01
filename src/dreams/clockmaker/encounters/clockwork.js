@@ -10,7 +10,7 @@
 //               the payoff cannot be missed, only played or watched.
 import { clockwork } from '../../../engines/clockwork.js';
 import { escapement as escapementEngine } from '../../../engines/escapement.js';
-import { lampFlags } from '../logic.js';
+import { lampFlags, keeperAtStrike, hillFloor } from '../logic.js';
 
 export default {
   id: 'clockwork',
@@ -64,6 +64,17 @@ export const strike = {
   onRender(scene, st) {
     if (scene.music) scene.music.setState('silent'); // nothing but the bell
     lampFlags(scene.F, st.count);
+    // the keeper, as Jo asked him under the bell: on his way down the hill, or counting
+    const F = scene.F;
+    if ((F.strikes_seen || 0) === st.count) return;
+    F.strikes_seen = st.count;
+    const n = scene.npcs.get('keeper_hill');
+    if (!n || !st.count) return;
+    if (F.keeper_stays) scene.caption.say('keeper', `${['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven'][st.count - 1]}.`, { ms: 1000 });
+    else {
+      const r = scene.graph.room('yard');
+      n.walkTo((r.tx + keeperAtStrike(st.count)) * 32, 130, (x) => r.ty * 32 + hillFloor(x - r.tx * 32));
+    }
   },
   onWin: 'seven_struck',
 };

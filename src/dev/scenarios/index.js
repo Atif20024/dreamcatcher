@@ -48,6 +48,9 @@ SCENARIOS.push(...astroPool);
 // THE LAST HAND on the framework (the gambler rebuilt aboard the Lantern Queen)
 import gambler from './gambler.js';
 SCENARIOS.push(...gambler);
+// THE STOPPED HOUR's dreamer and its wheels
+import clockmakerDreamer from './clockmakerDreamer.js';
+SCENARIOS.push(...clockmakerDreamer);
 // phones and tablets: the touch layer drives Jo and answers the dialogue
 import touch from './touch.js';
 SCENARIOS.push(...touch);

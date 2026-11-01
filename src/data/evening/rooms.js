@@ -74,6 +74,8 @@ const O = {
     { type: 'lamp', at: 148, y: 31 },
     // Nell, at a lamp that does not need her
     { type: 'npc', who: 'nell', at: 146.5, y: 31 },
+    // and the keeper, watching her do it
+    { type: 'npc', who: 'ansel', at: 144.5, y: 31 },
     { type: 'npc', who: 'bo', at: 151, y: 31 },
     { type: 'activity', id: 'bo', at: 151, y: 31 },
     { type: 'postbox', at: 156, y: 31 },
