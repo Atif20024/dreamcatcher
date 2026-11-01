@@ -137,25 +137,42 @@ export function migrate(raw) {
 }
 
 // ---- storage adapters ------------------------------------------------------
-export function localStorageAdapter(key = SAVE_KEY, storage = typeof localStorage !== 'undefined' ? localStorage : null) {
+// merely touching window.localStorage throws when the browser blocks site data
+function defaultStorage() {
+  try {
+    return typeof localStorage !== 'undefined' ? localStorage : null;
+  } catch {
+    return null;
+  }
+}
+
+export function localStorageAdapter(key = SAVE_KEY, storage = defaultStorage()) {
+  // blocked or full storage: this session's progress lives here instead
+  let lastWritten = null;
+  let writeFailed = false;
   return {
     read() {
+      if (writeFailed) return lastWritten;
       try {
-        return storage ? storage.getItem(key) : null;
+        return storage.getItem(key);
       } catch {
-        return null;
+        return lastWritten;
       }
     },
     write(str) {
+      lastWritten = str;
       try {
-        if (storage) storage.setItem(key, str);
+        storage.setItem(key, str);
+        writeFailed = false;
       } catch {
-        /* full or blocked storage: play on */
+        writeFailed = true; // play on
       }
     },
     remove() {
+      lastWritten = null;
+      writeFailed = false;
       try {
-        if (storage) storage.removeItem(key);
+        storage.removeItem(key);
       } catch {
         /* ignore */
       }
