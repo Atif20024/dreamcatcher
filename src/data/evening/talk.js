@@ -183,7 +183,7 @@ export const HER_LINES = {
   ],
   // gated roasts (she's heard the stories; the town talks)
   roast: {
-    chef: ['I heard about the soufflé. The whole square heard about the soufflé.'],
+    chef: ["I heard about the Carnet's plate. The whole square heard about the plate."],
     musician: ['Nine people. I asked Delphine. She said nine, and one was her.'],
     astronaut: ['Twelve months, Priya said. She said it like it was twelve years.'],
   },

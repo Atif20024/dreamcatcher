@@ -258,14 +258,47 @@ export const CAST = {
   marguerite: {
     name: 'Marguerite', voice: 1.02, home: 'square', greets: 'chef', knows: 'chef', ordinary: 'shelling',
     look: { hat: 'bun', held: null, pal: P(0x8a8a90, 0xd8b090, 0x2a2a34, 0xf2ece0, 0x2a2a34, 0x1a1a20) },
-    idle: ['Peas. I shell peas now. For fun. Imagine.', 'Nobody here sends anything back. It\'s unnerving.'],
-    roast: ['He plated a soufflé with a gloved hand. I still think about it.', 'Salt the water, Jo. I\'m not saying it twice. I\'m saying it forever.'],
+    idle: ['Peas. I shell peas now. For fun. Imagine.', 'Nobody here sends anything back. It\'s unnerving.', 'Forty years on the line and I still read this square left to right.'],
+    roast: ['Read the rail, Jo, not the room. You looked at the room.', 'Salt the water, Jo. I\'m not saying it twice. I\'m saying it forever.'],
   },
   bastien: {
     name: 'Bastien', voice: 1.15, home: 'canal', greets: 'chef', knows: 'chef', ordinary: 'washing',
     look: { hat: 'none', held: 'brush', pal: P(0x6a4a2a, 0xc8a080, 0xe8e4d8, 0xb8b4a8, 0x3a3a44, 0x1e1e28, 0x8a6a4a) },
-    idle: ['This step was filthy. Now it is a step.', "I still sing when I scrub. Nobody's asked me to stop. Yet."],
-    roast: ['He sings worse than me. Nobody believes me. It\'s true.'],
+    idle: ['This step was filthy. Now it is a step.', "I just wash. Plates, steps. It's all the same water."],
+    roast: ['Nobody ever comes back down once they have an apron. You could have, you know.', 'I told you about the floor by the sink. That was a promise.'],
+  },
+  // the clockmaker's: the lamps here light themselves, and she goes round anyway
+  nell: {
+    name: 'Nell', voice: 1.25, home: 'square', greets: 'clockmaker', knows: 'clockmaker', ordinary: 'lamps',
+    look: { hat: 'scarf', held: 'pole', pal: P(0x4a5a7a, 0xd8a888, 0x6a4a3a, 0x50382a, 0x3a3a44, 0x1e1e28, 0x8a6a4a) },
+    idle: ["They light themselves out here. I go round anyway. Somebody should look at them.", "Steady hands. That's all it ever wanted.", 'Seven, every evening, and nobody looks up. Good.'],
+    roast: ["You were the only one awake. That is all anyone is, at the start.", 'The man with the watch got his train. He never did ask who.'],
+  },
+  // the painter's: a girl the guild would not take, and the master who signed her work
+  bice: {
+    name: 'Bice', voice: 1.12, home: 'laundry', greets: 'painter', knows: 'painter', ordinary: 'drawing',
+    look: { hat: 'scarf', held: 'book', pal: P(0x8a5a2a, 0xc89878, 0x5a6a7a, 0x445260, 0x4a3a34, 0x2a1e1a, 0xe8e4d8) },
+    idle: ['Look at that sheet. It falls from the peg, and then it breaks.', 'Nobody here asks who taught me. I draw in the daylight now.', "Everyone copies someone. Fereshteh's folding is better than most altarpieces."],
+    roast: ["You'll paint it like rope. Everyone does.", 'Nobody will ever know which star was yours. I do.'],
+  },
+  gualtiero: {
+    name: 'Gualtiero', voice: 0.8, home: 'arch', greets: 'painter', knows: 'painter', ordinary: 'resting',
+    look: { hat: 'cap', held: 'brush', pal: P(0x6a2a2a, 0xc8a080, 0x4a3a3a, 0x362a2a, 0x3a3238, 0x1e1a1e, 0x8a6a4a) },
+    idle: ['No scaffold in this town. My knees have written to thank it.', 'I sign nothing now. It is very restful.', 'Painters are made at the slab, you know. Sit. You will not be made today.'],
+    roast: ['You swept like a boy who would rather be painting. You still do.', "Flour, with gravel in it. That was your first green. I kept some."],
+  },
+  // the casino's: he never did learn to stand up; the other one is up tomorrow
+  lou: {
+    name: 'Lou', voice: 0.88, home: 'canal', greets: 'gambler', knows: 'gambler', ordinary: 'watching',
+    look: { hat: 'cap', held: null, pal: P(0x3a3028, 0xb09070, 0x4a4a3a, 0x36362a, 0x3a3a34, 0x1e1e1e) },
+    idle: ['No cards in this town. I checked. Twice.', "Look at my hands. Steady as anything, now there's nothing to hold.", 'Lamp oil and money. You can smell neither out here. I keep trying.'],
+    roast: ["You stood up. With the cards on the table and the lamp lit. I'd have stayed.", "Forty-eight years, and it took a kid who could leave. I tell that one for free."],
+  },
+  fenn: {
+    name: 'Fenn', voice: 1.05, home: 'square', greets: false, knows: 'gambler', ordinary: 'fountain',
+    look: { hat: 'none', held: null, pal: P(0x8a8478, 0xc8a080, 0x5a4a6a, 0x443854, 0x3a3a44, 0x1e1e28) },
+    idle: ['One coin. In the fountain. Every night.', "It came up once, in seventy-nine. It will again.", 'Tomorrow is my night, you know. I can feel it.'],
+    roast: ['You beat the bank? Oh, well done. Tomorrow is mine.'],
   },
 };
 

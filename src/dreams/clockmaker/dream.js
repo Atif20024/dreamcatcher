@@ -71,6 +71,7 @@ const calls = {
 
 export default {
   id: 'clockmaker',
+  markMet: true, // the Evening's Nell
   title: 'THE STOPPED HOUR',
   enabled: true,
   profile: { failure: 'default', hud: 'default', camera: { zoom: 1 } },

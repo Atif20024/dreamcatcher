@@ -34,6 +34,8 @@ const O = {
     { type: 'arch', at: 55, y: 31 },
     { type: 'sign', at: 61, y: 31, text: "you're here." },
     { type: 'bench', at: 70, y: 30, id: 'arch_bench' },
+    // Gualtiero, off his knees at last
+    { type: 'npc', who: 'gualtiero', at: 69, y: 30, sit: true },
     { type: 'cat', at: 63, y: 31, routine: 'sleeper' },
     { type: 'tufts', at: 66, y: 30, w: 14 },
   ],
@@ -56,6 +58,8 @@ const O = {
     { type: 'npc', who: 'fereshteh', at: 127, y: 30 },
     { type: 'activity', id: 'laundry', at: 127, y: 30 },
     { type: 'npc', who: 'delphine', at: 139, y: 31 },
+    // Bice, drawing the sheets on Fereshteh's line
+    { type: 'npc', who: 'bice', at: 124, y: 30, sit: true },
     { type: 'door', at: 116, y: 31, id: 'door_laundry_w' },
     { type: 'door', at: 141, y: 31, id: 'door_laundry_e' },
     { type: 'awning', at: 141, y: 27, w: 5 },
@@ -68,10 +72,14 @@ const O = {
   // bakery. Everyone else lives somewhere else now.
   square: [
     { type: 'lamp', at: 148, y: 31 },
+    // Nell, at a lamp that does not need her
+    { type: 'npc', who: 'nell', at: 146.5, y: 31 },
     { type: 'npc', who: 'bo', at: 151, y: 31 },
     { type: 'activity', id: 'bo', at: 151, y: 31 },
     { type: 'postbox', at: 156, y: 31 },
     { type: 'fountain', at: 161, y: 31 },
+    // Fenn, one coin, every night
+    { type: 'npc', who: 'fenn', at: 164, y: 31 },
     { type: 'pigeons', at: 162, y: 29, n: 5, lift: 34 },
     { type: 'cat', at: 158, y: 31, routine: 'follower' },
     { type: 'puddle', at: 159, y: 31, w: 3 },
@@ -96,6 +104,8 @@ const O = {
     { type: 'lamp', at: 184, y: 31 },
     { type: 'teastall', at: 186, y: 31 },
     { type: 'npc', who: 'bilal', at: 185, y: 31 },
+    // Lou, at the rail over the water, with nothing to hold
+    { type: 'npc', who: 'lou', at: 189, y: 31 },
     { type: 'activity', id: 'tea', at: 186, y: 31 },
     { type: 'shallows', at: 191, y: 34, w: 5 },
     { type: 'activity', id: 'shoes', at: 192, y: 34 },
