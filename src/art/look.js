@@ -58,13 +58,15 @@ export function setupLook(scene, opts = {}) {
   return look;
 }
 
+export const GLOW_DEPTH = 10.999;
+
 // Round 2 WP6 (critique §9 "Light"): the place's night grade. Every place is
 // a station at night: the world behind Jo is multiplied toward the place's
 // cool indigo, so most of the frame is shadow and the warm practicals and Jo
-// stand out of it. It sits just under Jo and the foes (depth 11), over the
+// stand out of it. It sits just under Jo and the foes, over the
 // terrain, props and passers-by; Jo is never graded, so he stays the
 // highest-contrast thing on screen.
-export function setupGrade(scene, color, { depth = 11 } = {}) {
+export function setupGrade(scene, color, { depth = GLOW_DEPTH - 0.001 } = {}) {
   if (color === undefined || color === null || color === 0xffffff) return null;
   if (!scene.textures.exists('dc-grade')) {
     const ct = scene.textures.createCanvas('dc-grade', 4, 4);
@@ -95,7 +97,8 @@ export function setupGrade(scene, color, { depth = 11 } = {}) {
 // back: the same pixels, tinted (1 - grade), added just over the grade, so
 //   pixel × grade + pixel × (1 - grade) = pixel
 // and the lit shape shows as painted while the wall beside it stays night.
-export const GLOW_DEPTH = 11.001;
+// Grade and copies sit just under 11, the depth of the NPCs, who drew over the
+// grade already and so never get a light showing through them.
 
 // the tint that makes up what the grade took (times the room's own tint)
 export function glowTint(color, tint = 0xffffff) {
@@ -142,6 +145,17 @@ export function litTexture(scene, key, src, rects, box, from = 170) {
   return key;
 }
 
+// takes what stands in front (`src` at x, y; a frame's cut of it) out of a copy
+export function cutOut(scene, key, src, x, y, w, h, fr = null) {
+  const ct = scene.textures.get(key);
+  const ctx = ct.getContext();
+  ctx.globalCompositeOperation = 'destination-out';
+  if (fr) ctx.drawImage(src, fr.cutX, fr.cutY, fr.cutWidth, fr.cutHeight, x, y, w, h);
+  else ctx.drawImage(src, x, y);
+  ctx.globalCompositeOperation = 'source-over';
+  ct.refresh();
+}
+
 // A person in front of a light: over the copies, and graded by tint instead
 // (the same colour, so nothing else changes), so the light does not show
 // through him.
@@ -180,17 +194,10 @@ export function followGlows(scene, shapesOf) {
     const key = `lit:${hit.length ? `${src.texture.key}@${Math.round(b.x)}` : shape.as || src.texture.key}`;
     if (scene.textures.exists(key)) return key;
     litTexture(scene, key, from, shape.rects, [0, 0, f.cutWidth, f.cutHeight], shape.from);
-    if (hit.length) {
-      const ct = scene.textures.get(key);
-      const ctx = ct.getContext();
-      ctx.globalCompositeOperation = 'destination-out';
-      for (const o of hit) {
-        const r = o.getBounds();
-        const fr = o.frame;
-        ctx.drawImage(fr.source.image, fr.cutX, fr.cutY, fr.cutWidth, fr.cutHeight, r.x - b.x, r.y - b.y, r.width, r.height);
-      }
-      ctx.globalCompositeOperation = 'source-over';
-      ct.refresh();
+    for (const o of hit) {
+      const r = o.getBounds();
+      const fr = o.frame;
+      cutOut(scene, key, fr.source.image, r.x - b.x, r.y - b.y, r.width, r.height, fr);
     }
     return key;
   };
