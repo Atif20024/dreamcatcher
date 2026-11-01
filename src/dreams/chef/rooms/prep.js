@@ -68,8 +68,9 @@ export default {
     { type: 'sign', text: 'BOARD', x: 24, y: 9, dy: 8, board: 0x2a2a34, ink: 0xf2e6cc, rim: 0x8a8678 },
     { type: 'sign', text: 'SLAB', x: 30, y: 9, dy: 8, board: 0x2a2a34, ink: 0xf2e6cc, rim: 0x8a8678 },
     { type: 'sign', text: 'HERBS', x: 32, y: 4, dy: 36, dx: -8, board: 0x2a2a34, ink: 0xf2e6cc, rim: 0x8a8678 },
-    { type: 'sign', text: 'SHELF', x: 42, y: 6, dy: 14, board: 0x2a2a34, ink: 0xf2e6cc, rim: 0x8a8678 },
-    { type: 'sign', text: 'THE LINE: DOORS 7:30', x: 42, y: 4, dy: 30, board: 0x2a1c16, ink: 0xf2d580, scale: 1, size: 'body' },
+    { type: 'sign', text: 'SHELF', x: 42, y: 6, dy: 24, board: 0x2a2a34, ink: 0xf2e6cc, rim: 0x8a8678 },
+    // over the bulb's glow (depth 14), and at the size of the room's other signs
+    { type: 'sign', text: 'THE LINE:\nDOORS 7:30', x: 42, y: 4, dy: 32, dx: 10, board: 0x2a1c16, ink: 0xf2d580, size: 'small', depth: 14.5 },
     { type: 'npc', id: 'tome', cast: 'npc-rv-tome', x: 20, y: 11, facing: -1, depth: 'behind', turns: false, talk: [{ conv: 'tome_after', if: 'mise_done' }, { conv: 'tome' }] },
     { type: 'moment', id: 'm1', x: 18, y: 11, prompt: 'watch Tome chop', beat: 'moment_tome' },
     { type: 'foe', kind: 'sous_chef', x: 27, y: 11, patrol: [15, 39] },
