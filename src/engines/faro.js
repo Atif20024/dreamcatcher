@@ -18,6 +18,7 @@
 //
 // Rows: the card (← A … K →) and the bet (BET $10 · BET $20 · STAND UP);
 // [up]/[down] change rows, [left]/[right] change the choice, [E] takes it.
+// A comp's first bet is the small stake only: the house stakes exactly its $10.
 import { rng } from './showdown.js';
 import { rakeOf } from './purse.js';
 
@@ -50,7 +51,7 @@ export function faro({ bank = 40, target = FARO_TARGET, stakes = [10, 20], sched
     done: false,
     result: null,
   };
-  const actions = () => [...stakes.map((v) => ({ id: `bet${v}`, label: `BET $${v}`, stake: v, enabled: s.bank >= v })), { id: 'stand', label: 'STAND UP', enabled: true }];
+  const actions = () => [...stakes.map((v) => ({ id: `bet${v}`, label: `BET $${v}`, stake: v, enabled: s.bank >= v && !(s.houseMoney && v > stakes[0]) })), { id: 'stand', label: 'STAND UP', enabled: true }];
 
   const finish = (res) => {
     s.done = true;
@@ -155,6 +156,15 @@ export function faro({ bank = 40, target = FARO_TARGET, stakes = [10, 20], sched
       }
       bet(a.stake);
       return s.last.kind;
+    },
+    // getting up by the back key: a bet is settled the moment it is placed, so
+    // what the cards already did stands, the unseen last draw included
+    leave() {
+      if (s.done) return s.result;
+      if (s.bank >= target) finish({ ok: true });
+      else if (s.bank < Math.min(...stakes)) finish({ ok: false, left: true, bust: true });
+      else finish({ ok: false, left: true });
+      return s.result;
     },
     takeEvents() {
       const e = s.events;

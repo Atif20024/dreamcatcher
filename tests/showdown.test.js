@@ -1,10 +1,13 @@
 // THE LAST HAND's rules, checked in Node: SHOWDOWN (three-card poker with
 // true tells), the faro bank, the slate and the purse (rake, TILT, ledger).
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { showdown, rank, tier, PLAYERS, TELLS, bestVerb, deck, shuffle, rng } from '../src/engines/showdown.js';
 import { faro } from '../src/engines/faro.js';
 import { slate } from '../src/engines/slate.js';
 import { newPurse, rakeOf, win, lose, tilt, cool, isTilted, line, signMarker, bust, cashOut, ledgerLines, TILTED, rebase, compStake, net } from '../src/engines/purse.js';
+import { infoLine, BEATEN_LINE } from '../src/dreams/gambler/table.js';
+
+vi.mock('../src/ui/text.js', () => ({ uiText: () => null })); // table.js draws through Phaser; infoLine does not
 
 const c = (r, s = 0) => ({ r, s });
 const until = (e, phase, dt = 50, limit = 400) => {
@@ -341,7 +344,7 @@ describe('SHOWDOWN: the last table', () => {
     expect(hums).toBeLessThan(100);
   });
 
-  it('the profit is net of debt, a broke night has no CALL $0, and the habit drifts the cursor back to CALL once', () => {
+  it('the profit is net of debt, a broke night has no CALL $0, and the habit drifts RAISE back to CALL once a sitting', () => {
     // $50 of a $160 stack is a marker: the profit is $10, so CALL plays the $20 floor
     const d = showdown({ mode: 'final', stack: 160, buyin: 100, debt: 50, seed: 3 });
     let st = until(d, 'decide');
@@ -351,18 +354,97 @@ describe('SHOWDOWN: the last table', () => {
     const z = showdown({ mode: 'final', stack: 0, buyin: 100, seed: 3 });
     st = until(z, 'decide');
     expect(st.menu.find((m) => m.id === 'call').enabled).toBe(false);
-    // the habit: off CALL, it drifts back by itself, once
+    // no RAISE $0 either: STAND UP is what is left under the cursor
+    expect(st.menu.find((m) => m.id === 'raise').enabled).toBe(false);
+    expect(st.menu[st.cursor].id).toBe('stand');
+    // the habit: reaching for RAISE, the hand drifts back to CALL by itself
+    const h = showdown({ mode: 'final', stack: 160, buyin: 100, seed: 3, creepMs: 1000 });
+    until(h, 'decide');
+    const verb = () => h.state().menu[h.state().cursor].id;
+    h.move('right');
+    expect(verb()).toBe('raise');
+    for (let i = 0; i < 12; i++) h.update(100);
+    expect(verb()).toBe('call');
+    expect(h.takeEvents()).toContain('creep');
+    // spent: RAISE now stays where it was put
+    h.move('right');
+    for (let i = 0; i < 30; i++) h.update(100);
+    expect(verb()).toBe('raise');
+  });
+
+  it('the habit never takes STAND UP: the cursor stays on it, and E stands up', () => {
     const h = showdown({ mode: 'final', stack: 160, buyin: 100, seed: 3, creepMs: 1000 });
     until(h, 'decide');
     h.move('left'); // wraps to STAND UP
-    expect(h.state().menu[h.state().cursor].id).toBe('stand');
-    for (let i = 0; i < 12; i++) h.update(100);
-    expect(h.state().menu[h.state().cursor].id).toBe('call');
-    h.move('left');
-    for (let i = 0; i < 30; i++) h.update(100);
+    for (let i = 0; i < 100; i++) h.update(100);
     expect(h.state().menu[h.state().cursor].id).toBe('stand');
     h.press('act');
     expect(h.result).toMatchObject({ ok: true, stood: true });
+  });
+
+  it('the habit is once a sitting: a hand won does not bring it back', () => {
+    for (let seed = 1; seed < 100; seed++) {
+      const h = showdown({ mode: 'final', stack: 160, buyin: 100, seed, creepMs: 1000 });
+      until(h, 'decide');
+      h.move('right');
+      for (let i = 0; i < 12; i++) h.update(100); // spent
+      h.press('call');
+      if (!h.state().last.joWins) continue;
+      h.update(5000);
+      until(h, 'decide');
+      h.move('right');
+      for (let i = 0; i < 30; i++) h.update(100);
+      expect(h.state().menu[h.state().cursor].id).toBe('raise');
+      return;
+    }
+    throw new Error('no winning hand found');
+  });
+
+  it('what goes across the table adds up in the engine and on the last line of the ledger', () => {
+    let seen = 0;
+    for (let seed = 1; seed < 100 && seen < 5; seed++) {
+      const e = showdown({ mode: 'final', stack: 160, buyin: 100, seed });
+      until(e, 'decide');
+      e.press('raise');
+      if (e.state().last.joWins) expect(e.state().ledger.across).toBe(0);
+      else {
+        seen++;
+        expect(e.state().ledger.across).toBe(160);
+      }
+    }
+    expect(seen).toBe(5);
+    const p = newPurse({ buyin: 100 });
+    expect(ledgerLines(p, 9).join(' ')).not.toMatch(/across/);
+    // floored back to the buy-in: "up $0" alone would hide the $160
+    Object.assign(p, { across: 160, debt: 10, comps: 1 });
+    const lines = ledgerLines(p, 9);
+    expect(lines.length).toBeLessThanOrEqual(4);
+    expect(lines[lines.length - 1]).toBe('Owed Mr Pell $10, paid $10. The Judge took $160 across the table. Home with $90: down $10.');
+  });
+
+  it('the line under the verbs: TABLE BEATEN on the hand that beat the table, then Lou again', () => {
+    for (let seed = 1; seed < 300; seed++) {
+      const t = showdown({ seats: ['judge'], seed });
+      until(t, 'decide');
+      t.press('call');
+      if (!t.state().last.joWins) continue;
+      expect(infoLine(t.state()).text).toContain(BEATEN_LINE);
+      t.update(5000);
+      const st = until(t, 'decide');
+      expect(st.menu.find((m) => m.id === 'stand').hot).toBe(true); // still gold
+      expect(infoLine(st).text).not.toContain(BEATEN_LINE);
+      expect(infoLine(st).text).toMatch(/^LOU: /);
+      return;
+    }
+    throw new Error('no winning call found');
+  });
+
+  it('the last table says RAISE is gross when something is owed (the HUD stack is net)', () => {
+    const d = showdown({ mode: 'final', stack: 160, buyin: 100, debt: 50, seed: 3 });
+    expect(infoLine(until(d, 'decide')).text).toContain('debt too');
+    expect(infoLine(d.state()).text.length).toBeLessThanOrEqual(70); // the keys row sits right under it
+    const c = showdown({ mode: 'final', stack: 160, buyin: 100, seed: 3 });
+    expect(infoLine(until(c, 'decide')).text).not.toContain('debt');
   });
 
   it('taking the hand is a fair coin with the night on it: a loss ends the night, a win slides another', () => {
@@ -440,6 +522,44 @@ describe('the faro bank', () => {
     e.press();
     expect(e.state().last).toMatchObject({ kind: 'lose', free: true, net: 0 });
     expect(e.state().now).toBe(40);
+  });
+
+  it('the house stakes exactly the $10 it says: BET $20 opens after the first bet', () => {
+    const e = faro({ bank: 40, seed: 1, freeFirst: true });
+    expect(e.state().actions.map((a) => a.enabled)).toEqual([true, false, true]);
+    e.move('right');
+    expect(e.state().actions[e.state().pick].id).toBe('stand'); // the $20 is skipped
+    e.move('left');
+    e.press();
+    expect(e.state().last.stake).toBe(10);
+    expect(e.state().actions[1].enabled).toBe(true);
+  });
+
+  it('getting up by the back key keeps what the bank came to, a bet in play included', () => {
+    // the bet is settled when it is placed: leaving in draw or show neither undoes nor repeats it
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      for (const dt of [0, 800]) {
+        const e = faro({ bank: 40, seed });
+        e.press();
+        e.update(dt);
+        const now = e.state().now;
+        expect(now).not.toBe(40); // the money has already moved
+        expect(e.leave()).toMatchObject({ ok: false, left: true, bank: now, bets: 1 });
+        expect(e.state().phase).toBe('done');
+      }
+    }
+    // nothing bet: the forty comes back whole
+    expect(faro({ bank: 40 }).leave()).toMatchObject({ ok: false, left: true, bank: 40, bets: 0 });
+    // a bust the cards already dealt cannot be walked away from
+    const b = faro({ bank: 10, seed: 1, schedule: [0], p: 0, split: 0, steady: null });
+    b.press();
+    expect(b.leave()).toMatchObject({ ok: false, bust: true, bank: 0 });
+    // nor can a win be lost by it
+    const w = faro({ bank: 75, target: 80, seed: 1, schedule: [1], split: 0 });
+    w.press();
+    expect(w.leave()).toMatchObject({ ok: true, bank: 84 });
+    // a second call changes nothing
+    expect(w.leave()).toMatchObject({ ok: true, bank: 84 });
   });
 
   it('a busted bank ends it; STAND UP walks away with what is left', () => {

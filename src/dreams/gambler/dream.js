@@ -37,7 +37,7 @@ import boat from './verbs/boat.js';
 import props from './props.js';
 import materials from './materials.js';
 import { MUSIC_KEYS } from './music.js';
-import { newPurse, tilt, signMarker, bust, ledgerLines, compStake } from '../../engines/purse.js';
+import { newPurse, tilt, signMarker, bust, ledgerLines, compStake, rebase } from '../../engines/purse.js';
 import { paintSky, paintBackdropLayer } from '../../art/backdrops/painted.js';
 
 // Port Merrow at dusk: river fog, warehouse roofs, a slate-blue sky with the
@@ -141,7 +141,8 @@ const calls = {
     F.night_min = Math.max(1, (scene.time.now - (F._t0 || 0)) / 60000);
   },
   // the last hand taken and lost: the profit went across the table. Lou's
-  // bar is never under the buy-in (no $0 last hand), the head is cleared,
+  // bar is never under the buy-in (no $0 last hand), the head is cleared, the
+  // slate's lines go on what is left (else the HUD reads red at the pilot house)
   // and Jo wakes at the foot of the deck: the way back up is short
   lostNight(scene) {
     const F = scene.F;
@@ -150,6 +151,7 @@ const calls = {
     if (p) {
       p.stack = Math.max(p.stack, p.buyin);
       p.tilt = 0;
+      rebase(p);
     }
     return toQuay(scene, ['THE NIGHT, ACROSS THE TABLE', 'The profit went across the table. The Judge is dealing another.'], SPOTS.deck).then(() => scene.caption.say('lou', "I always found my way back up. Every time. That's the one I always took.", { ms: 3400 }));
   },
@@ -241,6 +243,7 @@ export default {
     // the honest ledger: hours, rake, comps, the folds that saved money
     lines: (F) => ['"I\'d have stayed." Lou, at the rail.', ...ledgerLines(F.purse || newPurse(), F.night_min || 9)],
     vista: 0.85,
+    imageH: 190, // six rows of ledger must clear the foot of the screen and the [E] hint
     paint(ctx, w, h) {
       // the landing at dawn: the river, the far bank in mist, one small coin
       ctx.drawImage(paintSky(DAWN_SKY), 0, 0, w, h);

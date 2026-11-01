@@ -22,8 +22,9 @@
 // third card decides. CALL plays for the night's profit, RAISE for the whole
 // stack; FOLD and BLUFF are dark; STAND UP is the only way out of the room.
 // The Judge's tell there is true like every other: he hums only when his
-// third card pairs him. And the habit: the cursor sits on CALL, and once,
-// if Jo moves it off, it drifts back by itself (calm or not).
+// third card pairs him. And the habit: the cursor sits on CALL, and once a
+// sitting, if Jo reaches for RAISE, it drifts back by itself. It never takes
+// STAND UP from under him.
 //
 // A short stack never goes under nothing: CALL becomes ALL IN $n (what is
 // left), RAISE and BLUFF are dark when they cannot be covered.
@@ -189,7 +190,7 @@ export function showdown({
     pot: 0,
     cursor: 0,
     creepT: 0,
-    habit: false, // the last table's one drift back to CALL, spent
+    habit: false, // the last table's one drift back to CALL, spent (per sitting)
     streak: 0, // losses in a row (chasing)
     won: false, // a pot won at this table (the table is beaten)
     last: null, // the last hand's outcome
@@ -197,7 +198,7 @@ export function showdown({
     events: [], // for the presenter: deal, chip, rake, fold_chime, win, lose
     done: false,
     result: null,
-    ledger: { hands: 0, folds: 0, saved: 0, rake: 0, won: 0, lost: 0 },
+    ledger: { hands: 0, folds: 0, saved: 0, rake: 0, won: 0, lost: 0, across: 0 },
   };
   const opps = () => s.opps;
 
@@ -208,7 +209,7 @@ export function showdown({
       const prof = finalStake();
       return [
         { id: 'call', label: `CALL $${prof}`, enabled: live && prof > 0, cost: prof },
-        { id: 'raise', label: `RAISE $${s.stack}`, enabled: live, cost: s.stack },
+        { id: 'raise', label: `RAISE $${s.stack}`, enabled: live && s.stack > 0, cost: s.stack, why: s.stack > 0 ? null : 'nothing left to raise with' },
         { id: 'fold', label: 'FOLD', enabled: false, why: 'the cards are face up: nothing to fold' },
         { id: 'bluff', label: 'BLUFF', enabled: false, why: 'the cards are face up: nothing to hide' },
         { id: 'stand', label: 'STAND UP', enabled: live, dark: true },
@@ -284,7 +285,6 @@ export function showdown({
     s.phaseT = 0;
     s.creepT = 0;
     s.cursor = 0;
-    s.habit = false;
   };
 
   const best = (list) => list.reduce((m, o) => Math.max(m, rank(o.cards).score), -1);
@@ -323,6 +323,7 @@ export function showdown({
       s.opps[0].inPot = stake;
       out = settle(true, stake, 'final');
       out.stake = stake;
+      if (!out.joWins) s.ledger.across += stake;
       s.events.push(out.joWins ? 'win' : 'lose');
       reveal(out);
       return out.joWins ? 'win' : 'lose';
@@ -419,8 +420,8 @@ export function showdown({
         s.phase = 'decide';
         s.phaseT = 0;
         snapCursor();
-      } else if (s.phase === 'decide' && final && !s.habit && s.tilt < TILTED && menu()[s.cursor].id !== 'call') {
-        // the habit: off CALL, the hand drifts back to it once, by itself
+      } else if (s.phase === 'decide' && final && !s.habit && s.tilt < TILTED && menu()[s.cursor].id === 'raise') {
+        // the habit: on RAISE, the hand drifts back to CALL once, by itself
         s.creepT += dt;
         if (s.creepT >= creepMs) {
           s.creepT = 0;
@@ -507,6 +508,7 @@ export function showdown({
         tilted: s.tilt >= TILTED,
         pot: s.pot,
         profit: final ? profit() : null,
+        debt,
         stake: final ? finalStake() : null,
         jo: s.jo.slice(),
         joHand: s.jo.length && s.jo.every(Boolean) ? rank(s.jo).name : '',

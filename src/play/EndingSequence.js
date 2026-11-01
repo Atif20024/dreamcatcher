@@ -7,7 +7,7 @@
 //      with the dream's own lines typed under it (ending.lines)
 //   4. completeDream (unless ending.record === false), then a quiet card
 //      that returns to the station
-//   ending = { beat?, orb: true, title, lines: [...], paint?(ctx, w, h), record?, returnTo?: 'Hub', vista?: 0.8 }
+//   ending = { beat?, orb: true, title, lines: [...], paint?(ctx, w, h), record?, returnTo?: 'Hub', vista?: 0.8, imageH?: 300 }
 import ModalManager from '../ui/ModalManager.js';
 import { uiText } from '../ui/text.js';
 import { panel, dim } from '../ui/Panel.js';
@@ -71,7 +71,7 @@ export class EndingSequence {
       const h = ModalManager.for(s).open({ kind: 'card', name: 'ending:image', freeze: 'none' });
       h.add(dim(s, 0.82, 230));
       const W = 560;
-      const H = 300;
+      const H = e.imageH ?? 300; // a dream with a long ledger gives the picture's height to its lines
       const top = 40;
       if (e.paint) {
         const key = `ending:${s.dreamId}`;

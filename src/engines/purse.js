@@ -61,6 +61,7 @@ export function newPurse({ buyin = 100, down = SLATE_DEFAULT.down, up = SLATE_DE
     turns: 0, // faro turns
     won: 0, // pots won
     lost: 0,
+    across: 0, // stakes lost at the last table (the night's floor hides them)
     markers: 0, // signed at the purser's cage
     debt: 0,
     busts: 0,
@@ -186,7 +187,8 @@ export function ledgerLines(p, minutes = 0) {
   out.push(p.saved ? `${p.folds} fold${p.folds === 1 ? '' : 's'}; the good ones kept $${p.saved}.` : `${p.folds} fold${p.folds === 1 ? '' : 's'}. None of them saved a thing.`);
   const net = c.net >= 0 ? `up $${c.net}` : `down $${-c.net}`;
   const owed = p.markers ? `Markers: $${p.debt}, paid $${c.paid}. ` : p.debt ? `Owed Mr Pell $${p.debt}, paid $${c.paid}. ` : '';
-  out.push(`${owed}Home with $${c.cash}: ${net}.`);
+  const across = p.across ? `The Judge took $${p.across} across the table. ` : '';
+  out.push(`${owed}${across}Home with $${c.cash}: ${net}.`);
   return out;
 }
 

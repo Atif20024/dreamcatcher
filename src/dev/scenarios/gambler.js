@@ -197,11 +197,12 @@ async function playFaro(dc, s, limit = 4000, pick = 1) {
   if (!a) return null;
   await dc.run(20);
   const e = a.engine;
-  await cursorTo(dc, e, pick, 'pick');
   let bets = 0;
   for (let i = 0; i < limit && s.encounters.busy; i++) {
     const st = e.state();
     if (st.phase === 'choose') {
+      // BET $20 is dark on the house's first bet
+      if (st.actions[pick].enabled) await cursorTo(dc, e, pick, 'pick');
       dc.press('interact', 2);
       bets++;
     }
@@ -391,7 +392,7 @@ const quayScenario = {
 };
 
 // the saloon: a comp, then the faro bank (a bust is the saloon door; sit again)
-async function saloonPart(dc, s, ok, { comp = true } = {}) {
+async function saloonPart(dc, s, ok, { comp = true, leave = false } = {}) {
   safe(s);
   if (comp) {
     const st = s.npcs.get('steward');
@@ -407,6 +408,26 @@ async function saloonPart(dc, s, ok, { comp = true } = {}) {
     const d0 = s.F.purse.debt;
     await talk(dc, s, 0);
     ok('comp-stake-is-debt', s.F.purse.comps === 2 && s.F.purse.debt === d0 + 10 && !!s.F.faro_free);
+  }
+  // Backspace with a bet in play: the bank's result stands, the comp is spent
+  if (leave) {
+    const p = at(s, 'saloon', 43, 11);
+    put(s, p.x - 40, p.y);
+    await dc.run(10);
+    await walkTo(dc, s, p.x, { frames: 300, tol: 14 });
+    const P = s.F.purse;
+    const before = P.stack;
+    if (ok('faro-sat', await sitDown(dc, s))) {
+      const e = s.encounters.active.engine;
+      await dc.run(20);
+      dc.press('interact', 2);
+      await dc.run(4);
+      const now = e.state().now;
+      const phase = e.state().phase;
+      dc.press('Backspace', 2); // not Escape: at a table that opens the pause menu
+      for (let i = 0; i < 120 && s.encounters.busy; i++) await dc.run(1);
+      ok('faro-backspace-keeps-bank', phase === 'draw' && e.state().bets === 1 && !s.encounters.busy && P.stack === before + now - 40 && P.atBank === undefined && !!s.F.faro_free_used);
+    }
   }
   let res = null;
   let busts = 0;
@@ -426,7 +447,8 @@ async function saloonPart(dc, s, ok, { comp = true } = {}) {
       for (let i = 0; i < 200 && Math.abs(s.player.x - door0.x) > 40; i++) await dc.run(1);
       await dc.run(60);
       // the saloon door, not the quay; Lou keeps what the bank left him
-      if (busts === 1) ok('bust-to-saloon-door', s.roomId === 'saloon' && Math.abs(s.player.x - door0.x) < 40 && s.F.purse.stack === Math.max(0, stack0 - 40) && s.F.purse.busts === 1);
+      // (a bust is under $10 at the bank, not always $0: a split or the rake can leave some)
+      if (busts === 1) ok('bust-to-saloon-door', s.roomId === 'saloon' && Math.abs(s.player.x - door0.x) < 40 && s.F.purse.stack === stack0 - 40 + res.result.bank && s.F.purse.busts === 1);
     }
   }
   ok('faro-won', !!s.F.faro_done && s.F.purse.stack >= stack0 + 30 - 4);
@@ -441,7 +463,7 @@ const saloonScenario = {
     const s = await boot(dc, 'saloon');
     s.F.slate_set = true;
     s.F._seed = 2;
-    const info = await saloonPart(dc, s, ok);
+    const info = await saloonPart(dc, s, ok, { leave: true });
     let p = at(s, 'saloon', 56, 11);
     if (s.roomId !== 'saloon') await door(dc, s, 'saloon');
     put(s, p.x - 30, p.y);
@@ -698,6 +720,8 @@ async function finale(dc, s, ok, log) {
       lost = s.roomId === 'deck';
       // the foot of the deck (a short way back up); never a $0 last hand
       ok('lost-night-to-deck', lost && P.stack >= P.buyin && P.tilt === 0 && (s.F.lost_nights || 0) >= 1);
+      ok('lost-night-in-ledger', P.across > 0 && /across the table/.test(s.def.ending.lines(s.F).join(' ')));
+      ok('lost-night-lines-rebased', P.stack - (P.debt || 0) >= P.stop);
     } else {
       // a win: the Judge slides another; the table is still up, still no orb
       for (let i = 0; i < 300 && r.engine.state().phase !== 'decide'; i++) await dc.run(1);
