@@ -38,7 +38,7 @@ export const PARAGRAPHS = [
   { id: 'p_rain', name: 'the rain', w: 5, x0: 451, x1: 455, y: 26, scaffold: true },
   { id: 'p_forty', name: 'forty envelopes', w: 4, x0: 453, x1: 456, y: 25, on: 'p_rain', scaffold: true },
   { id: 'p_soup', name: 'the soup', w: 4, x0: 428, x1: 431, y: 19, on: 'p_tomasz', scaffold: true },
-  { id: 'p_wren', name: 'wren', w: 4, x0: 456, x1: 458, y: 20 },
+  { id: 'p_wren', name: 'maren', w: 4, x0: 456, x1: 458, y: 20 },
 ];
 
 const ROOMS = [

@@ -11,7 +11,7 @@ import { NAPKIN, SCENES, HERRINGS, PAGE_THREE } from '../data/writer/cast.js';
 export function napkin(scene) {
   return new Promise((resolve) => {
     const cam = scene.cameras.main;
-    const m = new Modal(scene, 'THE NAPKIN', "Wren's challenge: eight overheard lines, one paragraph.\n←/→ move · [Enter] pick up / put down · a red line means the pair clashes");
+    const m = new Modal(scene, 'THE NAPKIN', "Maren's challenge: eight overheard lines, one paragraph.\n←/→ move · [Enter] pick up / put down · a red line means the pair clashes");
     const cx = cam.width / 2;
     const cy = cam.height / 2 + 10;
     const rand = new Phaser.Math.RandomDataGenerator(['napkin']);
@@ -58,7 +58,7 @@ export function napkin(scene) {
       render();
       if (order.every((v, i) => v === i)) {
         sfx('chime');
-        status.setText('it reads. Wren nods.');
+        status.setText('it reads. Maren nods.');
         scene.time.delayedCall(700, () => m.close(true, resolve));
       }
     }, resolve);

@@ -10,7 +10,7 @@
 //                       jump only under it, control never locked
 //   clockmaker-door          [E] at the clock house door fades through black into
 //                       the interior at the paired portal, and back out
-//   clockmaker-talk-on-e     standing beside Wren never opens the scene box (a bark
+//   clockmaker-talk-on-e     standing beside Nell never opens the scene box (a bark
 //                       may play on the caption bar); [E] does
 //   clockmaker-perf          every room under the budget (objects, draw calls), only
 //                       the current room + its neighbours live

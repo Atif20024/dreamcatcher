@@ -789,9 +789,12 @@ export default class WriterScene extends BaseLevel {
     const img = this.person(who, o.wx, floor, { flip: o.id !== 'wren2' });
     this.props[o.id || who] = img;
     if (who === 'wren' && !o.id) {
-      this.addInteract(o.wx, floor - 20, 'Wren', async () => {
+      this.addInteract(o.wx, floor - 20, 'Maren', async () => {
         if (!this.F.met_wren) {
-          await this.dialog.show(DIALOGUES.d1);
+          const answer = await this.dialog.show(DIALOGUES.d1);
+          this.F.only_listening = answer === 'listening';
+          await this.dialog.show(DIALOGUES[`d1_${answer || 'stealing'}`]);
+          await this.dialog.show(DIALOGUES.d1_end);
           this.setFlag('met_wren');
           this.addWord('honest', 'the napkin');
           this.setObjective('the napkin: her challenge');
@@ -799,7 +802,7 @@ export default class WriterScene extends BaseLevel {
         }
         if (!this.told.d1b) {
           this.told.d1b = true;
-          await this.dialog.show(DIALOGUES.d1b);
+          await this.dialog.show(this.F.only_listening ? DIALOGUES.d1b_listening : DIALOGUES.d1b);
         }
         const ok = await napkin(this);
         if (ok) {

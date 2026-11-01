@@ -4,25 +4,25 @@ Design doc by a pro-gamer advisor. Read-only on code: nothing was built or run. 
 
 ## 1. Premise
 - **Platform.** 10 (new). Platforms 2, 5, 7, 9 and G are taken, and 1, 3, 4, 6 and 8 already hold board lines in `src/data/dreams.js`. If the hub cannot hold a tenth, the fallback is 8: THE WHITE COAT is only a board line and has no scene.
-- **The dreamer.** **Wren Castellane**, 71, bus-garage fitter, with a ring of old black under her nails. For forty years she has listened to engines and said "that's a quarter-tone flat" to people who never asked.
+- **The dreamer.** **Ottavia Castellane**, 71, bus-garage fitter, with a ring of old black under her nails. For forty years she has listened to engines and said "that's a quarter-tone flat" to people who never asked.
 - **Her dream.** In 1958 she was 22 and the only person at the Pereval garage who tuned by ear. She never drove. The seat was Aldo's, then Dante's. In the dream the car is hers for one season, with her on the pit-wall radio and Jo at the wheel.
 - **Era and place.** The **Marenna Coast**, spring 1958. A pine-and-cliff road circuit run on closed public roads: stone villages, a harbour, terraced vineyards, a salt road, a level crossing. Straw bales and a few flags are the only safety. Cars are cigar-shaped, open-wheeled or cycle-winged, with thin tyres and drum brakes. No seat belts. Races are called *coppe* (cups).
-- **Jo's role.** Jo is the driver the garage can afford: a stranger with good hands who plays by ear (the trumpet). He drives; Wren, on the radio, tells him what the engine is saying. Mechanics and drivers are one body here: neither works alone.
+- **Jo's role.** Jo is the driver the garage can afford: a stranger with good hands who plays by ear (the trumpet). He drives; Ottavia, on the radio, tells him what the engine is saying. Mechanics and drivers are one body here: neither works alone.
 
 ## 2. Story arc
 A small independent garage, **Pereval Corse**, owned by **Aldo Pereval** (52, driver, mentor, kind, tired, in debt). The works team **Roche Motori** has money, new tyres, and a driver, **Cassian Roche** (26, brilliant, never been told no).
 
 | # | Beat | What happens |
 |---|---|---|
-| 1 | Hope | Aldo hands Jo the second car for a hill-climb. Wren tunes it. Jo wins a small cup. |
+| 1 | Hope | Aldo hands Jo the second car for a hill-climb. Ottavia tunes it. Jo wins a small cup. |
 | 2 | **The tragedy** | The Harbour Night Cup. Aldo leads, Jo drafts him. His car runs wide at the Gull Bend, on tyres that Pereval Corse could not afford to change. A rival moved late into his line. Aldo's tail lights leave the road, the lights go dark, and the engine stops. We never see him hit anything. Dust, then silence. |
 | 3 | The corridor | Hospital. Aldo is alive but will not drive again. His hands are bandaged and his eyes are far. Nobody says whose fault it was; everyone is quietly sure it was somebody else's. |
 | 4 | Fear | Jo must return to the Gull Bend. His nerve is a real number. |
-| 5 | Politics | Roche Motori offers Jo a works seat: money, new tyres, safety. The condition is team orders for Cassian's title. Home: Wren's family needs the rent. |
+| 5 | Politics | Roche Motori offers Jo a works seat: money, new tyres, safety. The condition is team orders for Cassian's title. Home: Ottavia's family needs the rent. |
 | 6 | The cost | Weather, a long night, the pit stop, and the question of who the car is for. |
 | 7 | **The Coppa** | The final race has Cassian beside Jo, and the Gull Bend. His car fails there. Jo chooses between the line and the man. |
 
-Blame is shared, on purpose: money (tyres), politics (the late move), Aldo's tiredness, and Wren's own unsaid doubt (she heard a flat note and said nothing). **Handling with care:** nothing graphic; the crash is lights, dust and sound. The hospital scene is quiet and short, and nobody is a villain. Cassian is a spoiled boy, not a monster.
+Blame is shared, on purpose: money (tyres), politics (the late move), Aldo's tiredness, and Ottavia's own unsaid doubt (she heard a flat note and said nothing). **Handling with care:** nothing graphic; the crash is lights, dust and sound. The hospital scene is quiet and short, and nobody is a villain. Cassian is a spoiled boy, not a monster.
 
 **Real struggles shown:** money (tyres are the budget), sponsors (the contract verb), the mechanic's craft (tuning by ear), fear after a crash (the Nerve meter), team politics (orders), family cost (rent), physical toll (hands and vibration, a long night, heat).
 
@@ -73,8 +73,8 @@ Rubber-banding is capped at 6 percent and never invisible to the player: if Jo i
 
 **Fair fails.**
 - Hitting a hard wall or a ditch spins the car: 3 s of recovery to the last **lamp** checkpoint (the platform-lamp style, one every 600 m).
-- Your finish place matters only for the gate: top 3 passes, with a "Wren says" line, and anything lower is a retry of that race only.
-- After three retries, a soft aid appears: *"Wren whispers the brake marks"*. It is never labelled easy mode.
+- Your finish place matters only for the gate: top 3 passes, with a "Ottavia says" line, and anything lower is a retry of that race only.
+- After three retries, a soft aid appears: *"Ottavia whispers the brake marks"*. It is never labelled easy mode.
 - The tragedy race is scripted: Jo cannot fail it. Aldo's crash happens whatever the player does, and the only input is to brake (the car stops on its own by the verge).
 
 ## 4. Life off the track (walk-in places)
@@ -86,7 +86,7 @@ The clock-house pattern. Each place has one goal on an arrival card, a verb, a f
 | B | **THE SPONSOR'S TABLE** (Sable Oil office over the cafe) | "sign the sponsor: read the paper" | **READ and INITIAL**: three contracts; pick which of two clauses to strike on each. | Sign everything and a clause binds you in race 4 (team orders), or you lose 20 percent of prize money. | Money is never free. Reading the small print is the career. |
 | C | **THE HOSPITAL CORRIDOR** (night grade, green tile, one lamp) | "bring Aldo his gloves" | Walk the corridor, climb the service stairs (a small platform climb), put the gloves on the chair. | None. This room is quiet by design. | Loss and silence. A world that goes on. |
 | D | **THE CASTELLANE KITCHEN** (home: a table, a stove, a letter) | "carry the prize tin to the table" | **SPLIT** the tin: coins into three jars (rent, tyres, mother's medicine). | Underpay rent and mother says nothing (the ending notes it). Leave tyres short and race 5 starts worn. | The cost to family; budgets. |
-| E | **THE PIT LANE** (exterior, open, in race 6) | "stop, change, go" | **PIT STOP**: stop in the box, then a timed 4-key rhythm (wheel, wheel, fuel, flag) on Wren's call. | Mess the rhythm: +3 s. | Teams win races; the crew is the car. |
+| E | **THE PIT LANE** (exterior, open, in race 6) | "stop, change, go" | **PIT STOP**: stop in the box, then a timed 4-key rhythm (wheel, wheel, fuel, flag) on Ottavia's call. | Mess the rhythm: +3 s. | Teams win races; the crew is the car. |
 | F | **THE NIGHT BEFORE** (the Gull Bend on foot, torch and a chalk stick) | "walk the corner: chalk your marks" | **CHALK**: stand at the braking board, the turn-in and the apex, and press E at each. Marks appear in the finale. | None. Skipping it leaves no marks and a higher Nerve. | Racing is mostly walking and looking. |
 
 **How racing and walking alternate:** garage (A) → race 1 → garage (tyres) → race 2 (tragedy) → hospital (C) → home (D) → race 3 (fear) → sponsor (B) → race 4 → garage again → race 5 → night before (F) → race 6 with pit (E) inside it. After each race Jo walks out of the car into the next place: the cars never leave the scene, they stand at the arch.
@@ -94,7 +94,7 @@ The clock-house pattern. Each place has one goal on an arrival card, a verb, a f
 ## 5. The race ladder
 | # | Race, track | Rival | New | Difficulty (1-5) | Time | Story beat |
 |---|---|---|---|---|---|---|
-| 1 | **Pinewood hill-climb**, day, 1.2 km | Clock only | Throttle, brake, lanes | 1 | 0:40 | Hope. Wren: "Don't lift." |
+| 1 | **Pinewood hill-climb**, day, 1.2 km | Clock only | Throttle, brake, lanes | 1 | 0:40 | Hope. Ottavia: "Don't lift." |
 | 2 | **Harbour Night Cup**, 1.6 km, dusk to night, lamps on the quay | Aldo ahead; Bruno behind | Drafting (Aldo is the first draft you learn) and slingshot | 2 | 0:55 | **The tragedy** at the Gull Bend |
 | 3 | **Gull Bend return**, dawn, 1.8 km, cliff road | Lena | Nerve ring, brake marks, breath | 3 | 1:00 | Fear. Lena is kind to you |
 | 4 | **The Salt Road**, noon glare, 2.0 km, flat, long straights, level crossing | Dante (orders), Bruno, Cassian arrives | Blocking, rubs, team orders | 3 | 1:00 | Politics and the sponsor clause |
@@ -112,13 +112,13 @@ The clock-house pattern. Each place has one goal on an arrival card, a verb, a f
 **Race 6, the second lap, the Gull Bend.** Cassian's car sheds a wheel with a dry crack on the bend's outside. He slews into the straw. He is on his feet, but the engine is on fire in a small way, a puff of smoke. The marshal flag is late.
 
 - **The choice, no menu.** Jo can brake and stop beside him (hold Left for 2 s: the car pulls up, Jo runs back, Cassian waves him off, two marshals arrive, 8 s lost). Or he can go through (Nerve spikes, the screen narrows).
-- **Both are fair.** The first lap time is not lost for good, and there is still a quarter lap to the line. A clean finish is possible either way. The dream catches **whichever you do**; the difference is the line Wren says, and the ending text.
-- **What catching means.** At the line, the engine note, which Wren could always hear and no one ever believed, plays alone: one clear note. Wren says: "That's it. That's dead on." **The orb is the note.** It is Jo's trumpet and Wren's ear in tune. `dreams.racer = true`.
+- **Both are fair.** The first lap time is not lost for good, and there is still a quarter lap to the line. A clean finish is possible either way. The dream catches **whichever you do**; the difference is the line Ottavia says, and the ending text.
+- **What catching means.** At the line, the engine note, which Ottavia could always hear and no one ever believed, plays alone: one clear note. Ottavia says: "That's it. That's dead on." **The orb is the note.** It is Jo's trumpet and Ottavia's ear in tune. `dreams.racer = true`.
 - **What Jo learns.** The road is not the finish; it belongs to everyone on it. Speed without listening is a way of not hearing the people you drive beside. A career in motorsport is mostly the crew, the sponsors, the family, and the people who aren't there the next season.
 - **Ending text** follows: tyres bought or rent paid, Cassian helped or passed, marks chalked, Aldo's gloves delivered, final place. No score shown as glory.
 
 ## 7. Cast, cars, art and environment
-**Cast.** Wren (radio voice, a head at the pit wall), Aldo Pereval, Cassian Roche, Lena Aurelio, Bruno Varga, Dante Mir, Mr Sable (sponsor, polite), Signora Castellane (mother), a marshal with a flag. 8 NPC sprites, rig-built like the others.
+**Cast.** Ottavia (radio voice, a head at the pit wall), Aldo Pereval, Cassian Roche, Lena Aurelio, Bruno Varga, Dante Mir, Mr Sable (sponsor, polite), Signora Castellane (mother), a marshal with a flag. 8 NPC sprites, rig-built like the others.
 
 **Cars (all drawn in code, vector layered as in `src/art/trainKit.js`).**
 | Car | Look | Parts |

@@ -1,6 +1,6 @@
 // Barks (plan 2.6): one-liners on the caption channel, from data. A bark
 // never opens the scene box and never takes control.
-//   { id, channel: 'caption', who, text, when: { near: 'npc:wren', r: 220 } | { room: 'green' } | { flag: 'x' }, once: true, cooldown?: ms }
+//   { id, channel: 'caption', who, text, when: { near: 'npc:nell', r: 220 } | { room: 'green' } | { flag: 'x' }, once: true, cooldown?: ms }
 // Fired barks are remembered in the run's flags (`_bark:<id>`), so a retry
 // from a flag never replays one.
 export class Barks {

@@ -138,7 +138,7 @@ export const CONVERSATIONS = {
   tally_after: conv('tally_after', ['tally'], { start: { who: 'tally', text: 'Stage door. Laminate. I do not do favours, I do schedules.', end: true } }, { replayable: true }),
 
   // ---- the Big Stage ----
-  nia_wing: conv('nia_wing', ['nia'], { start: { who: 'nia', text: 'Rush the third bar and I will end you. Go on.', end: true } }, { replayable: true }),
+  nia_wing: conv('nia_wing', ['nia'], { start: { who: 'nia', text: 'You know where the third bar is. Go on.', end: true } }, { replayable: true }),
   session_bass: conv('session_bass', ['session'], { start: { who: 'session', text: 'Count me in. I read the chart, I play the chart.', end: true } }, { replayable: true }),
   marcus_drums: conv('marcus_drums', ['marcus'], { start: { who: 'marcus', expr: 'smile', text: 'One more. Make it a good one.', end: true } }, { replayable: true }),
   session_drums: conv('session_drums', ['stagehand'], { start: { who: 'stagehand', text: "Click track's on. I do weddings.", end: true } }, { replayable: true }),
@@ -160,6 +160,6 @@ export const BARKS = [
   // (one voice at a time: the roadies wait until Marcus has had his say)
   { id: 'roadie_mind', channel: 'caption', who: 'stagehand', text: 'Mind yourself! Coming through!', when: { room: 'backstage', flag: 'marcus_left' } },
   { id: 'jo_climb', channel: 'caption', who: 'jo', text: 'Nine floors of iron in the rain. The crowd is up there somewhere.', when: { room: 'escape' } },
-  { id: 'nia_set', channel: 'caption', who: 'nia', text: 'Rush the third bar and I will end you.', when: { room: 'stage', flag: 'choice_nia', unless: 'set_done' } },
+  { id: 'nia_set', channel: 'caption', who: 'nia', text: 'Third bar. I am listening for it.', when: { room: 'stage', flag: 'choice_nia', unless: 'set_done' } },
   { id: 'crew_who', channel: 'caption', who: 'stagehand', text: 'Who was that?', when: { room: 'stage', flag: 'set_done' } },
 ];
