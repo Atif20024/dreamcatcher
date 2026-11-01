@@ -11,6 +11,7 @@
 //          race_<id>_prize    what the best place earned, in coins
 //          race_<id>_paid     coins already paid for this race
 //          race_<id>_tries    runs that ended short of the gate, or were restarted
+//          done_<hook>        the season's stand-in for that race has been driven (season.js)
 export const flagOf = (trackId, what) => `race_${trackId}_${what}`;
 
 // the run's flags → the run's flags with this finish in them (a worse run never
@@ -26,6 +27,11 @@ export function applyResult(flags, track, { place, time }) {
   }
   if (place <= track.passPlace) out[f('passed')] = true;
   else out[f('tries')] = (out[f('tries')] || 0) + 1;
+  // shortcut: a STAND-IN opens the story on any finish; a real race will bring its own gate
+  if (out.season_pending) {
+    out[`done_${out.season_pending}`] = true;
+    delete out.season_pending;
+  }
   return out;
 }
 

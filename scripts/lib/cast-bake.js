@@ -50,6 +50,9 @@ export async function bakeCast(ROOT, store) {
   // FIVE-STAR DREAM: Le Rêve's brigade, 1957 (src/dreams/chef/people.js)
   const rv = await imp('src/dreams/chef/people.js');
   for (const [key, look] of Object.entries(rv.PEOPLE)) list.push([key, look, 'people']);
+  // THE LONG STRAIGHT: Pereval Corse and its coast, 1958 (src/dreams/racer/people.js)
+  const pv = await imp('src/dreams/racer/people.js');
+  for (const [key, look] of Object.entries(pv.PEOPLE)) list.push([key, look, 'people']);
 
   const out = []; // { name, img, pivot, pack }
   const report = [];

@@ -12,6 +12,8 @@
 //   the wall bend much to save and a long straight after: the outside pays most, and it is by the wall
 // tests/race.test.js pins that no line wins them all, and lints every track: a
 // wall's outside pays, and skipping the brake at the straw costs the race's slack.
+import { COAST } from './themes.js';
+
 // the pedals on a pad: the triggers and the d-pad's sides; lanes on the d-pad only,
 // so a thumb holding the stick for the throttle cannot flick a lane by tilting
 export const RACE_PAD = {
@@ -25,6 +27,7 @@ export const TRACKS = {
   test: {
     id: 'test',
     title: 'PINEWOOD STRETCH',
+    theme: COAST,
     length: 1200,
     countdown: 3,
     gridLane: 1,

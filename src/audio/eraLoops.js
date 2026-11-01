@@ -373,6 +373,13 @@ export const RECIPES = {
 
   // THE LAST HAND, the Lantern Queen on the Verrane, 1884
   // the quay at dusk: water at the stone, the hull creaking, a bell buoy, gulls
+  // THE LONG STRAIGHT: ratchets and a hammer, the quay, a ward's vent and one footfall, a kettle and a clock
+  pv_garage: { seconds: 11, seed: 81, rms: -38, layers: [['ticks', { every: 0.9, vol: 0.012, f: 2400 }], ['chisel', { vol: 0.016, every: 0.5, f: 1100, runs: 1 }], ['murmur', { vol: 0.012 }], ['echo', { delay: 0.07, taps: 2, fb: 0.28 }]] },
+  pv_quay: { seconds: 14, seed: 82, rms: -36, layers: [['lapping', { vol: 0.04, rate: 0.6 }], ['gulls', { vol: 0.02, rate: 0.12 }], ['wind', { vol: 0.012 }], ['chatter', { voices: 2, vol: 0.012 }]] },
+  pv_ward: { seconds: 12, seed: 83, rms: -44, layers: [['pump', { vol: 0.016, hz: 0.2, k: 0.01 }], ['steps', { vol: 0.012, pace: 0.8, walks: 1 }], ['echo', { delay: 0.19, taps: 5, fb: 0.5 }]] },
+  pv_kitchen: { seconds: 10, seed: 84, rms: -40, layers: [['bubbles', { vol: 0.02, rate: 2 }], ['ticks', { every: 1, vol: 0.016, f: 1500 }], ['echo', { delay: 0.05, taps: 1, fb: 0.2 }]] },
+  pv_gull: { seconds: 14, seed: 85, rms: -40, layers: [['wind', { vol: 0.02 }], ['lapping', { vol: 0.016, rate: 0.3, f: 300 }]] },
+  pv_pit: { seconds: 12, seed: 86, rms: -37, layers: [['chatter', { voices: 4, vol: 0.016 }], ['clink', { vol: 0.016, count: 3 }], ['wind', { vol: 0.012 }]] },
   gm_quay: { seconds: 14, seed: 61, rms: -36, layers: [['lapping', { vol: 0.05, rate: 0.7 }], ['creak', { vol: 0.03, count: 3 }], ['bell', { f: 311, vol: 0.02, at: 5, strikes: 2, gap: 4.5, tail: 5 }], ['gulls', { vol: 0.02, rate: 0.1 }], ['wind', { vol: 0.012 }]] },
   // the main saloon: talk and glasses under the band (the band is the music)
   gm_saloon: { seconds: 12, seed: 62, rms: -37, layers: [['chatter', { voices: 6, vol: 0.03, pitch: 0.95 }], ['clink', { vol: 0.02, count: 5 }], ['chips', { vol: 0.012, clusters: 2 }], ['murmur', { vol: 0.02 }], ['echo', { delay: 0.07, taps: 2, fb: 0.25 }]] },

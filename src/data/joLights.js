@@ -42,8 +42,8 @@ export const JO_LIGHTS = Object.freeze({
   // its beam narrow and warm
   clockmaker: { kind: 'loupe_lamp', light: 'cone', color: 0xffd890, radius: 150, strength: 0.4, dark: true, rooms: { clockhouse: false } },
   // the Calvessa Coast by day, and a lit garage: a mechanic's inspection lamp on
-  // its lead, for the later stages' night rooms
-  racer: { kind: 'inspection_lamp', light: 'pool', color: 0xfff0d0, radius: 110, strength: 0.42, dark: false, rooms: {} },
+  // its lead, for the Gull road the night before
+  racer: { kind: 'inspection_lamp', light: 'pool', color: 0xfff0d0, radius: 110, strength: 0.42, dark: false, rooms: { nightbefore: true } },
   // the Evening: a jar of fireflies, once the sky is dark enough to need it
   evening: { kind: 'firefly_jar', light: 'pool', color: 0xd8f070, radius: 105, strength: 0.36, dark: 'night', rooms: {} },
 });
