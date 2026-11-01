@@ -145,7 +145,7 @@ With ordinary misses and one death, about **10-11 min**. That is inside the 6-10
 | N3 | Done: a new `_played` flag, so `ray_after` no longer claims a drill an old save never ran. |
 | N6 | Done, unheard: song 1 opens on the tonic and song 2 now ends on it. Song 1 already ended on E; the review's "B" was off. |
 | N1 | Not done: a seated talk loop needs new art and eyes. |
-| N4 | Left for the owner: whether Marcus staying should make the set easier or cost something. It is a design call. |
+| N4 | Owner's call: Marcus staying makes the set easier because he cues the third bar. Done: he calls it before the bar, the hint line and the teal plate come with him, and the set's window stays 170 ms against 150. Letting him go costs all of that. Nia's "Third bar." after a rush stays. |
 | N5 | Not done: the atlas size was not checked separately. `npm run atlas` and `lint:scale` pass. |
 
 ## Scripted play after round 2 (engine time, without the beat wait)
@@ -165,3 +165,17 @@ Everything listed in round 1, plus:
 - One Gambler run through the slate (the test is headless).
 - Whether the wait before each call feels like the band counting or like a stall.
 - Whether the two-stray rule ever catches an honest player who double-taps.
+
+# First browser run
+
+`musician-playthrough`, `-places`, `-set-variants`, `-coins`, `-board`, `gambler-quay` and `gambler-playthrough` pass after merging `redesign`, with no console errors. `?warp=musician:backstage` opens Marcus's box about 0.9 s in, as expected.
+
+Two fixes from looking:
+
+- **The neon turned the Cellar's chairs.** The Cellar is streamed in next door, so the alley's gig reacted the nine people and the open mic had none left to turn. The presenter now reacts only the audience in Jo's room.
+- **Marcus and Nia sat in the floor.** The `-sit` frame's origin is the hips, with the legs 24 px below. Npcs take a `dy` now: Marcus -35 (on the case's top), Nia -24 (feet on the floor, on the cushion).
+
+Numbers (engine against a band grid, 40 runs a gig):
+
+- **The wait before a call does not stall.** A bar's length is not a whole number of beats, so nearly every call waits: about 630 ms at 86 bpm, about 390 ms at 120. It puts the next call exactly 2 beats after the last note's slot, every bar, on the grid. The first call waits at most one beat. It adds about 6 s to the set and 4 s to the open mic. At 86 bpm the nominal landing is only 35 ms past the beat, so on a fast display a call could occasionally take the 25 ms "near enough" and come a beat sooner. Not seen here; needs hands.
+- **The two-stray rule leaves an honest double tap alone.** One double tap in a bar passes at any spacing from 40 to 200 ms; two fail it. If a tap bounces on 5 % of notes, 0-1.4 % of bars fail with no retry; at 10 %, 0.8-6.2 %; at 20 %, 5.8-20.8 % (worst on Tally's four- and five-note bars). A retry covers most of that, so the rule stays.

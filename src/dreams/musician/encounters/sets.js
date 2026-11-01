@@ -130,7 +130,8 @@ export function bigSetParams(F = {}) {
     nerve: F.cellar_froze ? 24 : 0,
     // Ray's drill, clean: a rest stops being frightening
     nerveRelief: F.ray_drill_perfect ? 16 : 12,
-    // a drummer who follows you gives; a click track does not
+    // a drummer who follows you gives; a click track does not (N4: and he
+    // cues the third bar, bigSetCues.thirdAhead; letting him go costs both)
     window: F.marcus_stays ? 170 : 150,
   };
 }
@@ -141,6 +142,7 @@ export function bigSetCues(F = {}) {
   return {
     songs: nia ? ['TUESDAY', 'NINE CHAIRS', 'ROUND THE BACK'] : ['BIG NIGHT', 'HANDS UP', 'BIG NIGHT AGAIN'],
     soloist: nia ? 'nia_set' : null,
+    thirdAhead: marcus ? { who: 'marcus', text: 'Third bar coming. On me.' } : null,
     third: nia ? { who: 'nia', text: 'Third bar.' } : marcus ? { who: 'marcus', text: 'Easy. It comes to you.' } : { who: 'session', text: "You're a hair ahead of the click, man." },
     freeze: marcus ? { who: 'marcus', text: 'Hey. Eyes on me. I got it.' } : nia ? { who: 'nia', text: "I've got the bar. Come in when I do." } : { who: 'session', text: "Click's still going, man." },
   };

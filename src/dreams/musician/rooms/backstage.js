@@ -69,13 +69,13 @@ export default {
   entities: [
     { type: 'portal', id: 'backstage<alley', kind: 'door', x: 3, y: 14, to: { room: 'alley', portal: 'alley>backstage' }, door: { prompt: 'back to the alley', fade: 420 } },
     { type: 'checkpoint', id: 'cp_dock', label: 'THE LOADING DOCK', x: 6, y: 14 },
-    { type: 'npc', id: 'marcus', cast: 'npc-marcus', x: 9, y: 14, pose: 'sit', facing: -1, unless: 'marcus_gone', talk: [{ conv: 'marcus_after', if: 'marcus_left' }, { conv: 'marcus_call' }] },
+    { type: 'npc', id: 'marcus', cast: 'npc-marcus', x: 9, y: 14, dy: -35, pose: 'sit', facing: -1, unless: 'marcus_gone', talk: [{ conv: 'marcus_after', if: 'marcus_left' }, { conv: 'marcus_call' }] },
     { type: 'foe', id: 'roadie_a', kind: 'roadie', x: 20, y: 14, patrol: [16, 30], facing: -1 },
     { type: 'foe', id: 'wisp_cat1', kind: 'wisp', x: 30, y: 7, floats: true, patrol: [27, 34] },
     { type: 'foe', id: 'wisp_cat2', kind: 'wisp', x: 39, y: 7, floats: true, patrol: [36, 42] },
     { type: 'keyitem', id: 'laminate', x: 43, y: 8, beat: 'got_laminate' },
     { type: 'foe', id: 'roadie_b', kind: 'roadie', x: 46, y: 14, patrol: [43, 55], facing: 1 },
-    { type: 'npc', id: 'nia', cast: 'npc-nia', x: 35, y: 14, pose: 'sit', facing: 1, talk: [{ conv: 'nia_backstage_after', if: 'offer_heard' }, { conv: 'nia_backstage' }] },
+    { type: 'npc', id: 'nia', cast: 'npc-nia', x: 35, y: 14, dy: -24, pose: 'sit', facing: 1, talk: [{ conv: 'nia_backstage_after', if: 'offer_heard' }, { conv: 'nia_backstage' }] },
     { type: 'npc', id: 'tally', cast: 'npc-tally', x: 54, y: 14, facing: -1, talk: [{ conv: 'tally_after', if: 'offer_heard' }, { conv: 'tally_offer' }] },
     // the mirror over the sofa; the amp Tally is standing beside
     { type: 'moment', id: 'mirror', x: 32, y: 14, record: false, prompt: 'look in the mirror', beat: 'mirror' },

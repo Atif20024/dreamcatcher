@@ -467,6 +467,9 @@ describe('results change what happens, never whether it finishes', () => {
     expect(rhythm(bigSetParams({})).state().nerve).toBe(0);
     expect(bigSetParams({ ray_drill_perfect: true }).nerveRelief).toBeGreaterThan(bigSetParams({}).nerveRelief);
     expect(bigSetParams({ marcus_stays: true }).window).toBeGreaterThan(bigSetParams({}).window);
+    // N4: he cues the third bar ahead of time; letting him go costs that
+    expect(bigSetCues({ choice_nia: true, marcus_stays: true }).thirdAhead.who).toBe('marcus');
+    expect(bigSetCues({ choice_nia: true }).thirdAhead).toBeNull();
     // a shaken Jo freezes sooner: the same bad run, a worse night
     const run = (F) => {
       const e = rhythm(bigSetParams({ choice_nia: true, ...F }));

@@ -179,6 +179,7 @@ export function spawnAudience(scene, e, room) {
   const npc = new Npc(scene, { id: e.id, x, y: feet, cast: e.cast, pose: 'sit', facing: e.facing || 1, depth: e.front ? D.PLAYER + 1 : D.PLAYER - 2 });
   const who = {
     npc,
+    room: room.id,
     turned: false,
     react() {
       who.turned = true;

@@ -223,15 +223,18 @@ function rhythmWorld(scene, def, engine, ctx) {
   const hint = (st) => {
     if (st.phase === 'frozen') return '…frozen. breathe.';
     if (st.phase === 'breath') return nextSong ? `next: ${nextSong}` : 'breathe.';
-    if (st.third && st.phase === 'play' && !st.silent && cues.third) return "the third bar. don't rush it";
+    if (st.third && st.phase === 'play' && !st.silent && cues.thirdAhead) return "the third bar. don't rush it";
     if (st.phase === 'lead') return def.lead || 'the band counts you in…';
     if (st.phase === 'listen') return st.blind ? 'LISTEN. no notes to read: play it by ear' : st.silent ? 'LISTEN… then leave the whole bar empty' : st.hold ? 'LISTEN: one long note' : 'LISTEN…';
     if (st.phase === 'play') return st.hold ? 'PLAY: press [E] and HOLD it' : st.silent ? 'say nothing. let the room breathe' : 'PLAY: [E] or [Q] on every note, nothing on a ring';
     if (st.phase === 'judge') return st.lastOk ? 'yes.' : st.tries < retries ? 'again, a little slower' : 'the band carries you';
     return '';
   };
+  // a gig with a warned third bar and nobody left to warn: the plate says nothing either
+  const staffOf = (st) => (cues.third && !cues.thirdAhead ? { ...st, third: false } : st);
   const react = (ok) => {
-    const aud = scene.audience || [];
+    // (the room next door is streamed in: the alley's neon must not turn the Cellar)
+    const aud = (scene.audience || []).filter((a) => a.room === scene.roomId);
     if (!ok || !aud.length) return;
     // (every chair has turned by the last bar of a clean run)
     for (let n = Math.ceil(aud.length / engine.state().total); n > 0; n--) {
@@ -241,7 +244,7 @@ function rhythmWorld(scene, def, engine, ctx) {
   };
   return {
     enter(st) {
-      drawStaff(g, a.x, a.y, st, null);
+      drawStaff(g, a.x, a.y, staffOf(st), null);
       tool.setText(marks(st)).setVisible(true);
       nerve.set(st.nerve / 100).setVisible(def.nerve !== false);
       label.setText(hint(st));
@@ -253,6 +256,7 @@ function rhythmWorld(scene, def, engine, ctx) {
         } else if (ev.type === 'phrase') {
           if (bandBeatAt !== null && scene.music && !ev.tries) engine.nudge(beatCorrection(scene.time.now - bandBeatAt, 60000 / scene.music.bpm));
           if (!ev.tries && cues.phrase) say(cues.phrase[ev.idx]);
+          if (!ev.tries && engine.phrases[ev.idx].third) say(cues.thirdAhead);
         } else if (ev.type === 'preview' || ev.type === 'answer') {
           // Nia's bass comes from the dark, even on a rest; Ray claps; the horn
           // plays the tune Jo is about to answer
@@ -300,7 +304,7 @@ function rhythmWorld(scene, def, engine, ctx) {
         flashT = scene.time.now;
       }
       if (flash && scene.time.now - flashT > 220) flash = null;
-      drawStaff(g, a.x, a.y, st, flash);
+      drawStaff(g, a.x, a.y, staffOf(st), flash);
       tool.setText(marks(st));
       nerve.set(st.nerve / 100);
       label.setText(hint(st));
