@@ -17,25 +17,23 @@ import { sfx } from '../../../systems/audio.js';
 
 const WORDS = ['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven'];
 
-// "Strike it with me": his count is the beat. At the top of each swing he calls the
-// next stroke; a ring closes on the number as the bob comes down to the middle, and
-// the strike follows his word. The windows are the same as alone (tuning.js): this
-// only says when. A number he has called is called again until it is struck.
+// "Strike it with me": his count is the beat. At the top of each swing the next
+// number comes up and a ring closes on it as the bob comes down; his word and the
+// tick come as the window opens, so the strike is on his word. The windows are the
+// same as alone (tuning.js): this only says when. A number he has called is called
+// again until it is struck.
 function keeperCount(scene, st, n) {
   const a = scene.encounters.active;
   let c = a.count;
   if (!c) {
-    c = a.count = { ring: scene.add.graphics().setDepth(40), num: uiText(scene, 0, 0, '', { size: 'display', scale: 2, color: 'accent' }).setOrigin(0.5).setDepth(41), called: 0, top: true, struck: 0 };
+    c = a.count = { ring: scene.add.graphics().setDepth(40), num: uiText(scene, 0, 0, '', { size: 'display', scale: 2, color: 'accent' }).setOrigin(0.5).setDepth(41), called: 0, top: false, said: false, struck: 0 };
     hud.set('context', '[E] on his count: strike the hour');
   }
   if (c.over) return;
   const call = () => {
     c.called = st.count + 1;
+    c.said = false;
     c.num.setText(String(c.called));
-    scene.caption.say('keeper', `${WORDS[st.count]}.`, { ms: 900 });
-    sfx('tick');
-    n.setTalking(true);
-    scene.time.delayedCall(350, () => n.setTalking(false));
   };
   if (st.count > c.struck) {
     c.struck = st.count;
@@ -49,8 +47,17 @@ function keeperCount(scene, st, n) {
     return;
   }
   const top = Math.abs(st.x) > 0.98;
-  if (!c.called || (top && !c.top)) call();
+  if (top && !c.top) call();
   c.top = top;
+  // 0.5, a frame or two ahead of the window (it opens at |x| 0.43): an idle auto-strike
+  // lands on the window's first frame, and must not beat his word
+  if (c.called > st.count && !c.said && Math.abs(st.x) < 0.5) {
+    c.said = true;
+    scene.caption.say('keeper', `${WORDS[st.count]}.`, { ms: 900 });
+    sfx('tick');
+    n.setTalking(true);
+    scene.time.delayedCall(350, () => n.setTalking(false));
+  }
   const x = n.x - 104;
   const y = scene.player.y - 112;
   c.num.setPosition(x, y);

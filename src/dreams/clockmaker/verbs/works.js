@@ -52,7 +52,7 @@ export default {
         ctx.state.hitAt = now;
         const hits = F.pendulum_hits || 0;
         F.pendulum_hits = hits + 1;
-        sfx('hurt');
+        sfx('knock');
         s.knockback(ox + b.x);
         s.cameras.main.shake(120, 0.004);
         if (!hits) s.caption.say('jo', "It doesn't hit hard. It doesn't stop, either. Wait for it.", { ms: 3200 });

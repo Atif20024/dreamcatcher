@@ -259,7 +259,7 @@ const PROPS = {
       ctx.moveTo(128, 64);
       ctx.lineTo(128, 50);
       ctx.moveTo(128, 64);
-      ctx.lineTo(137, 68);
+      ctx.lineTo(128, 74); // six: the hands he put back
       ctx.stroke();
       for (let k = 0; k < 12; k++) {
         const a = (k / 12) * Math.PI * 2;

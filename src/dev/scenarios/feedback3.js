@@ -82,6 +82,12 @@ function restartCheckpoint(dream, place) {
       sc.pauseMenu.choose('restart');
       dc.step(10);
       const d = Math.hypot(sc.player.x - cp.x, sc.player.y - cp.y);
+      // the wake-up's fade must be over before the next scenario warps
+      for (let i = 0; i < 60 && (sc.respawning || sc.transitions?.busy || sc.cameras.main.fadeEffect.isRunning); i++) {
+        await wait(20);
+        dc.step(3);
+      }
+      dc.step(20);
       return { pass: ok && d < 40 && !sc.pauseMenu.isOpen, detail: `items ${items.join(',')}; ${Math.round(d)} px from the lamp after restart` };
     },
   };
