@@ -75,3 +75,60 @@ Scenarios moved: `shadow-slope` and `slope-*` to the writer's ramp; `gate-hint-v
 - `redesign` moved ahead while this ran. `ChefScene.js` got a one-line change there, so the merge has a delete/modify conflict: take the delete. `src/scenes/DreamScene.js`, `HubScene.js` also changed; not test-merged.
 
 Screenshots: `chef_<place>.jpg` in the session scratchpad.
+
+## Round 2
+
+Spec: `docs/redesign/advice/chef_review_r1.md`. Every MUST and SHOULD was checked against the code and is fixed. Where the review's fix was changed, the table says so.
+
+| Item | Done how |
+|---|---|
+| M1 walk | Confirmed: he ran at 280 px/s with a walking animation. In the dining room, or carrying the plate out, `p.speed` is now 80 whether or not Shift is held. `chef-dining-cut` asserts the speed. The room takes 20 s to cross on `carry_walk`, which is stride-locked. No 140 px/s jog: "You do not run in that room." |
+| M2 plate | Confirmed. New flag `plate_hand`, set when the dining service starts; the table plate hides on it; the settle is skipped. Scenario `chef-plate-handover`, and a capture of the frame after the box closes |
+| S1 chevrons | Moved to `sp.y - 106`. The captures also showed ceiling corbels, the beam, door pillars and coins covering letters on SACKS, HERBS, RESERVE, LARDER, THE PASS, CHEF ONLY, THE LINE: DOORS, HOOKS and COLD STORE, so those signs moved too |
+| S2 yard | Three enamel gooseneck lamps on the wall (`yard_lamp`, x3, x9, x15), just above his head. Local contrast at x4, x8, x11, x14, x17, x20 went from 2.14, 2.68, 2.60, 1.91, 2.35, 2.16 to 2.40, 3.02, 2.81, 2.18, 2.47, 2.28. **Better, but only x8 reaches 3:1.** He reads clearly in the captures. Lamps at head height scored higher but washed out his face, and Jo was not to be changed |
+| S3 Brann | `player.busy` while the rail holds Jo: Brann doesn't see him and a grab already under way misses. Once Jo is free the grab works again. Independent of `addFoe`. Scenario `chef-busy-brann` |
+| S4 hooks | Confirmed. The rail verb deletes them on the scene's `shutdown`, along with the `rail` HUD region. Scenario `chef-hooks-clear` (Chef, then the casino) |
+| S5 Continue | Confirmed for all three. Instead of the review's per-NPC patches, one `recover()` on the first update replays the beat that was cut (`pit_clear`, `hands`, new `hands_after`, `set_down`). Scenario `chef-continue` |
+| S6 readout | The objective slot reads `SITTING 2 OF 3: 7 LEFT`, then `TABLE ONE: THE RISOTTO`. This replaces "plate what the rail says" once the rail is up |
+| S7 stock | Pips over SAUCE, LARDER, GRILL; one red pip when out. Pocket on one row. Because the review's `POCKET: SAFFRON, ONIONS` would run under the rail, the row drops the word. Added `OUT: SAUCE` on the HUD, only when a station is empty, since the stations are out of sight from most of the room |
+| S8 saffron | Prompt "stir in the saffron: risotto". `saffron_used` is set when the stirring starts, with one line from Jo |
+| S9 amend | Confirmed. It now waits for free hands. Unit test |
+| S10 bails | One, a few, half: true to the count. Unit test |
+
+NICE items done: first burn reaction (Bastien, Tomé or Marguerite, by room), a ring on each mark as it is read, `kitchenBack` on the "...Next." node, a Continue no longer repeats served tickets or stock (`served_<id>`), the prep clock runs while Jo is out of the room and survives a Continue, shorter yard and carry objectives, `CALLS.clean` now used, the card reads "11 plates, 8 tables". Also: prompts for stations on a high shelf (y 6 or above) sit lower so they stay clear of the rail.
+
+Not done: the larger burner warning ellipse.
+
+### Length
+
+Cut: t5 and t8 (t15 moved to table 8 so every table still gets a plate), later tickets moved up to close the gaps, prep clock 68 s to 60 s. Tickets per sitting 4 / 4 / 3, plus Table One. Added: about 14 s on the dining room walk.
+
+Bots on the line, mean of 8 seeds, full mise (no mise in brackets):
+
+| Bot | Before | After | After: late, taken by Marguerite |
+|---|---|---|---|
+| Expert | 2:38 (2:51) | 2:24 (2:23) | 0, 0 |
+| Ordinary | 3:20 (3:33) | 2:54 (3:07) | 2.1, 0.1 |
+| Slow | 6:25 (6:42) | 5:29 (5:49) | 13, 4.6 |
+
+`chef-playthrough`, stepped time per room, in seconds: yard 5, pit 23, cold 30, prep 53, line 149, pass 16, dining 42. Total 5:18, with no reading and no mistakes.
+
+**New first-run estimate: about 9:30 for an ordinary first-timer, about 12 for a slow one**, against the review's 12 to 14. This is a rough sum: yard 0:30, pit 1:15, cold 1:15, prep 1:20, rush 3:00 to 5:30, pass and hands 1:15, dining 0:40. Only the bot figures are measured; **nobody has played it by hand**. A slow player is still over the 6 to 10 bar. If a playtest agrees, the next lever is the review's: move the pass window inward (x54 to about x46), which shortens every plate.
+
+The ramp is untested by hand too. With fewer tickets, sitting 1 has one less plate before the first overlap.
+
+### Checks
+
+vitest 357 pass; lint:content, lint:rooms, lint:scale and vite build clean. All 20 scenarios with chef in the id pass, including the five new ones and `readability-chef` and `scale-chef`. `__dc.readability()` was empty in the pit, prep, the line (rail up, out of stock, stirring), the hands and the dining room.
+
+The hands box text ("A burn on the left thumb.") reads cleanly at 1:1 in `chef2_hands1.jpg`: not garbled in this capture.
+
+### Known, not fixed
+
+- The yard is under 3:1 (above).
+- On a Continue during the rush, the line's stock goes back to full. Small, in the player's favour.
+- `THE LINE: DOORS 7:30` is body type at ×1 under a bulb's glare and reads a little soft.
+- In the yard, Marguerite looked very narrow in two captures taken soon after arrival, and normal in a later one from the same distance. Cause not found; worth a look when played.
+- `src/entities/Foe.js` and `src/scenes/DreamScene.js` each have a small shared change (`player.busy`; `fx.call` in `applyEffect`). No other dream sets or uses either. Only chef scenarios were run on them, plus the casino boarding in `chef-hooks-clear`.
+
+Screenshots: `chef2_<name>.jpg` in the session scratchpad.

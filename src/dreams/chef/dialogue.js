@@ -73,10 +73,10 @@ export const CONVERSATIONS = {
 };
 
 // Aurelio reads Jo's hands: built from the run (src/engines/tickets.js readHands)
-export function handsConversation(lines, finish) {
+export function handsConversation(lines, finish, keys = []) {
   const nodes = { start: { who: 'aurelio', text: 'Stage. Hands.', next: 'r0' } };
   lines.forEach((text, i) => {
-    nodes[`r${i}`] = { who: 'aurelio', text, next: i === lines.length - 1 ? 'verdict' : `r${i + 1}` };
+    nodes[`r${i}`] = { who: 'aurelio', text, next: i === lines.length - 1 ? 'verdict' : `r${i + 1}`, effects: [{ call: 'handMark', mark: keys[i] || null }] };
   });
   const said = {
     menu: "The risotto. The saffron. The gold. It's... correct.",
@@ -86,6 +86,7 @@ export function handsConversation(lines, finish) {
   nodes.verdict = {
     who: 'aurelio',
     text: said[finish] || said.menu,
+    effects: [{ call: 'handMark', mark: null }],
     choices: [
       { text: 'Is it good?', next: 'asked', set: { asked: true } },
       { text: '(Say nothing.)', next: 'silent' },
@@ -93,7 +94,7 @@ export function handsConversation(lines, finish) {
   };
   nodes.asked = { who: 'jo', text: 'Is it good?', next: 'next' };
   nodes.silent = { who: 'aurelio', text: '...', next: 'next' };
-  nodes.next = { who: 'aurelio', text: '...Next.', end: true };
+  nodes.next = { who: 'aurelio', text: '...Next.', effects: [{ call: 'kitchenBack' }], end: true };
   return conv('hands_read', ['aurelio', 'jo'], nodes, { replayable: true });
 }
 
@@ -103,7 +104,6 @@ export const BARKS = [
 
 // the rail's voices (the rail verb says these)
 export const CALLS = {
-  next: ['Next.', 'Next.', 'Next.', '...Next.', 'Next.'],
   clean: ['Next.', 'Hm. Next.', 'Next.'],
   refire: (t) => `Refire, table ${t}!`,
   bail: (t) => `I've got table ${t}. Go.`,

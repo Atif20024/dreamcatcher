@@ -25,7 +25,7 @@ export default {
     { prop: 'hot_glass', x: 8, y: 12, layer: 'back' },
     { prop: 'chef_table', x: 12, y: 12 },
     { prop: 'gold_tin', x: 10, y: 12, dy: -44 },
-    { prop: 'plate_up', x: 14, y: 12, dy: -44, unless: 'hands_done' },
+    { prop: 'plate_up', x: 14, y: 12, dy: -44, unless: 'plate_hand' },
     { prop: 'heat_lamp', x: 12, y: 4, dy: 12 },
     { prop: 'ticket_spike', x: 18, y: 12, dy: -44 },
     { prop: 'speaking_tube', x: 18, y: 8, layer: 'back' },

@@ -27,7 +27,7 @@ export const COLD = {
 // the mise: more than a first night finishes before the doors. What gets done
 // is what the line has at the rush (`gives`: portions per line station).
 export const PREP = {
-  limit: 68000,
+  limit: 60000,
   stations: {
     sacks: { kind: 'quick', x: 6, y: 6, short: 'SACKS', label: 'THE SACKS', verb: 'shoulder the shallots' },
     icebox: { kind: 'quick', x: 14, y: 11, short: 'ICE', label: 'THE ICE CHEST', verb: 'lift out the bass' },
@@ -51,7 +51,7 @@ export const LINE = {
     larder: { kind: 'quick', x: 11, y: 11, short: 'LARDER', label: 'THE LARDER', verb: 'plate the {dish}', out: 'Out of terrine. The reserve shelf.' },
     sauce: { kind: 'quick', x: 20, y: 11, short: 'SAUCE', label: 'THE SAUCE', verb: 'spoon the sauce', out: 'Out of sauce. The reserve shelf.' },
     grill: { kind: 'fire', x: 36, y: 11, short: 'GRILL', cook: 5200, hold: 9000, slots: 2, scrape: 1800, label: 'THE GRILL', verb: 'lay the {dish} on', out: 'Out of fish. The reserve shelf.' },
-    risotto: { kind: 'work', x: 47, y: 11, short: 'RISOTTO', work: 5200, label: 'THE RISOTTO', verb: 'stir it, stay with it' },
+    risotto: { kind: 'work', x: 47, y: 11, short: 'RISOTTO', work: 5200, label: 'THE RISOTTO', verb: 'stir in the saffron' },
     pass: { kind: 'to', x: 54, y: 11, short: 'PASS', label: 'THE PASS', verb: 'send it', empty: 'Nothing in your hands. Chef is waiting.' },
   },
   tickets: [
@@ -59,17 +59,15 @@ export const LINE = {
     { id: 't2', sitting: 1, at: 7000, table: 6, dish: 'TERRINE', stops: ['larder'], to: 'pass', due: 42000 },
     { id: 't3', sitting: 1, at: 16000, table: 2, dish: 'SOLE', stops: ['grill'], to: 'pass', due: 45000 },
     { id: 't4', sitting: 1, at: 28000, table: 6, dish: 'BASS', stops: ['grill', 'sauce'], to: 'pass', due: 50000 },
-    { id: 't5', sitting: 1, at: 38000, table: 9, dish: 'TERRINE', stops: ['larder'], to: 'pass', due: 36000 },
-    { id: 't6', sitting: 2, at: 50000, table: 3, dish: 'BASS', stops: ['grill', 'sauce'], to: 'pass', due: 45000 },
-    { id: 't7', sitting: 2, at: 53000, table: 5, dish: 'SOLE', stops: ['grill'], to: 'pass', due: 39000 },
-    { id: 't8', sitting: 2, at: 60000, table: 8, dish: 'VELOUTE', stops: ['sauce'], to: 'pass', due: 34000 },
-    { id: 't9', sitting: 2, at: 70000, table: 7, dish: 'TOURNEDOS', stops: ['grill', 'sauce', 'larder'], to: 'pass', due: 56000 },
+    { id: 't6', sitting: 2, at: 42000, table: 3, dish: 'BASS', stops: ['grill', 'sauce'], to: 'pass', due: 45000 },
+    { id: 't7', sitting: 2, at: 45000, table: 5, dish: 'SOLE', stops: ['grill'], to: 'pass', due: 39000 },
+    { id: 't9', sitting: 2, at: 56000, table: 7, dish: 'TOURNEDOS', stops: ['grill', 'sauce', 'larder'], to: 'pass', due: 56000 },
     // a table changes its mind while it hangs: read the rail
-    { id: 't11', sitting: 2, at: 86000, table: 9, dish: 'BASS', stops: ['grill', 'sauce'], to: 'pass', due: 48000, amendAt: 93000, amendStops: ['grill'], amendNote: 'NO SAUCE' },
-    { id: 't12', sitting: 3, at: 98000, table: 5, dish: 'BASS', stops: ['grill', 'sauce'], to: 'pass', due: 39000 },
-    { id: 't13', sitting: 3, at: 101000, table: 3, dish: 'TOURNEDOS', stops: ['grill', 'sauce', 'larder'], to: 'pass', due: 50000 },
-    { id: 't15', sitting: 3, at: 114000, table: 6, dish: 'VELOUTE', stops: ['sauce'], to: 'pass', due: 28000 },
-    { id: 't16', sitting: 3, at: 120000, table: 4, dish: 'TERRINE', stops: ['larder'], to: 'pass', due: 28000, minDifficulty: 2 },
+    { id: 't11', sitting: 2, at: 70000, table: 9, dish: 'BASS', stops: ['grill', 'sauce'], to: 'pass', due: 48000, amendAt: 77000, amendStops: ['grill'], amendNote: 'NO SAUCE' },
+    { id: 't12', sitting: 3, at: 82000, table: 5, dish: 'BASS', stops: ['grill', 'sauce'], to: 'pass', due: 39000 },
+    { id: 't13', sitting: 3, at: 85000, table: 3, dish: 'TOURNEDOS', stops: ['grill', 'sauce', 'larder'], to: 'pass', due: 50000 },
+    { id: 't15', sitting: 3, at: 98000, table: 8, dish: 'VELOUTE', stops: ['sauce'], to: 'pass', due: 28000 },
+    { id: 't16', sitting: 3, at: 104000, table: 4, dish: 'TERRINE', stops: ['larder'], to: 'pass', due: 28000, minDifficulty: 2 },
     { id: 'table1', after: 'clear', at: 0, table: 1, dish: 'RISOTTO', stops: ['risotto'], to: 'pass', final: true },
   ],
 };

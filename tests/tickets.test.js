@@ -1,7 +1,7 @@
 // The ticket rail (src/engines/tickets.js) and its balance: seeded bots play
 // the line at rush with the kitchen's real distances.
 import { describe, it, expect } from 'vitest';
-import { Service, readHands } from '../src/engines/tickets.js';
+import { Service, readHands, nightLine } from '../src/engines/tickets.js';
 import { LINE, PREP, PIT } from '../src/dreams/chef/services.js';
 
 const T = 32;
@@ -177,6 +177,22 @@ describe('the rail', () => {
     expect(s.hands.id).toBe('k');
   });
 
+  it('a change of mind waits for full hands instead of being lost', () => {
+    const s = new Service({ stations, tickets: [
+      { id: 'k', table: 1, dish: 'D', stops: ['a', 'b'], to: 'p', amendAt: 100, amendStops: ['a'], amendNote: 'NO B' },
+      { id: 'j', table: 2, dish: 'E', stops: ['a'], to: 'p' },
+    ] });
+    s.use('a'); // k has all it will want
+    s.use('a'); // and j is in his hands
+    expect(s.hands.id).toBe('j');
+    s.update(150);
+    expect(s.rail.find((k) => k.id === 'k').note).toBe(undefined);
+    s.use('p');
+    s.update(50);
+    expect(s.rail[0].note).toBe('NO B');
+    expect(s.hands.id).toBe('k');
+  });
+
   it('a limit ends the service with what got done (the prep clock)', () => {
     const s = new Service({ stations, limit: 1000, tickets: [{ id: 'k', table: 1, dish: 'D', stops: ['a'], to: 'p' }] });
     s.update(1001);
@@ -215,7 +231,7 @@ describe('balance (seeded bots on the real line)', () => {
     expect(ex.late).toBeLessThanOrEqual(1);
     expect(ex.clean).toBeGreaterThan(sl.clean);
     expect(sl.late).toBeGreaterThan(ex.late);
-    expect(sl.served + sl.bailed).toBeGreaterThanOrEqual(14);
+    expect(sl.served + sl.bailed).toBeGreaterThanOrEqual(12);
   });
 
   it('difficulty bites: more late tickets for the same player', () => {
@@ -246,6 +262,16 @@ describe('the hands', () => {
     expect(r.marks).toMatchObject({ burn: true, frost: true, flour: true, onion: true });
     expect(r.lines.join(' ')).toMatch(/left thumb/);
     expect(r.lines.join(' ')).toMatch(/Onion/);
+  });
+  it('what she took is said true to the count', () => {
+    const last = (bails) => readHands({ bails }).lines.at(-1);
+    expect(last(1)).toMatch(/one plate/);
+    expect(last(2)).toMatch(/a few/);
+    expect(last(5)).toMatch(/half/);
+    expect(readHands({ bails: 1 }).lines.length).toBe(readHands({ bails: 1 }).keys.length);
+  });
+  it('the card counts plates and tables', () => {
+    expect(nightLine({ plates: 11, sent2: true, sent3: true })).toBe('11 plates, 2 tables. Nobody sent one back.');
   });
   it('clean hands read differently', () => {
     const r = readHands({});

@@ -44,8 +44,8 @@ const calls = {
   // Aurelio reads Jo's hands: painted from the run, spoken from the run
   async hands(scene) {
     const F = scene.F;
-    const { marks, lines } = readHands(F);
-    scene.def.conversations.hands_read = handsConversation(lines, F.finish || 'menu');
+    const { marks, lines, keys } = readHands(F);
+    scene.def.conversations.hands_read = handsConversation(lines, F.finish || 'menu', keys);
     const W = 400;
     const H = 150;
     const key = 'fs-hands';
@@ -59,13 +59,28 @@ const calls = {
     frame.lineStyle(2, 0xc8a050, 1).strokeRect(cam.width / 2 - W / 2 - 6, 94, W + 12, H + 12);
     const img = scene.add.image(cam.width / 2, 100 + H / 2, key).setScrollFactor(0).setDepth(131).setAlpha(0);
     scene.tweens.add({ targets: img, alpha: 1, duration: 500 });
+    // the ring on the mark he is reading (painted-hands coordinates, see paintHands)
+    const ring = scene.add.graphics().setScrollFactor(0).setDepth(132);
+    scene.handMark = (mark) => {
+      ring.clear();
+      const spots = { burn: [[166, 66, 34, 26]], frost: [[120, 133, 84, 40], [280, 133, 84, 40]], flour: [[120, 34, 84, 44], [280, 34, 84, 44]], onion: [[272, 33, 72, 26]] }[mark];
+      if (!spots) return;
+      ring.lineStyle(2, 0xf2d580, 1);
+      for (const [x, y, w, h] of spots) ring.strokeEllipse(cam.width / 2 - W / 2 + x, 100 + y, w, h);
+      ring.setAlpha(0);
+      scene.tweens.add({ targets: ring, alpha: 1, duration: 260 });
+    };
     const a = scene.npcs.get('aurelio');
     const shot = scene.camDir.push({ zoom: 1.45, focus: a ? { x: (a.x + scene.player.x) / 2, y: a.y - 50 } : null, ms: 700 });
     await scene.runConversation('hands_read', null);
     scene.camDir.pop(shot, 600);
     img.destroy();
     frame.destroy();
+    ring.destroy();
     if (a) a.facing = 1; // he turns away
+  },
+  handMark(scene, { mark }) {
+    scene.handMark(mark);
   },
   // the kitchen's noise rushes back as he turns away
   kitchenBack(scene) {
@@ -117,7 +132,7 @@ export default {
   },
   markMet: true,
   objectives: {
-    door: 'the woman at the back door: talk to her',
+    door: 'the woman at the back door: talk',
     to_pit: 'go in: the back door',
     pit: 'clear the rail: earn an apron',
     to_cold: 'the cold store, the door at the far end',
@@ -129,7 +144,7 @@ export default {
     to_pass: "round to Chef's side, the door past the window",
     finish: 'finish Table One',
     hands: 'hold out the plate to Chef',
-    carry: 'carry it out: the door to the dining room',
+    carry: 'carry it out: the far door',
     walk: 'Table One, at the far end. Walk.',
     catch: 'the light over the plate',
   },

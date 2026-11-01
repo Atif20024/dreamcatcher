@@ -194,6 +194,16 @@ export default {
     box(c, 0, 20, w, 5, COPPER_DK, 0.3, 0.3);
     for (let x = 30; x < w; x += 70) box(c, x, 4, 6, 24, IRON_LT, 0.2, 0.3);
   } },
+  // an enamel gooseneck on the yard wall, the kind every back door had
+  yard_lamp: { w: 44, h: 40, anchor: TOP, light: { x: 22, y: 34, r: 210, color: 0xd8c8a0 }, paint(c, w, h) {
+    c.fillStyle = hex(IRON);
+    c.fillRect(w / 2 - 1, 0, 3, 10);
+    c.fillRect(w / 2 - 6, 0, 12, 3);
+    box(c, w / 2 - 15, 10, 30, 12, 0x2e4a40, 0.3, 0.35);
+    box(c, w / 2 - 20, 20, 40, 4, 0x3a5a4a, 0.3, 0.3);
+    ell(c, w / 2, h - 12, 6, 4, 0xfff0c8);
+    glow(c, w / 2, h - 10, 14, 0xfff0c0, 0.5);
+  } },
   hanging_bulb: { w: 40, h: 60, anchor: TOP, light: { x: 20, y: 50, r: 120, color: 0xfff0d0 }, paint(c, w, h) {
     c.fillStyle = hex(IRON);
     c.fillRect(w / 2, 0, 1, h - 16);

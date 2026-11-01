@@ -579,6 +579,7 @@ export default class DreamScene extends BaseLevel {
     if (fx.objective) this.setObjective(fx.objective);
     if (fx.set) Object.assign(this.F, fx.set);
     if (fx.beat) this.beats.play(fx.beat);
+    if (fx.call) this.def.calls[fx.call](this, fx);
   }
 
   // ids from dream.objectives, or plain text

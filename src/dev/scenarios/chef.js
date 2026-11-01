@@ -400,9 +400,17 @@ const chefCut = {
     const s = await boot(dc, 'dining');
     await dc.run(20);
     const r = s.graph.room('dining').data;
-    const pass = r.ambience === 'fs_dining' && r.events === null && r.acoustics === 'hall' && (r.music || {}).key === 'dining' && s.music.cur && s.music.cur.gain === 0 && buses.acoustics !== 'open';
+    // he really walks: Shift or no Shift, 80 px/s, on the walk cycle
+    dc.hold('right');
+    await dc.run(40);
+    const walked = Math.abs(s.player.body.velocity.x);
+    dc.hold('walk');
+    await dc.run(20);
+    const shifted = Math.abs(s.player.body.velocity.x);
+    dc.releaseAll();
+    const pass = r.ambience === 'fs_dining' && r.events === null && r.acoustics === 'hall' && (r.music || {}).key === 'dining' && s.music.cur && s.music.cur.gain === 0 && buses.acoustics !== 'open' && walked <= 80 && walked > 60 && shifted <= 80 && s.player.walkOnly;
     clearRun('chef');
-    return { pass: !!pass, detail: { amb: r.ambience, gain: s.music.cur && s.music.cur.gain } };
+    return { pass: !!pass, detail: { amb: r.ambience, gain: s.music.cur && s.music.cur.gain, walked, shifted } };
   },
 };
 
@@ -544,11 +552,126 @@ const chefPlaythrough = {
     mark('caught', s.ending.caught);
     dc.press('interact', 3);
     await dc.run(10);
-    if (s.ending.finish) s.ending.finish();
     uncatch('chef');
     clearRun('chef');
     return { pass: log.every((l) => !l.endsWith(':BAD')), detail: log };
   },
 };
 
-export default [chefBoard, chefPlaces, chefCoins, chefRail, chefPocket, chefHands, chefCut, chefBurn, chefOldRun, chefPlaythrough];
+// M2: the plate is on the table until it is in his hands, never neither
+const chefPlateHandover = {
+  id: 'chef-plate-handover',
+  async run(dc) {
+    const s = await boot(dc, 'pass');
+    Object.assign(s.F, { plate_shown: true, rail_pass: true, hands_done: true });
+    await dc.run(10);
+    const before = !s.F.plate_hand;
+    s.beats.play('hands_after');
+    await dc.run(10);
+    const during = !s.F.plate_hand && s.sceneBox.active;
+    await talkThrough(dc, s);
+    await dc.run(2);
+    const rv = s.verbs.find((v) => v.mod.id === 'rail').ctx.state;
+    const out = { before, during, hand: !!(s.F.plate_hand && rv.plate.visible) };
+    clearRun('chef');
+    return { pass: Object.values(out).every(Boolean), detail: out };
+  },
+};
+
+// S3: Brann does not take a stage who is held at a station
+const chefBusy = {
+  id: 'chef-busy-brann',
+  async run(dc) {
+    const s = await boot(dc, 'prep', { keepSafe: false });
+    await dc.run(160);
+    const foe = s.foes[0];
+    foe.passive = false;
+    const out = { thrown: 0 };
+    s.throwOut = () => (out.thrown += 1);
+    foe.setPosition(s.player.x + 20, foe.y);
+    foe.enter('grabbing', 250);
+    for (let i = 0; i < 90; i++) {
+      s.player.busy = true;
+      await dc.run(1);
+    }
+    const held = out.thrown;
+    // and he does once Jo is free again (the duck is still the answer)
+    s.verbs.find((v) => v.mod.id === 'rail').ctx.state.svs.prep.working = null;
+    foe.setPosition(s.player.x + 20, foe.y);
+    s.player.busy = false;
+    foe.enter('grabbing', 250);
+    await dc.run(4);
+    const free = out.thrown;
+    delete s.throwOut;
+    clearRun('chef');
+    return { pass: held === 0 && free === 1, detail: { held, free } };
+  },
+};
+
+// S4: a quit Chef leaves nothing hooked on the scene for the next dream
+const chefHooks = {
+  id: 'chef-hooks-clear',
+  async run(dc) {
+    const s = await boot(dc, 'line');
+    const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+    const on = !!s.railApi && own(s, 'dropCarry') && own(s, 'onHurtExtra');
+    clearRun('chef');
+    dc.warp('gambler', 'quay');
+    await dc.run(60);
+    for (let i = 0; i < 40 && !(dc.scene() && dc.scene().dreamId === 'gambler' && dc.scene().roomId); i++) await dc.run(5);
+    const g = dc.scene();
+    const clear = !own(g, 'dropCarry') && !own(g, 'onHurtExtra') && !g.railApi;
+    clearRun('gambler');
+    return { pass: on && clear && g.dreamId === 'gambler', detail: { on, clear, scene: g.dreamId } };
+  },
+};
+
+// S5: a quit in the middle of a beat, then Continue: the beat plays again
+const chefContinue = {
+  id: 'chef-continue',
+  async run(dc) {
+    const out = {};
+    const cases = [
+      ['pit', { met_m: true, rail_pit: true, pit_clear: true }, 'apron'],
+      ['pass', { rail_pit: true, apron: true, plate_shown: true, rail_pass: true, hands_done: true, finish: 'menu', table1_sent: true }, 'carry_out'],
+      ['dining', { rail_pit: true, apron: true, carry_out: true, plate_shown: true, hands_done: true, rail_dining: true }, 'orb_on'],
+    ];
+    for (const [place, flags, want] of cases) {
+      const s = await boot(dc, place);
+      Object.assign(s.F, flags);
+      s.saveRun();
+      s.scene.restart({ dreamId: 'chef', resume: true });
+      await dc.run(30);
+      const n = dc.scene();
+      safe(n);
+      for (let i = 0; i < 40 && !n.F[want]; i++) {
+        await waitBeats(dc, n);
+        await dc.run(10);
+      }
+      out[want] = !!n.F[want];
+    }
+    clearRun('chef');
+    return { pass: Object.values(out).every(Boolean), detail: out };
+  },
+};
+
+// N5: a Continue does not serve or stock a ticket twice, nor restart the clock
+const chefNoTwice = {
+  id: 'chef-no-twice',
+  async run(dc) {
+    const s = await boot(dc, 'prep');
+    Object.assign(s.F, { served_m_bass: true, stock_grill: 4, mise: 1, prep_t: 20000 });
+    s.saveRun();
+    s.scene.restart({ dreamId: 'chef', resume: true });
+    await dc.run(30);
+    const n = dc.scene();
+    safe(n);
+    await dc.run(160);
+    const sv = n.railApi.service();
+    const out = { tickets: !!sv && sv.rail.length + sv.queue.length === 2, clock: !!sv && sv.t >= 20000 };
+    clearRun('chef');
+    return { pass: out.tickets && out.clock, detail: out };
+  },
+};
+
+export default [chefBoard, chefPlaces, chefCoins, chefRail, chefPocket, chefHands, chefCut, chefBurn, chefOldRun, chefPlaythrough, chefPlateHandover, chefBusy, chefHooks, chefContinue, chefNoTwice];
