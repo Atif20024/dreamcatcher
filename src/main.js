@@ -12,6 +12,7 @@ import { applyWarpToLocation, firstSceneKey } from './dev/warp.js';
 import { initFlags } from './core/flags.js';
 import { initTouch } from './input/touchState.js';
 import { installOffscreenCull } from './core/offscreenCull.js';
+import { installSceneClock } from './core/sceneClock.js';
 
 // ?warp=<dream>:<place> is rewritten onto the legacy per-scene params (dev only)
 if (import.meta.env.DEV) applyWarpToLocation();
@@ -19,6 +20,7 @@ if (import.meta.env.DEV) initFlags(window.location.search);
 // phones and tablets get on-screen controls (?touch=1 forces them on a desktop)
 initTouch(window);
 installOffscreenCull(Phaser.Cameras.Scene2D.CameraManager);
+installSceneClock(Phaser.Time.Clock);
 // screen-space objects at UI depths move onto UIScene (src/ui/ui.js)
 installAdoption();
 // a dev warp boots its own scene; the public site always opens on the title
