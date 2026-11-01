@@ -99,7 +99,7 @@ export default class Townsfolk {
   placeSeat() {
     const s = this.scene;
     const near = (p) => p && Math.abs(p.x - this.x) < 34;
-    if (this.seat || (s.world && ((s.world.benches || []).some(near) || near(s.world.marks && s.world.marks.wall_seat)))) return;
+    if (this.seat || (s.world && ((s.world.benches || []).some(near) || near(s.world.marks && s.world.marks.wall_seat) || near(s.world.marks && s.world.marks.charpoy)))) return;
     redrawProp(s, 'ev-chair', 0, 0);
     this.seat = s.add.image(this.x - (this.art.flipX ? -4 : 4), this.y, 'ev-chair').setOrigin(0.5, 1).setDepth(DEPTH - 0.6).setFlipX(this.art.flipX);
   }

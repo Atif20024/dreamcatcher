@@ -71,6 +71,12 @@ export async function scaleIssues(ROOT) {
     check(key, 'prop', cls, h, S.PROP_CLASSES[cls].h);
   }
   await trainKitChecks(imp, S, check); // round 2 WP3
+  // the Evening's painted arch and rope swing (not kit grids)
+  check('ev-arch', 'prop', 'gateArch', S.EVENING_ARCH.h, S.PROP_CLASSES.gateArch.h);
+  check('ev-arch (opening / Jo)', 'prop', 'gateArch', +(S.EVENING_ARCH.openH / S.JO.withHat).toFixed(2), [1.25, 1.4]);
+  check('rope swing (bough)', 'prop', 'swingBough', S.px(S.ROPE_SWING.boughM), S.PROP_CLASSES.swingBough.h);
+  check('ev-wheat', 'prop', 'wheat', S.WHEAT_PX[1], S.PROP_CLASSES.wheat.h);
+  check('rope swing (seat)', 'prop', 'swingSeat', S.px(S.ROPE_SWING.seatM), S.PROP_CLASSES.swingSeat.h);
   // round 2 WP4: trees, fronts and backdrop rows
   const { checkBackdrops } = await imp('scripts/lib/backdrop-check.js');
   checkBackdrops(S, check, out);

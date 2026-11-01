@@ -420,3 +420,46 @@ Object.assign(CAST_BODIES, {
   'npc-lq-clerk': { sex: 'm', hat: 'bowler' },
   'foe-lq-crake': { sex: 'm', hat: 'silk', dress: true },
 });
+
+// The Long Evening at scale (owner: "last stop is out of proportions"): the
+// props that were still old string art at knee height. Report:
+// docs/redesign/round2/LAST_STOP_SCALE_REPORT.md
+Object.assign(PROP_CLASSES, {
+  swingset: { h: [92, 112], w: [120, 150], m: 2.3 },
+  yardGate: { h: [58, 72], m: 1.5 },
+  fence: { h: [40, 56], m: 1.1 },
+  clothesPost: { h: [90, 110], m: 2.3 },
+  sheet: { h: [40, 56], m: 1.1 },
+  stall: { h: [96, 120], m: 2.5 },
+  narrowboat: { h: [76, 96], m: 2.0 },
+  loft: { h: [96, 116], m: 2.4 },
+  tank: { h: [96, 116], m: 2.4 },
+  greenhouse: { h: [96, 116], m: 2.4 },
+  hive: { h: [36, 46], m: 0.95 },
+  scarecrow: { h: [72, 90], m: 1.9 },
+  shed: { h: [106, 124], m: 2.6 }, // always taller than its 2.25 m door
+  wagon: { h: [58, 76], m: 1.5 },
+  mill: { h: [260, 310], m: 6.5 },
+  millWheel: { h: [140, 170], m: 3.5 },
+  wheat: { h: [34, 46], m: 0.9 },
+  awning: { h: [24, 36], m: 0.7 },
+  sheep: { h: [34, 46], m: 0.95 },
+  goat: { h: [30, 42], m: 0.85 },
+  deer: { h: [60, 80], m: 1.6 },
+  gateArch: { h: [120, 150], m: 3.05 }, // the opening at least 2.4 m (106 px)
+  swingBough: { h: [96, 120], m: 2.4 },
+  swingSeat: { h: [18, 26], m: 0.45 },
+});
+Object.assign(PROP_TABLE, {
+  'ev-swingset': 'swingset', 'ev-gate': 'yardGate', 'ev-fence': 'fence', 'ev-post': 'clothesPost',
+  'ev-sheet': 'sheet', 'ev-sheet-b': 'sheet', 'ev-teastall': 'stall', 'ev-bikestall': 'stall',
+  'ev-narrowboat': 'narrowboat', 'ev-rowboat': 'rowboat', 'ev-loft': 'loft', 'ev-tank': 'tank',
+  'ev-greenhouse': 'greenhouse', 'ev-hive': 'hive', 'ev-scarecrow': 'scarecrow', 'ev-shed': 'shed',
+  'ev-tractor': 'tractor', 'ev-horsecart': 'wagon', 'ev-mill': 'mill', 'ev-wheel': 'millWheel',
+  'ev-awning': 'awning', 'ev-sheep': 'sheep', 'ev-goat': 'goat', 'ev-deer': 'deer',
+});
+// the arch and the rope swing are not kit grids; the lint reads these numbers
+// and the painters and src/scenes/evening/world.js draw from them
+export const EVENING_ARCH = { w: 116, h: 134, openW: 60, openH: 106 }; // px
+export const ROPE_SWING = { boughM: 2.4, seatM: 0.45 };
+export const WHEAT_PX = [16, 40]; // painted strokes, not a grid; 0.9 m, up to Jo's belt
