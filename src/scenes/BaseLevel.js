@@ -9,7 +9,7 @@ import { setupLook, setupGrade } from '../art/look.js';
 import Foe from '../entities/Foe.js';
 import { createFoeTextures } from '../entities/foeArt.js';
 import { FOES } from '../data/kinds.js';
-import { heartsMax } from '../systems/wallet.js';
+import { heartsMax, heartsFull } from '../systems/wallet.js';
 import { showTutorial, updateTeach, seenInDream } from '../play/Teach.js';
 import { roomObjective } from '../play/Objectives.js';
 import GateSigns from '../play/GateSigns.js';
@@ -432,6 +432,7 @@ export default class BaseLevel extends Phaser.Scene {
 
   updateShardHud() {
     const sv = getSave();
+    if (heartsFull(this.difficulty, sv.shards)) return this.shardHud.setText('\u2726 hearts full');
     this.shardHud.setText(sv.shards > 0 ? `\u2726 ${sv.shards % 3}/3` + (Math.floor(sv.shards / 3) ? `  (+${Math.floor(sv.shards / 3)} heart)` : '') : '');
   }
 
@@ -489,7 +490,9 @@ export default class BaseLevel extends Phaser.Scene {
         sfx('shard');
         const sv = updateSave((x) => (x.shards = (x.shards || 0) + 1));
         this.updateShardHud();
-        this.floatText(this.player.x, this.player.y - 60, sv.shards % 3 === 0 ? 'a heart, whole.' : `heart shard — ${sv.shards % 3}/3`, '#7ec8d8');
+        // the row was already as long as it gets: this one buys nothing, so it doesn't count up
+        if (heartsFull(this.difficulty, sv.shards - 1)) this.floatText(this.player.x, this.player.y - 60, 'hearts full', '#f2e0a0');
+        else this.floatText(this.player.x, this.player.y - 60, sv.shards % 3 === 0 ? 'a heart, whole.' : `heart shard — ${sv.shards % 3}/3`, '#7ec8d8');
         const max = heartsMax(this.difficulty, sv.shards);
         if (max > this.maxLives) {
           this.maxLives = max;
