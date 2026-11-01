@@ -67,11 +67,10 @@ const walk = {
   async run(dc) {
     const sc = await chefFloor(dc);
     const p = sc.player;
-    p.speed = 90; // a stroll: below the walk/jog line
+    dc.hold('ShiftLeft'); // a stroll: the chef's rail owns p.speed
     dc.hold('right');
     const s = strip(p, 60, dc, 2);
     dc.releaseAll();
-    p.speed = 280;
     const frames = new Set(s.filter((x) => x.startsWith('walk/')));
     return { pass: frames.size >= 6, detail: { strip: s, walkFrames: frames.size } };
   },

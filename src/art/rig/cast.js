@@ -430,9 +430,12 @@ export function composeCast(rig, pose, held) {
     const [hx, hy] = comp.attach.hand_f;
     // the hand stays in front of the grip, the face in front of whatever is held
     const keep = [];
-    for (let i = 0; i < g.px.length; i++) if (g.part[i] === 'hand_f' || g.part[i] === 'head') keep.push([i, g.px[i]]);
+    for (let i = 0; i < g.px.length; i++) if (g.part[i] === 'hand_f' || g.part[i] === 'head') keep.push([i, g.px[i], g.part[i]]);
     stamp(g, H.rows, Math.round(hx), Math.round(hy), H.ox, H.oy, 'held');
-    for (const [i, ch] of keep) g.px[i] = ch;
+    for (const [i, ch, part] of keep) {
+      g.px[i] = ch;
+      g.part[i] = part;
+    }
   }
   // the hat layer over the head
   const hg = comp.hat;
