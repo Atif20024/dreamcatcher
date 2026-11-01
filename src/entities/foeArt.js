@@ -1,4 +1,5 @@
 import { createFrames } from '../utils/pixelart.js';
+import { artAway } from '../art/baked.js';
 import { FOE_LOOKS } from '../dreams/painter/people.js';
 import { FOE_LOOKS as LQ_FOES } from '../dreams/gambler/people.js';
 
@@ -217,6 +218,7 @@ CREATURES['foe-crow'] = {
 
 export function createFoeTextures(scene) {
   for (const [key, def] of Object.entries(PEOPLE)) {
+    if (artAway(scene.textures, key)) continue; // another dream's foe: its pack is not here
     createFrames(scene, key, def.art, def.pal, 2, { outline: OUTLINE });
   }
   for (const [key, def] of Object.entries(CREATURES)) {

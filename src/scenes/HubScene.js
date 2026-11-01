@@ -28,6 +28,7 @@ import { getSave, updateSave, getRun } from '../utils/save.js';
 import { getWallet, spend, addCoins } from '../systems/wallet.js';
 import { HATS, hatById } from '../data/hats.js';
 import { sfx, music, musicDirector, sting, accordion, chime, playFx } from '../systems/audio.js';
+import { prepareDream } from '../core/boarding.js';
 import { ambience } from '../audio/Ambience.js';
 import { dreamcatcherTexture, caughtRounds, WEB_ORDER, glowTexture } from '../art/identityArt.js';
 import { PLACES } from '../ui/theme.js';
@@ -72,6 +73,8 @@ export default class HubScene extends BaseLevel {
     // without any (the Evening's end, a dev warp), which replayed an old
     // return — the train backing out, Jo locked for 7.5 s
     if (data) data.returnedFrom = null;
+    this.trainMissed = !!(data && data.trainMissed);
+    if (data) data.trainMissed = false;
   }
 
   create() {
@@ -171,6 +174,7 @@ export default class HubScene extends BaseLevel {
     // the place's name on the board (WP6, §9): not over the opening (it has
     // its own) and not over a train coming home
     if (!this.returnedFrom && !this.firstVisit) this.placeBoard = boardTitle(this, 'CROSSROADS STATION', { sub: "NINE O'CLOCK", y: 64, place: 'hub', hold: 1800 });
+    if (this.trainMissed) this.showCard(['THIS TRAIN COULD NOT LEAVE', '', 'The dream did not load. Check your connection,', 'then reload the page and board again.', '', '[E] Stay at the station'], () => {});
   }
 
   // ---- thresholds: the screen changes rooms only inside a frame ----------
@@ -1493,6 +1497,8 @@ export default class HubScene extends BaseLevel {
     this.player.body.setVelocity(0, 0);
     this.persistClock();
     this.boarding = d.id;
+    // what the train needs starts loading now: most times it is there before the doors shut
+    const ready = prepareDream(this, d === LAST_STOP ? 'evening' : d.id);
     // through the gate and up the platform into the lit door (about 1.4 s),
     // the door shuts, and the train runs away into the shed (round 2 WP3)
     train.walkIn(this.player, () => {
@@ -1503,13 +1509,17 @@ export default class HubScene extends BaseLevel {
       this.time.delayedCall(900, () => {
         trainWipe(
           this,
-          () => {
-            music.stop();
-            // a continued run skips the intro card and wakes at its flag
-            if (d === LAST_STOP) this.scene.start('Evening', { fromDoor: true });
-            else if (answer === 'continue') this.scene.start(d.scene, { levelKey: d.id, resume: true });
-            else this.scene.start('Intro', { levelKey: d.id });
-          },
+          () =>
+            ready.then(
+              () => {
+                music.stop();
+                // a continued run skips the intro card and wakes at its flag
+                if (d === LAST_STOP) this.scene.start('Evening', { fromDoor: true });
+                else if (answer === 'continue') this.scene.start(d.scene, { levelKey: d.id, resume: true });
+                else this.scene.start('Intro', { levelKey: d.id });
+              },
+              (e) => this.missedTrain(e)
+            ),
           { place: d === LAST_STOP ? 'evening' : PLACES[d.id] ? d.id : 'hub', event: 'boarding' }
         );
       });
@@ -1524,14 +1534,26 @@ export default class HubScene extends BaseLevel {
       () => {
         this.persistClock();
         this.player.controlLockUntil = this.time.now + 99999;
+        const ready = prepareDream(this, 'evening');
         this.cameras.main.fadeOut(1200, 20, 14, 8);
-        this.time.delayedCall(1250, () => {
-          music.stop();
-          this.scene.start('Evening', { fromDoor: true });
-        });
+        this.time.delayedCall(1250, () =>
+          ready.then(
+            () => {
+              music.stop();
+              this.scene.start('Evening', { fromDoor: true });
+            },
+            (e) => this.missedTrain(e)
+          )
+        );
       },
       () => {}
     );
+  }
+
+  // the train could not be loaded (offline): back on the concourse, and why
+  missedTrain(e) {
+    console.warn('[board]', e);
+    this.scene.restart({ trainMissed: true });
   }
 
   // ---- Bilal's stall (collectibles §2) -----------------------------------

@@ -31,7 +31,11 @@ export default class BootScene extends Phaser.Scene {
     uiText(this, width / 2, height / 2 + 52, "Nine o'clock. Loading the station…", { size: 'small', color: '#c8c0b0', align: 'center' }).setOrigin(0.5);
     this.load.json('atlas-index', 'atlas/index.json');
     this.load.once('filecomplete-json-atlas-index', (_k, _t, index) => {
-      for (const p of (index && index.packs) || []) this.load.atlas(p.key, p.png, p.json);
+      // a dream's people load when Jo boards (src/core/boarding.js). Dev warps
+      // jump straight in, so a dev page has everything (?lean tests the real thing)
+      const lean = !import.meta.env.DEV || new URLSearchParams(window.location.search).has('lean');
+      this.registry.set('leanPacks', lean);
+      for (const p of (index && index.packs) || []) if (!lean || (p.owner || 'hub') === 'hub') this.load.atlas(p.key, p.png, p.json);
       // Files queued mid-load are normally picked up on a scene update, which
       // never ticks in a background tab (no requestAnimationFrame). Kick the
       // queue now, and keep kicking on a timer until loading ends.

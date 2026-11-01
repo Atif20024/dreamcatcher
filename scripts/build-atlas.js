@@ -331,7 +331,7 @@ const foePlain = keepPlain(foeFrames);
 const castRig = rigged.frames.filter((f) => !f.foe);
 const foeRig = rigged.frames.filter((f) => f.foe);
 // packs stay within 2048×2048: chunk by area
-function writePacks(base, frames, kind) {
+function writePacks(base, frames, kind, owner = 'hub') {
   const chunks = [[]];
   let area = 0;
   for (const f of frames) {
@@ -349,12 +349,20 @@ function writePacks(base, frames, kind) {
     chunks[chunks.length - 1].push(f);
     area += a;
   }
-  chunks.forEach((c, i) => index.packs.push({ ...writePack(i ? `${base}${i + 1}` : base, c), kind, explode: true }));
+  chunks.forEach((c, i) => index.packs.push({ ...writePack(i ? `${base}${i + 1}` : base, c), kind, explode: true, owner }));
 }
-for (const old of fs.readdirSync(OUT)) if (/^(cast|foes|people)\d*\.(png|json)$/.test(old)) fs.rmSync(path.join(OUT, old));
+for (const old of fs.readdirSync(OUT)) if (/^(cast|foes|people)[-\w]*\.(png|json)$/.test(old)) fs.rmSync(path.join(OUT, old));
 writePacks('cast', castPlain, 'placeholder');
 writePacks('foes', foePlain, 'placeholder');
-writePacks('people', [...castRig, ...foeRig], 'rig-cast');
+// the people by who needs them: a dream loads its own packs (src/art/packOwners.js)
+const { ownerOf } = await import(pathToFileURL(path.join(ROOT, 'src/art/packOwners.js')).href);
+const byOwner = new Map();
+for (const f of [...castRig, ...foeRig]) {
+  const o = ownerOf(f.name);
+  if (!byOwner.has(o)) byOwner.set(o, []);
+  byOwner.get(o).push(f);
+}
+for (const [o, frames] of byOwner) writePacks(`people-${o}`, frames, 'rig-cast', o);
 index.placeholders = { cast: castPlain.length, foes: foePlain.length, total: castPlain.length + foePlain.length, rigged: rigged.frames.length, runtimeOnly };
 index.castReport = rigged.report;
 index.gaits = rigged.gaits;

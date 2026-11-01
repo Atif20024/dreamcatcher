@@ -4,17 +4,54 @@
 // the atlas pixels and only paint at runtime as a fallback. Code keeps using
 // the same texture keys — it never branches on where the art came from.
 
+import { ownerOf, PLACE_OWNERS } from './packOwners.js';
+
 let INDEX = null;
 const OWNER = new Map(); // placeholder texture key → atlas pack key
 const ALIAS = new Map(); // legacy key → [atlas key, frame]
 const stats = { baked: 0, missed: new Set() };
+export const artAsked = new Set(); // dev: every person key the game asked for (scenario dream-packs-cover)
 
 export function registerAtlases(textures, index) {
   INDEX = index;
   for (const [k, v] of Object.entries(index.aliases || {})) ALIAS.set(k, v);
-  for (const p of index.packs || []) {
+  registerPacks(textures);
+}
+
+// every pack now in the texture manager answers for its frames
+export function registerPacks(textures) {
+  for (const p of (INDEX && INDEX.packs) || []) {
     if (!p.explode || !textures.exists(p.key)) continue;
-    for (const name of textures.get(p.key).getFrameNames()) if (!ALIAS.has(name)) OWNER.set(name, p.key);
+    for (const name of textures.get(p.key).getFrameNames()) {
+      if (ALIAS.has(name) || OWNER.get(name) === p.key) continue;
+      OWNER.set(name, p.key);
+      // old string art painted under this key while its pack was away gives way
+      if (textures.exists(name) && !textures.get(name).customData.baked) textures.remove(name);
+    }
+  }
+}
+
+// a person whose pack is not loaded just now
+export function artAway(textures, key) {
+  return !!INDEX && !OWNER.has(key) && (INDEX.packs || []).some((p) => p.owner === ownerOf(key) && !textures.exists(p.key));
+}
+
+// the packs a place needs (the hub's are always loaded)
+export function packsFor(place) {
+  const want = new Set(['hub', ...(PLACE_OWNERS[place] || [])]);
+  return ((INDEX && INDEX.packs) || []).filter((p) => want.has(p.owner || 'hub'));
+}
+
+// free every pack not in `keep`, and the textures cut from it
+export function evictPacks(textures, keep) {
+  for (const p of (INDEX && INDEX.packs) || []) {
+    if (!p.owner || keep.has(p) || !textures.exists(p.key)) continue;
+    for (const name of textures.get(p.key).getFrameNames()) {
+      if (OWNER.get(name) !== p.key) continue;
+      OWNER.delete(name);
+      if (textures.exists(name)) textures.remove(name);
+    }
+    textures.remove(p.key);
   }
 }
 
@@ -31,6 +68,7 @@ export function isBaked(scene, key) {
 
 // make `key` from its atlas frame if the atlas has one; true when it exists
 export function bakeFromAtlas(scene, key) {
+  if (import.meta.env && import.meta.env.DEV) artAsked.add(key);
   if (isBaked(scene, key)) return true;
   const pack = OWNER.get(key);
   if (!pack || !scene.textures.exists(pack)) return false;
@@ -74,6 +112,7 @@ export function resolveArt(scene, ref) {
 // a person frame by key: the texture, baked from the atlas on first use (new
 // animation frames — talk, idle, foe windup — have no runtime painter)
 export function castFrame(scene, key) {
+  if (import.meta.env && import.meta.env.DEV) artAsked.add(key);
   return scene.textures.exists(key) || bakeFromAtlas(scene, key) ? key : null;
 }
 
