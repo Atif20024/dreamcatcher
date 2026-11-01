@@ -34,6 +34,14 @@ Updated 2026-10-29 after the owner's change of direction. The owner's words over
 - The racer dream: design doc by a pro-gamer advisor (`docs/dream_racer.md`), then the build.
 - Open issue: on the painter's daylight street, Jo's contrast is 2.7:1, below the 3:1 target; recolouring his coat would fix it.
 
+## Owner's list (2026-11-01), first, one by one
+Each fix is followed by a senior game designer and a pro gamer review, then fixes, until they converge. Things already fixed in Astronaut and Chef stay as they are.
+1. Casino polish and phone key gaps (in progress).
+2. Hub ladder before the platforms: walking up to it snaps Jo back to the upper level. Make it climbable both ways.
+3. Notes are still unreadable: the reading panel's text must be easy to read at every window size and on phones.
+4. THE LAST STOP (Evening) is out of proportion, e.g. the swing: everything to Jo's scale (1 m = 44 px).
+5. The racing train can't be seen: build the racer dream (`docs/dream_racer.md`) with its own train and platform at the station (was #9b).
+
 ## Next, in order
 The build order follows `advice/lead_design_review.md` §5. One agent at a time.
 
