@@ -17,7 +17,7 @@
 
 export const CARDS = {
   // ---- movement, every dream ----------------------------------------------
-  slide_under: { name: 'SLIDE UNDER', hint: 'duck through the grab', key: '↓', triggers: [{ dream: '*', event: 'Foe grab wind-up' }] },
+  slide_under: { name: 'SLIDE UNDER', hint: 'press it as they wind up, not before', key: '↓', triggers: [{ dream: '*', event: 'Foe grab wind-up' }] },
   shove: { name: 'SHOVE', hint: 'stagger, never hurt', key: 'X', triggers: [{ dream: '*', event: 'Foe first notice' }] },
   hide: { name: 'HIDE', hint: 'wait for them to pass', key: '↓', triggers: [{ dream: '*', event: 'BaseLevel hide spot' }] },
   wall_jump: {

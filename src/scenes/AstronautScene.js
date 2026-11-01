@@ -726,6 +726,7 @@ export default class AstronautScene extends BaseLevel {
       opp.setVelocityX(Math.abs(d) > 60 ? Math.sign(d) * 70 : -Math.sign(d) * 30);
       if (Math.abs(d) < 70 && time > b.stateUntil && Math.random() < windupChance(delta)) {
         b.state = 'windup';
+        b.duckedAtTell = p.crouching;
         b.feinting = !!b.plan.feint && Math.random() < b.plan.feint;
         b.stateUntil = time + (b.feinting ? 250 : 400);
         opp.setTint(0xffa0a0);
@@ -744,6 +745,7 @@ export default class AstronautScene extends BaseLevel {
       }
     } else if (b.state === 'windup') {
       opp.setVelocityX(0);
+      if (!p.crouching) b.duckedAtTell = false; // up, and down again in time: that's a reaction
       if (time > b.stateUntil && b.feinting) {
         // the bluff: he pulls it, and the real one comes while Jo is still down
         b.state = 'circle';
@@ -756,7 +758,7 @@ export default class AstronautScene extends BaseLevel {
         b.stateUntil = time + 200;
         if (b.plan.tint) opp.setTint(b.plan.tint);
         else opp.clearTint();
-        if (Math.abs(p.x - opp.x) < 60 && !p.crouching) {
+        if (Math.abs(p.x - opp.x) < 60 && !(p.crouching && !b.duckedAtTell)) {
           b.taken += 1;
           sfx('hurt');
           this.cameras.main.shake(120, 0.006);

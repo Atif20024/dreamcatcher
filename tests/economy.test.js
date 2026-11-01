@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { heartsMax, heartsFull, PRICES, HEARTS_CAP } from '../src/systems/wallet.js';
+import { heartsMax, heartsFull, PRICES, HEARTS_CAP, addCoins, abandonRun, coinWorth, getWallet, spend, deductWorth } from '../src/systems/wallet.js';
+import { getSave, updateSave, getRun, setRun, clearRun } from '../src/utils/save.js';
 import { HATS } from '../src/data/hats.js';
 
 describe("Bilal's stall", () => {
@@ -30,5 +31,65 @@ describe("Bilal's stall", () => {
     expect(shelf).toBeGreaterThan(INCOME);
     // what changes play (heart, every postcard, a ticket, a tea) fits inside a real run's 60 %
     expect(heart + PRICES.postcard * 7 + PRICES.ticket + PRICES.tea).toBeLessThan(INCOME * 0.7);
+  });
+});
+
+// (Node: the store has no localStorage and keeps the save in memory)
+describe('Board from the start takes the old run back', () => {
+  const W = coinWorth('chef');
+  const start = (coins, shards, extraFields) => {
+    updateSave((s) => {
+      s.wallet = { total: 0, byDream: {} };
+      s.shards = shards;
+    });
+    addCoins('chef', coins);
+    setRun('chef', { dreamId: 'chef', sceneKey: 'Dream', walletDelta: coins, extra: { walletAtSave: coins * W, shardsTaken: ['1,1', '2,2'], ...extraFields } });
+  };
+
+  it('coins and shards come out, the run is gone', () => {
+    start(10, 5);
+    abandonRun('chef');
+    expect(getWallet().total).toBe(0);
+    expect(getWallet().byDream.chef).toBe(0);
+    expect(getSave().shards).toBe(3);
+    expect(getRun('chef')).toBe(null);
+  });
+
+  it("money from elsewhere stays; money spent at Bilal's since floors the wallet at zero", () => {
+    start(10, 1);
+    updateSave((s) => (s.wallet.total += 7));
+    abandonRun('chef');
+    expect(getWallet().total).toBe(7);
+    start(10, 1);
+    expect(spend(4 * W)).toBe(true);
+    abandonRun('chef');
+    expect(getWallet().total).toBe(0);
+    expect(getSave().shards).toBe(0);
+  });
+
+  it('coins taken or dropped after the last save count too', () => {
+    start(10, 2);
+    addCoins('chef', 3);
+    abandonRun('chef');
+    expect(getWallet().total).toBe(0);
+    start(10, 2);
+    deductWorth('chef', 4 * W);
+    abandonRun('chef');
+    expect(getWallet().total).toBe(0);
+  });
+
+  it('an old run with no stored figure takes back nothing, and still clears', () => {
+    start(10, 5, { walletAtSave: undefined });
+    abandonRun('chef');
+    expect(getWallet().total).toBe(10 * W);
+    expect(getSave().shards).toBe(5);
+    expect(getRun('chef')).toBe(null);
+  });
+
+  it('no run: nothing happens', () => {
+    clearRun('chef');
+    updateSave((s) => (s.wallet = { total: 9, byDream: { chef: 9 } }));
+    abandonRun('chef');
+    expect(getWallet().total).toBe(9);
   });
 });

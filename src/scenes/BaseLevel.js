@@ -15,7 +15,7 @@ import { roomObjective } from '../play/Objectives.js';
 import GateSigns from '../play/GateSigns.js';
 import { hitStop } from '../systems/effects.js';
 import CoinManager, { createCoinTextures, createShardTexture } from '../entities/Coin.js';
-import { getWallet, coinWorth, deductWorth } from '../systems/wallet.js';
+import { getWallet, coinWorth, deductWorth, takeBack, abandonRun } from '../systems/wallet.js';
 import { dreamById, DREAMS } from '../data/dreams.js';
 import { D } from '../builders/depths.js';
 import { events } from '../core/events.js';
@@ -101,6 +101,7 @@ export default class BaseLevel extends Phaser.Scene {
 
   setupCommon({ worldW, worldH, levelName, spawn }) {
     this.difficulty = getDifficulty();
+    this.initRun(); // first: boarding afresh takes the old run's shards back, and hearts count shards
     const save = getSave();
     const max = heartsMax(this.difficulty, save.shards);
     // one HealthModel for every dream (the Painter's wells are a skin on it)
@@ -122,7 +123,6 @@ export default class BaseLevel extends Phaser.Scene {
     this.hud = hud.bind(this, this.hudProfile || 'default');
     this._objective = '';
     this.pauseMenu = new PauseMenu(this);
-    this.initRun();
     // Bilal's tea: a heart refill banked for the next dream's first section —
     // here it simply tops the section up over the max by one.
     if (save.shop && save.shop.tea && this.scene.key !== 'Hub') {
@@ -696,9 +696,8 @@ export default class BaseLevel extends Phaser.Scene {
     this._restarting = true;
     const id = this.dreamId;
     const coins = this.levelCoins || 0;
-    if (id && coins > 0) deductWorth(id, coins * coinWorth(id));
     const shards = (this.shardItems || []).filter((i) => !i.active).length;
-    if (shards) updateSave((s) => (s.shards = Math.max(0, (s.shards || 0) - shards)));
+    if (id) takeBack(id, coins * coinWorth(id), shards);
     this.onRestartDream();
     if (id) clearRun(id);
     this.restartLog = { dreamId: id, coins, shards, at: Date.now() };
@@ -830,7 +829,7 @@ export default class BaseLevel extends Phaser.Scene {
     } else {
       this.run = new RunState({ dreamId: this.dreamId, sceneKey: this.scene.key });
       // boarding afresh: the old run (if any) is over
-      if (!data.keepRun) clearRun(this.dreamId);
+      if (!data.keepRun) abandonRun(this.dreamId);
     }
   }
 
@@ -899,6 +898,7 @@ export default class BaseLevel extends Phaser.Scene {
     }
     this.placePlayer(pos);
     this.applyRunExtra(x, r);
+    this.calmFoes();
     if (r.hearts) this.lives = Math.max(1, Math.min(this.maxLives, r.hearts));
     this.updateHearts();
     this.cameras.main.centerOn(pos.x, pos.y);
