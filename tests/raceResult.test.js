@@ -3,9 +3,11 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('phaser', () => ({ default: { Math: { RandomDataGenerator: class {} }, Display: { Color: {} }, GameObjects: { BitmapText: class {} } } }));
 import { applyResult, restarted, prizeOwed, softAid, flagOf, clock, SOFT_AID_AFTER } from '../src/dreams/racer/race/result.js';
 import { sanitizeFlags } from '../src/play/RunState.js';
-import { TRACKS } from '../src/dreams/racer/race/tracks.js';
+import { TRACKS, RACE_PAD } from '../src/dreams/racer/race/tracks.js';
+import { InputMap } from '../src/input/InputMap.js';
+import { sightOf } from '../src/dreams/racer/race/RaceHud.js';
 import { layoutRace, controlsAt, keysAt } from '../src/input/touchLayout.js';
-import { engineNote, pickAudible, distanceGain, MAX_ENGINES } from '../src/audio/engineSynth.js';
+import { engineNote, pickAudible, distanceGain, tuneToBeat, MAX_ENGINES } from '../src/audio/engineSynth.js';
 import { carFrames, CAR_SIZE, LIVERIES } from '../src/art/carKit.js';
 import { px } from '../src/data/scale.js';
 import { BAYS, bayIndex } from '../src/data/hub/rooms.js';
@@ -45,10 +47,19 @@ describe('the result in the run', () => {
     expect(fl[f('time')]).toBe(43);
     expect(fl[f('passed')]).toBe(true);
   });
-  it('short of the gate is a try, no pay; three tries bring the whisper', () => {
+  it('second place is short of the gate and still pays second place, once, and first pays the rest', () => {
+    let fl = applyResult({}, T, { place: 2, time: 50 });
+    expect(fl[f('passed')]).toBeUndefined();
+    expect(prizeOwed(fl, 'test')).toBe(T.prize[2]);
+    fl = { ...fl, [f('paid')]: T.prize[2] };
+    fl = applyResult(fl, T, { place: 2, time: 49 });
+    expect(prizeOwed(fl, 'test')).toBe(0);
+    fl = applyResult(fl, T, { place: 1, time: 44 });
+    expect(prizeOwed(fl, 'test')).toBe(T.prize[1] - T.prize[2]);
+  });
+  it('short of the gate is a try; three tries bring the whisper', () => {
     let fl = {};
     for (let i = 0; i < SOFT_AID_AFTER - 1; i++) fl = applyResult(fl, T, { place: 2, time: 50 });
-    expect(prizeOwed(fl, 'test')).toBe(0);
     expect(fl[f('passed')]).toBeUndefined();
     expect(softAid(fl, 'test')).toBe(false);
     fl = restarted(fl, T);
@@ -109,6 +120,79 @@ describe('the engine note', () => {
     expect(MAX_ENGINES).toBe(3);
     expect(distanceGain(0)).toBe(1);
     expect(distanceGain(80)).toBeLessThan(0.25);
+  });
+});
+
+describe('the draft by ear', () => {
+  const jo = engineNote({ v: 34, throttle: true, base: 52, detune: 6 });
+  const rival = engineNote({ v: 33, throttle: true, base: 65, detune: 9, closing: 1 });
+  it('in the slot the two notes are one, and nothing else in them beats', () => {
+    const t = tuneToBeat(jo, rival, { hz: 0, hear: 1 });
+    expect(t.rival.freq).toBeCloseTo(t.jo.freq, 6);
+    expect(t.rival.sub).toBeCloseTo(t.jo.freq / 2, 6);
+    expect(t.jo.detune).toBe(0);
+    expect(t.rival.detune).toBe(0);
+    expect(t.jo.flutter).toBe(0);
+    expect(t.rival.flutter).toBe(0);
+  });
+  it('out of it they stand hz apart, in the sub as well', () => {
+    const t = tuneToBeat(jo, rival, { hz: 4, hear: 1 });
+    expect(t.rival.freq - t.jo.freq).toBeCloseTo(4, 6);
+    expect(t.rival.sub - t.jo.freq / 2).toBeCloseTo(4, 6);
+  });
+  it('far off the rival keeps its own note, and a voice that was never pulled is unchanged', () => {
+    const t = tuneToBeat(jo, rival, { hz: 9, hear: 0 });
+    expect(t.rival.freq).toBeCloseTo(rival.freq, 6);
+    expect(t.jo.freq).toBe(jo.freq);
+    expect(t.jo.detune).toBe(jo.detune);
+  });
+});
+
+describe('the sight strip', () => {
+  it('reads time to contact: grows, then pulses under 1.5 s', () => {
+    const far = sightOf({ dist: 150, v: 0 }, 30, 0);
+    const near = sightOf({ dist: 50, v: 0 }, 36, 0.1);
+    expect(far.ttc).toBe(5);
+    expect(far.scale).toBe(1);
+    expect(near.ttc).toBeLessThan(1.5);
+    expect(near.scale).toBeGreaterThan(far.scale);
+    const samples = [0, 0.05, 0.1, 0.15, 0.2].map((t) => sightOf({ dist: 40, v: 0 }, 36, t).alpha);
+    expect(Math.max(...samples) - Math.min(...samples)).toBeGreaterThan(0.2);
+  });
+  it('a car pulling away is no contact at all', () => {
+    expect(sightOf({ dist: 40, v: 36 }, 30, 0).ttc).toBe(Infinity);
+  });
+});
+
+describe('a pad', () => {
+  const pad = (axes = [0, 0], pressed = []) => ({ axes, buttons: Array.from({ length: 16 }, (_, i) => ({ pressed: pressed.includes(i), value: pressed.includes(i) ? 1 : 0 })) });
+  const map = () => {
+    const m = new InputMap();
+    for (const [a, c] of Object.entries(RACE_PAD)) m.bind(a, 'gamepad', c);
+    return m;
+  };
+  const feed = (m, p) => m.update({ keys: new Set(), pad: p });
+  it('the triggers are the pedals, the d-pad too, and the d-pad changes lanes', () => {
+    const m = map();
+    feed(m, pad([0, 0], [7]));
+    expect(m.isDown('right')).toBe(true);
+    feed(m, pad([0, 0], [6]));
+    expect(m.isDown('left')).toBe(true);
+    feed(m, pad([0, 0], [15]));
+    expect(m.isDown('right')).toBe(true);
+    feed(m, pad([0, 0], [12]));
+    expect(m.justDown('up')).toBe(true);
+    feed(m, pad([0, 0], [13]));
+    expect(m.justDown('down')).toBe(true);
+  });
+  it('a thumb on the stick for the throttle cannot flick a lane by tilting', () => {
+    const m = map();
+    feed(m, pad([1, 0]));
+    feed(m, pad([0.8, -0.6]));
+    expect(m.isDown('right')).toBe(true);
+    expect(m.isDown('up')).toBe(false);
+    feed(m, pad([0.8, 0.6]));
+    expect(m.isDown('down')).toBe(false);
   });
 });
 

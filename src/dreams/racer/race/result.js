@@ -22,7 +22,7 @@ export function applyResult(flags, track, { place, time }) {
   if (best === undefined || place < best || (place === best && time < out[f('time')])) {
     out[f('best')] = place;
     out[f('time')] = Math.round(time * 100) / 100;
-    if (place <= track.passPlace) out[f('prize')] = (track.prize && track.prize[place]) || 0;
+    out[f('prize')] = (track.prize && track.prize[place]) || 0;
   }
   if (place <= track.passPlace) out[f('passed')] = true;
   else out[f('tries')] = (out[f('tries')] || 0) + 1;
@@ -31,10 +31,10 @@ export function applyResult(flags, track, { place, time }) {
 
 export const restarted = (flags, track) => ({ ...flags, [flagOf(track.id, 'tries')]: (flags[flagOf(track.id, 'tries')] || 0) + 1 });
 
-// coins still owed for this race (a better place on a later run pays the difference)
+// coins still owed for this race, gate or no gate: second place pays second's
+// money (a better place on a later run pays the difference)
 export function prizeOwed(flags, trackId) {
   const f = (w) => flagOf(trackId, w);
-  if (!flags[f('passed')]) return 0;
   return Math.max(0, (flags[f('prize')] || 0) - (flags[f('paid')] || 0));
 }
 

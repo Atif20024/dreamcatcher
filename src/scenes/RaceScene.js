@@ -8,9 +8,9 @@
 //   this.scene.start('Race', { track: 'test' })
 //   → back: this.scene.start('Dream', { dreamId: 'racer', resume: true, quietResume: true })
 import Phaser from 'phaser';
-import { Race, TUNE } from '../engines/race.js';
-import { TRACKS } from '../dreams/racer/race/tracks.js';
-import { RaceRoad, M, laneY, laneScale, ROAD_BOT, ROAD_TOP } from '../dreams/racer/race/RaceRoad.js';
+import { Race, TUNE, chalkAt, raceLost } from '../engines/race.js';
+import { TRACKS, RACE_PAD } from '../dreams/racer/race/tracks.js';
+import { RaceRoad, M, laneY, laneScale, ROAD_BOT, ROAD_TOP, ROAD_SLIDE } from '../dreams/racer/race/RaceRoad.js';
 import { RaceHud } from '../dreams/racer/race/RaceHud.js';
 import { applyResult, restarted, softAid, prizeOwed, clock, flagOf } from '../dreams/racer/race/result.js';
 import { WHEEL_STEPS, WHEEL_DEG, CAR_SIZE } from '../art/carKit.js';
@@ -36,10 +36,15 @@ const WHEEL_R_M = CAR_SIZE.wheelM / 2;
 const BLUR_AT = 7.5; // m/s: past here 8 spokes alias, so the wheel is a blur that still turns
 const CAR_X = [360, 250]; // the car's place on screen, at rest and at top speed: the look ahead
 const ZOOM = [1, 0.9]; // the design's pull back near top speed
+const SPIN_DARK_AT = 1.6; // s into a spin the picture fades: 0.4 s to the dark, then the lamp (TUNE.resetAt)
+const AIR = { streaks: 3, wave: 3, gap: 11 }; // the rival's air: the beat you can see
+const ORDINAL = ['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth'];
 
 // Ottavia, on the radio (a few words, on a caption)
 const RADIO = {
   go: "Don't lift.",
+  lights: 'Green, then Space.',
+  jump_start: 'Early. Next time.',
   launch: 'That was the green. Good.',
   armed: 'You are in his air. Space when you pull out.',
   sling: 'Now she sings.',
@@ -50,7 +55,23 @@ const RADIO = {
   rub: 'That was paint.',
   hit: 'That was more than paint.',
 };
-const TOUCH_RADIO = { armed: 'You are in his air. SLING when you pull out.' };
+const TOUCH_RADIO = { armed: 'You are in his air. SLING when you pull out.', lights: 'Green, then SLING.' };
+
+// the card, from what the run actually did
+function cardLines(track, { place, time, gap, flags: run }, pass, flags, owed) {
+  const name = ORDINAL[place - 1] || `P${place}`;
+  const lifts = run.lifts === 0 ? 'you never lifted' : run.lifts === 1 ? 'I heard you lift once' : run.lifts === 2 ? 'I heard you lift only twice' : `I heard you lift ${run.lifts} times`;
+  const say = place === 1 ? `${name}, and ${lifts}.` : pass ? `${name}. On the sheet. It will do.` : `${name}. He has the road and you have the next try.`;
+  const gapLine = gap === null ? '' : gap >= 0 ? `The Corsa: ${gap.toFixed(1)} s behind you. ` : `The Corsa: ${(-gap).toFixed(1)} s ahead. `;
+  const manners = run.clean ? 'Clean.' : run.spins ? `${run.spins} ${run.spins === 1 ? 'spin' : 'spins'}.` : run.rubs ? `${run.rubs} ${run.rubs === 1 ? 'rub' : 'rubs'}.` : 'Not clean.';
+  const slings = run.slings ? ` ${run.slings} ${run.slings === 1 ? 'sling' : 'slings'}.` : '';
+  const lines = [`Ottavia: "${say}"`, `${gapLine}${manners}${slings}`];
+  if (track.target) lines.push(time <= track.target ? `Ottavia's time: ${clock(track.target)}. You have it.` : `Ottavia's time: ${clock(track.target)}.`);
+  if (owed) lines.push(`The prize tin is waiting at the garage: ${owed} brass nuts.`);
+  else if (pass) lines.push('Nothing more in the tin for that.');
+  if (!pass) lines.push(`Your best here: ${clock(flags[flagOf(track.id, 'time')])}. The gate wants first.`);
+  return lines;
+}
 
 export default class RaceScene extends Phaser.Scene {
   constructor() {
@@ -69,9 +90,18 @@ export default class RaceScene extends Phaser.Scene {
     this.pauseMenu = new PauseMenu(this);
     this.inputs = attachInput(new InputMap());
     this.inputs.bind('jump', 'keyboard', ['Space']); // (W is a lane here, not a jump)
-    this.aid = softAid((getRun(DREAM) || {}).flags || {}, track.id);
+    for (const [action, codes] of Object.entries(RACE_PAD)) this.inputs.bind(action, 'gamepad', codes);
+    const flags = (getRun(DREAM) || {}).flags || {};
+    this.aid = softAid(flags, track.id);
+    this.firstRace = flags[flagOf(track.id, 'best')] === undefined && !flags[flagOf(track.id, 'tries')];
     this.race = new Race(track, { rivals: [track.rival] });
     this.ended = false;
+    this.saidGo = false; // (scene.restart reuses this object)
+    this.saidLights = false;
+    this.spinDark = false;
+    this.lean = 0;
+    this.beatPhase = 0;
+    this.air = { hz: 0, on: false, alpha: 0, wave: 0 };
     this.leaving = false;
     this.holdMs = 0;
     this.camX = CAR_X[0];
@@ -92,7 +122,8 @@ export default class RaceScene extends Phaser.Scene {
     this.dustNext = 0;
     this.spark = this.add.image(-200, 0, 'cars', 'spark').setVisible(false).setDepth(55);
     this.lines = Array.from({ length: 7 }, (_, i) => this.add.rectangle(-200, 200 + i * 40, 120, 2, 0xffffff, 0.75).setVisible(false).setDepth(70));
-    this.hudView = new RaceHud(this, track, { aid: this.aid });
+    this.airStreaks = Array.from({ length: AIR.streaks }, () => this.add.rectangle(-200, 0, 100, 2, 0xf2e6cc, 0).setOrigin(1, 0.5).setVisible(false));
+    this.hudView = new RaceHud(this, track, { aid: this.aid, teachBrake: this.firstRace });
     this.look = setupLook(this, { vignette: 0.55, grain: 0.03 });
     musicDirector.stop();
     ambience.stop();
@@ -129,8 +160,9 @@ export default class RaceScene extends Phaser.Scene {
     add(t.length, nearY, 'finish', 58);
     this.lampImgs = new Map();
     for (const l of t.lamps || []) this.lampImgs.set(l, add(l, farY, 'flag', 4.5, 1, 'flag'));
-    for (const b of t.bends || []) {
-      for (const n of [150, 100, 50]) add(b.from - n, farY, `board-${n}`, 4.5);
+    (t.bends || []).forEach((b, i) => {
+      const clearFrom = i ? t.bends[i - 1].to : 0; // (no board stands in the bend before)
+      for (const n of [150, 100, 50]) if (b.from - n > clearFrom) add(b.from - n, farY, `board-${n}`, 4.5);
       // the outside of the bend: straw on the near verge, a stone wall on the far
       for (let d = b.from - 6; d < b.to + 6; d += b.outside === 'wall' ? 2.15 : 3) {
         if (b.side > 0) add(d, nearY - 10, 'bale', 50);
@@ -138,11 +170,13 @@ export default class RaceScene extends Phaser.Scene {
       }
       for (let d = b.from; d < b.to; d += 24) add(d, b.side > 0 ? farY : nearY, 'chevron', b.side > 0 ? 4.5 : 58);
       if (this.aid) {
-        // Ottavia's chalk on the road: where to brake from the top speed
-        const mark = this.add.rectangle(-400, (ROAD_TOP + ROAD_BOT) / 2, 8, ROAD_BOT - ROAD_TOP - 12, 0xf2e6cc, 0.8).setDepth(5.5);
-        this.side.push({ d: b.from - (TUNE.vMax * TUNE.vMax - b.safe * b.safe) / (2 * TUNE.brake) - 14, img: mark });
+        // Ottavia's chalk on the road: where to brake from the top speed, lane by lane (a lane is a line)
+        for (const lane of [0, 1, 2]) {
+          const mark = this.add.rectangle(-400, laneY(lane) - 16, 8, 30, 0xf2e6cc, 0.8).setDepth(5.5);
+          this.side.push({ d: chalkAt(b, lane), img: mark });
+        }
       }
-    }
+    });
     for (const o of this.race.obstacles) {
       const img = this.add.image(-400, laneY(o.lane), 'cars', o.kind).setOrigin(0, 1).setScale(laneScale(o.lane)).setDepth(10 + o.lane * 10 - 1);
       this.side.push({ d: o.d, img, ob: o });
@@ -168,7 +202,7 @@ export default class RaceScene extends Phaser.Scene {
     if (this.modals.active || menu) {
       this.escUp = false;
       if (this.engine) this.engine.silence(true);
-      this.hudView.update(this.race);
+      this.hudView.update(this.race, this.viewAhead());
       this.renderWorld();
       return;
     }
@@ -181,21 +215,41 @@ export default class RaceScene extends Phaser.Scene {
     }
     const inp = this.inputs;
     const input = { throttle: inp.isDown('right'), brake: inp.isDown('left'), laneUp: inp.justDown('up'), laneDown: inp.justDown('down'), sling: inp.justDown('jump') };
-    if (this.holdMs > 0) this.holdMs -= dt; // hit-stop: the picture holds, the keys wait
-    else this.race.advance(input, dt);
+    // hit-stop: the picture holds, the keys wait (time 0 runs no step, and keeps the presses)
+    if (this.holdMs > 0) {
+      this.holdMs -= dt;
+      this.race.advance(input, 0);
+    } else this.race.advance(input, dt);
     for (const e of this.race.drain()) this.onEvent(e);
+    // the dark of a spin follows the race's own clock, so a pause holds it too
+    const jo = this.race.jo;
+    if (jo.state === 'spin' && jo.stateT >= SPIN_DARK_AT && !this.spinDark) {
+      this.spinDark = true;
+      this.cameras.main.fadeOut(300, ...NIGHT);
+    }
     this.renderWorld(dt);
-    this.hudView.update(this.race);
+    this.hudView.update(this.race, this.viewAhead());
     this.updateAudio();
     if (this.look) this.look.update(time, dt, null);
     if (this.radioUntil && time > this.radioUntil) {
       hud.set('caption', '');
       this.radioUntil = 0;
     }
+    // teach the launch on the third light, in the first race only
+    if (this.firstRace && !this.saidLights && this.race.t >= -1) {
+      this.saidLights = true;
+      this.radio(touchState.on ? TOUCH_RADIO.lights : RADIO.lights, 1600);
+    }
     if (!this.saidGo && this.race.t >= 0) {
       this.saidGo = true;
-      this.radio(RADIO.go);
+      if (!this.race.launchTried) this.radio(RADIO.go);
     }
+  }
+
+  // metres of road the camera shows ahead of the car, this frame
+  viewAhead() {
+    const cam = this.cameras.main;
+    return (cam.width / 2 + cam.width / 2 / this.zoom - this.camX) / M;
   }
 
   radio(text, ms = 2400) {
@@ -205,8 +259,11 @@ export default class RaceScene extends Phaser.Scene {
 
   onEvent(e) {
     const cam = this.cameras.main;
-    if (e.id && e.id !== 'jo' && !['rub', 'hit'].includes(e.type)) return;
+    if (e.id && e.id !== 'jo' && !['rub', 'hit', 'rival_home'].includes(e.type)) return;
     switch (e.type) {
+      case 'jump_start':
+        this.radio(RADIO.jump_start);
+        break;
       case 'launch':
         this.radio(RADIO.launch);
         sfx('snap');
@@ -262,12 +319,22 @@ export default class RaceScene extends Phaser.Scene {
         cam.shake(280, 0.014);
         this.holdMs = 90;
         this.spun = 0;
-        this.time.delayedCall(1600, () => this.sys.isActive() && cam.fadeOut(300, ...NIGHT));
         break;
-      case 'reset':
+      case 'reset': {
         this.camX = CAR_X[0];
-        if (cam.fadeEffect.isRunning) cam.once('camerafadeoutcomplete', () => cam.fadeIn(300, ...NIGHT));
-        else cam.fadeIn(300, ...NIGHT);
+        this.spinDark = false;
+        const lift = () => cam.fadeIn(300, ...NIGHT);
+        // past saving: Ottavia asks on the dark frame, one key, no Esc (the road comes back if he drives on)
+        if (raceLost(this.race)) {
+          this.askAgain(lift);
+          break;
+        }
+        if (cam.fadeEffect.isRunning) cam.once('camerafadeoutcomplete', lift);
+        else lift();
+        break;
+      }
+      case 'rival_home':
+        if (raceLost(this.race) && this.track.length - this.race.jo.d > 100) this.askAgain();
         break;
       case 'finish':
         this.onFinish(e);
@@ -291,9 +358,14 @@ export default class RaceScene extends Phaser.Scene {
     cam.setZoom(this.zoom);
     // a bend leans the world a little: the eye reads the road turning
     const b = r.bendAt(c.d);
-    this.bank += ((b ? -b.side * 0.018 * Math.min(1, c.v / 18) : 0) - this.bank) * (1 - Math.exp(-dt / 220));
+    const turn = b ? b.side * Math.min(1, c.v / 18) : 0;
+    const easeTurn = 1 - Math.exp(-dt / 220);
+    this.bank += (-turn * 0.018 - this.bank) * easeTurn;
     cam.setRotation(this.bank);
-    this.road.update(jd, c.v);
+    // and slides it, towards the outside: the road the car is being thrown across
+    this.lean += (turn - this.lean) * easeTurn;
+    cam.scrollY = Math.round(-this.lean * ROAD_SLIDE);
+    this.road.update(jd, c.v, this.lean);
     const X = (d) => this.camX + (d - jd) * M;
     for (const s of this.side) {
       const x = X(s.d);
@@ -301,11 +373,12 @@ export default class RaceScene extends Phaser.Scene {
       s.img.setVisible(on);
       if (on) s.img.x = Math.round(x);
     }
-    this.drawCar(this.joCar, this.camX, dt);
+    this.drawCar(this.joCar, this.camX, dt, jd);
     for (const v of this.rivalCars) {
       const d = v.car.prevD + (v.car.d - v.car.prevD) * a;
-      this.drawCar(v, X(d), dt);
+      this.drawCar(v, X(d), dt, d);
     }
+    this.drawAir(X, dt, jd);
     // the sense of speed: dust off a slide, motion lines only on the slingshot
     if (c.slip > 1 && this.time.now % 3 < 1) this.puff(this.joCar, 1);
     for (const p of this.dust) {
@@ -330,7 +403,32 @@ export default class RaceScene extends Phaser.Scene {
     }
   }
 
-  drawCar(v, x, dt) {
+  // HEAR THE DRAFT, seen: the rival's air, three streaks off his tail that wave and
+  // throb at the beat of the two engines, and lie still and bright when it stops
+  drawAir(X, dt, jd) {
+    const beat = this.race.result ? null : this.race.beat();
+    const on = !!beat;
+    this.air = { on, hz: on ? beat.hz : 0, hear: on ? beat.hear : 0, alpha: 0, wave: 0 };
+    for (const s of this.airStreaks) s.setVisible(on);
+    if (!on) return;
+    const view = this.rivalCars.find((v) => v.car.id === beat.id);
+    this.beatPhase = (this.beatPhase + (Math.PI * 2 * beat.hz * dt) / 1000) % (Math.PI * 2);
+    const still = beat.hz === 0;
+    const wave = still ? 0 : AIR.wave * Math.min(1, beat.hz / TUNE.beatEdge);
+    const alpha = beat.hear * (still ? 0.9 : 0.3 + 0.25 * (1 + Math.sin(this.beatPhase)));
+    this.air.alpha = alpha;
+    this.air.wave = wave;
+    const c = view.car;
+    const tail = X(c.prevD + (c.d - c.prevD) * this.race.alpha()) - (CAR_SIZE.frameW / 2) * view.box.scaleX;
+    const len = Math.min(120, Math.max(40, (tail - this.camX) - 70)); // (from his tail back towards Jo's nose)
+    this.airStreaks.forEach((s, i) => {
+      const y = view.box.y - 12 - i * AIR.gap + Math.sin(this.beatPhase + i * 0.9) * wave;
+      s.setPosition(Math.round(tail), Math.round(y)).setSize(len - i * 14, 2).setAlpha(alpha).setDepth(view.box.depth + 0.2);
+      s.setFillStyle(still ? 0x88e8ff : 0xf2e6cc, alpha);
+    });
+  }
+
+  drawCar(v, x, dt, d = v.car.d) {
     const c = v.car;
     const a = this.race.alpha();
     const y = c.prevY + (c.y - c.prevY) * a;
@@ -339,13 +437,13 @@ export default class RaceScene extends Phaser.Scene {
     if (!on) return;
     const ly = laneY(y);
     // the road's small shake grows with speed; nose down on the brake, squat on the throttle
-    const buzz = c.v > 10 ? Math.round(Math.sin(c.d * 9) * Math.min(1, c.v / 30)) : 0;
+    const buzz = c.v > 10 ? Math.round(Math.sin(d * 9) * Math.min(1, c.v / 30)) : 0;
     v.box.setPosition(Math.round(x), Math.round(ly) + buzz).setDepth(10 + y * 10).setScale(laneScale(y));
     const pitch = c.braking && c.v > 1 ? 0.9 : c.throttle && c.v < 25 ? -0.6 : 0;
     v.body.setAngle(pitch).setY(c.braking && c.v > 1 ? 1 : c.throttle ? -1 : 0);
     v.lamp.setVisible(c.braking && c.v > 0.5);
     // the wheels turn by the road travelled: never faster, never slower
-    const deg = ((c.d / WHEEL_R_M) * 180) / Math.PI;
+    const deg = ((d / WHEEL_R_M) * 180) / Math.PI;
     for (const w of v.wheels) {
       if (c.v > BLUR_AT) w.setFrame('wheel-blur').setAngle(deg % 360);
       else w.setFrame(`wheel-${Math.floor(((deg % 45) + 45) % 45 / WHEEL_DEG) % WHEEL_STEPS}`).setAngle(0);
@@ -381,7 +479,7 @@ export default class RaceScene extends Phaser.Scene {
     const r = this.race;
     const jo = r.jo;
     const car = (c, i) => ({ id: c.id, v: c.v, throttle: c.throttle, dx: c.d - jo.d, closing: i ? jo.v - c.v : 0, base: i ? 58 + i * 7 : 52, detune: i ? 9 : 6 });
-    this.engine.update({ cars: r.cars.map(car), slip: jo.slip, speed: jo.v });
+    this.engine.update({ cars: r.cars.map(car), slip: jo.slip, speed: jo.v, beat: r.beat() });
   }
 
   // ---- the end of a race -----------------------------------------------------------
@@ -404,12 +502,11 @@ export default class RaceScene extends Phaser.Scene {
     this.time.delayedCall(1400, () => this.sys.isActive() && this.showCard(result, pass, flags));
   }
 
-  showCard({ place, time }, pass, flags) {
+  showCard(result, pass, flags) {
+    const { place, time } = result;
     const id = this.track.id;
     const owed = prizeOwed(flags, id);
-    const lines = pass
-      ? [`Ottavia: "${place === 1 ? 'First. And I heard you lift only twice.' : 'On the sheet. It will do.'}"`, owed ? `The prize tin is waiting at the garage: ${owed} brass nuts.` : 'Nothing more in the tin for that.']
-      : [`Ottavia: "Second. He has the road and you have the next try."`, `Your best here: ${clock(flags[flagOf(id, 'time')])}. The gate wants first.`];
+    const lines = cardLines(this.track, result, pass, flags, owed);
     if (!pass && softAid(flags, id)) lines.push('She will whisper the brake marks from now on.');
     const again = { id: 'again', label: pass ? 'Race it again' : 'Race again', action: () => this.restartRace(false) };
     const back = { id: 'garage', label: 'Back to the garage', action: () => this.leaveToGarage() };
@@ -430,11 +527,27 @@ export default class RaceScene extends Phaser.Scene {
     this.pauseMenu.open({ title: 'Paused', lines: info(), items: main(), canClose: true });
   }
 
+  // the race is out of reach: one key to go again. Whatever he chooses it is his.
+  askAgain(andThen = null) {
+    const c = this.race.jo;
+    const lines = ['"He has the road now. Again?"', c.lampD ? `Or drive on from the ${c.lampD} m lamp.` : 'Or drive on.'];
+    const items = [
+      { id: 'again', label: 'Again', action: () => this.restartRace(true) },
+      { id: 'on', label: 'Drive on', action: (m) => m.close() },
+      { id: 'garage', label: 'Back to the garage', action: () => this.leaveToGarage() },
+    ];
+    this.pauseMenu.open({ title: 'Again?', lines, items, canClose: true, onClose: andThen, guardMs: 350 });
+  }
+
   restartFromLamp() {
     this.pauseMenu.destroy();
     const c = this.race.jo;
-    // on the grid there is no lamp to go back to: the grid is the lamp
-    if (!c.lampD && c.d < 1) return;
+    if (c.state !== 'run') return; // a spin: the lamp is already coming, the 3 s are not for sale
+    // no lamp yet: the grid is the lamp, and the lights come with it
+    if (!c.lampD) {
+      if (c.d >= 1) this.restartRace(true);
+      return;
+    }
     this.race.toLamp(c, true);
     this.cameras.main.fadeIn(300, ...NIGHT);
   }
@@ -442,7 +555,8 @@ export default class RaceScene extends Phaser.Scene {
   restartRace(countIt) {
     if (this.leaving) return;
     this.leaving = true;
-    if (countIt && !this.ended) this.saveFlags((f) => restarted(f, this.track));
+    // (a try is a try once the race has run a little: Esc on the grid is no attempt)
+    if (countIt && !this.ended && this.race.t > 3) this.saveFlags((f) => restarted(f, this.track));
     this.pauseMenu.destroy();
     const cam = this.cameras.main;
     cam.once('camerafadeoutcomplete', () => this.scene.restart({ track: this.track.id }));

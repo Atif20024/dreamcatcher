@@ -6,13 +6,14 @@
 // the oscillators, which is all a silent dev build can check.
 //
 //   const e = new EngineSynth();
-//   e.update({ cars: [{ id, v, throttle, dx, closing, base, detune }], slip, speed });
+//   e.update({ cars: [{ id, v, throttle, dx, closing, base, detune }], slip, speed, beat });
 //   e.silence(true);  e.destroy();
 import { buses } from './AudioBus.js';
 import { revs } from '../engines/race.js';
 
 export const MAX_ENGINES = 3;
 const TC = 0.04; // s: how fast a voice follows (never a step)
+const FLUTTER = 14; // cents: the voices' age, a slow wobble
 
 // a car's note: pitch from the revs, the filter opens and it gets louder on the throttle
 export function engineNote({ v, throttle, base = 52, detune = 6, closing = 0 }) {
@@ -25,6 +26,18 @@ export function engineNote({ v, throttle, base = 52, detune = 6, closing = 0 }) 
     detune,
     filter: 280 + (throttle ? 3400 : 1700) * r,
     gain: (0.05 + 0.1 * r) * (throttle ? 1 : 0.62),
+  };
+}
+
+// HEAR THE DRAFT: pull the rival's note to Jo's, `beat.hz` off it, so the two
+// engines beat at that rate (src/engines/race.js draftBeat has the maths). The
+// flutter and the voice's own detune would beat as well, so they go as it tunes.
+export function tuneToBeat(jo, rival, beat) {
+  const k = beat.hear;
+  const clean = (n) => ({ ...n, detune: n.detune * (1 - k), flutter: FLUTTER * (1 - k) });
+  return {
+    jo: clean(jo),
+    rival: { ...clean(rival), freq: rival.freq + (jo.freq + beat.hz - rival.freq) * k, sub: rival.freq / 2 + (jo.freq / 2 + beat.hz - rival.freq / 2) * k },
   };
 }
 
@@ -55,7 +68,7 @@ function makeVoice(ctx, dest) {
   const lfo = ctx.createOscillator();
   lfo.frequency.value = 7;
   const lfoAmt = ctx.createGain();
-  lfoAmt.gain.value = 14; // cents: the flutter
+  lfoAmt.gain.value = FLUTTER;
   lfo.connect(lfoAmt);
   lfoAmt.connect(saw.detune);
   lfoAmt.connect(sq.detune);
@@ -84,7 +97,8 @@ function makeVoice(ctx, dest) {
       saw.frequency.setTargetAtTime(n.freq, t, TC);
       sq.frequency.setTargetAtTime(n.freq, t, TC);
       sq.detune.setTargetAtTime(n.detune, t, TC);
-      sub.frequency.setTargetAtTime(n.freq / 2, t, TC);
+      sub.frequency.setTargetAtTime(n.sub ?? n.freq / 2, t, TC);
+      lfoAmt.gain.setTargetAtTime(n.flutter ?? FLUTTER, t, TC);
       lp.frequency.setTargetAtTime(n.filter, t, TC);
       out.gain.setTargetAtTime(gain, t, TC);
       pan.pan.setTargetAtTime(p, t, TC);
@@ -138,17 +152,24 @@ export class EngineSynth {
     this.squeal = makeNoise(this.ctx, this.dest, 'bandpass', 1800, 6);
   }
 
-  update({ cars = [], slip = 0, speed = 0 } = {}) {
+  update({ cars = [], slip = 0, speed = 0, beat = null } = {}) {
     if (this.silent) return;
     const heard = pickAudible(cars);
     const t = this.ctx ? this.ctx.currentTime : 0;
+    const notes = new Map(heard.map((c) => [c.id, engineNote(c)]));
+    const with_ = beat && notes.has(beat.id) && heard[0].id !== beat.id;
+    if (with_) {
+      const tuned = tuneToBeat(notes.get(heard[0].id), notes.get(beat.id), beat);
+      notes.set(heard[0].id, tuned.jo);
+      notes.set(beat.id, tuned.rival);
+    }
     const voices = heard.map((c) => {
-      const n = engineNote(c);
+      const n = notes.get(c.id);
       return { id: c.id, ...n, gain: n.gain * distanceGain(c.dx), pan: panOf(c.dx) };
     });
     const road = 0.06 * Math.min(1, speed / 36);
     const squeal = Math.min(0.12, slip * 0.012);
-    this.last = { voices, road, squeal };
+    this.last = { voices, road, squeal, beat: with_ ? beat : null };
     this.voices.forEach((v, i) => (voices[i] ? v.set(voices[i], voices[i].gain, voices[i].pan, t) : v.mute(t)));
     if (this.road) {
       this.road.out.gain.setTargetAtTime(road, t, 0.1);

@@ -11,8 +11,20 @@
 //   racer-engine-offline the engine's real graph rendered offline: level and pitch, no speakers
 //   racer-frame-time    work per frame at speed against 16.67 ms
 //   racer-platform      platform 10 on the station: its train, its row, boards through the real code; nothing counts it
+//   racer-beat          the draft by state: the two notes, the beat, the streaks that show it with the sound off
+//   racer-beat-offline  the real graph rendered offline: the beat is in the signal, and stops in the slot (no speakers)
+//   racer-sight-strip   beyond the view only, no gap before the road shows it, a pulse by time to contact, no digits
+//   racer-again         a lost race asks on the dark frame, one key, and Drive on brings the road back
+//   racer-spin-pause    a pause in a spin holds the dark; the lamp is not for sale; no blind driving
+//   racer-hit-stop      a press in a hit-stop lands when it ends
+//   racer-bend-visible  a bend slides the road and the land to its outside, the HUD stays put
+//   racer-hud-diet      the static plates go, grip stays hidden, the call has its units and its side
+//   racer-card          the result card says what the run did
+//   racer-garage-lines  the bench and the rack answer [E]
 import { getRun, clearRun, getSave } from '../../utils/save.js';
 import { flagOf } from '../../dreams/racer/race/result.js';
+import { CAR_LEN, TUNE } from '../../engines/race.js';
+import { LANE_Y } from '../../dreams/racer/race/RaceRoad.js';
 import { TRACKS } from '../../dreams/racer/race/tracks.js';
 import { packsFor } from '../../art/baked.js';
 import { caughtRunning, runningCount } from '../../systems/hubState.js';
@@ -94,7 +106,7 @@ const raceStart = {
     rows.v = race.jo.v;
     // the wheel turns by distance: its angle is d / r, whatever the speed
     const deg = r.joCar.wheelDeg;
-    rows.wheelOk = Math.abs(deg - ((race.jo.d / 0.31) * 180) / Math.PI) < 1;
+    rows.wheelOk = deg >= ((race.jo.prevD / 0.31) * 180) / Math.PI - 1 && deg <= ((race.jo.d / 0.31) * 180) / Math.PI + 1;
     // parallax at the design's rates
     rows.parallax = r.road.layers.map((L) => L.f);
     const road0 = r.road.road.tilePositionX;
@@ -190,7 +202,7 @@ const failFair = {
   async run(dc) {
     const r = await rolling(dc);
     const race = r.race;
-    const b = TRACKS.test.bends[1]; // the wall
+    const b = TRACKS.test.bends.find((x) => x.outside === 'wall');
     race.jo.lampD = 600;
     race.jo.d = b.from - 2;
     race.jo.v = 36;
@@ -200,7 +212,7 @@ const failFair = {
     const backAt = await until(dc, () => race.jo.state === 'run', 400);
     dc.releaseAll();
     const rows = { spent: race.t - t0, frames: backAt, at: race.jo.d, v: race.jo.v, spins: race.jo.spins };
-    return { pass: rows.spins === 1 && rows.at >= 600 && rows.at < 603 && rows.spent <= 3.2, detail: rows };
+    return { pass: rows.spins === 1 && rows.at >= 700 && rows.at < 703 && rows.spent <= 3.2, detail: rows };
   },
 };
 
@@ -350,7 +362,7 @@ const draft = {
     rows.passed = race.jo.d > rival.d;
     rows.rubs = race.jo.rubs;
     dc.releaseAll();
-    return { pass: rows.draft === 1 && rows.armed && rows.slings === 1 && rows.gain > 2 && rows.passed && rows.rubs === 0, detail: rows };
+    return { pass: rows.filledAfter !== null && rows.armed && rows.slings === 1 && rows.gain > 2 && rows.passed && rows.rubs === 0, detail: rows };
   },
 };
 
@@ -519,4 +531,315 @@ const platform = {
   },
 };
 
-export default [raceStart, finishReturn, failMessage, failFair, pause, touchDrive, draft, engineOffline, frameTime, platform];
+// put the rival `lengths` of clear road ahead of Jo, both at the same speed, same lane
+const setGap = (race, lengths, dy = 0) => {
+  const rival = race.rivals[0];
+  race.jo.v = rival.v = 30;
+  Object.assign(rival, { d: race.jo.d + CAR_LEN + lengths * CAR_LEN, prevD: race.jo.d + CAR_LEN + lengths * CAR_LEN, y: race.jo.y + dy, prevY: race.jo.y + dy, lane: race.jo.lane + dy, state: 'run' });
+};
+
+const beatState = {
+  id: 'racer-beat',
+  expect: 'pass',
+  async run(dc) {
+    const r = await rolling(dc, { d: 100, v: 30 });
+    const race = r.race;
+    race.track = { ...race.track, bends: [], obstacles: [] };
+    race.obstacles = [];
+    const read = async (lengths, dy = 0) => {
+      setGap(race, lengths, dy);
+      await dc.run(2);
+      const e = r.engine.state();
+      const [jo, rv] = e.voices;
+      const a = [];
+      for (let i = 0; i < 12; i++) {
+        setGap(race, lengths, dy);
+        await dc.run(1);
+        a.push(+r.airStreaks[0].alpha.toFixed(3));
+      }
+      return { hz: r.air.hz, asked: +(rv.freq - jo.freq).toFixed(2), joDetune: jo.detune, flutter: jo.flutter, wave: r.air.wave, alphaSpread: +(Math.max(...a) - Math.min(...a)).toFixed(3), shown: r.airStreaks[0].visible, beat: e.beat && e.beat.hz };
+    };
+    const slot = (TUNE.draftNear + TUNE.draftFar) / 2;
+    const rows = { slot: await read(slot), edge: await read(TUNE.draftFar), near: await read(TUNE.draftNear), wide: await read(5.5), lane: await read(slot, 1) };
+    setGap(race, 40);
+    await dc.run(3);
+    rows.far = { shown: r.airStreaks[0].visible, beat: r.engine.state().beat };
+    const close = (a, b) => Math.abs(a - b) < 0.01;
+    const pass = rows.slot.hz === 0 && close(rows.slot.asked, 0) && rows.slot.wave === 0 && rows.slot.alphaSpread === 0 && rows.slot.shown && rows.slot.joDetune === 0 && rows.slot.flutter === 0
+      && close(rows.edge.hz, rows.edge.asked) && rows.edge.hz > 3 && rows.edge.wave > 0 && rows.edge.alphaSpread > 0
+      && rows.near.hz > 3 && rows.wide.hz > rows.edge.hz && rows.lane.hz > rows.edge.hz && !rows.far.shown && rows.far.beat === null;
+    return { pass, detail: rows };
+  },
+};
+
+// the depth of the slow throb in a rendered signal, and its rate: the loudness over
+// windows of 20 ms, the strongest repeat between 0.5 and 12 Hz
+function envelopeBeat(d, rate) {
+  const w = Math.floor(rate * 0.02);
+  const env = [];
+  for (let i = 0; i + w < d.length; i += w) {
+    let s = 0;
+    for (let j = 0; j < w; j++) s += d[i + j] * d[i + j];
+    env.push(Math.sqrt(s / w));
+  }
+  const mean = env.reduce((a, b) => a + b, 0) / env.length;
+  let bestHz = 0;
+  let bestAmp = 0;
+  for (let hz = 0.5; hz <= 12; hz += 0.25) {
+    let re = 0;
+    let im = 0;
+    env.forEach((v, i) => {
+      const t = i * 0.02;
+      re += (v - mean) * Math.cos(2 * Math.PI * hz * t);
+      im += (v - mean) * Math.sin(2 * Math.PI * hz * t);
+    });
+    const amp = (2 * Math.hypot(re, im)) / env.length;
+    if (amp > bestAmp) {
+      bestAmp = amp;
+      bestHz = hz;
+    }
+  }
+  return { hz: bestHz, depth: +(bestAmp / mean).toFixed(3), rms: +mean.toFixed(4) };
+}
+
+const beatOffline = {
+  id: 'racer-beat-offline',
+  expect: 'pass',
+  async run() {
+    const render = async (hz) => {
+      const rate = 44100;
+      const ctx = new OfflineAudioContext(1, rate * 4, rate);
+      const e = new EngineSynth({ ctx, dest: ctx.destination });
+      const car = (id, dx, closing, base, detune) => ({ id, v: 33, throttle: true, dx, closing, base, detune });
+      e.update({ cars: [car('jo', 0, 0, 52, 6), car('roche', 10, 2, 65, 9)], slip: 0, speed: 0, beat: { id: 'roche', hz, hear: 1 } });
+      const buf = await ctx.startRendering();
+      return envelopeBeat(buf.getChannelData(0).subarray(rate), rate);
+    };
+    const rows = { still: await render(0), one: await render(1), edge: await render(4), rough: await render(9) };
+    const near = (a, b) => Math.abs(a - b) <= 0.5;
+    const pass = rows.still.depth < rows.edge.depth / 3 && near(rows.one.hz, 1) && near(rows.edge.hz, 4) && near(rows.rough.hz, 9) && rows.edge.depth > 0.1;
+    return { pass, detail: rows };
+  },
+};
+
+const sightStrip = {
+  id: 'racer-sight-strip',
+  expect: 'pass',
+  async run(dc) {
+    const r = await rolling(dc, { d: 100, v: 36, lane: 1, y: 1 });
+    const race = r.race;
+    race.track = { ...race.track, bends: [] };
+    race.rivals[0].d = 50; // behind, out of it
+    race.obstacles = [{ d: 330, lane: 1, kind: 'cart', gone: false }];
+    r.side.filter((s) => s.ob).forEach((s) => (s.ob = race.obstacles[0]));
+    dc.hold('right');
+    const w = r.hudView.warn[1];
+    const rows = { text: r.hudView.warn.every((x) => x.t.type === 'Rectangle'), x: w.g.x, y: w.g.y, laneY: LANE_Y[1] };
+    let gapFrames = 0;
+    let firstSeen = null;
+    let hiddenAt = null;
+    let pulseStart = null;
+    const scales = [];
+    for (let i = 0; i < 400 && race.jo.state === 'run' && race.jo.d < 335; i++) {
+      await dc.run(1);
+      const dist = 330 - race.jo.d;
+      const view = r.viewAhead();
+      if (dist <= 160 && firstSeen === null && w.g.visible) firstSeen = +dist.toFixed(1);
+      if (w.g.visible) {
+        scales.push(w.g.scaleX);
+        if (dist / race.jo.v < 1.5 && pulseStart === null) pulseStart = +dist.toFixed(1);
+      }
+      if (!w.g.visible && firstSeen !== null && hiddenAt === null) hiddenAt = { dist: +dist.toFixed(1), view: +view.toFixed(1), v: +race.jo.v.toFixed(1) };
+      if (firstSeen !== null && !w.g.visible && dist > view + 0.5) gapFrames += 1;
+    }
+    dc.releaseAll();
+    const needed = 11.7; // the last press that still clears it, at the top speed (the gamer's arithmetic)
+    rows.firstSeen = firstSeen;
+    rows.pulseStart = pulseStart;
+    rows.hiddenAt = hiddenAt;
+    rows.gapFrames = gapFrames;
+    rows.grew = scales[scales.length - 1] > scales[0];
+    rows.reactionS = +((pulseStart - needed) / 36).toFixed(2);
+    return { pass: rows.text && rows.x < 700 && rows.x > 620 && firstSeen > 100 && hiddenAt && hiddenAt.dist > needed && hiddenAt.dist <= hiddenAt.view + 0.5 && gapFrames === 0 && rows.grew && rows.reactionS > 0.8, detail: rows };
+  },
+};
+
+const again = {
+  id: 'racer-again',
+  expect: 'pass',
+  async run(dc) {
+    const r = await rolling(dc);
+    const race = r.race;
+    const b = TRACKS.test.bends.find((x) => x.outside === 'wall');
+    const rows = {};
+    Object.assign(race.jo, { lampD: 700, d: b.from - 2, v: 36, lane: 1, y: 1 });
+    race.lampRivals = [{ r: race.rivals[0], d: 790, v: 30, y: 1, lane: 1, finished: null, state: 'run' }];
+    dc.hold('right');
+    await until(dc, () => r.pauseMenu.isOpen, 400);
+    dc.releaseAll();
+    rows.state = r.pauseMenu.state();
+    rows.joState = race.jo.state;
+    rows.dark = r.cameras.main.fadeEffect.alpha === 1;
+    rows.rivalBack = Math.round(race.rivals[0].d);
+    await dc.run(30);
+    r.pauseMenu.choose('on');
+    await dc.run(90);
+    rows.drivenOn = !r.pauseMenu.isOpen && race.jo.state === 'run';
+    rows.lit = r.cameras.main.fadeEffect.alpha === 0;
+    // the next spin asks again, and one choice is a new race
+    Object.assign(race.jo, { d: b.from - 2, v: 36, lane: 1, y: 1, ghost: 0 });
+    dc.hold('right');
+    await until(dc, () => r.pauseMenu.isOpen, 400);
+    dc.releaseAll();
+    await dc.run(30);
+    const tries0 = (getRun('racer').flags || {})[flagOf('test', 'tries')] || 0;
+    r.pauseMenu.choose('again');
+    await until(dc, () => dc.scene() && dc.scene().race && dc.scene().race !== race && dc.scene().race.t < 0, 200);
+    rows.fresh = dc.scene().race.jo.d === 0 && dc.scene().race.jo.spins === 0;
+    rows.tried = (getRun('racer').flags || {})[flagOf('test', 'tries')] - tries0;
+    return { pass: rows.state.title === 'Again?' && rows.state.items[0] === 'again' && rows.joState === 'reset' && rows.dark && rows.rivalBack < 800 && rows.drivenOn && rows.lit && rows.fresh && rows.tried === 1, detail: rows };
+  },
+};
+
+const spinPause = {
+  id: 'racer-spin-pause',
+  expect: 'pass',
+  async run(dc) {
+    const r = await rolling(dc);
+    const race = r.race;
+    race.track = { ...race.track, passPlace: undefined }; // (this one is about the dark, not the question)
+    const b = TRACKS.test.bends.find((x) => x.outside === 'wall');
+    Object.assign(race.jo, { lampD: 700, d: b.from - 2, v: 36, lane: 1, y: 1 });
+    dc.hold('right');
+    await until(dc, () => race.jo.state === 'spin', 200);
+    dc.releaseAll();
+    await dc.run(30);
+    const rows = {};
+    dc.press('esc', 3);
+    await dc.run(3);
+    rows.open = r.pauseMenu.isOpen;
+    const t0 = race.jo.stateT;
+    await dc.run(180); // long past when the old timer would have faded
+    rows.notFadedInPause = r.cameras.main.fadeEffect.alpha === 0;
+    rows.held = race.jo.stateT === t0;
+    r.pauseMenu.choose('restart');
+    await dc.run(2);
+    rows.stillSpinning = race.jo.state === 'spin' && race.jo.d > 800;
+    const backAt = await until(dc, () => race.jo.state === 'run', 500);
+    rows.spent = +(race.jo.stateT).toFixed(2);
+    rows.back = { frames: backAt, d: Math.round(race.jo.d) };
+    await dc.run(40);
+    rows.seeing = r.cameras.main.fadeEffect.alpha === 0;
+    return { pass: rows.open && rows.notFadedInPause && rows.held && rows.stillSpinning && rows.back.d >= 700 && rows.back.d < 720 && rows.seeing, detail: rows };
+  },
+};
+
+const hitStop = {
+  id: 'racer-hit-stop',
+  expect: 'pass',
+  async run(dc) {
+    const r = await rolling(dc, { d: 100, v: 30 });
+    const race = r.race;
+    race.jo.lane = race.jo.y = 1;
+    r.holdMs = 80;
+    const d0 = race.jo.d;
+    dc.press('up', 2);
+    await dc.run(2);
+    const rows = { moved: race.jo.d - d0, laneInHold: race.jo.lane };
+    await dc.run(10);
+    rows.lane = race.jo.lane;
+    return { pass: rows.lane === 0, detail: rows };
+  },
+};
+
+const bendVisible = {
+  id: 'racer-bend-visible',
+  expect: 'pass',
+  async run(dc) {
+    const r = await rolling(dc, { d: 200, v: 24 });
+    const race = r.race;
+    const atBend = async (b) => {
+      Object.assign(race.jo, { d: b.from + 2, v: 20, lane: 1, y: 1 });
+      race.rivals[0].d = 10;
+      const u0 = r.hudView.speedTx.y;
+      await dc.run(60);
+      return { side: b.side, scrollY: r.cameras.main.scrollY, far: r.road.layers[0].ts.y - r.road.layers[0].y, near: r.road.layers[2].ts.y - r.road.layers[2].y, verge: r.road.farVerge.y - r.road.horizon, hudStill: r.hudView.speedTx.y === u0, uiCam: r.hudView.speedTx.__ui === r };
+    };
+    const bends = TRACKS.test.bends;
+    const rows = { straw: await atBend(bends[0]), wall: await atBend(bends[2]) };
+    return { pass: rows.straw.scrollY < 0 && rows.straw.far > rows.straw.near && rows.straw.near > 0 && rows.wall.scrollY > 0 && rows.wall.far < 0 && rows.wall.verge < 0 && rows.straw.hudStill && rows.straw.uiCam, detail: rows };
+  },
+};
+
+const hudDiet = {
+  id: 'racer-hud-diet',
+  expect: 'pass',
+  async run(dc) {
+    const r = await rolling(dc, { d: 100, v: 30 });
+    const race = r.race;
+    const rows = { levelAt0: hud.s.level, goalAt0: hud.s.objective };
+    const grip = () => hud.s.meters.find((m) => m.id === 'grip').visible;
+    rows.gripHidden = !grip();
+    race.t = 5.2;
+    await dc.run(50);
+    rows.level = hud.s.level;
+    rows.goal = hud.s.objective;
+    rows.footer = hud.s.footer;
+    const texts = new Set();
+    race.jo.lane = race.jo.y = 1;
+    race.jo.d = 100;
+    for (let i = 0; i < 150; i++) {
+      race.rivals[0].d = 10;
+      await dc.run(1);
+      if (r.hudView.callTx.visible) texts.add(r.hudView.callTx.text);
+    }
+    rows.calls = [...texts];
+    rows.draftLabel = hud.s.meters.find((m) => m.id === 'draft').label;
+    race.jo.grip = 0.4;
+    await dc.run(2);
+    rows.gripShownWhenWorn = grip();
+    rows.gripLatched = (race.jo.grip = 0.9, await dc.run(2), grip());
+    rows.readability = dc.readability();
+    const callOk = rows.calls.length > 0 && rows.calls.every((c) => /(LEFT|RIGHT)/.test(c) && /KM\/H/.test(c));
+    return { pass: rows.levelAt0 && rows.goalAt0 && rows.gripHidden && !rows.level && !rows.goal && !rows.footer && callOk && rows.calls.length < 8 && rows.draftLabel === 'DRAFT' && rows.gripShownWhenWorn && rows.gripLatched && !rows.readability.length, detail: rows };
+  },
+};
+
+const card = {
+  id: 'racer-card',
+  expect: 'pass',
+  async run(dc) {
+    const r = await toRace(dc);
+    nearLine(r, true);
+    Object.assign(r.race.jo, { lifts: 5, rubs: 2, spins: 0, slings: 1, offroads: 0 });
+    dc.hold('right');
+    await until(dc, () => r.pauseMenu.isOpen, 400);
+    dc.releaseAll();
+    const lines = r.pauseMenu.lines.join(' | ');
+    const rows = { win: lines };
+    return { pass: /5 times/.test(lines) && /2 rubs/.test(lines) && /1 sling/.test(lines) && /behind you/.test(lines) && /Ottavia's time: 0:44\.5/.test(lines) && !/only twice/.test(lines), detail: rows };
+  },
+};
+
+const garageLines = {
+  id: 'racer-garage-lines',
+  expect: 'pass',
+  async run(dc) {
+    const s = await garage(dc);
+    const rows = {};
+    for (const id of ['race:rack', 'race:bench']) {
+      const it = s.interaction.items.get(id);
+      rows[id] = { x: it.x, prompt: it.prompt };
+      s.player.setPosition(it.x, s.player.y);
+      await dc.run(8);
+      rows[id].shown = hud.s.prompt.visible && hud.s.prompt.text;
+      const say = s.caption.say;
+      s.caption.say = (who, line) => (rows[id].said = line);
+      it.onUse();
+      s.caption.say = say;
+    }
+    return { pass: Object.values(rows).every((v) => v.shown && /look/.test(v.shown) && v.said), detail: rows };
+  },
+};
+
+export default [raceStart, finishReturn, failMessage, failFair, pause, touchDrive, draft, engineOffline, frameTime, platform, beatState, beatOffline, sightStrip, again, spinPause, hitStop, bendVisible, hudDiet, card, garageLines];
