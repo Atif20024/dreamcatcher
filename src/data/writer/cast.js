@@ -25,29 +25,42 @@ export const DIALOGUES = {
     say('wren', "Take that one — the man in the hat's been saying 'it was never about the money' for a year and it's *always* about the money."),
     say('wren', 'Here. A napkin. There\'s one honest word on it. Keep it.'),
   ],
+  d1b: [say('wren', 'Eight overheard lines. Make them one thought.')],
   d2: [
     say('emmerich', 'Page three. Cut it.'),
     { name: 'JO', portrait: 'portrait-jo', text: 'Which part?' },
     say('emmerich', 'Page three.'),
   ],
-  d2b: [say('emmerich', "Thirty pages. Lay them out. A story has a shape before it has a sentence.")],
+  d2b: [say('emmerich', "Your pages. Lay them out. A story has a shape before it has a sentence.")],
   d3: [say('wren', "Forty. That's… that's a good number. Mine was a hundred and ten.")],
   d3b: [say('wren', 'Soup. And a word. The only one that ever mattered to me.'), say('wren', 'Again.')],
-  d4: [say('emmerich', 'Sixty pages. Forty of them are the book. Find them.'), say('emmerich', 'The pencil. It does not write. It only takes away.')],
+  d4: [say('emmerich', '{pages} pages. Forty of them are the book. Find them.'), say('emmerich', 'The pencil. It does not write. It only takes away.')],
   d4_cut: [say('emmerich', 'Page three. You cut it.'), say('emmerich', 'It was the best thing in there. That is why.')],
   d4_kept: [say('emmerich', 'You kept page three.'), say('emmerich', 'Good. Somebody should.')],
   d5: [
     say('isolde', "I love it. I've sold it. It's due Friday."),
     say('isolde', "It's Wednesday."),
+    say('isolde', 'Fast, Mr. Jo. Everything is fast now.'),
   ],
   d6: [say('wren', 'Page three?'), { name: 'JO', portrait: 'portrait-jo', text: '{page_three}' }, say('wren', 'Good.')],
   rent_no: [say('landlady', 'The rent, Mr. Jo. Thursday was the rent.'), say('landlady', "I'm not asking about the book. I'm asking about the rent.")],
-  rent_yes: [say('landlady', 'The rent.'), say('landlady', "…Well. I'll not ask what it's about.")],
-  tomasz: [say('tomasz', 'Six machines, four jammed, one queue. Fix what you can, kid. It pays in pennies.'), say('tomasz', 'Desk in the back is yours between shifts. Nobody goes back there.')],
-  tomasz2: [say('tomasz', "Rent's covered. Go write the thing.")],
+  tomasz: [say('tomasz', 'Six machines. Five jammed, one empty, one queue. Fix the four on the floor, kid. It pays in pennies.'), say('tomasz', 'Desk in the back is yours between shifts. Nobody goes back there.')],
+  tomasz2: [say('tomasz', "Rent's seen to, then. Go write the thing.")],
   guard: [{ name: 'A GUARD', portrait: 'portrait-guard', text: 'Quiet. This is a library.' }],
   isolde_late: [say('isolde', "Friday's Friday.")],
 };
+
+// the rent scene says what actually changed hands: the pennies are coins on the
+// shop floor, and Jo may not have picked them up. She takes it either way, since
+// she has heard the machines; the gate does not hang on his coin count.
+export function rentScene(paid, rent) {
+  const jo = (text) => ({ name: 'JO', portrait: 'portrait-jo', text });
+  const open = say('landlady', 'The rent, Mr. Jo.');
+  const book = "And the book? …No. I won't ask.";
+  if (paid >= rent) return [open, jo('Tomasz paid me. Four machines, in pennies.'), say('landlady', "(she counts it) Pennies. It's all here."), say('landlady', `${book} Thursday, next time.`)];
+  if (paid > 0) return [open, jo('Tomasz paid me. Four machines, in pennies. This is what I have.'), say('landlady', `(she counts it) ${paid === 1 ? 'One penny' : `${paid} pennies`}. I heard the machines. The rest by Thursday.`), say('landlady', book)];
+  return [open, jo('Tomasz paid me. In pennies. I seem to have left them on the floor.'), say('landlady', '(she looks at his hands) I heard the machines. Thursday, then, and all of it.'), say('landlady', book)];
+}
 
 export const MOMENTS = {
   m1: { sub: 'Behind the shop, Tomasz eats a sandwich and reads a page Jo left in the machine.', text: '"He\'d never told him it was funny."' },
@@ -104,6 +117,33 @@ export const PAGE_THREE = [
 // Chapter 7 — the first paragraph, typed by any key
 export const FIRST_PARAGRAPH =
   'He got up at five because the page was there, and it was the only hour nobody wanted from him. The typewriter had a stuck key and a coffee tin of pens beside it, and he never used the pens.';
+
+// W-M1: the pen on the wrong word. It costs the ink, the word does not take,
+// and the line is the reward for trying. `adj` is what the label still says.
+const STILL = {
+  typewriter: 'he checks the ribbon anyway.',
+  trunk: 'he tries the handle. it has heard.',
+  toner: 'he lifts it again. still.',
+  machine: 'politely.',
+  rollers: 'it does not care what you call it.',
+  spill: 'worse, if anything.',
+  gap: 'the gap has read it and declines.',
+  ladder: 'he does not put his weight on it.',
+  bench: 'he checks with one finger.',
+  alcove: 'an adjective is not a lamp.',
+  shelf: 'he stands on his toes anyway.',
+  cart: 'it knows.',
+  dumbwaiter: 'louder, if anything.',
+  timetable: 'the timetable has its reasons.',
+  ledge: 'the drop is unchanged.',
+  crane: 'it has read that and is thinking it over.',
+};
+export function wrongWordLine(noun, word, adj) {
+  if (word === 'honest') return `an honest ${noun}. it admits it's still ${adj}.`;
+  if (word === 'again') return `the ${noun}, again. still ${adj}.`;
+  const a = /^[aeiou]/.test(word) ? 'an' : 'a';
+  return `${a} ${word} ${noun}. still ${adj}. ${STILL[noun] || ''}`.trim();
+}
 
 export const CARD_LINES = {
   kept: 'He kept page three. Nobody noticed but him.',

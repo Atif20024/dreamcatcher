@@ -210,7 +210,7 @@ export function structure(scene) {
   const hand = rand.shuffle([...SCENES, ...HERRINGS].map((c) => ({ ...c })));
   return lineBox(scene, {
     title: 'STRUCTURE',
-    instruction: "Emmerich lays your thirty pages out as cards. Twelve scenes on three acts:\nthe line must rise, dip once, and end highest. Two cards are not yours.",
+    instruction: "Emmerich lays your pages out as cards. Twelve scenes on three acts:\nthe line must rise, dip once, and end highest. Two cards are not yours.",
     hand,
   });
 }
@@ -250,7 +250,7 @@ export async function pageThree(scene) {
 function pageThreeChoice(scene) {
   return new Promise((resolve) => {
     const cam = scene.cameras.main;
-    const m = new Modal(scene, 'PAGE THREE', 'The paragraph Emmerich told you to cut, in Chapter Two.');
+    const m = new Modal(scene, 'PAGE THREE', 'The paragraph you typed in the copy shop. Emmerich told you to cut it.');
     const cx = cam.width / 2;
     const cy = cam.height / 2;
     m.text(cx, cy - 40, `"${PAGE_THREE[0].split(' ').slice(0, 6).join(' ')}…"`, 15, '#e8dcc8');

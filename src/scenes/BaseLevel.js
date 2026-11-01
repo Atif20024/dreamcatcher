@@ -263,6 +263,9 @@ export default class BaseLevel extends Phaser.Scene {
     const foe = new Foe(this, merged, merged.texture || 'foe-crawler');
     if (merged.tint) foe.setTint(merged.tint);
     if (merged.floats || merged.ranged) foe.body.setAllowGravity(false);
+    // a tall rig at a tile's centre has its feet in the floor, past what Arcade
+    // separates: stood still, it sank a whole tile and hung its word bubble in reach
+    else foe.y -= Math.max(0, foe.y + (1 - foe.originY) * foe.displayHeight - (merged.wy + 16));
     this.foeGroup.add(foe);
     this.foes.push(foe);
     return foe;

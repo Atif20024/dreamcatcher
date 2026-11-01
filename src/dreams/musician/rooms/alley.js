@@ -3,7 +3,7 @@
 // response: the first time the dream asks him to listen, then answer), and
 // the door lets him in. After his set Ray is out here with a cigarette, by
 // the iron gate to the loading dock; the gate opens when Jo has played the
-// Cellar and heard Ray out. The fire escape climbing the left wall is the
+// Cellar and clapped Ray's rests back to him. The fire escape climbing the left wall is the
 // optional high road: coins on every landing, feedback wisps on two of them,
 // a heart shard at the top.
 import { grid } from './grid.js';
@@ -50,6 +50,7 @@ export default {
     { text: 'alley_neon' },
     { text: 'alley_in', flag: 'neon_lit' },
     { text: 'follow_ray', flag: 'ray_left' },
+    { text: 'ray_clap', flag: 'ray_talked' },
     { text: 'to_dock', flag: 'ray_lesson' },
   ],
   titleCard: 'THE ALLEY',
@@ -60,8 +61,8 @@ export default {
     { type: 'encounter', id: 'neon', x: 25, y: 21, anchor: { x: 20, y: 16 }, prompt: 'play the dead neon', unless: 'neon_lit' },
     { type: 'portal', id: 'alley>cellar', kind: 'door', x: 28, y: 21, to: { room: 'cellar', portal: 'cellar>alley' }, door: { prompt: 'go in', fade: 260, requires: ['neon_lit'], locked: 'the stage door is dark', lockedLine: "Locked, and dark. The neon over it is dead." } },
     // after the set: Ray, out back, lighting a cigarette
-    { type: 'npc', id: 'ray_alley', cast: 'npc-ray', x: 39, y: 21, facing: -1, when: 'ray_left', talk: [{ conv: 'ray_after', if: 'ray_lesson' }, { conv: 'ray_lesson' }] },
-    { type: 'gate', id: 'g_dock', x: 45, y: 16, h: 6, requires: ['cellar_gig', 'ray_lesson'], hint: 'PLAY THE CELLAR, THEN HEAR RAY OUT' },
+    { type: 'npc', id: 'ray_alley', cast: 'npc-ray', x: 39, y: 21, facing: -1, when: 'ray_left', talk: [{ conv: 'ray_after', if: 'ray_lesson' }, { conv: 'ray_again', if: 'ray_talked' }, { conv: 'ray_lesson' }] },
+    { type: 'gate', id: 'g_dock', x: 45, y: 16, h: 6, requires: ['cellar_gig', 'ray_lesson'], hint: "PLAY THE CELLAR, THEN RAY'S LESSON" },
     { type: 'portal', id: 'alley>backstage', kind: 'door', x: 51, y: 21, to: { room: 'backstage', portal: 'backstage<alley' }, door: { prompt: 'through the loading door', fade: 420 } },
     // the fire escape: breadcrumbs up, the landings pay, the top keeps a shard
     { type: 'coins', id: 'c_bin', x: 8, y: 18, n: 3 },

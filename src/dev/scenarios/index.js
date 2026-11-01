@@ -57,3 +57,6 @@ SCENARIOS.push(...ladders);
 // the station that counts every running dream, its rewards, and the Evening's way out
 import station from './station.js';
 SCENARIOS.push(...station);
+// the Astronaut and Writer fixes: the first Board, Priya, the pen and the page gates, the press
+import astroWriter from './astroWriter.js';
+SCENARIOS.push(...astroWriter);

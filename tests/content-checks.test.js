@@ -26,9 +26,9 @@ describe('tutorial trigger detector', () => {
   it('reports untriggered cards as dead', () => {
     expect(deadCards(TUT, ["showTutorial(this, 'a_card')", "// not a call: 'b_card'"])).toEqual(['b_card', 'c_card']);
   });
-  it('cards are data: 15 cards (the legacy dreams took theirs with them), each with a trigger', async () => {
+  it('cards are data: 16 cards (the legacy dreams took theirs with them), each with a trigger', async () => {
     const { CARDS } = await import('../src/data/teach.js');
-    expect(Object.keys(CARDS).length).toBe(15);
+    expect(Object.keys(CARDS).length).toBe(16);
     for (const id of ['ledge_grab', 'hang_drop', 'careful_step', 'loose_tile']) expect(CARDS[id]).toBeUndefined();
     for (const c of Object.values(CARDS)) expect(c.triggers.length).toBeGreaterThan(0);
   });

@@ -242,6 +242,12 @@ const SFX = {
   // no square woof: a saw through a 600 Hz low-pass (advice §3)
   woof: () => tone(180, 0.18, 'sawtooth', 0.14, 0, 120, { filter: { type: 'lowpass', f: 600 } }),
   crackle: () => [0, 0.05, 0.12].forEach((w) => noise(0.03, 0.1, 2800, w)),
+  clap: () => [0, 0.012].forEach((w) => noise(0.035, 0.22, 2100, w)),
+  crowd_clap: () => [0, 0.014, 0.03, 0.05].forEach((w) => noise(0.05, 0.16, 1500, w)),
+  roar: () => {
+    noise(1.5, 0.22, 700);
+    noise(1.1, 0.08, 2200, 0.1);
+  },
 };
 
 // Jo's trumpet: 12 pitches, brassy square+saw blend. Nia's bass: 6 pitches.
@@ -249,8 +255,12 @@ const TRUMPET_SCALE = [262, 294, 330, 349, 392, 440, 494, 523, 587, 659, 698, 78
 const BASS_SCALE = [65, 73, 82, 87, 98, 110];
 
 export function trumpet(pitchIdx = 4, dur = 0.35, vol = 0.3) {
+  trumpetHz(TRUMPET_SCALE[((pitchIdx % 12) + 12) % 12], dur, vol);
+}
+
+// the same horn on an exact pitch (the Musician plays in the room's own key)
+export function trumpetHz(f, dur = 0.35, vol = 0.3) {
   try {
-    const f = TRUMPET_SCALE[((pitchIdx % 12) + 12) % 12];
     // brass, not a buzzer: a 15 ms breath in and a 2.5 kHz low-pass
     const brass = { attack: 0.015, filter: { type: 'lowpass', f: 2500 } };
     tone(f, dur, 'square', vol * 0.55, 0, null, brass);
@@ -272,8 +282,11 @@ export function accordion(pitchIdx = 4, dur = 0.4, vol = 0.22) {
 }
 
 export function bassNote(pitchIdx = 2, dur = 0.5, vol = 0.35) {
+  bassHz(BASS_SCALE[((pitchIdx % 6) + 6) % 6], dur, vol);
+}
+
+export function bassHz(f, dur = 0.5, vol = 0.35) {
   try {
-    const f = BASS_SCALE[((pitchIdx % 6) + 6) % 6];
     tone(f, dur, 'triangle', vol);
     tone(f * 2, dur * 0.5, 'sine', vol * 0.3);
   } catch {

@@ -182,30 +182,42 @@ export const CLUES = {
   modules: ['HAB', 'NODE', 'LAB', 'AIRLOCK'],
 };
 
-// P1 "Systems" — ten flashcards in the study. [prompt, right, wrong x3]
+// P1 "Systems" — five flashcards in the study: the Board's own questions. Four
+// right and Priya's drill buys one strike back at the Board. [prompt, right, wrong x3]
+export const CARDS_TO_PASS = 4;
 export const FLASHCARDS = [
-  ['The module you sleep in', 'HAB', 'NODE', 'LAB', 'AIRLOCK'],
-  ['The module that joins the others', 'NODE', 'HAB', 'LAB', 'AIRLOCK'],
-  ['Where the science lives', 'LAB', 'HAB', 'NODE', 'AIRLOCK'],
-  ['The door to outside', 'AIRLOCK', 'NODE', 'HAB', 'LAB'],
   ['The launch vehicle', 'MERIDIAN LV-3', 'MERIDIAN IV', 'LV-2 HEAVY', 'KESTREL'],
   ['Stages on the stack', '3', '2', '4', '5'],
   ['The program was founded in', '1974', '1969', '1981', '1961'],
   ['First Meridian crew', 'OKONKWO · VANCE · LIU', 'VANCE · OKONKWO · RAY', 'LIU · HALVORSEN · VANCE', 'OSEI · LIU · ADAEZE'],
   ['Cabin depress: first action', 'mask on, then seal the hatch', 'seal the hatch, then mask', 'call the ground first', 'check the gauge twice'],
-  ['Speed is velocity plus', 'a direction', 'a distance', 'an altitude', 'thrust'],
 ];
 
-// P2 "Selection" — seven questions. `src` says where the answer was.
+// P2 "Selection" — six questions with an answer key, then SEAT_QUESTION, which
+// has none. `src` says where the answer was.
 export const BOARD_QUESTIONS = [
   { q: 'Name the vehicle you would ride.', a: 'MERIDIAN LV-3', o: ['MERIDIAN IV', 'KESTREL', 'LV-2 HEAVY'], src: 'the poster over the track' },
   { q: 'How many stages does it burn?', a: '3', o: ['2', '4', '5'], src: 'the poster over the track' },
-  { q: 'The year this program was founded.', a: '1974', o: ['1969', '1981', '1961'], src: 'the lane numbers in the pool' },
+  { q: 'The year this program was founded.', a: '1974', o: ['1969', '1981', '1961'], src: 'the sign over the pool lanes' },
   { q: 'Name the first Meridian crew.', a: 'OKONKWO · VANCE · LIU', o: ['VANCE · OKONKWO · RAY', 'LIU · HALVORSEN · VANCE', 'OSEI · LIU · ADAEZE'], src: 'the plaque under the bell' },
   { q: "Dr. Halvorsen's old sparring partner runs your gym. Her record?", a: '31 and 2', o: ['28 and 0', '31 and 5', '40 and 2'], src: "Adaeze's fight poster by the ring" },
   { q: 'The cabin loses pressure. First action.', a: 'mask on, then seal the hatch', o: ['seal the hatch, then mask', 'call the ground first', 'check the gauge twice'], src: "Priya's notebook, page four" },
-  { q: 'One seat left. You may give it away. To whom?', a: 'Priya Raman', o: ['Yourself. Obviously.', 'Whoever tests best', 'Nobody gives away a seat'], src: 'you know this one' },
 ];
+// the seventh: a choice, not a test. The line answers; the outcome does not change.
+export const SEAT_QUESTION = {
+  name: 'The Board',
+  text: 'Seventh, and last. One seat.\nIf you could give it to one candidate, who?',
+  choices: [
+    { label: 'Priya Raman', value: 'priya' },
+    { label: 'Myself', value: 'self' },
+    { label: "I'd earn it", value: 'earn' },
+  ],
+};
+export const SEAT_REPLY = {
+  priya: 'Noted. She has said the same of you.',
+  self: 'Honest. We prefer honest.',
+  earn: 'Then earn it.',
+};
 
 // Priya's notebook — five pages, sixty seconds of honest reading.
 export const NOTEBOOK = [
@@ -230,6 +242,8 @@ export const A_DIALOGUES = {
     { name: 'The Board', text: 'Thank you, candidate. Not this intake.' },
     { name: 'The letter', text: '"…we encourage you to reapply\nin twelve months."' },
   ],
+  // the player who did everything right: the numbers are there, the seat is not
+  d_seat: [{ name: 'The Board', text: 'Candidate Jo. Your numbers meet the minimum.\nWe have one seat this intake. It is not yours.' }],
   d2: [
     { name: 'Priya', text: "I got it. I'm sorry." },
     { name: 'Jo', text: "Don't be. Who else." },
@@ -240,7 +254,7 @@ export const A_DIALOGUES = {
     { name: 'Dr. Halvorsen', text: '…Your numbers were your numbers.\nGood numbers, this time.' },
   ],
   d3: [
-    { name: 'Priya', text: 'You carried me for a kilometre.' },
+    { name: 'Priya', text: 'You carried me out of there.' },
     { name: 'Jo', text: 'You carried me for a year.' },
     { name: 'Flight Director Osei', text: "Copy. You're on the manifest." },
   ],
@@ -252,7 +266,37 @@ export const A_DIALOGUES = {
     { name: 'Priya', text: 'Look up.' },
   ],
   d_osei_dock: [{ name: 'Osei', text: 'Copy.' }],
+  // why the moon: she was on the hatch an hour ago, so Osei says when she left
+  d_moon: [
+    { name: 'Osei', text: "Array's unfolded. Copy. Now the bad news." },
+    { name: 'Osei', text: 'Surface team\'s rover is down. Their probe went dark an hour ago with its core still in it.\nPriya Raman went down after it.' },
+    { name: 'Jo', text: "Priya's on the moon?" },
+    { name: 'Osei', text: "Since you started on that hinge. Second lander's fuelled.\nBring the core. Bring her." },
+  ],
 };
+
+// the physical: Halvorsen reads the real numbers aloud
+const SAID = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five'];
+export const numbersLine = (s, min = 3) => `Lungs ${SAID[s.lungs].toLowerCase()}. Grip ${SAID[s.grip].toLowerCase()}. Legs ${SAID[s.legs].toLowerCase()}. Nerve ${SAID[s.nerve].toLowerCase()}.\nThe Board's minimum is ${SAID[min].toLowerCase()} in each.`;
+
+// the ring: one bout per Nerve pip from 1, each with its own trick, then Priya
+const BOUTS = {
+  1: { who: 'the gym rat', brief: 'land 5, duck what you can.' },
+  2: { who: 'the southpaw', brief: 'he feints. land 5.', feint: 0.4, tint: 0xd8b8a0 },
+  3: { who: 'the old pro', brief: "he blocks a jab from a crouch. land 5.", blocksDuck: true, tint: 0xa8b8c8 },
+};
+export const boutPlan = (nerve) => {
+  const round = Math.min(nerve, 4);
+  return round >= 4 ? { round: 4, vsPriya: true } : { round, ...BOUTS[Math.max(1, round)] };
+};
+
+// Priya in the crater is wherever Jo is not carrying her: one rule from the
+// flags, so a catch or a resumed run puts her back and the rescue stays finishable
+export const priyaLiesInCrater = (F, carrying) => !!F.rescue_on && !F.priya_safe && !carrying;
+
+// the opponent's wind-up, per second not per frame: the old 0.012 a frame at 60 Hz
+const WINDUP_PER_S = -Math.log(1 - 0.012) * 60;
+export const windupChance = (deltaMs) => 1 - Math.exp((-WINDUP_PER_S * deltaMs) / 1000);
 
 // Small moments (postcard-visible places).
 export const A_MOMENTS = {

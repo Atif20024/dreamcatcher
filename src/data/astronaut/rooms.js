@@ -346,17 +346,21 @@ const OBJECTIVES = {
   "p1_pool": "swim through 5 hoops on one breath",
   "p1_wall_ring": "climb to the bell · box in the ring",
   "p1_study": [
-    "read the notebook. 3 pips in every stat",
+    "the physical, then the Board",
     {
       "flag": "physical",
-      "text": "the numbers are there. the Board."
+      "text": "the Board. Thursday."
+    },
+    {
+      "flag": "rejected",
+      "text": "a year. the numbers, then the Board again."
     }
   ],
   "p2_gate": [
     "the Board. Thursday.",
     {
       "flag": "selected",
-      "text": "the bus is waiting — training campus"
+      "text": "the training campus is through the gate"
     }
   ],
   "p3_centrifuge": "the centrifuge",
@@ -383,13 +387,17 @@ const OBJECTIVES = {
     {
       "flag": "reported",
       "text": "the airlock — the array is stuck"
+    },
+    {
+      "flag": "array_fixed",
+      "text": "the airlock. Osei is calling."
     }
   ],
   "p4_eva": [
     "the array — [F] clip on, then push",
     {
       "flag": "array_fixed",
-      "text": "back to the airlock — the moon is next"
+      "text": "back to the airlock. Osei is calling."
     }
   ],
   "p5_moonfield": "the dead probe — cross the crevasse field",
@@ -400,7 +408,7 @@ const OBJECTIVES = {
 
 const GATE_HINTS = {
   "g0": "INTAKE · talk to Coach Adaeze first",
-  "g1": "needs 3 pips in every stat",
+  "g1": "THE PHYSICAL · Dr. Halvorsen",
   "g2": "THE BOARD · be selected",
   "g3": "finish the survival course",
   "gA": "seal the coolant leak",

@@ -14,3 +14,5 @@ export function degree(mode, d) {
   return m[((d % 7) + 7) % 7] + 12 * o;
 }
 export const semi = (root, s) => root * 2 ** (s / 12);
+// a scale degree in a key { root, mode, oct } → Hz
+export const noteHz = (key, d) => semi(key.root, degree(key.mode, d) + 12 * (key.oct || 0));

@@ -75,15 +75,20 @@ export default {
     { type: 'portal', id: 'cellar>alley', kind: 'door', x: 3, y: 11, to: { room: 'alley', portal: 'alley>cellar' }, door: { prompt: 'out to the alley', fade: 260 } },
     { type: 'checkpoint', id: 'cp_cellar', label: 'THE BLUE CELLAR', x: 6, y: 11 },
     { type: 'npc', id: 'delphine', cast: 'npc-delphine', x: 9, y: 11, facing: 1, talk: [{ conv: 'delphine_after', if: 'cellar_gig' }, { conv: 'delphine_wait', if: 'signed_up' }, { conv: 'delphine_first' }] },
-    { type: 'npc', id: 'barkeep', cast: 'npc-sol', x: 15, y: 11, facing: 1, depth: 'behind', talk: [{ conv: 'barkeep' }] },
+    { type: 'npc', id: 'barkeep', cast: 'npc-sol', x: 15, y: 11, facing: 1, depth: 'behind', talk: [{ conv: 'barkeep_after', if: 'cellar_gig' }, { conv: 'barkeep' }] },
     { type: 'npc', id: 'ray', cast: 'npc-ray', x: 19, y: 11, dx: 8, facing: -1, turns: false, unless: 'ray_left', talk: [{ conv: 'ray_bar' }] },
     { type: 'npc', id: 'nia_bar', cast: 'npc-nia', x: 20, y: 11, dx: 6, facing: 1, when: 'cellar_gig', talk: [{ conv: 'nia_after', if: 'met_nia' }, { conv: 'nia_rush' }] },
-    // the nine chairs: five taken (they turn toward the stage as Jo lands phrases)
+    // the nine chairs, all taken (they turn toward the stage as Jo lands
+    // phrases; a2 is the woman with her coat on, moment_nine finds her)
     { type: 'audience', id: 'a1', cast: 'ev-p-fisherman', x: 22, y: 11, facing: 1 },
     { type: 'audience', id: 'a2', cast: 'ev-p-mother', x: 25, y: 11, dx: 8, facing: 1 },
     { type: 'audience', id: 'a3', cast: 'ev-p-baker', x: 28, y: 11, dx: 8, facing: 1 },
     { type: 'audience', id: 'a4', cast: 'ev-p-hamid', x: 32, y: 11, facing: 1 },
     { type: 'audience', id: 'a5', cast: 'ev-p-fereshteh', x: 34, y: 11, dx: 12, facing: 1 },
+    { type: 'audience', id: 'a6', cast: 'ev-p-sleeper', x: 23, y: 11, dx: 8, facing: 1 },
+    { type: 'audience', id: 'a7', cast: 'ev-p-bilal', x: 27, y: 11, facing: 1 },
+    { type: 'audience', id: 'a8', cast: 'ev-p-gardener', x: 30, y: 11, dx: 8, facing: 1 },
+    { type: 'audience', id: 'a9', cast: 'ev-p-bo', x: 33, y: 11, dx: 12, facing: 1 },
     { type: 'encounter', id: 'cellar_gig', x: 38, y: 10, anchor: { x: 39, y: 7 }, prompt: 'take the stage', when: 'signed_up', unless: 'cellar_gig' },
     { type: 'moment', id: 'm1', x: 37, y: 10, when: 'cellar_gig', prompt: 'sit on the edge of the stage', beat: 'moment_nine' },
     // the bar top (a hop) and the pipes over the room (a climb off the bar)

@@ -49,10 +49,19 @@ export const CARDS = {
   moon_bound: { name: 'ONE-SIXTH', hint: 'you rise slowly and you keep going', key: '', triggers: [{ dream: 'astronaut', event: 'AstronautScene gravity model moon' }] },
   // ---- the second draft ---------------------------------------------------
   pen: { name: 'THE PEN', hint: 'stand under a label and strike its adjective', key: 'E', triggers: [{ dream: 'writer', event: 'WriterScene first word "working"' }] },
-  typing: { name: 'THE TYPING RHYTHM', hint: 'press each letter as it reaches the line', key: 'A–Z', triggers: [{ dream: 'writer', event: 'WriterScene typing' }] },
+  typing: { name: 'THE TYPING RHYTHM', hint: 'each word: press its first letter as it reaches the line. typos keep', key: 'A–Z', triggers: [{ dream: 'writer', event: 'WriterScene typing' }] },
   editor: { name: 'THE INNER EDITOR', hint: 'keep moving. it erases what you have crossed', key: '', triggers: [{ dream: 'writer', event: 'WriterScene rain' }] },
   glass: { name: 'FRAGILE', hint: 'crouch-walk across, or it goes', key: '↓', triggers: [{ dream: 'writer', event: 'WriterScene glass' }] },
   talker: { name: 'A WALL OF SOUND', hint: 'duck under, come up behind, jump for the word', key: '↓', triggers: [{ dream: 'writer', event: 'WriterScene talker' }] },
+  noise: {
+    name: 'MAKE A NOISE',
+    hint: 'knock to wake, distract, or turn heads',
+    key: 'Q',
+    triggers: [
+      { dream: 'writer', zone: { room: 'cafe', x0: 0, x1: 5 } },
+      { dream: 'writer', zone: { room: 'cafe', x0: 52, x1: 58 } },
+    ],
+  },
   press: { name: 'THE PRESS', hint: 'ride the paper down. ink, press, fold', key: 'E', triggers: [{ dream: 'writer', event: 'WriterScene press' }] },
 };
 

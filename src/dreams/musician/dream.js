@@ -8,7 +8,7 @@
 //   RAIN ON THE MARQUEE  street (exterior)   the Cellar's door: round the back
 //   THE ALLEY            alley (exterior)    play the dead neon: the stage door lights
 //   THE BLUE CELLAR      cellar (interior)   sign up, play the open mic (in the room)
-//      … Ray walks out; in the alley he tells Jo to play the room: the gate opens
+//      … Ray walks out; in the alley he claps, Jo answers: the gate opens
 //   SATURDAY. BACKSTAGE  backstage (interior) the laminate (catwalk, roadies) + Tally's offer
 //   THE FIRE STAIRS      escape (vertical)   nine storeys of iron in the rain
 //   THE BIG STAGE        stage (exterior)    the set (rests, by ear, the blank, a held note)
@@ -24,7 +24,7 @@ import stage from './rooms/stage.js';
 import { MUSIC_KEYS } from './music.js';
 import beats from './beats.js';
 import { CAST, CONVERSATIONS, BARKS } from './dialogue.js';
-import { neon, cellarGig, bigSet } from './encounters/sets.js';
+import { neon, cellarGig, rayDrill, bigSet, endingLines } from './encounters/sets.js';
 import trumpet from './verbs/trumpet.js';
 import props from './props.js';
 import materials from './materials.js';
@@ -72,7 +72,20 @@ export default {
   cast: CAST,
   conversations: CONVERSATIONS,
   barks: BARKS,
-  encounters: { neon, cellar_gig: cellarGig, big_set: bigSet },
+  encounters: { neon, cellar_gig: cellarGig, ray_drill: rayDrill, big_set: bigSet },
+  // Saturday starts when Jo comes through the door: Marcus cannot be walked past
+  onEnter: { backstage: 'marcus_calls' },
+  calls: {
+    markRoom: (s) => {
+      s.F._in_backstage = s.roomId === 'backstage';
+    },
+    // a beat fired from a line waits for the box to close before it goes on
+    afterTalk: (s) =>
+      new Promise((res) => {
+        const tick = () => (s.sceneBox.active ? s.time.delayedCall(60, tick) : res());
+        tick();
+      }),
+  },
   items,
   markMet: true,
   // the Evening reads where Marcus went (save.cast.marcus_left)
@@ -84,6 +97,7 @@ export default {
     cellar_signup: 'Delphine runs the open mic: put your name down',
     cellar_play: 'take the stage: two songs for nine chairs',
     follow_ray: "Ray walked out mid-song. He's out in the alley",
+    ray_clap: 'Ray is waiting: he claps, you answer',
     to_dock: "the gate's open: the loading door, and Saturday",
     backstage: "the stage door wants your laminate and Tally's answer",
     get_laminate: 'your laminate is up on the catwalk, past the roadies',
@@ -143,11 +157,7 @@ export default {
   ending: {
     orb: true,
     title: 'ELEVEN MINUTES',
-    lines: (F) => [
-      'Eleven minutes, and then the next act.',
-      F.choice_tally ? "You didn't rush the third bar. Nobody was listening for it." : 'Somebody was listening for the third bar.',
-      ...(F.marcus_stays ? ['Marcus drove home Sunday. He kept the napkin.'] : []),
-    ],
+    lines: endingLines,
     vista: 0.8,
     paint(ctx, w, h) {
       // the stage at dawn, struck: a folding chair, a case, one work light

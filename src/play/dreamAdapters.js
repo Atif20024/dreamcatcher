@@ -13,7 +13,8 @@
 //   { type: 'resonant', id, x, y, r, set?, beat?, once }  something Jo's
 //        verb can ring (scene.ringAt), glowing faintly when he is near
 //   { type: 'moment', id, x, y, beat, prompt }  a Small Moment: [E] plays its
-//        beat once and records it in the save (recordMoment)
+//        beat once and records it in the save (recordMoment; record: false
+//        for a thing to look at that is not one of the dream's Moments)
 //   { type: 'sign', text, x, y, scale?, board?, ink?, rim? }  a painted board
 //        with its words in the bitmap font (§8: body at 2× by default, on
 //        the board's own colour, lifted to 4.5:1; x, y = the board's centre)
@@ -178,6 +179,7 @@ export function spawnAudience(scene, e, room) {
   const npc = new Npc(scene, { id: e.id, x, y: feet, cast: e.cast, pose: 'sit', facing: e.facing || 1, depth: e.front ? D.PLAYER + 1 : D.PLAYER - 2 });
   const who = {
     npc,
+    room: room.id,
     turned: false,
     react() {
       who.turned = true;
@@ -299,7 +301,7 @@ export function spawnMoment(scene, e, room) {
     onUse: async () => {
       scene.F[`moment:${e.id}`] = true;
       if (e.beat && scene.beats.has(e.beat)) await scene.beats.play(e.beat);
-      recordMoment(scene.dreamId, e.id);
+      if (e.record !== false) recordMoment(scene.dreamId, e.id);
     },
   });
 }

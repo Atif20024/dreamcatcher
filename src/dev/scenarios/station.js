@@ -262,11 +262,11 @@ const benchGate = {
         const noEnding = !s.stationEnded;
         s.joStand();
         // an evening had: six places, the chime from the far side of town
-        const log0 = chimeLog.length;
+        const n0 = chimeLog.length ? chimeLog[chimeLog.length - 1].seq : 0;
         put(s, b.x - 60 * T, s.player.y);
         ['arch', 'orchard', 'laundry', 'square', 'canal', 'steep'].forEach((id) => s.visitedPlaces.add(id));
         await dc.run(40);
-        const ready = s.stationReady && chimeLog.slice(log0).some((c) => c.event === 'board');
+        const ready = s.stationReady && chimeLog.filter((c) => c.seq > n0).some((c) => c.event === 'board');
         s.stationEnded = true; // (the ending itself has its own scenarios)
         const pass = notReady && sat && noEnding && ready;
         return { pass, detail: { notReady, sat, noEnding, ready } };
