@@ -57,7 +57,7 @@ export const CONVERSATIONS = {
   lou_saloon: conv('lou_saloon', ['lou', 'jo'], {
     start: { who: 'lou', text: "Faro. The dealer turns two cards a time: the bank's, then yours. Put forty on a rank and get it to eighty.", next: 'l2' },
     l2: { who: 'lou', text: "When both come the same, the bank takes half. That's the edge. It's small. It's always there.", next: 'l3' },
-    l3: { who: 'lou', text: "The first couple of bets will go your way. They do. Don't let them tell you anything.", end: true },
+    l3: { who: 'lou', text: "Ten at a time and the box is kind to you a while. They want a careful man back tomorrow. The twenty plays the true odds.", end: true },
   }, { replayable: true }),
   lou_saloon_after: once('lou_saloon_after', 'lou', 'Eighty. Now the card room. That is where I used to make my money. And lose it.'),
   steward: conv('steward', ['steward', 'jo'], {
@@ -113,7 +113,7 @@ export const CONVERSATIONS = {
   // ---- the purser's office ----
   pell_first: conv('pell_first', ['pell', 'jo'], {
     start: { who: 'pell', text: "Mr Jo, isn't it? Lou's young friend. I make it my business to know my guests.", next: 'p2' },
-    p2: { who: 'pell', text: "If your line is running thin, the boat can help. A marker: fifty dollars on your word. No paper but this book.", next: 'j1' },
+    p2: { who: 'pell', text: "If your line is running thin, the boat can help. A marker: fifty dollars on your word, settled at the landing. No paper but this book.", next: 'j1' },
     j1: {
       who: 'jo',
       text: '…',

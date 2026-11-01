@@ -180,11 +180,13 @@ class HudModel {
   //   const cold = hud.meter('cold', { label: 'COLD', color: '#88b8d8' });
   //   cold.set(0.4).setVisible(true)
   // The fill changes every frame without bumping the HUD version.
-  meter(id, { label = '', color = '#88b8d8', order = 0, visible = true } = {}) {
+  // `group`: rows that share a group sit on one plate, no gap between them
+  // (THE LAST HAND's purse block); `bar: false` makes a row of words only.
+  meter(id, { label = '', color = '#88b8d8', order = 0, visible = true, group = null, bar = true } = {}) {
     const self = this;
     let m = self.s.meters.find((x) => x.id === id);
     if (!m) {
-      m = { id, label, color, order, visible, frac: 1 };
+      m = { id, label, color, order, visible, frac: 1, group, bar };
       self.s.meters = [...self.s.meters, m].sort((a, b) => a.order - b.order);
       self.v++;
     }

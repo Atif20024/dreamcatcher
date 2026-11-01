@@ -55,10 +55,13 @@ export function layoutTouch({ cssW = GAME_W, cssH = GAME_H, W = GAME_W, H = GAME
   const b = buttonCss(cssH) * k; // one button's diameter, game px
   const m = Math.round(clamp(14 * k, 10, 28)); // the margin to the screen edge
   const g = Math.round(8 * k); // the gap between buttons
-  // the d-pad: four arms at d from the centre, one plate each
-  const d = Math.round(b * 0.86);
-  const r = Math.round(b / 2);
-  const pad = { id: 'pad', cx: m + d + r, cy: H - m - d - r, d, r, dead: Math.round(b * 0.22), reach: d + Math.round(r * 1.5) };
+  // the d-pad: four arms at d from the centre, one plate each. On a short
+  // phone (under 420 CSS px tall) the pad is a size smaller, so it does not
+  // sit over Jo near the left of the screen (never under 44 CSS px an arm)
+  const pb = cssH < 420 ? Math.max(44 * k, b * 0.82) : b;
+  const d = Math.round(pb * 0.86);
+  const r = Math.round(pb / 2);
+  const pad = { id: 'pad', cx: m + d + r, cy: H - m - d - r, d, r, dead: Math.round(pb * 0.22), reach: d + Math.round(r * 1.5) };
   pad.arms = [
     { id: 'left', x: pad.cx - d, y: pad.cy },
     { id: 'right', x: pad.cx + d, y: pad.cy },
@@ -84,8 +87,11 @@ export function layoutTouch({ cssW = GAME_W, cssH = GAME_H, W = GAME_W, H = GAME
     k,
     b,
     m,
+    g,
+    rs,
     pad,
     buttons,
+    context: [],
     clusters: {
       left: { x: 0, y: leftTop, w: pad.cx + d + r + m, h: H - leftTop },
       right: { x: interact.x - re - m, y: rightTop, w: W - (interact.x - re - m), h: H - rightTop },
@@ -124,7 +130,7 @@ export function controlsAt(L, x, y, { play = true } = {}) {
   }
   let best = null;
   let bestD = Infinity;
-  for (const btn of L.buttons) {
+  for (const btn of [...L.buttons, ...(L.context || [])]) {
     if (!play && btn.id !== 'pause') continue;
     const dd = Math.hypot(x - btn.x, y - btn.y);
     if (dd <= btn.r * 1.3 && dd < bestD) {
@@ -135,7 +141,57 @@ export function controlsAt(L, x, y, { play = true } = {}) {
   return best ? [best] : [];
 }
 
-export const keysAt = (L, x, y, opts) => controlsAt(L, x, y, opts).map((id) => TOUCH_KEYS[id]);
+export const keysAt = (L, x, y, opts) => controlsAt(L, x, y, opts).map(keyOf);
+
+// ---- context buttons ---------------------------------------------------------
+// Keys the pad and the four buttons do not cover (F, C, V, 1–6, R, L, Y, N,
+// Tab, Enter …) get a small button only while the scene in front uses them:
+// the scene says so (scene.touchKeys(), a modal's spec.touchKeys), or a
+// puzzle panel's own instructions name them ("[1–4] answer", "[Enter] spin").
+// A context button's id is `ctx:<code>`; the soft keyboard's is ctx:Keyboard.
+
+// what a context button presses: the KeyboardEvent.code after `ctx:`
+export const keyOf = (id) => TOUCH_KEYS[id] || (id.startsWith('ctx:') ? id.slice(4) : id);
+
+const ON_PAD = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyE', 'KeyX', 'KeyQ', 'Escape']);
+const LABELS = { Enter: 'OK', Tab: 'TAB', Backspace: 'DEL', Keyboard: 'ABC' };
+export const contextLabel = (code) => LABELS[code] || code.replace(/^(Key|Digit)/, '');
+
+// one bracketed hint token → codes: [F] [Tab] [Enter] [1] [1–4] [1-3]
+function tokenCodes(tok) {
+  const t = tok.trim();
+  const range = t.match(/^([1-9])\s*[–-]\s*([1-9])$/);
+  if (range) {
+    const out = [];
+    for (let i = Number(range[1]); i <= Number(range[2]); i++) out.push(`Digit${i}`);
+    return out;
+  }
+  if (/^[1-9]$/.test(t)) return [`Digit${t}`];
+  if (/^[A-Za-z]$/.test(t)) return [`Key${t.toUpperCase()}`];
+  const word = { tab: 'Tab', enter: 'Enter', return: 'Enter', backspace: 'Backspace' }[t.toLowerCase()];
+  return word ? [word] : [];
+}
+
+// the keys a line of instructions names that the pad does not have
+export function keysFromHint(text = '') {
+  const out = [];
+  for (const m of String(text).matchAll(/\[([^\]]{1,9})\]/g)) for (const c of tokenCodes(m[1])) if (!ON_PAD.has(c) && !out.includes(c)) out.push(c);
+  return out;
+}
+
+// where the context buttons go: rows of three over the right thumb's
+// cluster, right-aligned to JUMP, rising (at most six)
+export function layoutContext(L, codes = []) {
+  const list = codes.filter((c) => !ON_PAD.has(c)).slice(0, 6);
+  const r = L.rs;
+  const top = Math.min(...L.buttons.filter((b) => b.id !== 'pause').map((b) => b.y - b.r));
+  const jump = L.buttons.find((b) => b.id === 'jump');
+  return list.map((code, i) => {
+    const row = Math.floor(i / 3);
+    const col = i % 3;
+    return { id: `ctx:${code}`, code, label: contextLabel(code), r, x: Math.round(jump.x - col * (r * 2 + L.g)), y: Math.round(top - L.g - r - row * (r * 2 + L.g)) };
+  });
+}
 
 // a tapped menu row: the rect under the finger, else the nearest one within
 // `slop` px (menu rows are 18–26 px apart: smaller than a fingertip)

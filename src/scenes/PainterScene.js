@@ -785,6 +785,16 @@ export default class PainterScene extends BaseLevel {
     }
   }
 
+  // touch screens (src/ui/TouchControls.js): the wells and the mix once
+  // there is a palette; F while Paul walks with Jo
+  touchKeys() {
+    const out = [];
+    if (this.F.p1 && this.palette) for (let i = 0; i < Math.min(3, this.palette.max || 0); i++) out.push(`Digit${i + 1}`);
+    if (this.F.p1) out.push('KeyV');
+    if (this.paul && this.F.paul && !this.F.paul_gone) out.push('KeyF');
+    return out;
+  }
+
   selectWell(i) {
     if (i >= this.palette.max) return;
     this.palette.select(i);

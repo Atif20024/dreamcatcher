@@ -2757,6 +2757,14 @@ export default class EveningScene extends BaseLevel {
 
   // feedback 3: the Evening can be started over from the arch. What the
   // town remembers (the map he drew, the lost things in his pocket) stays.
+  // touch screens (src/ui/TouchControls.js): C once there is a camera; on
+  // the map, A (photos), L (the list) and R (start over); Y / N to confirm
+  touchKeys() {
+    const pz = this.paused;
+    if (pz) return pz.confirm ? ['KeyY', 'KeyN'] : ['KeyA', 'KeyL', 'KeyR'];
+    return this.hasCamera ? ['KeyC'] : [];
+  }
+
   confirmRestart() {
     const pz = this.paused;
     const cam = this.cameras.main;

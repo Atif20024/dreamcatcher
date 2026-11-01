@@ -72,6 +72,12 @@ export default class WriterScene extends BaseLevel {
     this.told = {};
   }
 
+  // touch screens (src/ui/TouchControls.js): while the letters fall, ABC
+  // opens the device keyboard (src/input/softKeyboard.js)
+  touchKeys() {
+    return this.typing ? ['Keyboard'] : [];
+  }
+
   create() {
     createWriterTextures(this);
     lightThemeProps(this, ['wr-'], ['wr-editor', 'wr-rain', 'wr-glow', 'wr-shadow', 'wr-glass']);

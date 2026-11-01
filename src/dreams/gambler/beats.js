@@ -28,8 +28,9 @@ export default {
     { objective: 'to_cards' },
     { sting: 'gate' },
   ],
-  // the bank took the forty: back to the quay, Lou's bar reset
-  faro_bust: [{ call: 'bust' }],
+  // the bank took the forty: back to the saloon door with what is left of
+  // the stack (Lou's bar reset only if it cannot cover another forty)
+  faro_bust: [{ call: 'faroBust' }],
   // a table beaten (Jo stood up from a pot he won there)
   table_won: [{ call: 'tables' }, { sting: 'gate' }],
   // busted at a table: the stack is gone; the quay, the bar reset
