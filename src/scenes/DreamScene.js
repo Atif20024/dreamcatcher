@@ -47,6 +47,7 @@ import { updateTeach } from '../play/Teach.js';
 import GateSigns from '../play/GateSigns.js';
 import { RunState } from '../play/RunState.js';
 import { getRun, clearRun } from '../utils/save.js';
+import { abandonRun } from '../systems/wallet.js';
 import { dreamById } from '../data/dreams.js';
 import { musicDirector, sfx } from '../systems/audio.js';
 import { paintProp, propDef } from '../art/props.js';
@@ -292,7 +293,7 @@ export default class DreamScene extends BaseLevel {
       this.resuming = true;
     } else {
       this.run = new RunState({ dreamId: this.dreamId, sceneKey: 'Dream' });
-      if (!data.keepRun) clearRun(this.dreamId);
+      if (!data.keepRun) abandonRun(this.dreamId);
     }
   }
 

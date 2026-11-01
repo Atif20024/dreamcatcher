@@ -13,6 +13,15 @@ const body = (name) => {
   return scene.slice(start, scene.indexOf('\n  }\n', start));
 };
 
+describe('the bout: a duck must be a reaction, as with Foe', () => {
+  const box = scene.slice(scene.indexOf('  updateBoxing('), scene.indexOf("// Jo's jab"));
+  it('a crouch from before the tell does not slip the swing; up and down during it does', () => {
+    expect(box).toMatch(/b\.state = 'windup';\n\s+b\.duckedAtTell = p\.crouching;/);
+    expect(box).toMatch(/if \(!p\.crouching\) b\.duckedAtTell = false;/);
+    expect(box).toMatch(/< 60 && !\(p\.crouching && !b\.duckedAtTell\)/);
+  });
+});
+
 describe('A-M1: the rejection reaches everybody on the first attempt', () => {
   const fn = body('faceTheBoard');
   it('attempt 1 cannot reach d_selected: every branch of it ends in rejection()', () => {

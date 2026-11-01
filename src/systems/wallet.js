@@ -1,4 +1,4 @@
-import { getSave, updateSave } from '../utils/save.js';
+import { getSave, updateSave, getRun, clearRun } from '../utils/save.js';
 import { dreamById } from '../data/dreams.js';
 
 // Collectibles §8 — the wallet. Coins are added the moment they are picked
@@ -47,6 +47,34 @@ export function deductWorth(dreamId, worth) {
     sv.wallet.byDream[dreamId] = Math.max(0, (sv.wallet.byDream[dreamId] || 0) - take);
   });
   return s.wallet;
+}
+
+// a run undone: what it earned comes out, floored at zero (the coins may be spent at
+// Bilal's by now, and those stay spent)
+export function takeBack(dreamId, worth, shards) {
+  if (worth > 0) deductWorth(dreamId, worth);
+  if (shards) updateSave((s) => (s.shards = Math.max(0, (s.shards || 0) - shards)));
+}
+
+// what a saved run earned: the coins at its last save, corrected by what the dream's
+// figure did after that save. A save without the figure is too old to say: nothing.
+export function runTakings(run, byDreamNow, worthEach) {
+  const x = run.extra || {};
+  if (x.walletAtSave === undefined) return { worth: 0, shards: 0 };
+  return {
+    worth: Math.max(0, (run.walletDelta || 0) * worthEach + byDreamNow - x.walletAtSave),
+    shards: (x.shardsTaken || []).length,
+  };
+}
+
+// boarding from the start: the old run is over, and its pickups are back in the world
+export function abandonRun(dreamId) {
+  const run = getRun(dreamId);
+  if (run) {
+    const t = runTakings(run, getWallet().byDream[dreamId] || 0, coinWorth(dreamId));
+    takeBack(dreamId, t.worth, t.shards);
+  }
+  clearRun(dreamId);
 }
 
 // Bilal's stall: spend from the total. Returns false if it cannot be paid.
