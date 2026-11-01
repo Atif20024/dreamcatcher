@@ -72,7 +72,7 @@ async function rigFrames(id) {
 
 describe('baked frames are whole', () => {
   it('no frame of any character loses its head, its torso, its hat or its size', async () => {
-    const frames = [...(await castFrames()), ...(await rigFrames('jo')), ...(await rigFrames('wren'))];
+    const frames = [...(await castFrames()), ...(await rigFrames('jo')), ...(await rigFrames('nell'))];
     expect(new Set(frames.map((f) => f.who)).size).toBeGreaterThan(100); // the walk really walked the cast
     expect(frameIssues(frames)).toEqual([]);
   }, 120000);
