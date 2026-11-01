@@ -120,6 +120,8 @@ export default class HubScene extends BaseLevel {
     this.hudProfile = 'hub'; // nothing here can hurt you: no hearts on the HUD
     this.setupCommon({ worldW: built.worldW, worldH: built.worldH, levelName: 'CROSSROADS STATION', spawn });
 
+    this.lapel = null; // (Phaser reuses the scene: nothing of the last visit's)
+    this.sleeperAwake = false;
     this.interacts = [];
     this.npcs = {};
     this.trains = {};
@@ -469,8 +471,11 @@ export default class HubScene extends BaseLevel {
   // every running dream caught: the side doors stand open onto the amber of
   // the last stop, and either of them goes there
   warmDoor(x) {
-    this.add.image(x, FLOOR - 56, glowTexture(this)).setBlendMode('ADD').setTint(0xf2c078).setAlpha(0.5).setScale(1.6, 2.2).setDepth(D.INTERACT - 1);
-    this.add.rectangle(x, FLOOR - 1, 90, 3, 0xf2c078, 0.45).setDepth(D.INTERACT - 1);
+    // over the grey wash (applyState): this is the one warm thing left here
+    const over = D.INTERACT + 7;
+    this.add.rectangle(x, FLOOR - 46, 62, 90, 0xf2c078, 0.6).setBlendMode('ADD').setDepth(over);
+    this.add.image(x, FLOOR - 46, glowTexture(this)).setBlendMode('ADD').setTint(0xf2c078).setAlpha(0.45).setScale(2, 2.6).setDepth(over);
+    this.add.rectangle(x, FLOOR + 3, 118, 6, 0xf2c078, 0.3).setBlendMode('ADD').setDepth(over);
     this.addInteract(x, FLOOR - 20, 'warm-door', () => this.boardLastStop(), { verb: 'go through', radius: 60 });
   }
 
@@ -571,7 +576,8 @@ export default class HubScene extends BaseLevel {
     const found = this.save.evening.finds || {};
     const pocketed = FINDS.filter((f) => found[f.id]);
     pocketed.forEach((f, i) => this.add.rectangle(lf.wx - 36 + (i % 6) * 14, lf.wy + 3 + Math.floor(i / 6) * 10, 6, 6, f.tint).setStrokeStyle(1, 0x14141c, 0.8).setDepth(D.INTERACT - 2));
-    this.addInteract(lf.wx, FLOOR - 20, 'lostfound', () => this.lostAndFound(pocketed), { verb: 'look', radius: 40 });
+    // (anchored high: the prompt sits above the window, not on it or on Jo)
+    this.addInteract(lf.wx, FLOOR - 70, 'lostfound', () => this.lostAndFound(pocketed), { verb: 'look', radius: 66 });
 
     // the bench and the man who sleeps on it under a coat
     const bench = this.obj('bench', (o) => o.sleeper);
@@ -584,7 +590,7 @@ export default class HubScene extends BaseLevel {
       // the bench is empty, the coat folded: he has gone where he was going
       sl.setVisible(false);
       sl.lamp.setVisible(false);
-      this.sleeperCoat.setScale(0.7, 0.42).setPosition(sl.x - 10, FLOOR - 19);
+      this.sleeperCoat.setScale(0.8, 0.5).setPosition(sl.x - 8, FLOOR - 25).setDepth(D.INTERACT + 7);
     } else this.tweens.add({ targets: this.sleeperCoat, scaleY: 1.04, duration: 2600, yoyo: true, repeat: -1, ease: 'sine.inout' });
     this.addInteract(sl.x, FLOOR - 20, 'sleeper', () => this.talkSleeper(), { verb: 'look', radius: 40 });
 
@@ -1236,7 +1242,7 @@ export default class HubScene extends BaseLevel {
   hubObjective() {
     if (this.allCaught) return 'the last stop';
     const g = dreamById(GENTLE_DREAM);
-    if (this.N === 0 && g && g.scene) return `platform ${g.platform}: ${g.title.toLowerCase()}, a gentle one`;
+    if (this.N === 0 && g && g.scene) return `platform ${g.platform}: a gentle one`;
     return 'board any train — or the last stop';
   }
 
@@ -1766,7 +1772,7 @@ export default class HubScene extends BaseLevel {
     if (pem && !this.visitLines.pemCall && (this.openingDone || !this.firstVisit) && Math.abs(p.x - pem.x) < 110 && Math.abs(p.y - pem.y) < 60) {
       if ((this.N === 0 && !this.visitLines.desk0) || (this.returnedFrom && !this.visitLines.deskReturn)) {
         this.visitLines.pemCall = true;
-        this.floatText(pem.x, pem.y - 56, this.N === 0 ? 'Sir? A word, at the desk.  [E]' : 'Welcome back, sir.  [E]', '#f2e6cc');
+        this.floatText(pem.x, pem.y - 92, this.N === 0 ? 'Sir? A word, at the desk.  [E]' : 'Welcome back, sir.  [E]', '#f2e6cc');
       }
     }
     // the last walk: single lines, no box, as Jo passes each lamp

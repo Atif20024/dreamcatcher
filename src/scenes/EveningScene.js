@@ -146,6 +146,7 @@ export default class EveningScene extends BaseLevel {
       if (!s.dreamsCaught) s.evening.early = true; // Pemberton notices (HubScene)
     });
     this.lapel = null;
+    this.teachAt = 0;
     this.stationReady = false;
     this.stationReadyAt = 0;
     this.boardSaid = false;

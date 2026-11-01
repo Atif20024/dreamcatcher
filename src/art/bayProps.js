@@ -180,5 +180,5 @@ export function lapelFlower(scene, p, depth) {
     ctx.fillRect(3, 3, 3, 3);
   });
   const img = scene.add.image(p.x, p.y, key).setDepth(depth);
-  return () => img.setPosition(p.art.x + (p.flipX ? -6 : 6), p.art.y - 16).setVisible(p.shown && !p.climbing);
+  return () => img.setPosition(p.art.x + (p.flipX ? -5 : 5), p.art.y - 50).setVisible(p.shown && !p.climbing);
 }

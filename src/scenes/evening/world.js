@@ -560,7 +560,8 @@ export function buildWorld(scene, objects) {
         // wheel's lower third dipping behind the near sill
         const rx = o.wx + 140;
         const race = scene.add.graphics().setDepth(-10.6);
-        race.fillStyle(0x1e2c38, 1).fillRect(rx - 92, m.y - 34, 184, 10);
+        race.fillStyle(0x2e5a70, 1).fillRect(rx - 92, m.y - 34, 184, 10);
+        race.fillStyle(0x88b8d8, 0.8).fillRect(rx - 92, m.y - 34, 184, 2);
         race.fillStyle(0xa8987a, 1).fillRect(rx - 96, m.y - 24, 192, 24);
         race.fillStyle(0xc8b898, 1).fillRect(rx - 96, m.y - 24, 192, 3);
         race.fillStyle(0x8a7a64, 1);
