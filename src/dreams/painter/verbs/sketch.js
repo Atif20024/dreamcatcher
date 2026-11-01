@@ -5,12 +5,17 @@
 // the end), and people stop to watch a boy drawing (a foe in reach is
 // distracted and turns to look). A moment between drawings.
 // It also keeps the commission's contract on the HUD once it is signed
-// (src/dreams/painter/contract.js); the giornata spends it.
+// (src/dreams/painter/contract.js); the giornata spends it. And it keeps the
+// street's state: who is out (logic.js streetFlags), a rival's grab taking the
+// lapis while Jo carries it home, Bruno's notice, the first [Q] prompt.
 import { busTone } from '../../../audio/AudioBus.js';
 import { showContract, contractLeft, resetContract } from '../contract.js';
+import { hud } from '../../../ui/hud.js';
+import { streetFlags, loseLapis } from '../logic.js';
 
 const RADIUS = 130;
 const REST_MS = 420;
+const T = 32;
 
 export default {
   id: 'sketch',
@@ -23,6 +28,31 @@ export default {
   update(ctx) {
     const s = ctx.scene;
     const F = ctx.flags;
+    const st = ctx.state;
+    streetFlags(F);
+    // a green cap's grab with the stone in the satchel: it is gone, and Orazio
+    // will have bought it back by the time Jo gets there
+    if (s.thrownOut && !st.thrown && F.lapis_carry) {
+      loseLapis(F);
+      s.satchel = (s.satchel || []).filter((n) => n !== 'LAPIS');
+      hud.toolLine(1, 'accent').setText('').setVisible(false);
+      s.caption.say('jo', 'The blue. He has the blue. Back to the sign of the mortar.', { ms: 3200 });
+    }
+    st.thrown = !!s.thrownOut;
+    // Bruno sees Jo come up onto his plank
+    if (s.roomId === 'chapel' && !F.bruno_near) {
+      const r = s.graph.room('chapel');
+      if (ctx.player.y < (r.ty + 22) * T) F.bruno_near = true;
+    }
+    // the first study in reach says what the key is
+    if (!F.q_told) {
+      for (const r of s.resonants) {
+        if (r.done || !String(r.id).startsWith('study_') || Math.hypot(r.x - ctx.player.x, r.y - ctx.player.y) > RADIUS) continue;
+        F.q_told = true;
+        s.caption.say('jo', 'I should draw this. [Q].', { ms: 3000 });
+        break;
+      }
+    }
     // the contract, once it is signed (the giornata's presenter spends it)
     if (!(s.encounters && s.encounters.busy)) showContract(F.commission && !F.judged ? contractLeft(0) : null);
     if (!ctx.input.justDown('act2')) return;

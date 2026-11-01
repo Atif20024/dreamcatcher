@@ -193,7 +193,7 @@ export default class DreamScene extends BaseLevel {
     // narrative, interaction, encounters, beats
     this.caption = new CaptionBar(this, { cast: def.cast || {} });
     this.sceneBox = new SceneBox(this, { cast: def.cast || {}, input: this.inputs });
-    this.sceneBox.onSpeaker = (who) => this.npcs.forEach((n, id) => n.setTalking(id === who));
+    this.sceneBox.onSpeaker = (who) => this.npcs.forEach((n, id) => n.setTalking(id === who || id.startsWith(`${who}_`)));
     this.interaction = new Interaction(this, { input: this.inputs, player: this.player });
     this.barks = new Barks({
       list: def.barks || [],
@@ -409,6 +409,12 @@ export default class DreamScene extends BaseLevel {
       this._chasing = false;
       this.music.setState(this._roomMusicState || 'explore');
     }
+  }
+
+  // a flag just inside a door: its banner replaces the room's card (both name the place)
+  showCheckpointLabel(label, sub) {
+    if (label && this._titleCard && this._titleCard.active) this._titleCard.destroy();
+    super.showCheckpointLabel(label, sub);
   }
 
   titleCard(text) {

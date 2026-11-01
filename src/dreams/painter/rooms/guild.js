@@ -59,8 +59,10 @@ export default {
   entities: [
     { type: 'portal', id: 'guild>piazza', kind: 'door', x: 3, y: 13, to: { room: 'piazza', portal: 'piazza>guild' }, door: { prompt: 'out to the square', fade: 260 } },
     { type: 'checkpoint', id: 'cp_guild', label: 'THE GUILD HALL', x: 6, y: 13 },
-    { type: 'foe', kind: 'inspector', x: 18, y: 13, patrol: [12, 31] },
-    { type: 'foe', kind: 'inspector', x: 24, y: 8, patrol: [13, 29] },
+    { type: 'foe', kind: 'inspector', x: 18, y: 13, patrol: [12, 31], unless: 'seal' },
+    { type: 'foe', kind: 'inspector', x: 24, y: 8, patrol: [13, 29], unless: 'seal' },
+    // he said he would stand for Jo: at the foot of the dais, with his knees
+    { type: 'npc', id: 'gualtiero_guild', cast: 'npc-rn-gualtiero', x: 32, y: 13, facing: 1, when: 'assistant', unless: 'seal', talk: [{ conv: 'gualtiero_guild_after', if: 'guild_master' }, { conv: 'gualtiero_guild' }] },
     { type: 'npc', id: 'folco', cast: 'npc-rn-folco', x: 40, y: 12, facing: -1, talk: [{ conv: 'folco_after', if: 'guild_master' }, { conv: 'folco_wait', if: 'trial_set' }, { conv: 'folco_first' }] },
     { type: 'npc', id: 'consul', cast: 'npc-rn-consul', x: 42, y: 12, facing: -1, talk: [{ conv: 'consul' }] },
     { type: 'encounter', id: 'masterpiece', x: 36, y: 12, anchor: { x: 37, y: 5 }, prompt: 'paint the test piece', when: 'trial_set', unless: 'guild_master' },

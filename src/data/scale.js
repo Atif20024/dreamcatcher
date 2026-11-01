@@ -354,6 +354,8 @@ Object.assign(CAST_BODIES, {
   'foe-rn-rival': { body: 'teen', hat: 'berretta' },
   'foe-rn-inspector': { hat: 'toque', held: 'ledger', dress: true },
   'foe-rn-foreman': { body: 'big', hat: 'bandana' },
+  'foe-rn-porter': { sex: 'm', hat: 'cap' },
+  'npc-rn-inspector': { hat: 'toque', held: 'ledger', dress: true },
 });
 Object.assign(BACKDROP_ROWS, {
   'painted.rn_skyline': { s: 0.12, groundLine: false },
@@ -375,6 +377,7 @@ Object.assign(CAST_BODIES, {
   'npc-lq-dealer': { sex: 'm', beard: 'moustache', hat: 'peaked' },
   'npc-lq-casekeeper': { body: 'elderly', sex: 'm', hair: 'bald', hat: 'none' },
   'npc-lq-steward': { sex: 'm', hat: 'none', hair: 'crop' },
+  'npc-lq-barman': { body: 'big', sex: 'm', hat: 'none', hair: 'bald', beard: 'moustache' },
   'npc-lq-pianist': { sex: 'm', hat: 'none' },
   'npc-lq-banjo': { sex: 'm', hat: 'bowler' },
   'npc-lq-drummer': { body: 'teen', sex: 'm', hat: 'none' },
@@ -386,6 +389,25 @@ Object.assign(CAST_BODIES, {
   'foe-lq-crake': { sex: 'm', hat: 'silk', dress: true },
 });
 
+// THE STOPPED HOUR's town, and its own painted props: w, h (px) and class; the
+// painters (src/dreams/clockmaker/props.js) draw from these numbers, lint:scale reads them
+Object.assign(CAST_BODIES, {
+  'npc-sh-watch': { sex: 'm', hat: 'bowler', beard: 'moustache' },
+  'npc-sh-pie': { sex: 'f', hat: 'none', hair: 'bun', dress: true },
+});
+Object.assign(PROP_CLASSES, {
+  greatBell: { h: [100, 130], m: 2.5 },
+  clockWeight: { h: [100, 150], m: 2.8 },
+  towerFoot: { h: [150, 190], m: 3.8 },
+  windowFigure: { h: [36, 44] },
+});
+export const CLOCK_PROP_SIZES = {
+  great_bell: [110, 120, 'greatBell'],
+  clock_weight: [40, 130, 'clockWeight'],
+  tower_foot: [96, 176, 'towerFoot'],
+  window_child: [30, 40, 'windowFigure'],
+  window_child_wave: [30, 40, 'windowFigure'],
+};
 // FIVE-STAR DREAM (the chef's dream on the framework): Le Rêve's brigade, 1957
 // (looks in src/dreams/chef/people.js).
 Object.assign(CAST_BODIES, {

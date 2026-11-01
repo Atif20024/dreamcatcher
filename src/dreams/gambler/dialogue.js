@@ -16,6 +16,8 @@ export const CAST = {
   fenn: { name: 'MRS FENN', portrait: 'portrait-lq-fenn', face: 'npc-lq-fenn', voicePitch: 1.1 },
   dev: { name: 'DEV', portrait: 'portrait-lq-dev', face: 'npc-lq-dev', voicePitch: 1.25 },
   dealer: { name: 'THE DEALER', portrait: 'portrait-lq-dealer', face: 'npc-lq-dealer', voicePitch: 0.9 },
+  casekeeper: { name: 'THE CASEKEEPER', portrait: 'portrait-lq-casekeeper', face: 'npc-lq-casekeeper', voicePitch: 0.7 },
+  barman: { name: 'THE BARMAN', portrait: 'portrait-lq-barman', face: 'npc-lq-barman', voicePitch: 0.85 },
   steward: { name: 'THE STEWARD', portrait: 'portrait-lq-steward', face: 'npc-lq-steward', voicePitch: 0.9 },
   clerk: { name: 'THE CLERK', portrait: 'portrait-lq-clerk', face: 'npc-lq-clerk', voicePitch: 1 },
   porter: { name: 'A PORTER', portrait: 'portrait-lq-porter', face: 'npc-lq-porter', voicePitch: 0.7 },
@@ -64,6 +66,8 @@ export const LOU_LAST = "Take it. Just the one. I'd have taken it.";
 // the first time TILT bites (src/dreams/gambler/verbs/purse.js)
 export const LOU_TILT_FIRST = 'Kid. Your ears are ringing. Out on the guard, the east end. Walk it ten seconds.';
 export const LOU_TILT_AIR = 'Kid. Your ears are ringing. Walk it off out here. Ten seconds.';
+// at the rail, still steaming: what he used to do out here
+export const LOU_RAIL = 'Count the lamps on the far bank. I used to. It only got me to forty.';
 
 export const CONVERSATIONS = {
   // ---- the quay ----
@@ -79,6 +83,7 @@ export const CONVERSATIONS = {
   clerk: once('clerk', 'clerk', "Slate's for gentlemen who want to remember the evening, sir. Most of them don't."),
   porter: once('porter', 'porter', 'Cotton for Calder Bend. She sails when the purser says. Mind the line, sir.'),
   lady: once('lady', 'lady', "My husband's aboard already. He said he'd only watch. He always only watches."),
+  lady_after: once('lady_after', 'lady', 'Only watching! That is what he told you? He always only watches.'),
   dev_quay: once('dev_quay', 'dev', "Dev, deckhand. If you're for the card room, the guard's out back. Folk go out there to cool off. Or don't, and wish they had."),
 
   // ---- the saloon ----
@@ -116,7 +121,11 @@ export const CONVERSATIONS = {
     d_no: { who: 'dealer', text: 'Suit yourself, sir. The box is honest. Pick a card.', set: { dealer_asked: true }, end: true },
   }),
   dealer_after: once('dealer_after', 'dealer', 'Pick a card, sir. Any card. They all come out of the box the same.'),
-  barman: once('barman', 'steward', "Mr Pell's whisky, sir? Ask the steward. I'm only the bar."),
+  barman: once('barman', 'barman', "Mr Pell's whisky is the steward's department, sir. I only pour the honest kind."),
+  casekeeper: conv('casekeeper', ['casekeeper', 'jo'], {
+    start: { who: 'casekeeper', text: 'I keep the case, sir. I only watch. If a lady on the quay asks, tell her I only watch.', next: 'j1' },
+    j1: { who: 'jo', text: "I'll tell her.", set: { casekeeper_told: true }, end: true },
+  }, { replayable: true }),
   fenn: conv('fenn', ['fenn', 'jo'], {
     start: { who: 'fenn', text: "Eleven years I've ridden the Queen. I'm up tomorrow, you know. I can feel it.", next: 'j1' },
     j1: { who: 'jo', text: 'What do you play?', next: 'f2' },
@@ -136,7 +145,9 @@ export const CONVERSATIONS = {
   voe_after: once('voe_after', 'voe', "You took one off me. Good for you. My wife says I should stop at that."),
   voe_table3: once('voe_table3', 'voe', "All three of us, then. Lou's boy against the room. Deal him in."),
   sorrel: once('sorrel', 'sorrel', "I don't bluff, young man. When I bet, I have it. People never believe that."),
+  sorrel_t3: once('sorrel_t3', 'sorrel', 'You see? I told you what I do, and you looked at my hand anyway. Everyone does.'),
   nico: once('nico', 'nico', "You're not Lou. Lou's never sat out a hand in his life. Sit down, I'm hot tonight."),
+  nico_t3: once('nico_t3', 'nico', "Still hot. A man's allowed one bad table. Two is only a run. Deal."),
 
   // ---- the purser's office ----
   pell_first: conv('pell_first', ['pell', 'jo'], {
@@ -166,22 +177,55 @@ export const CONVERSATIONS = {
     p_sign: { who: 'pell', text: "Signed. Mind the corridor, it's narrow tonight.", effects: [{ beat: 'marker' }], end: true },
     p_no: { who: 'pell', text: 'Very good. Up the stairs, then.', end: true },
   }, { replayable: true }),
+  // the player who signed nothing comes back past the cage
+  pell_clean: conv('pell_clean', ['pell', 'jo'], {
+    start: { who: 'pell', text: 'The book hardly knows you, Mr Jo. Fifty, on your word?', next: 'j1' },
+    j1: {
+      who: 'jo',
+      text: '…',
+      choices: [
+        { text: 'Sign for fifty.', next: 'p_sign' },
+        { text: 'No.', next: 'p_no' },
+      ],
+    },
+    p_sign: { who: 'pell', text: "There. The book was lonely. Mind the corridor, it's narrow tonight.", effects: [{ beat: 'marker' }], end: true },
+    p_no: { who: 'pell', text: 'Very good. Up the stairs, then. The corridor is quite wide, when nobody owes it anything.', end: true },
+  }, { replayable: true }),
+  // no marker, but a comp on the book: he does not call that clean
+  pell_comped: conv('pell_comped', ['pell', 'jo'], {
+    start: { who: 'pell', text: 'A little on my book already, Mr Jo, one way and another. Fifty more, on your word?', next: 'j1' },
+    j1: {
+      who: 'jo',
+      text: '…',
+      choices: [
+        { text: 'Sign for fifty.', next: 'p_sign' },
+        { text: 'No.', next: 'p_no' },
+      ],
+    },
+    p_sign: { who: 'pell', text: "Signed. Mind the corridor, it's narrow tonight.", effects: [{ beat: 'marker' }], end: true },
+    p_no: { who: 'pell', text: 'Very good. Up the stairs, then.', end: true },
+  }, { replayable: true }),
   pell_full: once('pell_full', 'pell', "That's three, Mr Jo. The book is generous. Crake will see you to the landing."),
 
   // ---- the hurricane deck ----
-  dev_deck: once('dev_deck', 'dev', "Escape pipes on the texas blow every few seconds. Watch the beat and go between. Hot-headed, you'll misjudge it every time."),
+  dev_deck: once('dev_deck', 'dev', 'Escape pipes on the texas blow on a beat. Watch the wisp, then go between.'),
+  dev_deck_tilted: once('dev_deck_tilted', 'dev', 'You are steaming, and so is the pipe. Walk the rail a minute and you will see the gaps.'),
+  dev_deck_back: once('dev_deck_back', 'dev', "Back up again? There's a third pipe let go by the pilot house since you came through. The way back is never the way up."),
 
   // ---- the pilot house ----
   lou_pilot: once('lou_pilot', 'lou', "This is the table. I remember the lamp. I remember him sliding the deck across."),
   voe_last: once('voe_last', 'voe', "One more, Jo. The Queen docks in an hour. Kings and nines, the both of us. Your card or mine."),
   voe_stood: once('voe_stood', 'voe', 'Ha! Go on, then. I\'ll play myself one. I usually win those.'),
   pilot: once('pilot', 'pilot', "Port Merrow at six. I've seen men come up here at five with their whole lives on the table."),
+  pilot_turned: once('pilot_turned', 'pilot', "Twenty years at this wheel. I could count the ones who stood up on the spokes, and have some spokes left."),
 
   // ---- the landing ----
   lou_end: conv('lou_end', ['lou', 'jo'], {
     start: { who: 'lou', text: '…', next: 'l2' },
     l2: { who: 'lou', text: "You stood up. With the cards on the table and the lamp lit.", next: 'l3' },
-    l3: { who: 'lou', text: "I'd have stayed.", next: 'l4' },
+    l3: { who: 'lou', text: "I'd have stayed.", next: 'j1' },
+    j1: { who: 'jo', text: 'Your hands.', next: 'l3b' },
+    l3b: { who: 'lou', text: 'Still. First time in forty-eight years. It took a boy who could leave.', next: 'l4' },
     l4: { who: 'lou', text: 'Go on, kid. Count it on the quay. It is not much. It is yours.', set: { heard_lou: true }, end: true },
   }),
   lou_end_after: once('lou_end_after', 'lou', 'Forty-eight years I said one more. Go and count it.'),
@@ -191,5 +235,6 @@ export const BARKS = [
   { id: 'quay_band', channel: 'caption', who: 'jo', text: 'A band, through the hull. And the river slapping at the stone.', when: { room: 'quay' }, once: true },
   { id: 'saloon_in', channel: 'caption', who: 'lou', text: "Smell that? Lamp oil and money. Stay out of the bar.", when: { room: 'saloon' }, once: true },
   { id: 'cards_in', channel: 'caption', who: 'lou', text: 'No band in here. Just the riffle. Listen to it.', when: { room: 'cards' }, once: true },
+  { id: 'pell_passed', channel: 'caption', who: 'pell', text: 'Nothing signed, Mr Jo. Remarkable.', when: { room: 'office', flag: 'pell_passed' }, once: true },
   { id: 'deck_in', channel: 'caption', who: 'jo', text: 'Cold. Grey light on the water. The night is nearly done.', when: { room: 'deck' }, once: true },
 ];

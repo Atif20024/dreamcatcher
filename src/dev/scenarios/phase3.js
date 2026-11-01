@@ -115,24 +115,25 @@ const playthrough = {
   async run(dc) {
     const log = [];
     const s = await boot(dc);
+    const t0 = s.time.now;
     const ok = (k, v) => log.push(`${k}:${v ? 'ok' : 'FAIL'}`) && v;
-    // 1. the lane, across the seam to Wren
-    const wren = () => s.npcs.get('wren');
+    // 1. the lane, across the seam to Nell
+    const nell = () => s.npcs.get('nell');
     let reached = await walkTo(dc, s, (44 + 18) * T - 36, { frames: 1400, tol: 20 });
-    ok('reach-wren', reached && s.roomId === 'green' && !!wren());
+    ok('reach-nell', reached && s.roomId === 'green' && !!nell());
     ok('no-box-by-proximity', s.sceneBox.opened === 0);
     dc.press('interact', 3);
     await dc.run(10);
     ok('box-on-E', s.sceneBox.active);
     await talkThrough(dc, s);
-    ok('met-wren', !!s.F.met_wren);
+    ok('met-nell', !!s.F.met_nell);
     // 2. up the terrace steps to the clock house door
     reached = await walkTo(dc, s, (44 + 33) * T + 16, { frames: 900 });
     ok('reach-door', reached);
     dc.press('interact', 3);
     await dc.run(70);
     ok('inside', s.roomId === 'clockhouse');
-    // 3. the shelf, the mezzanine, the clock
+    // 3. the shelf, the mezzanine, the dial (gear 1)
     await walkTo(dc, s, 15.5 * T, { frames: 600 });
     await jumpTo(dc, s, null, 16);
     await walkTo(dc, s, 17.6 * T, { frames: 200 });
@@ -144,21 +145,73 @@ const playthrough = {
     ok('encounter-started', s.encounters.busy || !!s.F.clock_wound);
     const presses = await playEncounter(dc, s);
     await dc.run(200);
-    ok('clock-wound', !!s.F.clock_wound);
-    // 4. back out (drop off the mezzanine), the gate is open
-    reached = await walkTo(dc, s, 4 * T + 16, { frames: 900 });
+    ok('gear1', !!s.F.gear1);
+    // 4. the hatch; the shaft (Jo is shielded and put on the top plank: the
+    // climb and the pendulums are clockmaker-shaft), gear 2, the belfry
+    reached = await walkTo(dc, s, 21 * T + 16, { frames: 300, tol: 20 });
     dc.press('interact', 3);
     await dc.run(70);
-    ok('back-on-green', s.roomId === 'green');
-    ok('gate-open', s.gates.length > 0 && s.gates.every((g) => g.open));
-    // 5. the bell yard, up the hill, the orb
+    ok('in-shaft', s.roomId === 'shaft');
+    const place = (room, x, y) => {
+      const r = s.graph.room(room);
+      put(s, (r.tx + x) * T + 16, (r.ty + y) * T + 10);
+    };
+    place('shaft', 16, 10);
+    await dc.run(20);
+    await walkTo(dc, s, (40 + 18) * T + 16, { frames: 200, tol: 14 });
+    await dc.run(30);
+    ok('gear2', !!s.F.gear2);
+    for (let i = 0; i < 500 && s.beats.busy; i++) await dc.run(1);
+    await walkTo(dc, s, (40 + 9) * T + 16, { frames: 300, tol: 16 });
+    dc.press('interact', 3);
+    await dc.run(70);
+    ok('in-belfry', s.roomId === 'belfry');
+    // 5. gear 3 on the beat: the clock is going, the tick is the music's
+    place('belfry', 20, 7);
+    await dc.run(20);
+    await walkTo(dc, s, (70 + 21) * T + 16, { frames: 200, tol: 16 });
+    dc.press('interact', 3);
+    await dc.run(30);
+    ok('third-gear-started', s.encounters.busy);
+    const tickBefore = s.music.cur.tick;
+    await playEncounter(dc, s);
+    for (let i = 0; i < 700 && s.beats.busy; i++) await dc.run(1);
+    await dc.run(10);
+    ok('clock-wound', !!s.F.clock_wound);
+    ok('tick-starts', !tickBefore && !!s.music.cur.tick);
+    ok('gate-still-shut', s.gates.every((g) => !g.open));
+    // 6. out on the hill: the shot of the gate; strike seven, a lamp a strike
+    await walkTo(dc, s, (70 + 26) * T + 16, { frames: 200, tol: 16 });
+    dc.press('interact', 3);
+    await dc.run(70);
+    ok('on-hill', s.roomId === 'yard');
+    await dc.run(30);
+    for (let i = 0; i < 500 && s.beats.busy; i++) await dc.run(1);
+    await walkTo(dc, s, (100 + 27) * T + 16, { frames: 200, tol: 16 });
+    dc.press('interact', 3);
+    await dc.run(30);
+    ok('strike-started', s.encounters.busy);
+    await playEncounter(dc, s);
+    for (let i = 0; i < 400 && s.beats.busy; i++) await dc.run(1);
+    await dc.run(30);
+    ok('struck', !!s.F.struck && !!s.F.lamp_7);
+    ok('yard-gate-open', s.gates.filter((g) => g.id === 'g_yard_in').every((g) => g.open));
+    ok('no-orb-yet', !s.orb);
+    // 7. down through the gate: the town answers, Nell lights the last lamp
+    reached = await walkTo(dc, s, (44 + 50) * T + 16, { frames: 1400 });
+    for (let i = 0; i < 900 && !s.F.nell_lamp; i++) await dc.run(1);
+    for (let i = 0; i < 300 && s.beats.busy; i++) await dc.run(1);
+    ok('back-on-green', s.roomId === 'green' && !!s.F.green_lit && !!s.F.nell_lamp);
+    // 8. back up the hill, the orb
     reached = await walkTo(dc, s, (100 + 24) * T + 16, { frames: 1800 });
+    ok('orb-up', !!s.orb);
     for (let i = 0; i < 60 && !s.ending.active; i++) {
       await jumpTo(dc, s, null, 10);
     }
     ok('ending', s.ending.active);
     for (let i = 0; i < 900 && !s.ending.waitingForReturn; i++) await dc.run(1);
     ok('ending-card', !!s.ending.waitingForReturn && s.ending.caught);
+    const minutes = (s.time.now - t0) / 60000;
     dc.press('action', 3);
     // the passing-train wipe (WP6) starts the station under it at its middle
     for (let i = 0; i < 90 && !(dc.scene() && dc.scene().sys.settings.key === 'Hub'); i++) await dc.run(1);
@@ -176,7 +229,38 @@ const playthrough = {
     uncatch('clockmaker');
     clearRun('clockmaker');
     const pass = log.every((l) => l.endsWith(':ok'));
-    return { pass, detail: `${log.join(' ')}; encounter presses ${presses}` };
+    return { pass, detail: `${log.join(' ')}; encounter presses ${presses}; scripted run ${minutes.toFixed(1)} min of game time (the shaft climb skipped)` };
+  },
+};
+
+// the loose pendulum: the first knock costs nothing and moves Jo; a later one
+// costs a heart; none takes the last; the wound clock's cannot touch him
+const shaftHazard = {
+  id: 'clockmaker-shaft',
+  async run(dc) {
+    const log = [];
+    const ok = (k, v) => log.push(`${k}:${v ? 'ok' : 'FAIL'}`) && v;
+    const s = await boot(dc, 'shaft');
+    ok('in-shaft', s.roomId === 'shaft');
+    s.invulnUntil = 0;
+    if (s.health.setInvulnerable) s.health.setInvulnerable(s.time.now, 0);
+    const works = s.verbs.find((v) => v.mod.id === 'works').ctx.state;
+    const def = works.rooms.find((r) => r.r.id === 'shaft').defs[0];
+    const r = s.graph.room('shaft');
+    const h0 = s.health.hearts;
+    // wait for the bob to come through the middle, with Jo standing there
+    put(s, (r.tx + def.x) * T + 16, (r.ty + 31) * T + 10);
+    for (let i = 0; i < 400 && !(s.F.pendulum_hits >= 1); i++) await dc.run(1);
+    ok('first-knock', s.F.pendulum_hits >= 1);
+    ok('first-free', s.health.hearts === h0);
+    ok('first-moved', Math.abs(s.player.body.velocity.x) > 0 || Math.abs(s.player.x - ((r.tx + def.x) * T + 16)) > 4);
+    s.F.clock_wound = true;
+    const hits = s.F.pendulum_hits;
+    put(s, (r.tx + def.x) * T + 16, (r.ty + 31) * T + 10);
+    await dc.run(240);
+    ok('wound-harmless', s.F.pendulum_hits === hits);
+    clearRun('clockmaker');
+    return { pass: log.every((l) => l.endsWith(':ok')), detail: log.join(' ') };
   },
 };
 
@@ -261,7 +345,7 @@ const door = {
     dc.press('interact', 3);
     await dc.run(60);
     const out = s.roomId === 'green';
-    const pass = inside && atPortal && live === 'clockhouse,green' && camIn && black > 0.95 && out && s.transitions.count === 2;
+    const pass = inside && atPortal && live === 'clockhouse,green,shaft' && camIn && black > 0.95 && out && s.transitions.count === 2;
     return { pass, detail: `inside ${inside}, at paired portal ${atPortal}, live [${live}], camera inside ${camIn}, fade peak ${Math.round(black * 100) / 100}, back out ${out}, transitions ${s.transitions.count}` };
   },
 };
@@ -270,18 +354,18 @@ const talkOnE = {
   id: 'clockmaker-talk-on-e',
   async run(dc) {
     const s = await boot(dc, 'green');
-    const w = s.npcs.get('wren');
+    const w = s.npcs.get('nell');
     put(s, w.x - 44, 15 * T + 10);
     await dc.run(200);
     const opened = s.sceneBox.opened;
-    const bark = s.caption.log.some((l) => l.who === 'wren');
+    const bark = s.caption.log.some((l) => l.who === 'nell');
     const prompt = s.interaction.current && s.interaction.current.id;
     dc.press('interact', 3);
     await dc.run(10);
     const onE = s.sceneBox.active;
     const node = s.sceneBox.state().node;
     await talkThrough(dc, s);
-    const pass = opened === 0 && !s.dialogActive && bark && prompt === 'npc:wren' && onE && node === 'start';
+    const pass = opened === 0 && !s.dialogActive && bark && prompt === 'npc:nell' && onE && node === 'start';
     return { pass, detail: `box opened by standing near: ${opened}, bark on caption: ${bark}, prompt ${prompt}, opened on E: ${onE} at node ${node}` };
   },
 };
@@ -291,7 +375,7 @@ const perf = {
   async run(dc) {
     const out = [];
     let ok = true;
-    for (const [room, place] of [['lane', 'start'], ['green', 'green'], ['clockhouse', 'clockhouse'], ['yard', 'yard']]) {
+    for (const [room, place] of [['lane', 'start'], ['green', 'green'], ['clockhouse', 'clockhouse'], ['shaft', 'shaft'], ['belfry', 'belfry'], ['yard', 'yard']]) {
       const s = await boot(dc, place);
       await dc.run(30);
       const p = s.perf.sample();
@@ -308,4 +392,4 @@ const perf = {
   },
 };
 
-export default [seam, door, talkOnE, perf, playthrough];
+export default [seam, door, talkOnE, perf, shaftHazard, playthrough];

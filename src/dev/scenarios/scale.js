@@ -52,7 +52,7 @@ function opaqueH(o) {
 }
 const baseKey = (k) => k.replace(/#\d+$/, '').replace(/-(free|stand|walk|run|idle|talk|wave|alert|windup|grab|throw|search|stagger)(#\d+)?$/, '').replace(/-free$/, '').replace(/~b$/, '');
 function personClass(key) {
-  if (key === 'wren' || key === 'jo') return 'adult';
+  if (key === 'nell' || key === 'jo') return 'adult';
   const b = baseKey(key);
   const spec = CAST_BODIES[b];
   if (spec && spec.body) return BODY[spec.body] || 'adult';
@@ -85,7 +85,7 @@ export function measureScale(sc) {
     if (!o.texture || !o.visible || o.alpha < 0.3 || o.scrollFactorX !== 1 || o === p) continue;
     const key = o.texture.key;
     // a rigged person: a cast key whose frame carries the bake's foot pivot
-    const isPerson = !PROP_TABLE[key] && ((PERSON.test(key) && o.frame && o.frame.customPivot) || key === 'wren');
+    const isPerson = !PROP_TABLE[key] && ((PERSON.test(key) && o.frame && o.frame.customPivot) || key === 'nell');
     const cls = PROP_TABLE[key];
     if (!isPerson && !cls) continue;
     if (isPerson && /^foe-/.test(key) && !o.body) continue; // creature-only frames

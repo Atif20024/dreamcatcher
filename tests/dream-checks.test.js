@@ -19,6 +19,8 @@ describe('framework dream lint', () => {
     const d = clone(proof);
     const green = d.rooms.find((r) => r.id === 'green');
     green.entities = green.entities.filter((e) => e.id !== 'green>clock');
+    const yard = d.rooms.find((r) => r.id === 'yard');
+    yard.entities = yard.entities.filter((e) => e.id !== 'yard>belfry'); // the other way into the tower
     const lane = d.rooms.find((r) => r.id === 'lane');
     lane.entities.find((e) => e.id === 'lane>green').seam = { width: 300 };
     const out = dreamIssues(d, opts).join('\n');
@@ -39,7 +41,7 @@ describe('framework dream lint', () => {
     expect(out).toMatch(/lane: \d+ standing tile\(s\) with < 3 tiles of headroom/);
     expect(out).toMatch(/spawn start: \(3,5\) is not a standing tile/);
     expect(out).toMatch(/unknown prop "spaceship"/);
-    expect(out).toMatch(/npc wren: \(18,2\) is not a standing tile/);
+    expect(out).toMatch(/npc nell: \(18,2\) is not a standing tile/);
     expect(out).toMatch(/first objective entry must be unconditional/);
   });
   it('on-foot reachability: a 4-tile step is a jump, a 6-tile wall is not', () => {

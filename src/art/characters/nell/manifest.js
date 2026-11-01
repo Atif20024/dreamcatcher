@@ -2,10 +2,10 @@
 // about 82 px tall). Her task loop is the fidget; `talk` plays while she is
 // the speaker in a scene box (src/actors/Npc.js).
 export default {
-  id: 'wren',
+  id: 'nell',
   class: 'adult',
   source: 'rig',
-  rig: 'wren',
+  rig: 'nell',
   scale: 2,
   frame: [64, 64],
   anchor: [32, 58],

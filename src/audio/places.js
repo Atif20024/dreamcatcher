@@ -20,6 +20,9 @@ export const BEDS = {
   // the clockmaker's green and lane: birds, swifts, a far dog, the church
   green: bed(['bird', 4, 9], ['swifts', 12, 25], ['dog_far', 25, 50, 0.7], ['church_bell', 40, 60, 0.8]),
   dusk: bed(['bird', 7, 14, 0.7], ['dog_far', 20, 40, 0.6], ['cat', 30, 60, 0.6]),
+  // ...while the clock is stopped: no church bell, no strike, no cuckoo
+  green_still: bed(['bird', 4, 9], ['swifts', 12, 25], ['dog_far', 25, 50, 0.7]),
+  clock_still: bed(['spring_creak', 10, 20]),
   clockhouse: bed(['cuckoo', 30, 50], ['spring_creak', 10, 20], ['gear_whirr', 14, 28], ['strike_hour', 45, 70, 0.8]),
   // the musician's rain-night streets, the cellar, the PA side
   rain: bed(['traffic', 8, 15], ['horn', 20, 40, 0.7], ['drain', 12, 25, 0.8], ['siren', 60, 120, 0.6]),

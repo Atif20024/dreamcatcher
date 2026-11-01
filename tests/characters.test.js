@@ -240,3 +240,12 @@ describe('importer', () => {
     expect(frames[0].pivot.y).toBeCloseTo(1);
   });
 });
+
+describe('cast poses', () => {
+  it('a scaled body shifts its hips by whole pixels (a fractional hx lost the head)', () => {
+    for (const body of ['adult', 'elderly', 'big', 'teen', 'child']) {
+      const P = castPoses(castRig({ body, sex: 'm', hair: 'bald', hat: 'none' }, {}), null, { key: 'npc-test' });
+      for (const p of P.task) expect(Number.isInteger(p.hx || 0)).toBe(true);
+    }
+  });
+});

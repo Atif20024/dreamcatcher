@@ -78,8 +78,10 @@ export default {
     { type: 'keyitem', id: 'cartoon', x: 23, y: 17, beat: 'got_cartoon' },
     // the deck: the gate to our bay, Bice, Dori at his bay, the giornata
     { type: 'gate', id: 'g_vault', x: 33, y: 2, h: 6, requires: ['cartoon'], hint: 'THE VAULT WAITS FOR ITS CARTOON' },
-    { type: 'npc', id: 'bice_deck', cast: 'npc-rn-bice', x: 31, y: 7, facing: -1, talk: [{ conv: 'bice_deck_after', if: 'judged' }, { conv: 'bice_deck' }] },
-    { type: 'npc', id: 'dori_deck', cast: 'npc-rn-dori', x: 9, y: 7, facing: 1, talk: [{ conv: 'dori_deck_after', if: 'judged' }, { conv: 'dori_deck' }] },
+    { type: 'npc', id: 'bice_deck', cast: 'npc-rn-bice', x: 31, y: 7, facing: -1, talk: [{ conv: 'bice_deck_named', if: 'named_told' }, { conv: 'bice_deck_named', if: 'named_untold' }, { conv: 'bice_deck_after', if: 'judged' }, { conv: 'bice_deck' }] },
+    { type: 'npc', id: 'dori_deck', cast: 'npc-rn-dori', x: 9, y: 7, facing: 1, talk: [{ conv: 'dori_deck_after', if: 'judged' }, { conv: 'dori_deck_done', if: 'judged' }, { conv: 'dori_deck' }] },
+    // the master, at the top of the ladder: at the bell too
+    { type: 'npc', id: 'gualtiero_deck', cast: 'npc-rn-gualtiero', x: 34, y: 7, facing: 1, talk: [{ conv: 'gualtiero_bell_after', if: 'judged' }, { conv: 'gualtiero_deck' }] },
     { type: 'encounter', id: 'giornata', x: 27, y: 7, anchor: { x: 28, y: 10 }, prompt: 'paint the giornata', when: 'cartoon', unless: 'judged' },
     { type: 'orb', id: 'orb', x: 24, y: 5, when: 'judged' },
     // giglio coins: the sill and the putlog off the ladder line, the deck's far end

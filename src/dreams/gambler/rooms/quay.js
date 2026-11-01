@@ -67,7 +67,7 @@ export default {
     { type: 'npc', id: 'porter', cast: 'npc-lq-porter', x: 17, y: 15, facing: 1, pace: [12, 20], talk: [{ conv: 'porter' }] },
     { type: 'npc', id: 'lou_quay', cast: 'npc-lq-lou', x: 26, y: 15, facing: 1, talk: [{ conv: 'lou_after_slate', if: 'slate_set' }, { conv: 'lou_quay_wait', if: 'met_lou' }, { conv: 'lou_quay' }] },
     { type: 'npc', id: 'clerk', cast: 'npc-lq-clerk', x: 31, y: 15, facing: -1, talk: [{ conv: 'clerk' }] },
-    { type: 'npc', id: 'lady', cast: 'npc-lq-lady', x: 38, y: 15, facing: 1, talk: [{ conv: 'lady' }] },
+    { type: 'npc', id: 'lady', cast: 'npc-lq-lady', x: 38, y: 15, facing: 1, pace: [36, 42], talk: [{ conv: 'lady_after', if: 'casekeeper_told' }, { conv: 'lady' }] },
     { type: 'npc', id: 'dev', cast: 'npc-lq-dev', x: 50, y: 15, facing: -1, pace: [48, 62], talk: [{ conv: 'dev_quay' }] },
     { type: 'encounter', id: 'slate', x: 29, y: 15, anchor: { x: 29, y: 12 }, prompt: 'chalk the slate', when: 'met_lou', unless: 'slate_set' },
     { type: 'portal', id: 'quay>saloon', kind: 'door', x: 70, y: 15, to: { room: 'saloon', portal: 'saloon>quay' }, door: { prompt: 'into the saloon', fade: 260, requires: ['slate_set'], locked: 'the slate first', lockedLine: 'Lou said to chalk my line on the slate before I go aboard.' } },

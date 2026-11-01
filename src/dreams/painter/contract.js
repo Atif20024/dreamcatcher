@@ -66,6 +66,12 @@ export function showContract(left) {
   hud.toolLine(5, 'accent').setText(lines[0]).setVisible(!!lines[0]);
   hud.toolLine(6, 'accent').setText(lines[1]).setVisible(!!lines[1]);
 }
+// the test piece's store on the same two lines
+export function showKit(lines) {
+  shown = null;
+  hud.toolLine(5, 'accent').setText(lines[0] || '').setVisible(!!lines[0]);
+  hud.toolLine(6, 'accent').setText(lines[1] || '').setVisible(!!lines[1]);
+}
 export function resetContract() {
   shown = null;
 }

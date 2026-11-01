@@ -129,6 +129,7 @@ export const FOE_GAITS = {
   'foe-rn-rival': 'skulk',
   'foe-rn-inspector': 'measured',
   'foe-rn-foreman': 'heavy',
+  'foe-rn-porter': 'plod',
   // THE LAST HAND: Crake, the debt man, walks with his hands behind him; he never runs
   'foe-lq-crake': 'measured',
 };
@@ -178,6 +179,9 @@ export function signatureIdle(name) {
 // the world looks employed: a broom sweeps, a ledger gets read, a tray gets
 // wiped. `heldArm` replaces the prop's carrying arm for that frame.
 const LOOP = {
+  // Lou's hands: they shake (a 'held' with nothing in it). His last conversation
+  // stands him still (Npc pose: 'still')
+  shake: [0, 1, 0, 2, 0, 1, 2, 0].map((t) => P({ aF: [14 + t * 4, 30 - t * 3], aB: [12 + (2 - t) * 4, 28 + t * 3], handF: 'open', handB: 'open' })),
   broom: [28, 34, 42, 50, 46, 38, 30, 24].map((a, i) => P({ heldArm: [a, 40 - (a - 28)], lean: i > 2 && i < 6 ? 1 : 0, head: 'down' })),
   tray: [0, 1, 2, 3, 2, 1, 0, 0].map((t) => P({ aB: [40 + t * 6, 50 - t * 8], handB: 'flat' })),
   clipboard: [0, 0, 1, 1, 0, 2, 2, 0].map((t) => P({ head: 'down', aB: t === 2 ? [60, 60] : [8, 14], heldArm: t === 1 ? [16, 90] : null })),

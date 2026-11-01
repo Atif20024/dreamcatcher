@@ -1,6 +1,9 @@
 // THE LANE: THE STOPPED HOUR opens here, outdoors at dusk. Cobbles, a low
 // stone wall to hop, a raised pavement with ramps, a puddle in a dip, and
-// the hedge arch into the green at its right edge (a seam: no cut).
+// the hedge arch into the green at its right edge (a seam: no cut). A child at
+// a lit window asks a question; a man waits by the arch with a watch.
+// where the child's window is (room columns: the lit window of the house at x22)
+export const CHILD = { x: 23.3 };
 export default {
   id: 'lane',
   origin: { tx: 0, ty: 0 },
@@ -31,14 +34,17 @@ export default {
   decor: [],
   props: [
     { prop: 'house_small', x: 5, y: 16 },
-    { prop: 'lamp_post_dark', x: 10, y: 16, unless: 'clock_wound', live: true },
-    { prop: 'lamp_post', x: 10, y: 16, when: 'clock_wound', live: true },
+    { prop: 'lamp_post_dark', x: 10, y: 16, unless: 'struck', live: true },
+    { prop: 'lamp_post', x: 10, y: 16, when: 'struck', live: true },
     { prop: 'barrel', x: 17, y: 16 },
     { prop: 'crate', x: 18, y: 16, dx: 18 },
     { prop: 'house_small', x: 22, y: 16, flip: true, palette: { plaster: 0xc8a888, roof: 0x4a3a50 } },
+    // she waves once Jo has whistled, or once the lamps are back
+    { prop: 'window_child', x: 23, y: 13, dx: 9, dy: 14, unless: 'child_waved', live: true },
+    { prop: 'window_child_wave', x: 23, y: 13, dx: 9, dy: 14, when: 'child_waved', live: true },
     { prop: 'bench', x: 30, y: 15 },
-    { prop: 'lamp_post_dark', x: 34, y: 15, unless: 'clock_wound', live: true },
-    { prop: 'lamp_post', x: 34, y: 15, when: 'clock_wound', live: true },
+    { prop: 'lamp_post_dark', x: 34, y: 15, unless: 'struck', live: true },
+    { prop: 'lamp_post', x: 34, y: 15, when: 'struck', live: true },
     { prop: 'signpost', x: 41, y: 16 },
   ],
   enclosure: { fgFoliage: [{ x: -2, w: 5 }, { x: 19, w: 4 }] },
@@ -52,6 +58,8 @@ export default {
   entities: [
     { type: 'spawn', id: 'start', x: 3, y: 15 },
     { type: 'checkpoint', id: 'cp_lane', label: 'THE LANE', x: 8, y: 15 },
+    { type: 'sign', text: 'THE GREEN', size: 'small', x: 41, y: 13, dy: 2, board: 0x6a4a2e, padX: 6, padY: 3, scale: 2 },
+    { type: 'npc', id: 'watch', cast: 'npc-sh-watch', x: 42, y: 15, facing: 1, talk: [{ conv: 'watch_after', if: 'struck' }, { conv: 'watch' }] },
     // coins (brass cogs, worth 3): on top of the low wall (a hop) and in an
     // arc over the puddle dip; the cobbles under them pay nothing
     { type: 'coins', id: 'c_wall', x: 12, y: 12, n: 4 },

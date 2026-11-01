@@ -44,6 +44,9 @@ export async function bakeCast(ROOT, store) {
   // THE LAST HAND: the Lantern Queen's people, 1884 (src/dreams/gambler/people.js)
   const lq = await imp('src/dreams/gambler/people.js');
   for (const [key, look] of Object.entries(lq.PEOPLE)) list.push([key, look, 'people']);
+  // THE STOPPED HOUR's town (src/dreams/clockmaker/people.js)
+  const sh = await imp('src/dreams/clockmaker/people.js');
+  for (const [key, look] of Object.entries(sh.PEOPLE)) list.push([key, look, 'people']);
   // FIVE-STAR DREAM: Le Rêve's brigade, 1957 (src/dreams/chef/people.js)
   const rv = await imp('src/dreams/chef/people.js');
   for (const [key, look] of Object.entries(rv.PEOPLE)) list.push([key, look, 'people']);

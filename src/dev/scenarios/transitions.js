@@ -17,7 +17,7 @@ const T = 32;
 const line = (row) => (row + 1) * T; // the station: the floor line under a tile row
 // the flags that open each dream's gates on the way through a seam
 const DREAMS = [
-  ['clockmaker', { clock_wound: true }],
+  ['clockmaker', { clock_wound: true, struck: true, yard_seen: true, green_lit: true, nell_lamp: true }], // (the stage beats lock Jo on purpose)
   ['musician', {}],
   ['painter', { assistant: true }],
 ];

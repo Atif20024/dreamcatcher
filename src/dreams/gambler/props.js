@@ -823,6 +823,25 @@ const escape_pipe = {
 };
 
 // a coil of line flaked down on the deck
+// Mr Pell's old book on its stand, in the corridor: a lectern to the waist
+const book_stand = {
+  w: 40,
+  h: 48,
+  anchor: [0.5, 1],
+  paint(ctx, w, h) {
+    ctx.fillStyle = hex(0x2a160e);
+    ctx.fillRect(w / 2 - 3, 12, 6, h - 16);
+    ctx.fillRect(8, h - 4, w - 16, 4);
+    ctx.fillStyle = hex(0x4a2a1a);
+    ctx.fillRect(4, 8, w - 8, 6);
+    ctx.fillStyle = hex(0xe8dcc0);
+    ctx.fillRect(6, 2, w / 2 - 7, 7);
+    ctx.fillRect(w / 2 + 1, 2, w / 2 - 7, 7);
+    ctx.fillStyle = hex(0x5a2a22);
+    for (let i = 0; i < 3; i++) ctx.fillRect(8, 3 + i * 2, w / 2 - 12, 1);
+  },
+};
+
 const rope_coil = {
   w: 40,
   h: 14,
@@ -1014,7 +1033,7 @@ export default {
   chandelier, back_bar, bar_counter, bandstand, faro_table, saloon_chair, clerestory, carpet_runner, stateroom,
   card_table, table_lamp, guard_view,
   purser_cage, safe, wall_lamp, stair_up,
-  chimney, escape_pipe, rope_coil, ship_bell, texas_face, ratline, pilot_house,
+  chimney, escape_pipe, book_stand, rope_coil, ship_bell, texas_face, ratline, pilot_house,
   pilot_wheel, dawn_windows, last_table,
 };
 

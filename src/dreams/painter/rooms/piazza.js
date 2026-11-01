@@ -55,15 +55,18 @@ export default {
     { type: 'portal', id: 'piazza>palazzo', kind: 'door', x: 58, y: 15, to: { room: 'palazzo', portal: 'palazzo>piazza' }, door: { prompt: 'into Palazzo Bardelli', fade: 260, requires: ['seal'], locked: 'the palazzo receives masters', lockedLine: 'The doorkeeper looks at my hands. No seal, no door.' } },
     { type: 'portal', id: 'piazza>chapel', kind: 'door', x: 82, y: 15, to: { room: 'chapel', portal: 'chapel>piazza' }, door: { prompt: 'into the new chapel', fade: 300, requires: ['commission', 'gold_leaf'], locked: 'the chapel is shut', lockedLine: 'The new chapel. Not mine to enter: not yet.' } },
     { type: 'npc', id: 'woman_piazza', cast: 'npc-rn-woman', x: 50, y: 15, facing: -1, talk: [{ conv: 'woman_square' }] },
-    { type: 'npc', id: 'friar', cast: 'npc-rn-friar', x: 69, y: 15, facing: 1, talk: [{ conv: 'friar' }] },
-    { type: 'npc', id: 'beggar', cast: 'npc-rn-beggar', x: 76, y: 15, facing: 1, talk: [{ conv: 'beggar' }] },
+    { type: 'npc', id: 'friar', cast: 'npc-rn-friar', x: 69, y: 15, facing: 1, talk: [{ conv: 'friar_known', if: 'commission' }, { conv: 'friar' }] },
+    { type: 'npc', id: 'beggar', cast: 'npc-rn-beggar', x: 76, y: 15, facing: 1, talk: [{ conv: 'beggar_known', if: 'guild_master' }, { conv: 'beggar' }] },
     // the guild's inspectors: scarlet robes, hands behind their backs
-    { type: 'foe', kind: 'inspector', x: 34, y: 15, patrol: [28, 39] },
-    { type: 'foe', kind: 'inspector', x: 64, y: 15, patrol: [60, 72] },
+    { type: 'foe', kind: 'inspector', x: 34, y: 15, patrol: [28, 39], unless: 'seal' },
+    { type: 'foe', kind: 'inspector', x: 64, y: 15, patrol: [60, 72], unless: 'seal' },
+    // a seal changes the square: the same men, nodding
+    { type: 'npc', id: 'inspector_a', cast: 'npc-rn-inspector', x: 34, y: 15, facing: -1, when: 'seal', talk: [{ conv: 'inspector_nod' }] },
+    { type: 'npc', id: 'inspector_b', cast: 'npc-rn-inspector', x: 64, y: 15, facing: -1, when: 'seal', talk: [{ conv: 'inspector_nod' }] },
     // three studies for [Q] (silverpoint): the torso, the beggar's hands, the dome's centering
-    { type: 'resonant', id: 'study_torso', x: 40, y: 13, r: 90, set: 'study_torso', beat: 'study_torso' },
-    { type: 'resonant', id: 'study_hands', x: 76, y: 14, r: 80, set: 'study_hands', beat: 'study_hands' },
-    { type: 'resonant', id: 'study_dome', x: 94, y: 8, r: 90, set: 'study_dome', beat: 'study_dome' },
+    { type: 'resonant', id: 'study_torso', x: 40, y: 13, r: 3, set: 'study_torso', beat: 'study_torso' },
+    { type: 'resonant', id: 'study_hands', x: 76, y: 14, r: 3, set: 'study_hands', beat: 'study_hands' },
+    { type: 'resonant', id: 'study_dome', x: 94, y: 8, r: 3, set: 'study_dome', beat: 'study_dome' },
     // giglio coins: the awning and the loggia roof, an arc over the
     // fountain, the masons' stage
     { type: 'coin', id: 'c_gate', x: 6, y: 13 },

@@ -36,6 +36,7 @@ import materials from './materials.js';
 import { paintVault } from './works.js';
 import { paintSky, paintBackdropLayer, paintLandmark } from '../../art/backdrops/painted.js';
 import { MUSIC_KEYS } from './music.js';
+import { studiesLine, trialVerdict } from './logic.js';
 
 const LAPIS = 0x22408a;
 const GOLD = 0xd8a840;
@@ -115,6 +116,22 @@ const items = {
   },
 };
 
+// the dream's own code at a beat's step
+const calls = {
+  verdict(scene) {
+    const F = scene.F;
+    scene.caption.say('folco', trialVerdict(F.test_kit, F.test_wasted || []), { ms: 3600 });
+    scene.caption.say('gualtiero', 'I stood for you. Stand up straight: they are writing your name.', { ms: 2800 });
+  },
+  // who was named, and whether the master had already been told
+  named(scene) {
+    const F = scene.F;
+    F.named_told = !!F.choice_bice && !!F.told_master;
+    F.named_untold = !!F.choice_bice && !F.told_master;
+    if (!F.choice_bice) F.choice_silent = true;
+  },
+};
+
 export default {
   id: 'painter',
   title: "THE MASTER'S LADDER",
@@ -127,6 +144,7 @@ export default {
   tool: null,
   verbs: [sketch],
   beats,
+  calls,
   onStart: 'start',
   cast: CAST,
   conversations: CONVERSATIONS,
@@ -194,7 +212,7 @@ export default {
     lines: (F) => [
       'One day of wet plaster, and then it is the wall.',
       F.choice_bice ? 'They said her name in the chapel. Out loud. Once was enough.' : 'Nobody asked whose drawing it was. She knew which stars were hers.',
-      ...(F.study_torso && F.study_hands && F.study_dome ? ['Three studies in silverpoint, kept in a book for sixty years.'] : []),
+      ...(studiesLine(F) ? [studiesLine(F)] : []),
     ],
     vista: 0.8,
     paint(ctx, w, h) {

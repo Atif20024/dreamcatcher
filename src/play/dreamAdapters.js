@@ -156,6 +156,7 @@ export function spawnKeyItem(scene, e, room) {
 // each frame: Jo within reach of a key item takes it
 export function updateKeyItems(scene) {
   const p = scene.player;
+  if (scene.thrownOut) return; // being carried off: a stolen item back on its stand must not jump into his hand
   for (const it of scene.keyItems) {
     if (it.taken || Math.abs(it.x - p.x) > 26 || Math.abs(it.y - (p.y - 10)) > 56) continue;
     it.taken = true;

@@ -105,4 +105,4 @@ export const PARTS = { ...jo.parts, head: H, hat: HAT };
 
 export const OUTFITS = { street: {} };
 
-export default { id: 'wren', palette: PALETTE, families: jo.families, metrics: jo.metrics, parts: PARTS, outfits: OUTFITS };
+export default { id: 'nell', palette: PALETTE, families: jo.families, metrics: jo.metrics, parts: PARTS, outfits: OUTFITS };

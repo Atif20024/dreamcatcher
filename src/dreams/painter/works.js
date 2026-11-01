@@ -141,7 +141,7 @@ export function paintAltarpiece(ctx, x, y, w, h, k) {
 // whole ladder of the craft on one small panel. Steps: 1 gesso, 2 the
 // drawing, 3 green earth under the flesh, 4 the flesh, 5 the mantle in
 // ultramarine, 6 the gold of the halo
-export function paintPanel(ctx, w, h, k) {
+export function paintPanel(ctx, w, h, k, lost = []) {
   ctx.fillStyle = hex(0x6a4a2e);
   ctx.fillRect(0, 0, w, h);
   ctx.fillStyle = hex(k >= 1 ? GESSO : 0xd8c4a0);
@@ -150,13 +150,13 @@ export function paintPanel(ctx, w, h, k) {
   const cy = h * 0.4;
   const r = w * 0.18;
   if (k >= 6) {
-    ctx.fillStyle = hex(GOLD);
+    ctx.fillStyle = hex(lost.includes('gold') ? 0xb8862c : GOLD); // a halo in ochre
     ctx.beginPath();
     ctx.arc(cx, cy - 2, r * 1.5, 0, Math.PI * 2);
     ctx.fill();
   }
   if (k >= 5) {
-    ctx.fillStyle = hex(LAPIS);
+    ctx.fillStyle = hex(lost.includes('ultramarine') ? 0x3a6a8a : LAPIS); // azurite, greener
     ctx.beginPath();
     ctx.moveTo(cx - r * 1.4, h - 8);
     ctx.quadraticCurveTo(cx - r * 1.6, cy + r, cx - r * 0.9, cy - r * 0.6);
@@ -170,7 +170,7 @@ export function paintPanel(ctx, w, h, k) {
     stamp(ctx, cx + r * 0.3, cy + r * 1.8, r * 0.4, FLESH, 1, 0.2);
   }
   if (k >= 2) {
-    ctx.strokeStyle = rgba(SINOPIA, k >= 4 ? 0.5 : 0.9);
+    ctx.strokeStyle = rgba(SINOPIA, (k >= 4 ? 0.5 : 0.9) * (lost.includes('bone') ? 0.5 : 1)); // silver skates on chalk
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.ellipse(cx, cy, r * 0.8, r, 0, 0, Math.PI * 2);

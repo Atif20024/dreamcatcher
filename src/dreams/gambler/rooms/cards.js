@@ -80,13 +80,15 @@ export default {
     { type: 'npc', id: 'sorrel2', cast: 'npc-lq-sorrel', x: TABLES.t2 + 1, y: 11, pose: 'sit', facing: -1, unless: 'table3_open', talk: [{ conv: 'sorrel' }] },
     { type: 'npc', id: 'nico2', cast: 'npc-lq-nico', x: TABLES.t2 + 3, y: 11, pose: 'sit', facing: -1, unless: 'table3_open', talk: [{ conv: 'nico' }] },
     { type: 'npc', id: 'voe3', cast: 'npc-lq-voe', x: TABLES.t3 + 1, y: 11, pose: 'sit', facing: -1, when: 'table3_open', talk: [{ conv: 'voe_table3' }] },
-    { type: 'npc', id: 'sorrel3', cast: 'npc-lq-sorrel', x: TABLES.t3 + 2, y: 11, dx: 10, pose: 'sit', facing: -1, when: 'table3_open', talk: [{ conv: 'sorrel' }] },
-    { type: 'npc', id: 'nico3', cast: 'npc-lq-nico', x: TABLES.t3 + 3, y: 11, dx: 20, pose: 'sit', facing: -1, when: 'table3_open', talk: [{ conv: 'nico' }] },
+    { type: 'npc', id: 'sorrel3', cast: 'npc-lq-sorrel', x: TABLES.t3 + 2, y: 11, dx: 10, pose: 'sit', facing: -1, when: 'table3_open', talk: [{ conv: 'sorrel_t3' }] },
+    { type: 'npc', id: 'nico3', cast: 'npc-lq-nico', x: TABLES.t3 + 3, y: 11, dx: 20, pose: 'sit', facing: -1, when: 'table3_open', talk: [{ conv: 'nico_t3' }] },
     { type: 'npc', id: 'lou_cards', cast: 'npc-lq-lou', x: 6, y: 11, facing: 1, follow: [4, 54], talk: [{ conv: 'lou_tilt', if: 'tilted' }, { conv: 'lou_cards' }] },
     { type: 'encounter', id: 't1', x: TABLES.t1 - 2, y: 11, anchor: { x: TABLES.t1, y: 8 }, prompt: "sit in Lou's chair", unless: 't1_won' },
     { type: 'encounter', id: 't2', x: TABLES.t2 - 2, y: 11, anchor: { x: TABLES.t2 + 1, y: 8 }, prompt: "sit in Lou's chair", unless: 't2_won' },
     { type: 'encounter', id: 't3', x: TABLES.t3 - 2, y: 11, anchor: { x: TABLES.t3 + 2, y: 8 }, prompt: "sit in Lou's chair", when: 'table3_open', unless: 't3_won' },
     { type: 'portal', id: 'cards>office', kind: 'door', x: 56, y: 11, to: { room: 'office', portal: 'office>cards' }, door: { prompt: "to the purser's office", fade: 220, requires: ['tables_done'], locked: 'three tables first', lockedLine: "Lou wants a pot from every table before the purser sees us." } },
+    // the guard is not only a waiting room: a place to look at something
+    { type: 'moment', id: 'm_wake', x: 50, y: 11, prompt: 'watch the wake', beat: 'moment_wake' },
     // half dimes: dropped along the guard (the air is the way to them)
     { type: 'coins', id: 'c_guard', x: 44, y: 10, n: 4 },
   ],

@@ -70,6 +70,7 @@ export async function scaleIssues(ROOT) {
     check(key, 'prop', cls, h, S.PROP_CLASSES[cls].h);
   }
   await trainKitChecks(imp, S, check); // round 2 WP3
+  for (const [key, [, h, cls]] of Object.entries(S.CLOCK_PROP_SIZES)) check(key, 'prop', cls, h, S.PROP_CLASSES[cls].h);
   // the Evening's painted arch and rope swing (not kit grids)
   check('ev-arch', 'prop', 'gateArch', S.EVENING_ARCH.h, S.PROP_CLASSES.gateArch.h);
   check('ev-arch (opening / Jo)', 'prop', 'gateArch', +(S.EVENING_ARCH.openH / S.JO.withHat).toFixed(2), [1.25, 1.4]);
