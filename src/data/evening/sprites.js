@@ -227,7 +227,7 @@ const PROPS = {
     pal: { R: 0xe86a6a, Y: 0xf2d580, B: 0x3a5a80, k: 0x5a4028 },
     rows: ['...RYYBR...', '..RRYYBBR..', '.RRRYYBBRR.', 'RRRRYYBBRRR', 'RRRRYYBBRRR', 'RRRRYYBBRRR', '.RRRYYBBRR.', '..RRYYBBR..', '...RYYBR...', '....k.k....', '....k.k....', '...kkkkk...', '...kkkkk...'],
   },
-  'ev-radio': { size: 3, pal: { R: 0x8a4a2a, k: 0x2a2a30, y: 0xf2d580 }, rows: ['..k..', 'RRRRR', 'RkRyR', 'RRRRR'] },
+  'ev-radio': { size: 3, pal: { R: 0x8a4a2a, k: 0x2a2a30, y: 0xf2d580 }, rows: ['.....k.', '....k..', '...k...', 'RRRRRRR', 'RkkkRyR', 'RkkkRRR', 'RkkkRyR', 'RRRRRRR'] },
   'ev-owl': { size: 3, pal: { o: 0x8a6a4a, O: 0xb89a6a, e: 0xf2d580, b: 0x2a2230 }, rows: ['o...o', 'ooooo', 'oeoeo', 'OObOO', 'OOOOO', '.o.o.'] },
   'ev-deer': { size: 3, pal: { d: 0x9a6a42, a: 0x6a5a4a, e: 0x1a1a20, w: 0xe8dcc8 }, rows: ['.a.a.......', '..aa.......', '..ddd......', '.dde.......', '..dd.......', '..ddddddd..', '..dddddddw.', '...ddddddd.', '...d.d..d.d', '...d.d..d.d', '...d.d..d.d'] },
   'ev-sheep': { size: 3, pal: { w: 0xe8e4d8, W: 0xc8c4b8, k: 0x2a2a30 }, rows: ['.wwwwww..', 'wwwwwwwkk', 'wwwwwWWkk', '.wwwwWW..', '.k.k..k.k'] },

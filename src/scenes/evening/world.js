@@ -319,6 +319,12 @@ export function buildWorld(scene, objects) {
       case 'chess': {
         const c = stand('ev-chess', o, 7);
         out.chess = { x: o.wx, y: c.y };
+        // the game in progress, on the top: light against dark
+        const top = c.y - c.displayHeight;
+        [-16, -10, -3, 5, 12, 18].forEach((dx, i) => {
+          const tall = i % 3 === 1 ? 6 : 4;
+          scene.add.rectangle(o.wx + dx, top - tall / 2, 3, tall, i < 3 ? 0xf2ece0 : 0x1a1a20).setStrokeStyle(1, i < 3 ? 0x8a7a64 : 0x4a4a54).setDepth(7.1);
+        });
         break;
       }
       case 'bakery': {
@@ -492,6 +498,10 @@ export function buildWorld(scene, objects) {
             h.tx = tx;
             out.hedge.push(h);
           }
+          // a clipped crown: the top of a hedge, not of a wall
+          const crown = scene.add.image(px(tx), px(21) - 26, 'ev-hedge-top').setDepth(-9.8).setScale(1.12);
+          crown.tx = tx;
+          out.hedge.push(crown);
         }
         break;
       }
@@ -546,6 +556,21 @@ export function buildWorld(scene, objects) {
         const m = stand('ev-mill', o, -10.8);
         const wheel = scene.add.image(o.wx + 140, m.y - 76, 'ev-wheel').setDepth(-10.7); // on the east wall
         scene.tweens.add({ targets: wheel, angle: 360, duration: 14000, repeat: -1 });
+        // the race it turns in: a stone trough along the wall, dark water, the
+        // wheel's lower third dipping behind the near sill
+        const rx = o.wx + 140;
+        const race = scene.add.graphics().setDepth(-10.6);
+        race.fillStyle(0x1e2c38, 1).fillRect(rx - 92, m.y - 34, 184, 10);
+        race.fillStyle(0xa8987a, 1).fillRect(rx - 96, m.y - 24, 192, 24);
+        race.fillStyle(0xc8b898, 1).fillRect(rx - 96, m.y - 24, 192, 3);
+        race.fillStyle(0x8a7a64, 1);
+        for (let i = 0; i < 6; i++) race.fillRect(rx - 96 + i * 32 + (i % 2) * 8, m.y - 21, 1, 21);
+        race.fillRect(rx - 96, m.y - 12, 192, 1);
+        // foam where the blades come up, moving
+        for (let i = 0; i < 6; i++) {
+          const f = scene.add.rectangle(rx - 30 + i * 12, m.y - 30, 6, 2, 0xdce8f0, 0.8).setDepth(-10.65);
+          scene.tweens.add({ targets: f, x: f.x + 12, alpha: 0.2, duration: 700 + i * 90, yoyo: true, repeat: -1, ease: 'sine.inout' });
+        }
         break;
       }
       case 'fire': {

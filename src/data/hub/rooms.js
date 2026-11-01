@@ -40,8 +40,6 @@ const ROOMS = [
       { type: 'rain', x: 0, y: 0, w: 30 },
       { type: 'kiosk', x: 4, y: 29 },
       { type: 'queue', x: 4, y: 29, to: 24 },
-      { type: 'npc', who: 'ro', x: 15, y: 25 },
-      { type: 'shoeshine', x: 16, y: 25 },
       { type: 'door', x: 19, y: 25, chained: true }, // WP3: full-size doors, 3 tiles apart
       { type: 'door', x: 22, y: 25, chained: false },
       { type: 'door', x: 25, y: 25, chained: true },
@@ -73,6 +71,8 @@ const ROOMS = [
       { type: 'cart', x: L(65, 30), y: 25 },
       { type: 'cart', x: L(68, 30), y: 25 },
       { type: 'lostfound', x: L(66, 30), y: 22 },
+      { type: 'npc', who: 'ro', x: L(74, 30), y: 25 },
+      { type: 'shoeshine', x: L(73, 30), y: 25 },
       { type: 'npc', who: 'busker', x: L(70, 30), y: 25 },
       { type: 'moment', id: 'moment1', x: L(70, 30), y: 25, kind: 'duet' },
       { type: 'npc', who: 'bilal', x: L(46, 30), y: 17 },

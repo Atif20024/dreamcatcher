@@ -371,6 +371,8 @@ export const RECIPES = {
   // the landing at dawn: the wheel slowing, water, birds, nothing else
   gm_dawn: { seconds: 16, seed: 67, rms: -37, layers: [['lapping', { vol: 0.04, rate: 0.5 }], ['swallows', { rate: 0.25, vol: 0.03, lo: 2400, hi: 4200 }], ['gulls', { vol: 0.018, rate: 0.08 }], ['paddle', { vol: 0.012, every: 1.4 }]] },
 
+  // the room behind the station: the PA off, a low hum
+  gate_hum: { seconds: 11, seed: 77, rms: -44, layers: [['hum', { f: 55, vol: 0.02 }], ['wind', { vol: 0.004 }], ['echo', { delay: 0.2, taps: 3, fb: 0.4 }]] },
   hub_hall: { seconds: 21, seed: 51, rms: -43, layers: [['murmur', { vol: 0.05, k: 0.01 }], ['hum', { f: 60, vol: 0.005 }], ['echo', { delay: 0.17, taps: 4, fb: 0.5 }]] },
   hub_crowd: { seconds: 26, seed: 52, rms: -41, layers: [['chatter', { voices: 5, vol: 0.03, pitch: 0.9 }], ['steps', { vol: 0.03, pace: 0.5, walks: 4 }], ['echo', { delay: 0.17, taps: 4, fb: 0.5 }]] },
   hub_crowd_far: { seconds: 17, seed: 57, rms: -46, layers: [['chatter', { voices: 3, vol: 0.03, pitch: 1.05 }], ['steps', { vol: 0.02, pace: 0.7, walks: 2 }], ['echo', { delay: 0.23, taps: 5, fb: 0.55 }]] },

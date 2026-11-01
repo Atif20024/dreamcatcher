@@ -1,3 +1,4 @@
+import { DREAMS } from '../data/dreams.js';
 // Round 2 WP6, the identity's two objects (critique §9 "Motifs"), painted in
 // code and shared by every place that shows them:
 //   - the dreamcatcher: the title emblem, the boot loader (the web filling
@@ -9,7 +10,9 @@ import { hex, rgba, mix, stamp } from './paint.js';
 import { IDENTITY, PLACES } from '../ui/theme.js';
 
 // the seven running dreams, in board order: the hall web's rounds, outside in
-export const WEB_ORDER = ['chef', 'musician', 'writer', 'painter', 'astronaut', 'gambler', 'clockmaker'];
+const WEB_FIRST = ['chef', 'musician', 'writer', 'painter', 'astronaut', 'gambler', 'clockmaker'];
+// a dream added later takes the next round by itself
+export const WEB_ORDER = [...WEB_FIRST, ...DREAMS.filter((d) => d.scene && !WEB_FIRST.includes(d.id)).map((d) => d.id)];
 export const WEB_SPOKES = 7;
 
 // the web's rounds: each round's points are the midpoints of the last
