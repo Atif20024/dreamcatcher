@@ -2,7 +2,9 @@
 // rain, nine storeys of iron landings bolted to the brick. The city falls
 // away to the right as Jo climbs; the crowd's roar comes up from the far side
 // of the roof. Feedback wisps drift on three landings; a ledge off to the
-// right pays the brave. The stage door is at the top.
+// right pays the brave. The stage door is at the top. One landing changes the
+// rule: on the sixth the roar comes through the wall and drowns the horn, so
+// the wisp there cannot be silenced: jump it, or stamp on it (`roar`, the verb).
 import { grid } from './grid.js';
 
 const g = grid(32, 48);
@@ -51,6 +53,7 @@ export default {
   events: 'rain',
   music: { state: 'tense', bpm: 110, key: 'backstage', wall: 900 },
   objective: 'climb',
+  roar: { rows: [18, 23] }, // the landing at row 22 and the air around it
   titleCard: 'THE FIRE STAIRS',
   entities: [
     { type: 'portal', id: 'escape<backstage', kind: 'door', x: 4, y: 45, to: { room: 'backstage', portal: 'backstage>escape' }, door: { prompt: 'back inside', fade: 320 } },

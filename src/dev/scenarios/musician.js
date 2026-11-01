@@ -325,6 +325,7 @@ const playthrough = {
     await waitBeats(dc, s, 1500);
     ok('cellar-gig', !!s.F.cellar_gig && !!s.F.ray_left);
     ok('audience-turned', turned > audience0);
+    ok('nine-chairs', s.audience.length === 9 && turned === 9);
     // 4. back out: Ray in the alley, his lesson, the gate
     p = at(s, 'cellar', 3, 11);
     await walkTo(dc, s, p.x, { frames: 1200, tol: 20 });
@@ -336,6 +337,10 @@ const playthrough = {
     dc.press('interact', 3);
     await dc.run(10);
     await talkThrough(dc, s);
+    // his lesson is played: he claps, Jo answers, a bar left empty
+    for (let i = 0; i < 90 && !s.encounters.busy; i++) await dc.run(1);
+    ok('ray-drill-started', s.encounters.busy);
+    await playRhythm(dc, s);
     await waitBeats(dc, s);
     if (!ok('ray-lesson', !!s.F.ray_lesson)) log.push(`(ray: prompt ${rayPrompt}, jo ${Math.round(s.player.x)},${Math.round(s.player.y)}, room ${s.roomId}, ray ${!!s.npcs.get('ray_alley')}, modal ${JSON.stringify({ enc: s.encounterActive, card: s.cardActive, tut: s.tutorialActive, dlg: s.dialogActive, puz: s.puzzleActive, beats: s.beats.busy, susp: s.inputs.suspended, box: s.sceneBox.active, trans: s.transitions.busy, paused: s.paused, resp: s.respawning })})`);
     await dc.run(40);
@@ -345,10 +350,9 @@ const playthrough = {
     ok('into-backstage', await door(dc, s, 'backstage'));
     // 5. backstage: Marcus (he stays for one), the laminate, Tally (Nia plays)
     safe(s);
-    p = at(s, 'backstage', 9, 14);
-    await walkTo(dc, s, p.x + 40, { frames: 400, tol: 24 });
-    dc.press('interact', 3);
-    await dc.run(10);
+    // (he calls Jo over as he comes in: the scene cannot be walked past)
+    for (let i = 0; i < 180 && !s.sceneBox.active; i++) await dc.run(1);
+    ok('marcus-calls', s.sceneBox.active);
     await talkThrough(dc, s, 1);
     ok('marcus-stays', s.F.marcus_left === 'stay' && !!s.F.marcus_stays && getSave().cast.marcus_left === 'stay');
     // up onto the case stack and the catwalk (real jumps), along to the laminate

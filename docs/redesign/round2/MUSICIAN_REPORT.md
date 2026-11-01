@@ -11,7 +11,7 @@ Jo's own dream. He arrives in the rain on a Tuesday and leaves through the Big S
 |---|---|---|---|---|
 | **RAIN ON THE MARQUEE** (street) | exterior, wet setts, rain | Real-scale fronts: the Meridian's marquee (SATURDAY, THE BIG STAGE), a horn shop, the Blue Cellar's brick block with its neon | "the Blue Cellar's open mic: musicians go round the back" (the bouncer says so) | the alley mouth (a seam, no cut) |
 | **THE ALLEY** | exterior canyon, fire escapes | brick backs, iron landings up the left wall, a dead neon over a steel stage door | "the stage door is dark: play the dead neon back to life" | the stage door; later the iron gate to the loading door |
-| **THE BLUE CELLAR** | interior, brick, pipes, one bulb | the world closes in: a foot-high stage, a zinc bar with Ray's back to you, nine chairs, five taken | "Delphine runs the open mic: put your name down", then "take the stage: two songs for nine chairs" | Ray walks out mid-applause; outside he tells Jo to play the room, and the alley gate opens |
+| **THE BLUE CELLAR** | interior, brick, pipes, one bulb | the world closes in: a foot-high stage, a zinc bar with Ray's back to you, nine chairs, all taken | "Delphine runs the open mic: put your name down", then "take the stage: two songs for nine chairs" | Ray walks out mid-applause; outside he tells Jo to play the room, and the alley gate opens |
 | **SATURDAY. BACKSTAGE** | interior, painted block, work lights | the festival: flight cases, truss, roadies, a catwalk, Marcus by the dock, Tally and Nia by the stage door | "the stage door wants your laminate and Tally's answer" | the stage door (a gate that ticks off both) |
 | **THE FIRE STAIRS** | vertical exterior, rain | nine storeys of iron landings bolted to the theatre's flank; the city drops away to the right | "climb the fire stairs to the stage door at the top" | the stage |
 | **THE BIG STAGE** | festival stage on a roof | PA wings, a truss throwing colour, eight thousand heads below the lip | "eleven minutes, eight thousand people: play the set" | the hard cut: work lights, the crowd gone, the crew striking, the gate to the wing, a folding chair with Jo's case and the dream over it |
@@ -25,8 +25,8 @@ Jo's own dream. He arrives in the rain on a Tuesday and leaves through the Big S
 
 | Gig | Teaches |
 |---|---|
-| The neon (alley) | listen, then answer: 2 phrases of 4 notes |
-| The open mic (Cellar) | 6 phrases, all notes; the nine chairs turn |
+| The neon (alley) | listen, then answer: 2 short tunes |
+| The open mic (Cellar) | two songs: even bars, the first rests, a push across the beat; the nine chairs turn |
 | The set (Big Stage) | Ray's rests (a hollow ring: leave it empty), a phrase played by ear (no notes shown), the blank (Jo goes blank; Nia's bass comes in from the dark; play nothing for a bar), and a last note held for four beats |
 
 **[Q] is the trumpet** everywhere else: a ring from the bell; the horn in the shop window answers it, roadies stop to listen (they walk toward the sound), and the feedback wisps fall silent.
