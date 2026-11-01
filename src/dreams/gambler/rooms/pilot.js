@@ -41,6 +41,7 @@ export default {
   lit: true,
   backdrop: null,
   ambience: 'gm_pilot',
+  events: 'boat_cabin',
   acoustics: 'room',
   music: { state: 'quiet', key: 'pilot' },
   objective: [

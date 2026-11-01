@@ -41,7 +41,7 @@ export const TERMINAL_FALL = 660;
 // A landing's weight from the height fallen, 0..1, shaped like the impact speed:
 // 12 px is 0, a full jump 0.76, the 5-tile hard landing 0.82, 204 px and up 1.
 export function landImpact(drop, gravity = GRAVITY) {
-  const f = (Math.sqrt(2 * gravity * Math.max(0, drop)) - 250) / 450;
+  const f = (Math.sqrt(2 * Math.max(0, gravity) * Math.max(0, drop)) - 250) / 450;
   return Math.max(0, Math.min(1, f));
 }
 

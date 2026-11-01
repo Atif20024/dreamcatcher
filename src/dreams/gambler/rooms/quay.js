@@ -47,6 +47,7 @@ export default {
   light: { tint: 0xf0e4e8 },
   backdrop: { set: 'merrow_dusk', horizon: 16 },
   ambience: 'gm_quay',
+  events: 'river',
   acoustics: 'open',
   // the band aboard, heard through the boat's walls
   music: { state: 'quiet', key: 'quay', wall: 900 },

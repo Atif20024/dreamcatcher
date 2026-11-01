@@ -29,6 +29,8 @@ import { makeActivities } from '../systems/activities.js';
 import Director from '../systems/evening.js';
 import { takePhoto, loadAlbum, photoTextures, randomPhotos } from '../systems/album.js';
 import { getSave, updateSave, momentsFound, MOMENT_TOTAL } from '../utils/save.js';
+import { getWallet, spend } from '../systems/wallet.js';
+import { lapelFlower } from '../art/bayProps.js';
 import { sfx, music, laughSfx, toggleMusic, playFx, audioOut, chime } from '../systems/audio.js';
 import { wipeActive } from '../ui/TrainWipe.js';
 import DialogueBox from '../systems/DialogueBox.js';
@@ -136,10 +138,20 @@ export default class EveningScene extends BaseLevel {
   }
 
   create() {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(import.meta.env.DEV ? window.location.search : ''); // ?first ?weather ?rare ?nohud ?ev: dev only
     this.save = getSave();
     this.firstVisit = !this.save.evening.visited || params.get('first') === '1';
-    updateSave((s) => (s.evening.visited = true));
+    updateSave((s) => {
+      s.evening.visited = true;
+      if (!s.dreamsCaught) s.evening.early = true; // Pemberton notices (HubScene)
+    });
+    this.lapel = null;
+    this.teachAt = 0;
+    this.stationReady = false;
+    this.stationReadyAt = 0;
+    this.boardSaid = false;
+    this.postArmedUntil = 0;
+    this.postedNow = 0;
     music.stop();
 
     // painted first: the gridded fallbacks below skip any key that exists
@@ -216,6 +228,7 @@ export default class EveningScene extends BaseLevel {
     this.laundryDoor = (this.world.doors.find((d) => d.id === 'door_laundry_e') || { x: px(141) }).x;
     this.buildLine();
     this.buildPeople(built.objects);
+    if (this.save.flags.hub.lastFlower) this.lapel = lapelFlower(this, this.player, 13.2);
     this.buildCritters(built.objects);
     this.talk = new Talk(this, this.folk, { knows: (id) => this.knows(id) });
     this.activities = makeActivities(this);
@@ -416,7 +429,9 @@ export default class EveningScene extends BaseLevel {
     const L = this.laundryLine;
     if (!L || this.lineSheets.length >= 8) return;
     const i = this.lineSheets.length;
-    const x = L.x0 + 26 + i * ((L.x1 - L.x0 - 40) / 7);
+    // (each a clear 6 px from the next: a sheet is 60 px across)
+    const x = L.x0 + 26 + i * Math.max(66, (L.x1 - L.x0 - 40) / 7);
+    if (x + 28 > L.x1) return; // the line is full
     const key = i % 3 === 1 ? 'ev-sheet-b' : 'ev-sheet';
     const sh = this.add.image(x, L.y + 4, key).setOrigin(0.5, 0).setDepth(-10.5);
     // its shadow moves on the wall behind
@@ -569,6 +584,10 @@ export default class EveningScene extends BaseLevel {
     // stillness is a verb here: cats come, fireflies gather, someone stands by
     if (left || right || jump || Math.abs(p.body.velocity.x) > 12 || !p.body.onFloor()) this.stillSince = time;
     this.stillFor = time - this.stillSince;
+
+    this.teachVerbs(time);
+    this.updateStationCue(time);
+    if (this.lapel) this.lapel();
 
     // --- motion -------------------------------------------------------------
     if (this.ending) {
@@ -951,6 +970,47 @@ export default class EveningScene extends BaseLevel {
     if (this.activity && (this.activity.id === 'swing' || this.activity.id === 'boat')) this.activity.leave();
   }
 
+  // The two verbs nothing else teaches, each said once in a whole save: sit,
+  // to someone standing by a bench; the horn, to someone just standing.
+  teachVerbs(time) {
+    if (this.ending || this.dialogActive) return;
+    if (this.teachAt && time < this.teachAt) return;
+    this.teachAt = time + 500;
+    const p = this.player;
+    const hints = this.save.evening.hints || (this.save.evening.hints = {});
+    const say = (id, text) => {
+      hints[id] = true;
+      updateSave((s) => (s.evening.hints = { ...(s.evening.hints || {}), [id]: true }));
+      this.floatText(p.x, p.y - 70, text, '#c8c0b0');
+    };
+    if (!hints.sit && !this.joSitting && !this.joSeated && this.stillFor > 3000 && this.world.benches.some((b) => Math.abs(b.x - p.x) < 40 && Math.abs(b.y - p.y) < 60)) say('sit', 'hold ↓ to sit');
+    else if (!hints.horn && !this.trumpetDown && this.stillFor > 25000) say('horn', 'Q — the horn');
+  }
+
+  // The station bench is the way out only once he has had an evening: six
+  // places, or two people helped. Then one chime from the far east, no HUD, and
+  // the board says something as he comes near it.
+  updateStationCue(time) {
+    if (this.stationEnded || this.ending) return;
+    if (time < this.stationReadyAt) return;
+    this.stationReadyAt = time + 400;
+    const b = this.world.board;
+    if (!this.stationReady) {
+      const places = Math.max(this.visitedPlaces.size, Object.keys(getSave().evening.map).length);
+      if (places < 6 && this.helped.size < 2) return;
+      this.stationReady = true;
+      // (someone who met the rule on an earlier visit needs no bell)
+      if (this.visitedPlaces.size >= 6 || this.helped.size >= 2) chime('board', 'evening');
+    }
+    if (!this.boardSaid && b && Math.abs(this.player.x - b.x) < 16 * T) {
+      this.boardSaid = true;
+      this.flickerBoard(b.txt, 'STAY AWHILE');
+      this.time.delayedCall(5000, () => {
+        if (!this.stationEnded) this.flickerBoard(b.txt, '— — —');
+      });
+    }
+  }
+
   // special seats: the station bench ends the evening (§7); the hill bench is
   // for napping (A4.7); the ridge bench is the end of everything (§B6); the
   // fire is warm and nobody says anything
@@ -959,7 +1019,7 @@ export default class EveningScene extends BaseLevel {
     this.sitT += delta;
     const b = this.sitBench;
     if (!b || this.ending) return;
-    if (b.id === 'station_bench' && !this.stationEnded && this.sitT > 20000) this.endingStation();
+    if (b.id === 'station_bench' && !this.stationEnded && this.stationReady && this.sitT > 20000) this.endingStation();
     if (b.id === 'hill_bench' && !this.napping && this.sitT > 90000 && time > this.napAt) this.nap();
     if (b.id === 'ridge_bench' && !this.ridgeEnded && this.sitT > 2500) this.endingRidge();
   }
@@ -1123,7 +1183,7 @@ export default class EveningScene extends BaseLevel {
         if (act) {
           if (!act.available()) continue;
           add(a.x, a.y, act.verb, () => this.startActivity(act), 58);
-        } else if (a.id === 'postbox') add(a.x, a.y, 'post something', () => this.postbox(), 44);
+        } else if (a.id === 'postbox') add(a.x, a.y, getWallet().total > 0 ? "post what's in your coat" : 'post something', () => this.postbox(), 44);
         else if (a.id === 'swing') add(a.x, a.y, 'swing', () => this.startActivity(this.activities.swing), 50);
       }
       // rain: grab the sheets off the line
@@ -1176,9 +1236,24 @@ export default class EveningScene extends BaseLevel {
   }
 
   postbox() {
-    // nothing to post. that's fine.
-    const t = uiText(this, this.player.x, this.player.y - 60, '(nothing to post.)', { fontSize: '12px', color: '#c8c0b0' }).setOrigin(0.5).setDepth(90);
-    this.tweens.add({ targets: t, y: t.y - 20, alpha: 0, duration: 2600, onComplete: () => t.destroy() });
+    // money's ending: what he carried here means nothing unless it goes
+    // somewhere. All of it, on a second press: the stall will miss it.
+    const line = (text) => {
+      const t = uiText(this, this.player.x, this.player.y - 60, text, { fontSize: '12px', color: '#c8c0b0' }).setOrigin(0.5).setDepth(90);
+      this.tweens.add({ targets: t, y: t.y - 20, alpha: 0, duration: 2600, onComplete: () => t.destroy() });
+    };
+    const w = getWallet().total;
+    if (w <= 0) return line('(nothing to post.)');
+    if (this.time.now > this.postArmedUntil) {
+      this.postArmedUntil = this.time.now + 3000;
+      return line(`($${w}. all of it? [E])`);
+    }
+    this.postArmedUntil = 0;
+    spend(w);
+    this.postedNow += w;
+    updateSave((s) => (s.evening.posted = (s.evening.posted || 0) + w));
+    chime('strand', 'evening');
+    line('(it went in. someone will be glad.)');
   }
 
   pickCamera() {
@@ -2387,7 +2462,10 @@ export default class EveningScene extends BaseLevel {
       if (this.herStopT > 1000) {
         this.herDecided = true;
         this.herWaiting = false;
-        w.say(HER_LINES.hedge_greet[Math.floor(Math.random() * HER_LINES.hedge_greet.length)], null, { slow: 1.2 });
+        // the flower from the station's seller, noticed once
+        const flower = this.save.flags.hub.lastFlower && !this.save.evening.flowerSeen;
+        if (flower) updateSave((sv) => (sv.evening.flowerSeen = true));
+        w.say(flower ? HER_LINES.hedge_flower : HER_LINES.hedge_greet[Math.floor(Math.random() * HER_LINES.hedge_greet.length)], null, { slow: 1.2 });
         this.time.delayedCall(1800, () => this.startHer(w.x, false));
       }
     } else this.herStopT = 0;
@@ -2418,6 +2496,9 @@ export default class EveningScene extends BaseLevel {
     const roasts = Object.entries(HER_LINES.roast)
       .filter(([dream]) => s.met[dream] || s.dreams[dream])
       .map(([, lines]) => lines[0]);
+    // the dreams she only knows the end of
+    for (const [dream, line] of Object.entries(HER_LINES.roast_caught)) if (s.dreams[dream]) roasts.push(line);
+    if (s.dreams.writer) roasts.push(HER_LINES.roast_page_three[(s.flags.wr || {}).page_three === 'cut' ? 'cut' : 'kept']);
     this.her = new Companion(this, w, { roasts });
     this.herWalking = true;
     this.herDecided = true;
@@ -2560,6 +2641,7 @@ export default class EveningScene extends BaseLevel {
     const total = momentsFound();
     if (total >= MOMENT_TOTAL) cards.push(CARDS.all_moments);
     cards.push(...CARDS.ridge.map((l) => this.countLine(l)));
+    if (this.postedNow) cards.push(CARDS.posted.replace('{W}', this.postedNow));
     for (const l of cards) await this.cardLine(l, 3600, cam.height * 0.26);
     await wait(this, 5000);
     // the last cards, and their variants
@@ -2620,6 +2702,7 @@ export default class EveningScene extends BaseLevel {
     this.drawMap(add);
     this.drawThingsToDo(add);
     add(uiText(this, cam.width / 2, cam.height - 40, '[E] stay   [A] the photos   [L] read the list   [R] start over   [Q] back to the station', { fontSize: '12px', color: '#c8c0b0' }).setOrigin(0.5));
+    add(uiText(this, cam.width / 2, cam.height - 62, 'hold ↓ to sit      Q — the horn', { fontSize: '12px', color: '#c8c0b0' }).setOrigin(0.5));
     this.keyR = this.input.keyboard.addKey('R'); // (fresh each time: a restarted scene drops its keys)
     this.keyL = this.input.keyboard.addKey('L');
     this.keyY = this.input.keyboard.addKey('Y');

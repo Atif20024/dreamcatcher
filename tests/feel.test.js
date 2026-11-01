@@ -196,6 +196,8 @@ describe('landing', () => {
     expect(landImpact(5 * T)).toBeGreaterThanOrEqual(0.8);
     expect(landImpact(144)).toBeLessThan(0.8); // the kick starts past a jump
     expect(landImpact(10 * T)).toBe(1);
+    expect(landImpact(360, 500)).toBeLessThan(0.8); // a moon jump: no camera kick
+    expect(landImpact(360, 0)).toBe(0); // zero-g
   });
   it('a frame of air over a seam is no landing; a low hop is', () => {
     expect(isLanding(0.3, 17)).toBe(false);

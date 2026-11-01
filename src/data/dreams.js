@@ -85,6 +85,17 @@ export const LAST_STOP = {
   conductor: 'The Last Stop, sir. No ticket, no count to clear.\nIt is warm on the other side. Are you going through?',
 };
 
+// the word on the board beside a running dream: how long, or what sort of night
+// (a dream with none just shows its status)
+export const BOARD_WORD = { chef: 'HOT, LONG', musician: 'LOUD', writer: 'LONG', painter: 'PATIENT', astronaut: 'VERY LONG', gambler: 'RISKY', clockmaker: 'GENTLE' };
+// the one the first visit points at
+export const GENTLE_DREAM = 'clockmaker';
+// the conductor, at a platform whose dream isn't running yet
+export const WAITING_LINE = {
+  athlete: "Platform 3 hasn't left in years, sir. Whoever dreams it hasn't fallen asleep yet.",
+  doctor: 'Platform 8 is waiting on a night shift.',
+};
+
 export function dreamById(id) {
   return DREAMS.find((d) => d.id === id);
 }

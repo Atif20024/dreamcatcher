@@ -27,6 +27,7 @@ export default {
   lit: true,
   backdrop: { set: 'merrow_dawn', horizon: 16 },
   ambience: 'gm_dawn',
+  events: 'river',
   acoustics: 'open',
   music: { state: 'silent', key: 'landing' },
   objective: [
