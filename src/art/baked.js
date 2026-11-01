@@ -9,6 +9,7 @@ import { ownerOf, PLACE_OWNERS } from './packOwners.js';
 let INDEX = null;
 const OWNER = new Map(); // placeholder texture key → atlas pack key
 const ALIAS = new Map(); // legacy key → [atlas key, frame]
+const RIG_PACKS = new Set(); // the people: drawn straight from their pack (shareFrame)
 const stats = { baked: 0, missed: new Set() };
 export const artAsked = new Set(); // dev: every person key the game asked for (scenario dream-packs-cover)
 
@@ -22,6 +23,7 @@ export function registerAtlases(textures, index) {
 export function registerPacks(textures) {
   for (const p of (INDEX && INDEX.packs) || []) {
     if (!p.explode || !textures.exists(p.key)) continue;
+    if (p.kind === 'rig-cast') RIG_PACKS.add(p.key);
     for (const name of textures.get(p.key).getFrameNames()) {
       if (ALIAS.has(name) || OWNER.get(name) === p.key) continue;
       OWNER.set(name, p.key);
@@ -66,6 +68,30 @@ export function isBaked(scene, key) {
   return !!(t.customData && t.customData.baked);
 }
 
+// A person's frame as a texture of its own name that draws from the pack: no
+// canvas, no upload, and the cast batches on one bind (it used to cost 1421
+// canvases and 30 MB). Keeps the trim and the foot pivot, as an atlas frame does.
+function shareFrame(textures, key, pack, fr) {
+  const from = textures.get(pack);
+  const t = new from.constructor(textures, key, []);
+  t.source = from.source;
+  const f = t.add('__BASE', fr.sourceIndex, fr.cutX, fr.cutY, fr.cutWidth, fr.cutHeight);
+  if (fr.trimmed) f.setTrim(fr.realWidth, fr.realHeight, fr.x, fr.y, fr.cutWidth, fr.cutHeight);
+  if (fr.customPivot) {
+    f.customPivot = true;
+    f.pivotX = fr.pivotX;
+    f.pivotY = fr.pivotY;
+  }
+  t.customData.baked = true;
+  // the source is the pack's: removing this name must not free it
+  const destroy = t.destroy;
+  t.destroy = function () {
+    this.source = [];
+    destroy.call(this);
+  };
+  textures.list[key] = t;
+}
+
 // make `key` from its atlas frame if the atlas has one; true when it exists
 export function bakeFromAtlas(scene, key) {
   if (import.meta.env && import.meta.env.DEV) artAsked.add(key);
@@ -75,6 +101,11 @@ export function bakeFromAtlas(scene, key) {
   const fr = scene.textures.getFrame(pack, key);
   if (!fr) return false;
   if (scene.textures.exists(key)) scene.textures.remove(key);
+  if (RIG_PACKS.has(pack)) {
+    shareFrame(scene.textures, key, pack, fr);
+    stats.baked += 1;
+    return true;
+  }
   const w = fr.cutWidth;
   const h = fr.cutHeight;
   // a trimmed frame (the rigged cast is packed by its opaque box): restore

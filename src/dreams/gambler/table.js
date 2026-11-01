@@ -30,6 +30,7 @@ const PY = 168; // above the table: the people sit under it, in the room
 const PW = 880;
 const PH = 236; // the last row is the keys
 const KEYS_Y = PY + PH - 26;
+const BAKE_PAD = 8; // the goal's glow is stroked just outside the panel
 const HIT_UP = 20; // a verb's touch band: from 20 over its label to 40 under it
 const HIT_H = 60;
 const INK = '#f2e9d8';
@@ -78,9 +79,29 @@ export function drawCard(g, x, y, card, { w = 36, h = 50, back = false, dim = fa
 // texts rebuilt only when the hand changes (not every frame)
 function stage(scene) {
   const frame = scene.add.graphics().setScrollFactor(0).setDepth(D);
-  frame.isDCPanel = true;
-  frame.panelRect = { x: PX, y: PY, w: PW, h: PH };
   const g = scene.add.graphics().setScrollFactor(0).setDepth(D + 1);
+  // Phaser replays a Graphics' every command every frame, and these change only
+  // with the hand: they are drawn once into a texture (SPEED_REPORT round 2)
+  const bx = PX - BAKE_PAD;
+  const by = PY - BAKE_PAD;
+  const baked = scene.add.renderTexture(bx, by, PW + 2 * BAKE_PAD, PH + 2 * BAKE_PAD).setOrigin(0, 0).setScrollFactor(0).setDepth(D + 1);
+  baked.isDCPanel = true;
+  baked.panelRect = { x: PX, y: PY, w: PW, h: PH };
+  let dirty = true;
+  let cmds = 0;
+  const bake = () => {
+    if (!dirty && g.commandBuffer.length === cmds) return;
+    dirty = false;
+    cmds = g.commandBuffer.length;
+    baked.clear();
+    frame.setVisible(true);
+    g.setVisible(true);
+    baked.draw(frame, -bx, -by);
+    baked.draw(g, -bx, -by);
+    frame.setVisible(false);
+    g.setVisible(false);
+  };
+  scene.events.on('postupdate', bake);
   let texts = [];
   const text = (x, y, s, { color = INK, align = 'left', size = 'small', wrap = 0 } = {}) => {
     const t = uiText(scene, Math.round(x), Math.round(y), s, { size, scale: 2, color, wrap })
@@ -106,9 +127,11 @@ function stage(scene) {
       texts.forEach((t) => t.destroy());
       texts = [];
       g.clear();
+      dirty = true;
     },
     drawFrame(accent = null, glow = 0, wash = null) {
       frame.clear();
+      dirty = true;
       // a solid ground under the panel: the room never shows through the cards
       frame.fillStyle(0x14122a, 0.7).fillRoundedRect(PX, PY, PW, PH, 4);
       drawPanel(frame, PX, PY, PW, PH, { accent });
@@ -117,9 +140,11 @@ function stage(scene) {
       if (glow) frame.lineStyle(3, accent || 0xf6d98a, glow).strokeRoundedRect(PX - 4, PY - 4, PW + 8, PH + 8, 6);
     },
     destroy() {
+      scene.events.off('postupdate', bake);
       texts.forEach((t) => t.destroy());
       frame.destroy();
       g.destroy();
+      baked.destroy();
     },
   };
 }

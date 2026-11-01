@@ -82,7 +82,8 @@ const speedBudget = {
     const list = sc.sys.displayList.getChildren();
     const drawn = sc.cameras.getVisibleChildren(list, sc.cameras.main).length;
     let atlasMB = 0;
-    for (const t of Object.values(sc.textures.list)) for (const s of t.source) if (!s.isCanvas && s.source instanceof HTMLImageElement) atlasMB += (s.width * s.height * 4) / 1048576;
+    // (a baked person's texture shares its pack's source: counted once, as the pack)
+    for (const t of Object.values(sc.textures.list)) if (!t.customData.baked) for (const s of t.source) if (!s.isCanvas && s.source instanceof HTMLImageElement) atlasMB += (s.width * s.height * 4) / 1048576;
     return { pass: atlasMB <= BUDGET.atlasMB && drawn <= BUDGET.renderList, detail: { atlasMB: Math.round(atlasMB), budgetMB: BUDGET.atlasMB, objects: list.length, drawn, budgetDrawn: BUDGET.renderList } };
   },
 };

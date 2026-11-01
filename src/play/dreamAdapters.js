@@ -250,13 +250,13 @@ export function castPortrait(scene, key, face) {
   if (!fk) return null;
   const fr = scene.textures.getFrame(fk);
   const src = fr.source.image;
-  const W = fr.cutWidth;
-  const H = fr.cutHeight;
+  const W = fr.realWidth;
+  const H = fr.realHeight;
   const c = document.createElement('canvas');
   c.width = W;
   c.height = H;
   const cx = c.getContext('2d');
-  cx.drawImage(src, fr.cutX, fr.cutY, W, H, 0, 0, W, H);
+  cx.drawImage(src, fr.cutX, fr.cutY, fr.cutWidth, fr.cutHeight, fr.x, fr.y, fr.cutWidth, fr.cutHeight);
   let top = -1;
   let x0 = W;
   let x1 = 0;
