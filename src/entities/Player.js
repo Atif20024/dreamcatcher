@@ -694,7 +694,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         const drop = this.y - (this.airTopY ?? this.y);
         if (isLanding(drop, time - this.airSince)) {
           ev.landed = { hard: drop > 5 * T || this.fallSpeed > 900 };
-          const f = landImpact(drop);
+          const f = landImpact(drop, this.scene.physics.world.gravity.y + this.body.gravity.y); // the moon's net gravity
           this.dust(ev.landed.hard ? 7 : 1 + Math.round(6 * f * f));
           this.landSquash(f);
           sfx('land', f);

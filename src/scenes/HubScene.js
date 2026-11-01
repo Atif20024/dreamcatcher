@@ -1022,6 +1022,7 @@ export default class HubScene extends BaseLevel {
       this.tweens.killTweensOf(cam);
       cam.setZoom(1);
       cam.startFollow(this.player, true, 0.1, 0.1);
+      cam.setDeadzone(80, 60);
       cam.centerOn(this.player.x, this.player.y);
       this.player.controlLockUntil = 0;
     };
