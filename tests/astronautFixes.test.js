@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import rooms from '../src/data/astronaut/rooms.js';
-import { A_DIALOGUES, BOARD_QUESTIONS, FLASHCARDS, CARDS_TO_PASS, SEAT_QUESTION, SEAT_REPLY, boutPlan, numbersLine, windupChance } from '../src/data/astronautData.js';
+import { A_DIALOGUES, BOARD_QUESTIONS, FLASHCARDS, CARDS_TO_PASS, SEAT_QUESTION, SEAT_REPLY, boutPlan, numbersLine, windupChance, priyaLiesInCrater } from '../src/data/astronautData.js';
 import { BEDS, LEGACY_ROOMS } from '../src/audio/places.js';
 import { SHOTS } from '../src/audio/events.js';
 import { BANDS } from '../src/audio/bands.js';
@@ -17,7 +17,7 @@ describe('A-M1: the rejection reaches everybody on the first attempt', () => {
   const fn = body('faceTheBoard');
   it('attempt 1 cannot reach d_selected: every branch of it ends in rejection()', () => {
     const selectAt = fn.indexOf('A_DIALOGUES.d_selected');
-    const firstAttempt = fn.indexOf('if (attempt === 1) {\n      await this.boardVerdict();\n      await this.rejection(short');
+    const firstAttempt = fn.indexOf('if (attempt === 1) {\n      await this.boardVerdict();\n      const short');
     expect(firstAttempt).toBeGreaterThan(-1);
     expect(firstAttempt).toBeLessThan(selectAt);
     expect(fn.slice(firstAttempt, selectAt)).toMatch(/return;/);
@@ -40,6 +40,32 @@ describe('A-M1: the rejection reaches everybody on the first attempt', () => {
   });
   it('[Esc] from the Board is walking out, not a rejection', () => {
     expect(fn).toMatch(/if \(res === false\) return/);
+  });
+});
+
+describe('round 2', () => {
+  it('M1: dropping Priya puts her back, so the finale can always be finished', () => {
+    const F = { rescue_on: true };
+    expect(priyaLiesInCrater({}, false)).toBe(false); // before the rescue
+    expect(priyaLiesInCrater(F, false)).toBe(true);
+    expect(priyaLiesInCrater(F, true)).toBe(false); // on his back
+    expect(priyaLiesInCrater(F, false)).toBe(true); // caught: dropCarry clears the carry, she is there again
+    expect(priyaLiesInCrater({ rescue_on: true, priya_safe: true }, false)).toBe(false);
+    // the scene derives both the sprite and the prompt from the rule, every frame
+    expect(scene).toMatch(/when: \(\) => priyaLiesInCrater\(this\.F, this\.carryingPriya\)/);
+    expect(scene).toMatch(/this\.priyaDown\.setVisible\(lying\)/);
+    expect(scene).not.toMatch(/priyaDown\.visible/);
+  });
+  it('S1: the strike only cuts the line it was aimed at', () => {
+    const strike = scene.slice(scene.indexOf('  evaStrike() {'), scene.indexOf('  nudgePlate() {'));
+    expect(strike.indexOf('this.tether !== hook')).toBeGreaterThan(-1);
+    expect(strike.indexOf('this.tether !== hook')).toBeLessThan(strike.indexOf('this.tether = null'));
+  });
+  it('S2: after a failed quiz Halvorsen does not say the questions were fine', () => {
+    const fn = body('faceTheBoard');
+    const failed = fn.slice(fn.indexOf('if (!res.passed)'), fn.indexOf('SEAT_QUESTION'));
+    expect(failed).not.toMatch(/never the problem/);
+    expect(fn.slice(fn.indexOf('SEAT_QUESTION'))).toMatch(/never the problem/);
   });
 });
 

@@ -10,7 +10,7 @@ import Parallax from '../builders/parallax.js';
 import { D } from '../builders/depths.js';
 import astroRooms from '../data/astronaut/rooms.js';
 import astroTiles from '../data/astronaut/tiles.js';
-import { A_DIALOGUES, A_MOMENTS, NOTEBOOK, CARDS_TO_PASS, FLASHCARDS, SEAT_QUESTION, SEAT_REPLY, numbersLine, boutPlan, windupChance } from '../data/astronautData.js';
+import { A_DIALOGUES, A_MOMENTS, NOTEBOOK, CARDS_TO_PASS, FLASHCARDS, SEAT_QUESTION, SEAT_REPLY, numbersLine, boutPlan, windupChance, priyaLiesInCrater } from '../data/astronautData.js';
 import { systemsCards, selectionBoard, docking, hinge, BOLT_ORDER } from '../systems/astroPuzzles.js';
 import { completeDream, recordMoment, markMet } from '../utils/save.js';
 import { sfx, music, sting, musicDirector } from '../systems/audio.js';
@@ -835,12 +835,12 @@ export default class AstronautScene extends BaseLevel {
     }
     const res = await selectionBoard(this, { attempt, spare: !!this.F.cards_done });
     if (res === false) return; // [Esc]: he walked out; the chairs are still there
-    const short = this.statsReady() ? [] : [{ name: 'Dr. Halvorsen', text: `The questions were never the problem.\n\n${this.shortStatLine()}` }];
+    const numbers = (say) => (this.statsReady() ? [] : [{ name: 'Dr. Halvorsen', text: `${say}\n\n${this.shortStatLine()}` }]);
     if (!res.passed) {
       this.doorLight.setFillStyle(0xe83a2a);
       if (attempt === 1) {
         await this.boardVerdict();
-        await this.rejection([A_DIALOGUES.d_rejected[0], ...short]);
+        await this.rejection([A_DIALOGUES.d_rejected[0], ...numbers('The answers, and then the numbers.')]);
       } else this.floatText(this.player.x, this.player.y - 60, 'the letter again. "reapply." read the notebook.', '#e86a6a');
       return;
     }
@@ -857,6 +857,7 @@ export default class AstronautScene extends BaseLevel {
     // the numbers already earned carry into the year.
     if (attempt === 1) {
       await this.boardVerdict();
+      const short = numbers('The questions were never the problem.');
       await this.rejection(short.length ? [A_DIALOGUES.d_rejected[0], ...short] : A_DIALOGUES.d_seat);
       return;
     }
@@ -1467,13 +1468,12 @@ export default class AstronautScene extends BaseLevel {
     this.priyaLight = this.add.circle(pd.wx, pd.wy, 8, 0xf2e0a0, 0.5).setDepth(D.FOE).setVisible(false);
     this.addInteract(pd.wx, pd.wy, 'Priya', () => {
       this.carryingPriya = true;
-      this.priyaDown.setVisible(false);
-      this.priyaLight.setVisible(false);
+      if (!this.alarmOn) this.setObjective('the winch, at the rim — hold [F]'); // picked up again, after a fall
       this.floatText(pd.wx, pd.wy - 50, 'she is breathing. you pick her up.\nthe Alarm is still screaming on your back.', '#88b8d8');
       this.time.delayedCall(4000, () => {
         if (this.alarmOn) this.floatText(this.player.x, this.player.y - 60, 'Priya, faint, on the radio:\n"…left shoulder. loose cable. [F]"', '#f2e0a0');
       });
-    }, { once: false, when: () => this.F.rescue_on && this.priyaDown.visible && !this.carryingPriya });
+    }, { once: false, when: () => priyaLiesInCrater(this.F, this.carryingPriya) });
 
     this.addInteract(winch.wx, winch.wy, 'the winch — hold [F] to reel', () => {}, { once: false, when: () => false });
   }
@@ -1891,7 +1891,11 @@ export default class AstronautScene extends BaseLevel {
       ease: 'quad.in',
       onComplete: () => {
         streak.destroy();
-        if (!this.tether) return;
+        // he did as he was told and clipped ahead: the debris cuts the old line, not this one
+        if (this.tether !== hook) {
+          if (this.tether) this.floatText(hook.x, hook.y - 30, 'the old line goes. yours holds.', '#7ec87e');
+          return;
+        }
         this.tether = null;
         this.evaSnapUntil = this.time.now + 2200;
         sfx('snap');
@@ -2015,9 +2019,11 @@ export default class AstronautScene extends BaseLevel {
   }
 
   dropCarry() {
+    const lostHer = this.carryingPriya && this.F.rescue_on && !this.F.priya_safe;
     this.carry = null;
     this.carryingPriya = false;
     this.updateSatchel();
+    if (lostHer) this.setObjective('the crater. go back for her.');
   }
 
   // ------- update ---------------------------------------------------------
@@ -2156,6 +2162,9 @@ export default class AstronautScene extends BaseLevel {
 
     // Priya follows through training
     this.updatePriya(time, delta);
+    const lying = priyaLiesInCrater(this.F, this.carryingPriya);
+    this.priyaDown.setVisible(lying);
+    this.priyaLight.setVisible(lying);
 
     // station events
     if (this.F.coolant && !this.F.debris_done && p.x > px(273) && p.x < px(286)) this.spawnDebris();

@@ -188,6 +188,14 @@ describe('the rest of the review', () => {
     expect(DIALOGUES.rent_yes.some((d) => /Tomasz paid me/.test(d.text))).toBe(true);
     expect(scene).toMatch(/const RENT = 12/);
   });
+  it('S3: what Tomasz says about his machines matches the room', () => {
+    const machines = rooms[idx('copyshop')].objects.filter((o) => o.kind === 'machine');
+    const jammed = machines.filter((m) => m.adj === 'jammed').length;
+    const empty = machines.filter((m) => m.adj === 'empty').length;
+    expect([machines.length, jammed, empty]).toEqual([6, 5, 1]);
+    expect(machines.filter((m) => m.to === 'working').length).toBe(4);
+    expect(DIALOGUES.tomasz[0].text).toMatch(/^Six machines\. Five jammed, one empty/);
+  });
   it('W-S2: the spare machines are not counted against the four', () => {
     expect(scene).toMatch(/const spare = id === 'machine5' \|\| id === 'machine6'/);
   });

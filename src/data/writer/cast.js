@@ -50,7 +50,7 @@ export const DIALOGUES = {
     say('landlady', "(she counts it) Pennies. It's all here."),
     say('landlady', "And the book? …No. I won't ask. Thursday, next time."),
   ],
-  tomasz: [say('tomasz', 'Six machines, four jammed, one queue. Fix what you can, kid. It pays in pennies.'), say('tomasz', 'Desk in the back is yours between shifts. Nobody goes back there.')],
+  tomasz: [say('tomasz', 'Six machines. Five jammed, one empty, one queue. Fix the four on the floor, kid. It pays in pennies.'), say('tomasz', 'Desk in the back is yours between shifts. Nobody goes back there.')],
   tomasz2: [say('tomasz', "Rent's paid, then. Go write the thing.")],
   guard: [{ name: 'A GUARD', portrait: 'portrait-guard', text: 'Quiet. This is a library.' }],
   isolde_late: [say('isolde', "Friday's Friday.")],

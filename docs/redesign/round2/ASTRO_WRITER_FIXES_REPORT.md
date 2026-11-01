@@ -84,3 +84,16 @@ And one real softlock risk on hard: the satchel cap (6) could drop "lit" before 
 - Whether the flat at 70 px/s is fair, and whether the press chase feels right (Jo on web 1 against the Editor and rollers).
 - Whether the rain hops really cost a pause: the Editor still walks slower than Jo runs.
 - Priya's rotated pose against her stride rig (`setAngle` on a foot-pivot sprite).
+
+## Round 2
+
+Asked to work from `docs/redesign/advice/astro_writer_review_r1.md`. **That file does not exist** in the main checkout, this worktree or git history, so M1, S1, S2 and S3 were taken from the one-line descriptions in the request and verified against the code. **N1, N2, N3, N4, N5 and N6 are not done:** nothing says what they are, and I did not guess.
+
+| Item | Verified | What I did |
+|---|---|---|
+| M1 | Real, and older than round 1. Picking Priya up hid her sprite, the pick-up prompt required that sprite to be visible, and a catch or respawn runs `dropCarry`, which clears the carry and never shows her again. The alarm fix and the winch both need her carried, so the finale could not be finished. | One pure rule, `priyaLiesInCrater(F, carrying)`, drives the sprite, the light and the prompt every frame. This also covers a resumed run, where `rescue_on` is saved but the sprite started hidden. The objective says "the crater. go back for her."; picking her up again with the alarm already off says the winch. Unit test on the rule, plus source checks that the scene uses it. |
+| S1 | Real, mine. The snap took whatever line was current, so a player who obeyed "clip the next one" during the 0.9 s telegraph lost the new line. | The strike only cuts the hook it was aimed at. Clipping ahead in time is the dodge: "the old line goes. yours holds." The one-time strike stays spent. |
+| S2 | Real, mine. "The questions were never the problem." also played after a failed quiz. | Failed quiz: "The answers, and then the numbers." The old line now plays only after a passed quiz. |
+| S3 | Real, and listed under Not changed above. The room has six machines: five jammed, one empty; four take the pen. | Tomasz: "Six machines. Five jammed, one empty, one queue. Fix the four on the floor, kid. It pays in pennies." Test checks the line against the room data. |
+
+Rerun or play in a browser: `eva-tether-trap`; get caught carrying Priya in the crater, then go back for her; clip ahead during the EVA streak; fail the first Board with short stats. Not checked: being caught during the winch reel leaves gravity off until [F] is released (existing behaviour, by code reading), and the core is still lost on a catch.

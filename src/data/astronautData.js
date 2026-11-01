@@ -290,6 +290,10 @@ export const boutPlan = (nerve) => {
   return round >= 4 ? { round: 4, vsPriya: true } : { round, ...BOUTS[Math.max(1, round)] };
 };
 
+// Priya in the crater is wherever Jo is not carrying her: one rule from the
+// flags, so a catch or a resumed run puts her back and the rescue stays finishable
+export const priyaLiesInCrater = (F, carrying) => !!F.rescue_on && !F.priya_safe && !carrying;
+
 // the opponent's wind-up, per second not per frame: the old 0.012 a frame at 60 Hz
 const WINDUP_PER_S = -Math.log(1 - 0.012) * 60;
 export const windupChance = (deltaMs) => 1 - Math.exp((-WINDUP_PER_S * deltaMs) / 1000);
