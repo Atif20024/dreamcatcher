@@ -29,6 +29,8 @@ export function reachGrid(rows, opts = {}) {
     for (let r = r0; r <= r1; r++) if (blocked(c, r)) return false;
     return true;
   };
+  // a one-tile lid over a ladder: solid, with a rung right under it
+  const lid = (c, r) => blocked(c, r) && !ladder(c, r) && ladder(c, r + 1);
   const node = (c, r) => c >= 0 && c < W && r >= 0 && r < H && clear(c, r - body + 1, r) && (ladder(c, r) || floor(c, r + 1));
   const key = (c, r) => r * W + c;
 
@@ -40,8 +42,26 @@ export function reachGrid(rows, opts = {}) {
     if (ladder(c, r)) {
       if (node(c, r - 1)) to.push([c, r - 1]);
       if (node(c, r + 1)) to.push([c, r + 1]);
+      // up the column to the next place he can stand: rungs his body cannot
+      // stand on yet (a lid's tile over his head) are climbed through, and a
+      // ladder whose top is under a one-tile lid lets him out on top of it
+      let y = r - 1;
+      while (ladder(c, y) && !node(c, y)) y--;
+      if (y < r - 1 && ladder(c, y) && node(c, y)) to.push([c, y]);
+      if (!ladder(c, y) && lid(c, y) && node(c, y - 1)) to.push([c, y - 1]);
     }
     if (ladder(c, r + 1) && node(c, r + 1)) to.push([c, r + 1]); // down through a floor hatch
+    // down through a lid: a ladder under the one solid tile he stands on
+    // (the concourse's grate). Player.js grabs it with DOWN (the rung 56 px
+    // under his centre) and climbs through the tile, the colliders off.
+    if (lid(c, r + 1)) {
+      for (let y = r + 2; ladder(c, y); y++) {
+        if (node(c, y)) {
+          to.push([c, y]);
+          break;
+        }
+      }
+    }
     for (let a = r; a >= r - rise; a--) {
       if (!clear(c, a - body + 1, r)) break;
       for (const dir of [-1, 1]) {

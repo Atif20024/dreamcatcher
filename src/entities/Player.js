@@ -530,13 +530,32 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     // tile that has a ladder beneath it climbs down through the floor)
     // (a jump off a ladder cannot be caught by the same ladder for 150 ms)
     const regrabOk = time >= (this.noLadderUntil || 0);
-    if (!this.climbing && wantsClimb && !locked && regrabOk && (onLadderTile(0) || onLadderTile(20) || (crouch && (onLadderTile(40) || onLadderTile(56))))) {
+    // DOWN on top of a ladder, read from the body's own feet (the legacy
+    // body and the 82 px one sit differently under the sprite, and a plank's
+    // top can sit a little above its row): the cap on its top rung, or the
+    // plank or lid right over it. A SOLID lid only where the scene lets a
+    // climber through its floor (ladderLids: the station, the Evening);
+    // elsewhere DOWN there pinned him on the lid in the climb pose. A plank
+    // or cap always lets him through (world/ladders.js ladderPass).
+    const solidAtP = this.scene.built && this.scene.built.solidAt;
+    const ftx = Math.floor(this.x / T);
+    const fr = Math.floor((body.bottom + 2) / T); // the row his feet stand in
+    const rungAt = (r) => !!(lg && lg[r] && lg[r][ftx]);
+    const lidAt = (r) => !!(solidAtP && solidAtP(ftx, r));
+    const owg = this.scene.oneWayGrid || (this.scene.built && this.scene.built.oneWayGrid) || {};
+    const plankAt = (r) => !!(owg[r] && owg[r][ftx] !== undefined);
+    const downGrab = rungAt(fr) || (rungAt(fr + 1) && (!lidAt(fr) || this.scene.ladderLids)) || (rungAt(fr + 2) && plankAt(fr + 1) && !lidAt(fr + 1));
+    if (!this.climbing && wantsClimb && !locked && regrabOk && (onLadderTile(0) || onLadderTile(20) || (crouch && downGrab))) {
       this.climbing = true;
       body.setAllowGravity(false);
       body.setVelocity(0, 0);
     }
     if (this.climbing) {
-      const stillOn = onLadderTile(0) || onLadderTile(20) || onLadderTile(-20) || onLadderTile(40) || onLadderTile(56);
+      // (going down, the rungs under the body's own feet hold him too: from a
+      // plank whose top sits above its row, the +56 probe is still in the plank)
+      const fb = Math.floor((body.bottom + 2) / T);
+      const rungsBelow = rungAt(fb + 1) || (rungAt(fb + 2) && plankAt(fb + 1));
+      const stillOn = onLadderTile(0) || onLadderTile(20) || onLadderTile(-20) || onLadderTile(40) || onLadderTile(56) || (crouch && rungsBelow);
       const up = this.inUp();
       // feedback 3: a jump from anywhere on a ladder. Holding a direction
       // sends him that way at run speed, like the classic platformers;
@@ -565,9 +584,43 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         // snap to the rung column so Jo doesn't drift off the rib
         const cx = Math.floor(this.x / T) * T + T / 2;
         this.x += (cx - this.x) * 0.3;
+        // up at the ladder's head: he steps off onto what is there -- the
+        // plank or lid over it, or the cap on its top rung (world/ladders.js)
+        // -- and stands. (He used to pop off the top in mid-air: where the
+        // top rung had nothing on it he fell back in and caught it again, or
+        // dropped the whole shaft.)
+        if (up && !crouch) {
+          const htx = Math.floor(this.x / T);
+          const rung = (r) => !!(lg[r] && lg[r][htx]);
+          // the run of rungs under his feet: the one they are on, or the head
+          // just below them (his feet already in the plank's or lid's row)
+          const r0 = Math.floor((body.bottom - 1) / T);
+          let hr = rung(r0) ? r0 : rung(r0 + 1) ? r0 + 1 : rung(r0 + 2) ? r0 + 2 : null;
+          if (hr !== null) {
+            while (rung(hr - 1)) hr--;
+            const ss = this.scene.built && this.scene.built.solidAt;
+            const lidOver = ss && ss(htx, hr - 1) && this.scene.ladderLids;
+            const plankOver = owg[hr - 1] && owg[hr - 1][htx] !== undefined;
+            const capped = owg[hr] && owg[hr][htx] !== undefined;
+            const top = (r) => (typeof owg[r][htx] === 'number' ? owg[r][htx] : r * T); // a one-way's own top line
+            const surface = lidOver ? (hr - 1) * T : plankOver ? top(hr - 1) : capped ? top(hr) : null;
+            // (the body's own feet: the legacy body and the 82 px one sit
+            // differently under the sprite's centre)
+            const feetOff = body.bottom - this.y;
+            if (surface !== null && body.bottom <= surface + 1) {
+              this.y = surface - feetOff;
+              body.reset(this.x, this.y);
+              this.climbing = false;
+              body.setAllowGravity(true);
+              this.noLadderUntil = time + LADDER_REGRAB_MS;
+              this.driveAnim(time, delta, { grounded: true });
+              return;
+            }
+          }
+        }
         // reaching the ladder's foot lets go -- unless the "floor" is a lid
         // with more ladder under it
-        if (body.onFloor() && crouch && !onLadderTile(56)) {
+        if (body.onFloor() && crouch && !onLadderTile(56) && !rungsBelow) {
           this.climbing = false;
           body.setAllowGravity(true);
         }

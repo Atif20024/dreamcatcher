@@ -18,6 +18,7 @@ import { showTutorial } from '../systems/tutorial.js';
 import { readDocument } from '../ui/ReadingPanel.js';
 import { uiText } from '../ui/text.js';
 import { hud } from '../ui/hud.js';
+import { ladderPass } from '../world/ladders.js';
 
 const T = 32;
 const px = (t) => t * T + T / 2;
@@ -190,7 +191,7 @@ export default class AstronautScene extends BaseLevel {
     this.buildHud();
 
     this.physics.add.collider(this.player, this.solids, (_p, tile) => this.onSolidTouch(tile));
-    this.physics.add.collider(this.player, this.oneWays);
+    this.physics.add.collider(this.player, this.oneWays, null, ladderPass(this)); // a plank over a ladder lets a climber through
     this.physics.add.overlap(this.player, built.hazards, () => this.hurt());
     this.physics.add.overlap(this.player, this.flags, (_p, f) => this.activateCheckpoint(f));
 

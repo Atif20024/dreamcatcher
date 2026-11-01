@@ -38,6 +38,7 @@ import { mulColor } from '../entities/Player.js';
 import { createLampTextures } from '../art/identityArt.js';
 import { boardTitle } from '../ui/BoardTitle.js';
 import { trainWipe, wipeActive } from '../ui/TrainWipe.js';
+import { ladderPass } from '../world/ladders.js';
 
 const T = 32;
 // scene key → dream id (Hub and the Evening have no in-dream run)
@@ -109,6 +110,8 @@ export default class BaseLevel extends Phaser.Scene {
     this._resumeObjective = undefined;
     for (const k of ['_bridgeTaught', '_distractTaught', '_railTaught', 'tetherUsed', 'driftRescued', '_refusedAt', '_caughtBoard']) this[k] = undefined;
     this.levelStartedAt = this.time.now;
+    // the caps on open ladder tops (world/ladders.js): stood on, climbed through
+    if (this.player && this.built && this.built.ladderCaps) this.physics.add.collider(this.player, this.built.ladderCaps, null, ladderPass(this));
     this.modals = ModalManager.for(this);
     this.hud = hud.bind(this, this.hudProfile || 'default');
     this._objective = '';

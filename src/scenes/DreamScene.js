@@ -57,6 +57,7 @@ import { trainWipe } from '../ui/TrainWipe.js';
 import { placeOf } from '../ui/theme.js';
 import { markMet, updateSave } from '../utils/save.js';
 import { WATCHED, watch, spawnFoe, foeContact, spawnKeyItem, updateKeyItems, spawnAudience, spawnResonant, updateResonants, ringAt, spawnMoment, spawnSign, castPortrait } from '../play/dreamAdapters.js';
+import { ladderPass } from '../world/ladders.js';
 
 const T = 32;
 
@@ -416,7 +417,7 @@ export default class DreamScene extends BaseLevel {
   wireRoom(room) {
     const p = this.player;
     room.handles.push(this.physics.add.collider(p, room.colliders.solids));
-    room.handles.push(this.physics.add.collider(p, room.colliders.oneWays));
+    room.handles.push(this.physics.add.collider(p, room.colliders.oneWays, null, ladderPass(this))); // planks and caps over a ladder let a climber through
     room.handles.push(this.physics.add.overlap(p, room.colliders.hazards, (pl, h) => this.hurt({ sourceX: h.x + 12 })));
   }
 

@@ -55,4 +55,44 @@ describe('reach: every drop has a way back', () => {
     ];
     expect(pockets(rows, [[2, 7]], [[2, 7]])).toEqual([]);
   });
+
+  // the owner's bug: "before i enter the platform, there is a ladder. but as
+  // i reach there, i move back to upper level". The undercroft ladder hangs
+  // under a solid floor tile (the grate), which the reach map read as a wall:
+  // the whole undercroft had no way home, so the safety net put Jo back on
+  // the concourse the moment he stood at the ladder's foot.
+  it('the ladder under the grate leads down to the undercroft and back up (the lid hatch)', () => {
+    const g = reachGrid(buildHubMap());
+    const there = g.from(START);
+    const back = g.to(HOME);
+    const foot = [77, HUB_ROWS.UNDER - 1]; // the ladder's foot, on the bedrock
+    expect(g.has(there, ...foot)).toBe(true);
+    expect(g.has(back, ...foot)).toBe(true);
+    // and the whole undercroft floor, end to end, is somewhere he can get home from
+    for (let c = 30; c < 165; c++) if (g.node(c, HUB_ROWS.UNDER - 1)) expect(g.has(back, c, HUB_ROWS.UNDER - 1)).toBe(true);
+  });
+
+  it('a lid hatch in a small grid: down through the tile, and up out of it', () => {
+    const rows = [
+      '..........',
+      '..........',
+      '..........',
+      '##########', // the floor, with a ladder under the tile at col 4
+      '....H.....',
+      '....H.....',
+      '....H.....',
+      '....H.....',
+      '##########',
+    ];
+    const g = reachGrid(rows);
+    expect(g.has(g.from([[1, 2]]), 4, 7)).toBe(true); // down
+    expect(g.has(g.to([[1, 2]]), 4, 7)).toBe(true); // and back up
+    expect(g.has(g.to([[1, 2]]), 8, 7)).toBe(true); // anywhere down there
+    // a two-tile slab is not a lid: Jo cannot climb through it
+    const thick = rows.slice();
+    thick[4] = '##########';
+    thick[5] = '....H.....';
+    expect(g.has(reachGrid(thick).from([[1, 2]]), 4, 7)).toBe(false);
+  });
 });
+

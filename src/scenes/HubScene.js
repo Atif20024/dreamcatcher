@@ -149,6 +149,9 @@ export default class HubScene extends BaseLevel {
 
     // while Jo is on a ladder the floor tile over it stops being a floor, so
     // he can climb down through the concourse into the undercroft and back
+    // (ladderLids: the Player grabs a ladder under a floor tile, and steps
+    // out on top of it at the head)
+    this.ladderLids = true;
     this.physics.add.collider(this.player, this.solids, null, () => !this.player.climbing);
     this.physics.add.collider(this.player, this.oneWays, null, () => !this.player.climbing);
 

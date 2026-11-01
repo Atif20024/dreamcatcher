@@ -21,6 +21,7 @@ import { showTutorial } from '../systems/tutorial.js';
 import { uiText } from '../ui/text.js';
 import { hud } from '../ui/hud.js';
 import { barkMs, barkNear, claimBark, onCamera } from '../ui/barks.js';
+import { ladderPass } from '../world/ladders.js';
 
 const T = 32;
 const px = (tile) => tile * T + T / 2;
@@ -155,7 +156,7 @@ export default class WriterScene extends BaseLevel {
     this.buildHud();
 
     this.physics.add.collider(this.player, this.solids);
-    this.physics.add.collider(this.player, this.oneWays);
+    this.physics.add.collider(this.player, this.oneWays, null, ladderPass(this)); // a plank over a ladder lets a climber through
     this.physics.add.collider(this.enemies, this.solids);
     this.physics.add.collider(this.enemies, this.oneWays);
     this.physics.add.overlap(this.player, this.flags, (_p, f) => this.activateCheckpoint(f));

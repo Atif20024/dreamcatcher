@@ -4,6 +4,7 @@ import { buildTileset, maskAt, wearAt } from './autotile.js';
 import { buildSupportTextures, addSupports } from './supports.js';
 import { D } from './depths.js';
 import { paintTileset } from '../art/levelArt.js';
+import { openLadderTop, addLadderCap } from '../world/ladders.js';
 
 const T = 32;
 
@@ -73,6 +74,7 @@ export default class RoomBuilder {
       oneWays: scene.physics.add.staticGroup(),
       hazards: scene.physics.add.staticGroup(),
       ladders: [],
+      ladderCaps: scene.physics.add.staticGroup(), // the one-way ledges on open ladder tops
       ladderGrid: {},
       climbGrid: {},
       slopeGrid: {},
@@ -125,6 +127,11 @@ export default class RoomBuilder {
           scene.add.image(cx, cy, `${theme.key}_ladder`).setDepth(D.TERRAIN);
           out.ladders.push({ tx, ty, x: cx, y: cy });
           (out.ladderGrid[ty] ||= {})[tx] = true;
+          // open air over its head: a cap to climb out onto (world/ladders.js)
+          if (openLadderTop(charAt, tx, ty)) {
+            addLadderCap(scene, out.ladderCaps, tx * T, ty * T);
+            (out.oneWayGrid[ty] ||= {})[tx] = ty * T;
+          }
           continue;
         }
         if (role === 'liquid') {
