@@ -56,6 +56,7 @@ import { boardTitle } from '../ui/BoardTitle.js';
 import { trainWipe } from '../ui/TrainWipe.js';
 import { placeOf } from '../ui/theme.js';
 import { markMet, updateSave } from '../utils/save.js';
+import { tuneEncounter } from '../data/tuning.js';
 import { WATCHED, watch, spawnFoe, foeContact, spawnKeyItem, updateKeyItems, spawnAudience, spawnResonant, updateResonants, ringAt, spawnMoment, spawnSign, castPortrait } from '../play/dreamAdapters.js';
 import { ladderPass } from '../world/ladders.js';
 
@@ -213,6 +214,7 @@ export default class DreamScene extends BaseLevel {
       defs: def.encounters || {},
       bus: events,
       host: {
+        tune: (params) => tuneEncounter(def.id, params, this.difficulty),
         makePresenter: (d, engine, ctx) => makePresenter(this, d, engine, ctx),
         enter: (d, ctx) => this.encounterEnter(d, ctx),
         exit: (d, result, ctx) => this.encounterExit(d, result, ctx),

@@ -8,6 +8,7 @@ import { Stride } from '../art/stride.js';
 import { D } from '../builders/depths.js';
 import { solveGround } from './ground.js';
 import { uiText } from '../ui/text.js';
+import { foePace } from '../data/tuning.js';
 import { WINDUP_RANGE, GRAB_REACH, WINDUP_MS, GRAB_MS } from './grab.js';
 
 const T = 32;
@@ -76,7 +77,7 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
     this.human = !!def.human;
     this.big = !!def.big; // bouncers/cops: a shove just clangs off
     this.unkillable = !!def.unkillable;
-    this.speedBase = (def.speed || (this.human ? 70 : 60)) * (1 + 0.08 * (scene.difficulty || 0));
+    this.speedBase = (def.speed || (this.human ? 70 : 60)) * foePace(scene.dreamKey, scene.difficulty);
     this.patrol = def.patrol ? def.patrol.map((t) => t * T + T / 2) : null;
     this.homeX = def.wx;
     this.dir = -1;
