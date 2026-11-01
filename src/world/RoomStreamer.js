@@ -13,6 +13,7 @@ import { D } from '../builders/depths.js';
 
 export const LAYER_DEPTH = { back: -16, mid: D.TERRAIN, fg: 30 };
 const LIVE_DEPTH = { back: -15, mid: -11.5, fg: 31 };
+const AHEAD_MS = 3; // of a 16.67 ms frame that does 2 to 4 ms of its own
 
 export function ensureGlowTexture(scene) {
   if (scene.textures.exists('dc-glow')) return 'dc-glow';
@@ -30,7 +31,7 @@ export function ensureGlowTexture(scene) {
 }
 
 export class RoomStreamer {
-  constructor(scene, { graph, lib, baker, propsExtra = {}, palette = {}, onSpawn = null, onBuilt = null, onDrop = null, flags = () => ({}) } = {}) {
+  constructor(scene, { graph, lib, baker, propsExtra = {}, palette = {}, onSpawn = null, onBuilt = null, onDrop = null, onAhead = null, flags = () => ({}) } = {}) {
     this.scene = scene;
     this.graph = graph;
     this.lib = lib;
@@ -40,10 +41,14 @@ export class RoomStreamer {
     this.onSpawn = onSpawn;
     this.onBuilt = onBuilt;
     this.onDrop = onDrop;
+    this.onAhead = onAhead;
     this.flags = flags;
     this.live = new Map();
     this.current = null;
     this.paintMs = {};
+    this._paintCache = new Map();
+    this._paintJobs = new Map();
+    this._ahead = null;
     this.grids = { ladderGrid: {}, climbGrid: {}, slopeGrid: {}, solidGrid: {}, oneWayGrid: {}, surfaceGrid: {} };
     for (const r of graph.rooms.values()) Terrain.fillGrids(this.grids, r);
     ensureGlowTexture(scene);
@@ -58,17 +63,11 @@ export class RoomStreamer {
     if (!r) throw new Error(`RoomStreamer: no room "${id}"`);
     const s = this.scene;
     const t0 = performance.now();
-    const key = `room:${s.dreamId || 'dream'}:${id}`;
-    let painted = null;
-    if (!this.baker.has(`${key}:mid`)) {
-      painted = Terrain.paint(r.data, this.lib, { propsExtra: this.propsExtra, palette: this.palette });
-      this.baker.bake(`${key}:back`, painted.back);
-      this.baker.bake(`${key}:mid`, painted.mid);
-      this.baker.bake(`${key}:fg`, painted.fg);
-      this._paintCache = this._paintCache || new Map();
-      this._paintCache.set(id, { live: painted.live, lights: painted.lights });
-    }
-    const meta = (this._paintCache && this._paintCache.get(id)) || { live: [], lights: [] };
+    const key = this.roomKey(id);
+    // ahead of the doorway this was all done over frames; a warp or a fast
+    // return that beats it finishes the rest here (nothing shows half-painted)
+    this.finishPaint(id);
+    const meta = this._paintCache.get(id);
     const chunks = (layer) => {
       const out = [];
       for (let i = 0; s.textures.exists(`${key}:${layer}#${i}`); i++) out.push({ key: `${key}:${layer}#${i}`, x: i * 1024 });
@@ -111,8 +110,54 @@ export class RoomStreamer {
     }
     if (this.onBuilt) this.onBuilt(room);
     this.paintMs[id] = Math.round(performance.now() - t0);
-    void painted;
     return room;
+  }
+
+  roomKey(id) {
+    return `room:${this.scene.dreamId || 'dream'}:${id}`;
+  }
+
+  // a room's textures, a piece at a time: unseen until build() makes its images
+  *paintSteps(id) {
+    const key = this.roomKey(id);
+    const painted = yield* Terrain.paintSteps(this.graph.room(id).data, this.lib, { propsExtra: this.propsExtra, palette: this.palette });
+    for (const layer of ['back', 'mid', 'fg']) {
+      yield;
+      yield* this.baker.bakeSteps(`${key}:${layer}`, painted[layer]);
+    }
+    this._paintCache.set(id, { live: painted.live, lights: painted.lights });
+  }
+
+  // one job per room, shared by the frames ahead and a build that beats them
+  paintJob(id) {
+    if (!this._paintJobs.has(id)) this._paintJobs.set(id, this.paintSteps(id));
+    return this._paintJobs.get(id);
+  }
+
+  finishPaint(id) {
+    if (this._paintCache.has(id)) return;
+    const it = this.paintJob(id);
+    while (!it.next().done);
+  }
+
+  // what the next doorways need: each neighbour's backdrop (it is built as Jo
+  // walks up to the frame, in the light) and the rooms one door past them
+  // (build() makes those live the moment he crosses)
+  *aheadSteps(id) {
+    for (const n of this.graph.neighbours(id)) {
+      if (this.onAhead) yield* this.onAhead(n);
+      for (const far of this.graph.neighbours(n)) {
+        if (far !== id && !this._paintCache.has(far)) yield* this.paintJob(far);
+      }
+    }
+  }
+
+  // a few ms of it each frame, on top of the frame's own work
+  stepAhead() {
+    const end = performance.now() + AHEAD_MS;
+    while (this._ahead && performance.now() < end) {
+      if (this._ahead.next().done) this._ahead = null;
+    }
   }
 
   drop(id) {
@@ -134,6 +179,7 @@ export class RoomStreamer {
     for (const k of [...this.live.keys()]) if (!want.has(k)) this.drop(k);
     this.build(id);
     for (const k of want) this.build(k);
+    this._ahead = this.aheadSteps(id);
   }
 
   room(id) {
@@ -150,6 +196,7 @@ export class RoomStreamer {
 
   // flag-driven props and lights, the lamp flicker
   update(time) {
+    this.stepAhead();
     const F = this.flags() || {};
     const on = (o) => (!o.when || F[o.when]) && (!o.unless || !F[o.unless]);
     for (const room of this.live.values()) {

@@ -4,10 +4,6 @@ import { shakeScale } from './world/CameraDirector.js';
 import HubScene from './scenes/HubScene.js';
 import TitleScene from './scenes/TitleScene.js';
 import IntroScene from './scenes/IntroScene.js';
-import AstronautScene from './scenes/AstronautScene.js';
-import EveningScene from './scenes/EveningScene.js';
-import WriterScene from './scenes/WriterScene.js';
-import DreamScene from './scenes/DreamScene.js';
 import UIScene from './ui/UIScene.js';
 import BootScene from './scenes/BootScene.js';
 import { installAdoption } from './ui/ui.js';
@@ -56,8 +52,9 @@ window.game = new Phaser.Game({
   // EveningScene.devWarp); ?wr= does the same for the writer. Without any,
   // nothing about the boot changes.
   scene: (() => {
-    // no warp: Boot → Title (Continue / New game / Settings) → the station
-    const ALL = [TitleScene, HubScene, IntroScene, AstronautScene, EveningScene, WriterScene, DreamScene];
+    // no warp: Boot → Title (Continue / New game / Settings) → the station.
+    // The dreams' scenes join on boarding (src/core/boarding.js)
+    const ALL = [TitleScene, HubScene, IntroScene];
     // Boot first: it loads the atlases, then starts the title or the warp's scene
     return [BootScene, ...ALL, UIScene];
   })(),

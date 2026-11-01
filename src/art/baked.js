@@ -4,17 +4,56 @@
 // the atlas pixels and only paint at runtime as a fallback. Code keeps using
 // the same texture keys — it never branches on where the art came from.
 
+import { ownerOf, PLACE_OWNERS } from './packOwners.js';
+
 let INDEX = null;
 const OWNER = new Map(); // placeholder texture key → atlas pack key
 const ALIAS = new Map(); // legacy key → [atlas key, frame]
+const RIG_PACKS = new Set(); // the people: drawn straight from their pack (shareFrame)
 const stats = { baked: 0, missed: new Set() };
+export const artAsked = new Set(); // dev: every person key the game asked for (scenario dream-packs-cover)
 
 export function registerAtlases(textures, index) {
   INDEX = index;
   for (const [k, v] of Object.entries(index.aliases || {})) ALIAS.set(k, v);
-  for (const p of index.packs || []) {
+  registerPacks(textures);
+}
+
+// every pack now in the texture manager answers for its frames
+export function registerPacks(textures) {
+  for (const p of (INDEX && INDEX.packs) || []) {
     if (!p.explode || !textures.exists(p.key)) continue;
-    for (const name of textures.get(p.key).getFrameNames()) if (!ALIAS.has(name)) OWNER.set(name, p.key);
+    if (p.kind === 'rig-cast') RIG_PACKS.add(p.key);
+    for (const name of textures.get(p.key).getFrameNames()) {
+      if (ALIAS.has(name) || OWNER.get(name) === p.key) continue;
+      OWNER.set(name, p.key);
+      // old string art painted under this key while its pack was away gives way
+      if (textures.exists(name) && !textures.get(name).customData.baked) textures.remove(name);
+    }
+  }
+}
+
+// a person whose pack is not loaded just now
+export function artAway(textures, key) {
+  return !!INDEX && !OWNER.has(key) && (INDEX.packs || []).some((p) => p.owner === ownerOf(key) && !textures.exists(p.key));
+}
+
+// the packs a place needs (the hub's are always loaded)
+export function packsFor(place) {
+  const want = new Set(['hub', ...(PLACE_OWNERS[place] || [])]);
+  return ((INDEX && INDEX.packs) || []).filter((p) => want.has(p.owner || 'hub'));
+}
+
+// free every pack not in `keep`, and the textures cut from it
+export function evictPacks(textures, keep) {
+  for (const p of (INDEX && INDEX.packs) || []) {
+    if (!p.owner || keep.has(p) || !textures.exists(p.key)) continue;
+    for (const name of textures.get(p.key).getFrameNames()) {
+      if (OWNER.get(name) !== p.key) continue;
+      OWNER.delete(name);
+      if (textures.exists(name)) textures.remove(name);
+    }
+    textures.remove(p.key);
   }
 }
 
@@ -29,14 +68,44 @@ export function isBaked(scene, key) {
   return !!(t.customData && t.customData.baked);
 }
 
+// A person's frame as a texture of its own name that draws from the pack: no
+// canvas, no upload, and the cast batches on one bind (it used to cost 1421
+// canvases and 30 MB). Keeps the trim and the foot pivot, as an atlas frame does.
+function shareFrame(textures, key, pack, fr) {
+  const from = textures.get(pack);
+  const t = new from.constructor(textures, key, []);
+  t.source = from.source;
+  const f = t.add('__BASE', fr.sourceIndex, fr.cutX, fr.cutY, fr.cutWidth, fr.cutHeight);
+  if (fr.trimmed) f.setTrim(fr.realWidth, fr.realHeight, fr.x, fr.y, fr.cutWidth, fr.cutHeight);
+  if (fr.customPivot) {
+    f.customPivot = true;
+    f.pivotX = fr.pivotX;
+    f.pivotY = fr.pivotY;
+  }
+  t.customData.baked = true;
+  // the source is the pack's: removing this name must not free it
+  const destroy = t.destroy;
+  t.destroy = function () {
+    this.source = [];
+    destroy.call(this);
+  };
+  textures.list[key] = t;
+}
+
 // make `key` from its atlas frame if the atlas has one; true when it exists
 export function bakeFromAtlas(scene, key) {
+  if (import.meta.env && import.meta.env.DEV) artAsked.add(key);
   if (isBaked(scene, key)) return true;
   const pack = OWNER.get(key);
   if (!pack || !scene.textures.exists(pack)) return false;
   const fr = scene.textures.getFrame(pack, key);
   if (!fr) return false;
   if (scene.textures.exists(key)) scene.textures.remove(key);
+  if (RIG_PACKS.has(pack)) {
+    shareFrame(scene.textures, key, pack, fr);
+    stats.baked += 1;
+    return true;
+  }
   const w = fr.cutWidth;
   const h = fr.cutHeight;
   // a trimmed frame (the rigged cast is packed by its opaque box): restore
@@ -74,6 +143,7 @@ export function resolveArt(scene, ref) {
 // a person frame by key: the texture, baked from the atlas on first use (new
 // animation frames — talk, idle, foe windup — have no runtime painter)
 export function castFrame(scene, key) {
+  if (import.meta.env && import.meta.env.DEV) artAsked.add(key);
   return scene.textures.exists(key) || bakeFromAtlas(scene, key) ? key : null;
 }
 

@@ -21,9 +21,18 @@ export class StaticBaker {
 
   // canvas → chunk textures; returns the list of { key, x, w }
   bake(key, canvas) {
+    const it = this.bakeSteps(key, canvas);
+    let s = it.next();
+    while (!s.done) s = it.next();
+    return s.value;
+  }
+
+  // the same, one chunk (one GPU upload) at a time
+  *bakeSteps(key, canvas) {
     if (canvas.height > MAX_TEX) throw new Error(`StaticBaker: ${key} is ${canvas.height} px tall (max ${MAX_TEX})`);
     const out = [];
     for (let x = 0, i = 0; x < canvas.width; x += CHUNK_W, i++) {
+      if (i) yield;
       const w = Math.min(CHUNK_W, canvas.width - x);
       const k = `${key}#${i}`;
       if (this.scene.textures.exists(k)) this.scene.textures.remove(k);

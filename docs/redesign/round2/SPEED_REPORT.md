@@ -130,3 +130,115 @@ These scenarios pass in the instrumented build: `speed-budget`, `evening-object-
 - No real phone was tested, and the slowed figures come from a throttled Mac.
 - Only `readability-hub` and `readability-astronaut` were run from the `readability-*` set.
 - Audio is excluded from the instrumented figures. In the production build the context was suspended, so main-thread audio scheduling was included but audio-thread cost was not.
+
+## Round 2
+
+Measured 2026-11-01 on the same Mac, with other jobs running. All four approved changes shipped. Before and after use the same method for each change, and frame times are work times, as in round 1. The slowed-CPU case could not be triggered, so nothing here was measured on it.
+
+| # | Change | Before | After |
+|---|---|---|---|
+| 1 | Rooms built ahead of the doorway | Worst frame 341 ms | Worst frame 48 ms |
+| 2 | Only a dream's atlas packs | 65 MB of atlas, 1.46 MB of PNG at boot | 10 to 23 MB, 0.13 MB of PNG at boot |
+| 3 | Casino panel baked | Render 1.91 ms | Render 0.45 ms |
+| 3 | Cast drawn from atlas frames | 1206 canvases, 27 MB | None |
+| 4 | Dreams as JS chunks | 855 KB gzip at boot | 542 KB gzip at boot |
+
+### 1. Room entry
+
+Each crossing starts from a fresh scene, walks a real seam there and back or goes through a door, and times every frame. It runs in the dev build, as the `room-entry-budget` scenario. The "before" run used an earlier form of the same walk, on the code before this round.
+
+| Crossing | Worst frame before (ms) | Worst frame after (ms) |
+|---|---|---|
+| Painter, via to piazza (seam) | 341 | 48 |
+| Musician, backstage to escape (door) | 240 | 48 |
+| Musician, street to alley (seam) | 196 | 20 |
+| Painter, guild to piazza (door) | 174 | 23 |
+| Gambler, office to deck (door) | 146 | 15 |
+| Gambler, cards to office (door) | 135 | 38 |
+| Clockmaker, lane to green (seam) | 104 | 25 |
+
+- **All 58 crossings:** the worst frame is 48 ms. 54 stay at 33 ms or less, and 4 have one or two frames over it. The budget is `BUDGET.doorFrameMs`, 60 ms.
+- **Trade-off:** some of this cost moved from the full-dark frame onto lit frames while Jo walks. A lit frame can now reach 48 ms, where before the long frames were hidden by the dip. They are much shorter, and painted props are cached for the rest of the page load.
+- **Lead time:** the rooms ahead take 1 to 54 frames to paint, at 3 ms a frame. If Jo crosses before that finishes, the crossing finishes the paint on the spot, which is the old cost, in the dark. This was not timed in a deliberate rush.
+- **What stays long:** the frames I profiled at the swap spent their time outside room building, which suggests first draws of new textures. Single paints such as a back wall cannot be split further. Not every long frame was traced.
+- **Memory:** rooms two doors away now hold their textures sooner. Nothing extra is painted over a full visit, because rooms already kept their textures until the scene ended.
+- **Scope:** only framework dreams stream rooms. The hub, Astronaut, Writer and Evening build at scene start, so they did not change.
+
+The dip through dark is unchanged. `dream-seams-dip`, `hub-thresholds-dip`, `hub-threshold-no-flicker`, `blend-continuity` and `boundary-no-flicker` all pass on the final code. `transitions` is the file that holds three of these, not a scenario of its own.
+
+### 2. Atlas packs
+
+The people are now packed by who needs them (`src/art/packOwners.js`). The station keeps its 9 MB. Boarding frees the last dream's packs and loads the next one's, starting when Jo commits at the door.
+
+| Place | Atlas MB, with the hub | PNG MB, with the hub |
+|---|---|---|
+| Hub alone | 9.0 | 0.13 |
+| Clockmaker | 10.2 | 0.14 |
+| Chef | 13.0 | 0.19 |
+| Astronaut | 13.6 | 0.20 |
+| Writer | 15.4 | 0.24 |
+| Evening | 17.5 | 0.29 |
+| Musician | 21.2 | 0.34 |
+| Gambler | 22.7 | 0.37 |
+| Painter | 23.3 | 0.42 |
+| All packs (dev pages) | 70.2 | 1.25 |
+
+- **Cost:** all packs together grew from 65 to 70 MB, because small packs waste more space. A player only reaches that total on a dev page.
+- **Proof:** `tests/packs.test.js` scans each place's source for people, and `dream-packs-cover` records what the running game asks for. Both find every person in that place's packs. Neither can see a person named only by a key built at runtime from something other than their own key.
+- **Dev:** dev pages still load everything, for warps. `?lean` runs the real path.
+
+### 3. Casino panel and cast
+
+Panel timings are interleaved in one page, 8 rounds of 40 frames, in the dev build:
+
+| Table | Render before (ms) | Render after (ms) | Average frame before (ms) | Average frame after (ms) |
+|---|---|---|---|---|
+| Cards | 1.91 | 0.45 | 2.61 | 1.45 |
+| Faro | 1.96 | 0.31 | 2.63 | 1.30 |
+| Slate | 0.45 | 0.23 | 1.33 | 1.00 |
+
+- **Panel captures:** the same frame with and without the bake differs by at most 1 level of 255, over about 100,000 to 137,000 pixels. This comes from blending through a texture and is not visible.
+- **Slowed CPU:** at the same ratio, the 14.5 ms render would fall to about 3.4 ms. This is an estimate.
+- **Cast:** a baked person is now a frame of its pack, not a canvas. After touring the places, that is 1206 fewer canvases and 27 MB less.
+- **What the cast change did not do:** draw calls, texture binds and render time did not change (hub 130 binds before and after, gambler 22), because few people are on screen once culled. The gain is memory only.
+- **Cast captures, same frame, old and new:** 0 pixels different in chef, musician, painter, clockmaker and writer, and in gambler's quay. Gambler's saloon differs by 12 pixels and the hub by 150, at one sprite's edge at a non-integer scale.
+- **Kept as canvases:** the 68 placeholder frames in the `cast` and `foes` packs, which code may repaint.
+
+### 4. JS chunks
+
+Sizes from `vite build`, in KB:
+
+| Chunk | Raw | Gzip |
+|---|---|---|
+| Single bundle, before | 2726 | 855 |
+| Boot chunk, after (Phaser is about 315 of the gzip) | 1804 | 542 |
+| `DreamScene`, for any framework dream | 124 | 44 |
+| One framework dream | 33 to 94 | 11 to 34 |
+| Writer | 101 | 34 |
+| Astronaut | 104 | 35 |
+| Evening | 202 | 71 |
+
+- **Boot:** on localhost with a warm cache, the production page reached game start in 300 ms, against 270 to 311 ms in round 1. The gain is in download size, and no slow network was emulated.
+- **Waiting:** loading starts at the door, about 2.3 s before the wipe's middle. If it is still going, the wipe holds at full cover. That hold was not seen on localhost, so it has not been observed with a slow load.
+- **Failed load:** tested by stopping the server after boot, then boarding. The wipe clears and the station restarts with a card saying the train could not leave. [E] closes it and Jo walks. The card asks for a page reload, because a browser may not retry a failed module.
+- **Dev:** Boot loads every chunk, so the harness and warps work as before.
+
+### Browser runs
+
+The production build (`npm run build`, then preview on port 5183) boarded all seven dreams and the Evening from the hub through the real boarding code. The driver answered the conductor for Jo and did not walk him to the train. A listener on console errors, warnings and rejections recorded nothing, and no missing texture was requested. Each place was checked by screenshot, and so was the casino panel. Returning to the hub and boarding again also worked.
+
+The offline test first showed a real bug: the failed load also raised an unhandled rejection, because the handler attaches seconds later. That is fixed. The rerun did not repeat the offline test.
+
+**`Permissions check failed`** did not appear in any run here. The text is not in `src/` or `phaser.esm.js`, and the game makes no permissions calls. The only related browser API it uses is `navigator.getGamepads` in `src/input/InputMap.js`. That points outside the game, perhaps at the browser or its tooling, but this is not proven, because the error was never reproduced.
+
+### Checks
+
+Vitest 511 of 511. `lint:content`, `lint:rooms` and `lint:scale` clean, with the existing 7 warnings. `vite build` passes.
+
+Scenarios passing in dev: `speed-budget`, `room-entry-budget`, `dream-packs-cover`, the five seam scenarios above, `train-wipe`, `panel-frame`, `clockmaker-perf`, `chef-places`, `musician-places`, `readability-hub`, `jo-locator`, and all 13 gambler scenarios. The gambler set, `chef-places`, `musician-places`, `readability-hub`, `jo-locator` and `panel-frame` last ran before the chunk split. `gambler-cards` and `clockmaker-perf` were rerun after it. The full scenario set was not run.
+
+### Limits
+
+- No phone or slowed CPU was measured for any of this.
+- The other worktree's Evening cast and foe changes may name people in new places. `tests/packs.test.js` is what catches that after merging.
+- `readability-astronaut`, which failed in round 1, was not rerun.

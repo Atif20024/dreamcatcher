@@ -73,7 +73,9 @@ function bandTexture(scene, place, H) {
   return key;
 }
 
-// Run the wipe; `go` (starting the next scene) is called at the middle.
+// Run the wipe; `go` (starting the next scene) is called at the middle. If it
+// returns a promise (the dream still loading), the bands hold, covering the
+// screen, until it settles.
 export function trainWipe(fromScene, go, { place = 'hub', event = 'boarding', chime: ring = true } = {}) {
   const ui = UI.scene;
   if (active || !ui || !ui.sys || !ui.sys.displayList) {
@@ -117,7 +119,11 @@ export function trainWipe(fromScene, go, { place = 'hub', event = 'boarding', ch
       if (!cut && state.t >= 0.5) {
         cut = true;
         try {
-          go();
+          const wait = go();
+          if (wait && wait.then) {
+            tween.pause();
+            wait.catch((e) => console.warn('[wipe]', e)).finally(() => tween.resume());
+          }
         } catch (e) {
           console.warn('[wipe]', e);
         }

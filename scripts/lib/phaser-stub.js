@@ -19,7 +19,7 @@ class RandomDataGenerator {
   sign() { return this.frac() < 0.5 ? -1 : 1; }
   angle() { return this.realInRange(-180, 180); }
 }
-const noop = () => noopProxy;
+const noop = function () { return noopProxy; }; // (not an arrow: a module may extend a Phaser class)
 const noopProxy = new Proxy(noop, { get: (t, k) => (k === Symbol.toPrimitive ? () => 0 : noopProxy), apply: () => noopProxy, construct: () => ({}) });
 const Clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const Phaser = {

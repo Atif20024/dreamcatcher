@@ -13,8 +13,6 @@ import { playTone, trumpetHz, bassHz, sfx } from '../systems/audio.js';
 import { noteHz } from '../audio/modes.js';
 import { beatCorrection } from '../engines/rhythm.js';
 import { craftWorld } from './craftPresenter.js';
-import { slatePresenter, faroPresenter, showdownPresenter } from '../dreams/gambler/table.js';
-import { escapementWorld } from '../dreams/clockmaker/presenter.js';
 
 const RAD = Math.PI / 180;
 
@@ -354,19 +352,15 @@ function rhythmWorld(scene, def, engine, ctx) {
 
 export const PRESENTERS = {
   clockwork: { world: clockworkWorld, modal: clockworkModal },
-  // THE STOPPED HOUR: the third gear, the seven strikes
-  escapement: { world: escapementWorld },
   rhythm: { world: rhythmWorld },
   // THE MASTER'S LADDER: grind, drapery, the masterpiece, the giornata
   craft: { world: craftWorld },
-  // THE LAST HAND: the gangway slate, the faro bank, SHOWDOWN (src/dreams/gambler/table.js)
-  lq_slate: { world: slatePresenter },
-  lq_faro: { world: faroPresenter },
-  lq_cards: { world: showdownPresenter },
 };
 
+// (a dream's own views ride in its definition, in its own chunk: def.presenters)
 export function makePresenter(scene, def, engine, ctx) {
-  const set = PRESENTERS[def.view || def.id];
+  const view = def.view || def.id;
+  const set = PRESENTERS[view] || (scene.def && scene.def.presenters && scene.def.presenters[view]);
   if (!set) return null;
   const kind = def.presenter === 'modal' ? 'modal' : 'world';
   return (set[kind] || set.world)(scene, def, engine, ctx);

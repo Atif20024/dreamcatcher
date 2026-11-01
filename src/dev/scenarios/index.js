@@ -63,3 +63,8 @@ SCENARIOS.push(...astroWriter);
 // every kind of person: standing still is grabbed, a duck or a step away isn't
 import foeGrab from './foeGrab.js';
 SCENARIOS.push(...foeGrab);
+// SPEED_REPORT round 2: walking into a room never hitches
+import roomEntry from './roomEntry.js';
+SCENARIOS.push(...roomEntry);
+import packs from './packs.js';
+SCENARIOS.push(...packs);
