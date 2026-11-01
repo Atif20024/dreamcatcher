@@ -61,13 +61,17 @@ export default {
     // a small brass plaque on the cage; Mr Pell says the rest himself
     { type: 'sign', text: 'MARKERS', size: 'small', x: 13, y: 8, dy: 6, board: 0x2a160e, padX: 6, padY: 3, scale: 2 },
     { type: 'sign', text: 'HURRICANE DECK', x: 43, y: 5, board: 0x2a160e, scale: 2 },
-    { type: 'npc', id: 'pell', cast: 'npc-lq-pell', x: 9, y: 11, facing: -1, talk: [{ conv: 'pell_full', if: 'marker3' }, { conv: 'pell_again', if: 'marker1' }, { conv: 'pell_clean', if: 'met_pell' }, { conv: 'pell_first' }] },
+    { type: 'npc', id: 'pell', cast: 'npc-lq-pell', x: 9, y: 11, facing: -1, talk: [{ conv: 'pell_full', if: 'marker3' }, { conv: 'pell_again', if: 'marker1' }, { conv: 'pell_clean', if: 'clean_book' }, { conv: 'pell_comped', if: 'met_pell' }, { conv: 'pell_first' }] },
     // Crake comes when there is a marker in the book; he walks the corridor
     { type: 'foe', kind: 'crake', x: 19, y: 11, patrol: [18, 42], when: 'marker1' },
     { type: 'portal', id: 'office>deck', kind: 'door', x: 43, y: 11, to: { room: 'deck', portal: 'deck>office' }, door: { prompt: 'up to the hurricane deck', fade: 260 } },
     { type: 'moment', id: 'm_book', x: 30, y: 11, when: 'clean_book', prompt: 'read the open book', beat: 'moment_book' },
-    // brass under the high ceiling, a full jump: a marker's plank closes it (verbs/boat.js)
-    { type: 'coins', id: 'c_clean', x: 22, y: 6, n: 5 },
+    // brass under the high ceiling, a good jump: a marker's plank closes it
+    // (verbs/boat.js). By the numbers: JUMP 600 at GRAVITY 1200 rises 150 px; the
+    // dream body is 72 tall over feet at y + 22, so under the row 5 ceiling Jo's
+    // y stops at 242 (room px). The 34 px magnet would only just miss row 6
+    // (y 208); row 7 (y 240) is taken with 88 px of rise or more.
+    { type: 'coins', id: 'c_clean', x: 22, y: 7, n: 5 },
     // half dimes on top of the cage
     { type: 'coins', id: 'c_cage', x: 6, y: 6, n: 5 },
   ],

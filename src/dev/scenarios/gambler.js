@@ -665,7 +665,7 @@ const cleanOffice = {
     safe(s);
     await dc.run(10);
     ok('clean-book', !!s.F.clean_book);
-    const high = () => (s.placedCoins || []).filter((c) => c.img.active && c.room === 'office' && c.img.y < at(s, 'office', 0, 7).y - 20 && c.img.x > at(s, 'office', 18, 0).x);
+    const high = () => (s.placedCoins || []).filter((c) => c.img.active && c.room === 'office' && c.img.y < at(s, 'office', 0, 8).y && c.img.x > at(s, 'office', 18, 0).x);
     ok('brass-placed', high().length === 5);
     const pell = s.npcs.get('pell');
     put(s, pell.x + 50, s.player.y);

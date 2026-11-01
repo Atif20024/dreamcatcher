@@ -179,7 +179,7 @@ export const CONVERSATIONS = {
   }, { replayable: true }),
   // the player who signed nothing comes back past the cage
   pell_clean: conv('pell_clean', ['pell', 'jo'], {
-    start: { who: 'pell', text: 'Nothing signed. Remarkable. The book hardly knows you. Fifty, Mr Jo, on your word?', next: 'j1' },
+    start: { who: 'pell', text: 'The book hardly knows you, Mr Jo. Fifty, on your word?', next: 'j1' },
     j1: {
       who: 'jo',
       text: '…',
@@ -190,6 +190,20 @@ export const CONVERSATIONS = {
     },
     p_sign: { who: 'pell', text: "There. The book was lonely. Mind the corridor, it's narrow tonight.", effects: [{ beat: 'marker' }], end: true },
     p_no: { who: 'pell', text: 'Very good. Up the stairs, then. The corridor is quite wide, when nobody owes it anything.', end: true },
+  }, { replayable: true }),
+  // no marker, but a comp on the book: he does not call that clean
+  pell_comped: conv('pell_comped', ['pell', 'jo'], {
+    start: { who: 'pell', text: 'A little on my book already, Mr Jo, one way and another. Fifty more, on your word?', next: 'j1' },
+    j1: {
+      who: 'jo',
+      text: '…',
+      choices: [
+        { text: 'Sign for fifty.', next: 'p_sign' },
+        { text: 'No.', next: 'p_no' },
+      ],
+    },
+    p_sign: { who: 'pell', text: "Signed. Mind the corridor, it's narrow tonight.", effects: [{ beat: 'marker' }], end: true },
+    p_no: { who: 'pell', text: 'Very good. Up the stairs, then.', end: true },
   }, { replayable: true }),
   pell_full: once('pell_full', 'pell', "That's three, Mr Jo. The book is generous. Crake will see you to the landing."),
 
@@ -221,5 +235,6 @@ export const BARKS = [
   { id: 'quay_band', channel: 'caption', who: 'jo', text: 'A band, through the hull. And the river slapping at the stone.', when: { room: 'quay' }, once: true },
   { id: 'saloon_in', channel: 'caption', who: 'lou', text: "Smell that? Lamp oil and money. Stay out of the bar.", when: { room: 'saloon' }, once: true },
   { id: 'cards_in', channel: 'caption', who: 'lou', text: 'No band in here. Just the riffle. Listen to it.', when: { room: 'cards' }, once: true },
+  { id: 'pell_passed', channel: 'caption', who: 'pell', text: 'Nothing signed, Mr Jo. Remarkable.', when: { room: 'office', flag: 'pell_passed' }, once: true },
   { id: 'deck_in', channel: 'caption', who: 'jo', text: 'Cold. Grey light on the water. The night is nearly done.', when: { room: 'deck' }, once: true },
 ];

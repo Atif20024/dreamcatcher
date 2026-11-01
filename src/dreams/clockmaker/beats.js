@@ -72,6 +72,7 @@ export default {
     { wait: 2200 },
     { camera: 'pop' },
     { lock: false },
+    { set: 'green_lit' },
     { objective: 'catch_dream' },
   ],
 };

@@ -58,7 +58,8 @@ export default {
   entities: [
     { type: 'spawn', id: 'start', x: 3, y: 15 },
     { type: 'checkpoint', id: 'cp_lane', label: 'THE LANE', x: 8, y: 15 },
-    { type: 'npc', id: 'watch', cast: 'npc-sh-watch', x: 41, y: 15, facing: 1, talk: [{ conv: 'watch_after', if: 'struck' }, { conv: 'watch' }] },
+    { type: 'sign', text: 'THE GREEN', size: 'small', x: 41, y: 13, dy: 2, board: 0x6a4a2e, padX: 6, padY: 3, scale: 2 },
+    { type: 'npc', id: 'watch', cast: 'npc-sh-watch', x: 42, y: 15, facing: 1, talk: [{ conv: 'watch_after', if: 'struck' }, { conv: 'watch' }] },
     // coins (brass cogs, worth 3): on top of the low wall (a hop) and in an
     // arc over the puddle dip; the cobbles under them pay nothing
     { type: 'coins', id: 'c_wall', x: 12, y: 12, n: 4 },

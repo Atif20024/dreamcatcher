@@ -58,8 +58,9 @@ export default {
     { type: 'npc', id: 'orazio', cast: 'npc-rn-orazio', x: 11, y: 17, dx: 8, facing: 1, depth: 'behind', talk: [{ conv: 'orazio_after', if: 'lapis' }, { conv: 'orazio_bought', if: 'lapis_stolen' }, { conv: 'orazio' }] },
     { type: 'foe', kind: 'rival', x: 30, y: 9, patrol: [26, 35] },
     { type: 'foe', kind: 'pigeon', x: 32, y: 5, patrol: [29, 35] },
-    { type: 'keyitem', id: 'lapis', x: 35, y: 5, beat: 'got_lapis' },
-    // Dori's boy sold it back: up on the shelf again (the same pedestal)
+    // (exactly one of these two exists at a time, or the pick-up fires twice)
+    { type: 'keyitem', id: 'lapis', x: 35, y: 5, beat: 'got_lapis', unless: 'lapis_stolen' },
+    // Dori's boy sold it back: up on the shelf again (the same spot)
     { type: 'keyitem', id: 'lapis', x: 35, y: 5, beat: 'got_lapis', when: 'lapis_stolen', unless: 'lapis' },
     // the shard over the still, at the far end of the top shelf; its coins
     { type: 'shard', id: 'shard_still', x: 5, y: 4 },

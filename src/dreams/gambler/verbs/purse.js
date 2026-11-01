@@ -102,6 +102,8 @@ export default {
     st.wasTilted = tilted;
     // nobody owes anything: the purser's corridor has something for that player
     F.clean_book = !p.comps && !p.debt && !p.markers;
+    // ...and he says so as Jo goes by the cage into the corridor (a bark, dialogue.js)
+    if (F.clean_book && s.roomId === 'office' && !F.pell_passed && Math.floor(ctx.player.x / T) - room.tx >= 14) F.pell_passed = true;
     const pk = st.pulse ? s.time.now - st.pulse : Infinity;
     if (pk < 2400) st.tilt.setLabel(Math.floor(pk / 200) % 2 ? 'TILT' : 'TILTED').setColor(Math.floor(pk / 200) % 2 ? '#c86a8a' : '#ff5a4a');
     else st.tilt.setLabel('TILT').setColor('#c86a8a');

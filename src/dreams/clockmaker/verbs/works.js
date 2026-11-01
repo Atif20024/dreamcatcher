@@ -67,8 +67,9 @@ export default {
       s.beats.play('out_on_hill').catch((e) => console.warn('[dream] beat', e));
     }
     // back through the gate: the town is lit, and Nell has one lamp left
-    if (s.roomId === 'green' && F.struck && !F.green_lit) {
-      F.green_lit = true;
+    // (green_lit is set at the beat's end: a quit during it plays it again)
+    if (s.roomId === 'green' && F.struck && !F.green_lit && !ctx.state.greenPlayed) {
+      ctx.state.greenPlayed = true;
       F.child_waved = true;
       s.beats.play('green_lit').catch((e) => console.warn('[dream] beat', e));
     }

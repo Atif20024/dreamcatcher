@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { craft } from '../src/engines/craft.js';
+import speziale from '../src/dreams/painter/rooms/speziale.js';
 import { KITS, testStock, TEST_STEPS, trialLost, trialVerdict, loseLapis, streetFlags, studiesLine } from '../src/dreams/painter/logic.js';
 
 const run = (e, ms) => {
@@ -134,6 +135,44 @@ describe('the street', () => {
     expect(F.lapis).toBe(false);
     expect(F['item:lapis']).toBe(false);
     expect(F.lapis_stolen).toBe(2);
+  });
+});
+
+describe('one lapis on the shelf', () => {
+  // the entity's own rule (dreamAdapters.watch and spawnKeyItem): which spawn for these flags
+  const live = (F) => speziale.entities.filter((e) => e.type === 'keyitem' && e.id === 'lapis').filter((e) => (!e.when || F[e.when]) && (!e.unless || !F[e.unless]) && !F['item:lapis']);
+  it('exactly one until taken, before and after every theft', () => {
+    expect(live({}).length).toBe(1);
+    expect(live({ lapis: true, 'item:lapis': true }).length).toBe(0);
+    const F = { lapis: true, 'item:lapis': true };
+    loseLapis(F);
+    expect(live(F).length).toBe(1);
+    Object.assign(F, { lapis: true, 'item:lapis': true });
+    expect(live(F).length).toBe(0);
+    loseLapis(F);
+    expect(live(F).length).toBe(1);
+  });
+});
+
+describe('craft assist and rest', () => {
+  it("a step's own speed steadies after a miss", () => {
+    const e = craft({ steps: [{ at: 0.9, zone: 0.02, speed: 0.4 }], speed: 1, assist: 0.5 });
+    e.update(100);
+    const p0 = e.state().p;
+    e.press();
+    e.update(100);
+    expect(e.state().p - p0).toBeCloseTo(0.02, 5); // half of 0.4 per second
+  });
+  it('the tap after the last blow of a mash does not spill into a hold', () => {
+    const e = craft({ steps: [{ mode: 'mash', need: 1, at: 0.5, zone: 1 }, { mode: 'hold', at: 0.5, zone: 0.2 }], speed: 1 });
+    expect(e.press()).toBe('hit');
+    expect(e.state().idx).toBe(1);
+    expect(e.press()).toBe('wait');
+    expect(e.state().holding).toBe(false);
+    expect(e.release()).toBe(null);
+    expect(e.state().misses).toBe(0);
+    e.update(260);
+    expect(e.press()).toBe('hold');
   });
 });
 

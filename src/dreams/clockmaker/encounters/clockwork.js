@@ -36,7 +36,7 @@ export const escapement = {
   id: 'escapement',
   title: 'THE THIRD GEAR',
   engine: escapementEngine,
-  params: { beats: 4, period: 1800, window: 0.16, slip: true },
+  params: { beats: 4, period: 1800, window: 0.16, slip: true, assist: 0.25 },
   presenter: 'world',
   view: 'escapement',
   camera: { zoom: 1.25 },

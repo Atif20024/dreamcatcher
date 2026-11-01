@@ -58,6 +58,31 @@ describe('the escapement', () => {
   });
 });
 
+describe('the third gear is gentle', () => {
+  it('each miss widens the window, up to three', () => {
+    const e = escapement({ beats: 4, period: 1000, window: 0.1, slip: true, assist: 0.25 });
+    expect(e.state().window).toBeCloseTo(0.1);
+    e.update(250);
+    e.press();
+    expect(e.state().window).toBeCloseTo(0.125);
+    for (let k = 0; k < 5; k++) e.press();
+    expect(e.state().window).toBeCloseTo(0.175);
+  });
+  it('the wider window really takes a press the narrow one would not', () => {
+    const narrow = escapement({ beats: 4, period: 1000, window: 0.1, slip: true, assist: 0.25 });
+    narrow.update(60); // 0.06 of a period off the middle: outside 0.05, inside 0.0625
+    expect(narrow.press()).toBe('miss');
+    narrow.update(1000);
+    expect(narrow.press()).toBe('hit');
+  });
+  it('no assist by default: the strike stays as it was', () => {
+    const e = escapement({ beats: 7, period: 1000, window: 0.1, patient: 4000 });
+    e.update(250);
+    e.press();
+    expect(e.state().window).toBeCloseTo(0.1);
+  });
+});
+
 describe('the pendulum', () => {
   const def = { x: 10, row: 4, len: 4, amp: 0.8, period: 2000 };
   it('swings through the middle, low, and out to its ends, high', () => {

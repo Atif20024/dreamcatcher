@@ -111,7 +111,10 @@ export const giornata = {
   id: 'giornata',
   title: 'THE GIORNATA',
   engine: craft,
-  params: { speed: 0.8, zone: 0.16, clock: 9000, rival: { ms: 52000 }, steps: GIORNATA_STEPS },
+  params: (F) => {
+    F.dori_done = false; // each attempt is a new day of plaster
+    return { speed: 0.8, zone: 0.16, clock: 9000, rival: { ms: 52000 }, steps: GIORNATA_STEPS };
+  },
   presenter: 'world',
   view: 'craft',
   camera: { zoom: 0.95 },

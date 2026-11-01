@@ -31,6 +31,16 @@ export default {
       F.child_after = true;
       s.caption.say('child', 'They came back! I told you they came back!', { ms: 2800 });
     }
+    // her coin is a live pick-up, not a placed one: until it is taken it stays
+    // owed, so a quit and a continue puts it back in the street
+    if (ctx.state.coin && !ctx.state.coin.img.active) {
+      F.child_coin_got = true;
+      ctx.state.coin = null;
+    }
+    if (F.child_coin && !F.child_coin_got && !ctx.state.coin) {
+      s.spawnPickups([{ type: 'coin', wx: cx, wy: (r.ty + 14) * T + T / 2 }]);
+      ctx.state.coin = s.placedCoins[s.placedCoins.length - 1];
+    }
     if (!ctx.input.justDown('act2')) return;
     ctx.state.whistles += 1;
     [988, 1319].forEach((f, i) => busTone('sfx', f, 0.16, 'sine', 0.08, i * 0.12, f * 1.02));
@@ -40,7 +50,6 @@ export default {
       F.child_waved = true;
       [1319, 988].forEach((f, i) => busTone('sfx', f, 0.14, 'sine', 0.05, 0.5 + i * 0.12, f * 1.02));
       s.caption.say('child', 'Not bad! Catch!', { ms: 2000 });
-      s.spawnPickups([{ type: 'coin', wx: cx, wy: (r.ty + 14) * T + T / 2 }]);
     }
   },
 };

@@ -9,6 +9,9 @@
 //                        acoustics, every room its own music key and loop
 //   painter-coins        80–100 giglio coins placed, worth 3 each
 //   painter-ladder       Jo climbs a scaffold ladder with real input (up held)
+//   painter-lapis-theft  a rival's grab with the stone, in the street: the
+//                        shelf has exactly one lapis on re-entry, its pick-up
+//                        fires once; a second grab in the shop does the same
 //   painter-playthrough  board-less, real inputs where it matters: the master,
 //                        the slab, the street, the colour-seller (a real ladder
 //                        climb), the lapis, the drapery, the guild's chain, the
@@ -299,6 +302,66 @@ const ladder = {
   },
 };
 
+const theft = {
+  id: 'painter-lapis-theft',
+  async run(dc) {
+    const log = [];
+    const ok = (k, v) => log.push(`${k}:${v ? 'ok' : 'FAIL'}`) && v;
+    const s = await boot(dc, 'via');
+    const shelf = () => [...s.keyItems].filter((it) => it.id === 'lapis' && !it.taken).length;
+    const picks = () => s.beats.history.filter((b) => b === 'got_lapis').length;
+    const grab = async () => {
+      s.throwOut({ x: s.player.x });
+      for (let i = 0; i < 180 && s.thrownOut; i++) await dc.run(1);
+      await dc.run(10);
+      safe(s);
+    };
+    const takeIt = async () => {
+      const q = at(s, 'speziale', 33, 5);
+      put(s, q.x, q.y);
+      await dc.run(20);
+      await walkTo(dc, s, at(s, 'speziale', 35, 5).x, { frames: 300, tol: 14 });
+      await dc.run(30);
+      await waitBeats(dc, s);
+    };
+    Object.assign(s.F, { met_master: true, ground: true, apprentice: true, met_orazio: true, lapis: true, 'item:lapis': true });
+    await dc.run(10);
+    ok('carrying', !!s.F.lapis_carry);
+    // 1. in the street: the stone goes; the rivals are the outbound ones again
+    await grab();
+    ok('stone-gone', !s.F.lapis && !s.F['item:lapis'] && s.F.lapis_stolen === 1);
+    // 2. back into the shop: one lapis, one pick-up
+    let p = at(s, 'via', 47, 15);
+    put(s, p.x, p.y);
+    await dc.run(20);
+    ok('into-shop', await door(dc, s, 'speziale'));
+    safe(s);
+    await dc.run(10);
+    ok('one-on-the-shelf', shelf() === 1);
+    await takeIt();
+    ok('took-it', !!s.F.lapis && shelf() === 0);
+    ok('fired-once', picks() === 1);
+    // 3. grabbed again, inside the shop: back on the shelf, once
+    await grab();
+    ok('stolen-twice', !s.F.lapis && s.F.lapis_stolen === 2);
+    await dc.run(10);
+    ok('one-again', s.roomId !== 'speziale' || shelf() === 1);
+    if (s.roomId !== 'speziale') {
+      p = at(s, 'via', 47, 15);
+      put(s, p.x, p.y);
+      await dc.run(20);
+      await door(dc, s, 'speziale');
+      safe(s);
+      await dc.run(10);
+      ok('one-after-door', shelf() === 1);
+    }
+    await takeIt();
+    ok('fired-twice-in-all', !!s.F.lapis && picks() === 2);
+    clearRun('painter');
+    return { pass: log.every((l) => l.endsWith(':ok')), detail: log.join(' ') };
+  },
+};
+
 const playthrough = {
   id: 'painter-playthrough',
   async run(dc) {
@@ -476,4 +539,4 @@ const playthrough = {
   },
 };
 
-export default [board, places, coins, ladder, playthrough];
+export default [board, places, coins, ladder, theft, playthrough];

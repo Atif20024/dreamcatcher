@@ -29,6 +29,8 @@
 //   e.update(dtMs); e.press(); e.state(); e.done; e.result
 // Deterministic: marks come from the seed, time from update(dt).
 
+const STEP_REST_MS = 250;
+
 export function craft({ steps = [], speed = 0.7, zone = 0.18, assist = 0.85, minSpeed = 0.3, clock = null, rival = null, stock = null, seed = 5, driedMs = 900 } = {}) {
   const S = steps.map((st, i) => {
     const w = st.zone ?? zone;
@@ -40,7 +42,7 @@ export function craft({ steps = [], speed = 0.7, zone = 0.18, assist = 0.85, min
     while (k > 0 && S[k - 1].section === S[i].section) k--;
     return k;
   };
-  const s = { p: 0, dir: 1, speed, idx: 0, misses: 0, presses: 0, dried: 0, time: 0, clockLeft: clock, phase: 'play', phaseT: 0, last: null, autoT: 0, rival: 0, rivalDoneAt: null, mash: 0, sub: 0, holding: false, stock: stock ? { ...stock } : null, used: [], wasted: [], subbed: [] };
+  const s = { p: 0, dir: 1, speed, idx: 0, misses: 0, presses: 0, dried: 0, time: 0, clockLeft: clock, phase: 'play', phaseT: 0, last: null, autoT: 0, rival: 0, rivalDoneAt: null, rest: 0, mash: 0, sub: 0, holding: false, stock: stock ? { ...stock } : null, used: [], wasted: [], subbed: [] };
   // where the brush must be now (double: the mark it has not hit yet)
   const target = (st) => (st.mode === 'double' && s.sub ? { at: st.at2, zone: st.zone2 } : { at: st.at, zone: st.zone });
   const onTarget = (st) => {
@@ -70,6 +72,7 @@ export function craft({ steps = [], speed = 0.7, zone = 0.18, assist = 0.85, min
     update(dt) {
       if (api.done) return;
       s.time += dt;
+      s.rest = Math.max(0, s.rest - dt);
       if (rival && s.rival < 1) {
         s.rival = Math.min(1, s.rival + dt / rival.ms);
         if (s.rival >= 1 && s.rivalDoneAt === null) s.rivalDoneAt = s.time;
@@ -87,7 +90,8 @@ export function craft({ steps = [], speed = 0.7, zone = 0.18, assist = 0.85, min
           api.advance();
         }
       } else {
-        const v = st.speed ?? s.speed;
+        // (a step's own pace steadies after a miss like every other)
+        const v = (st.speed ?? speed) * (s.speed / speed);
         if (st.mode !== 'hold' || s.holding) s.p += (s.dir * v * dt) / 1000;
         if (st.mode === 'hold' && s.p >= 1) {
           // ran off the end of the slab: start again
@@ -137,6 +141,8 @@ export function craft({ steps = [], speed = 0.7, zone = 0.18, assist = 0.85, min
       s.mash = 0;
       s.sub = 0;
       s.holding = false;
+      // the last tap of a mash must not spill into the next step
+      s.rest = STEP_REST_MS;
       // a new section of plaster is laid wet: the clock starts again
       if (clock && s.idx < S.length && S[s.idx].section !== prev.section) s.clockLeft = clock * (1 + 0.2 * s.dried);
     },
@@ -144,7 +150,7 @@ export function craft({ steps = [], speed = 0.7, zone = 0.18, assist = 0.85, min
     press() {
       if (api.done) return 'done';
       const st = S[s.idx];
-      if (s.phase !== 'play' || st.auto) return 'wait';
+      if (s.phase !== 'play' || st.auto || s.rest > 0) return 'wait';
       if (st.mode === 'hold') {
         s.holding = true;
         s.last = 'hold';
