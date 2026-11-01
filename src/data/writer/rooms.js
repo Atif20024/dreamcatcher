@@ -120,7 +120,7 @@ const ROOMS = [
       { type: 'foe', kind: 'talker', x: 135, y: 33, human: true, word: 'quiet', line: 'the *quiet* ones, every time' },
       { type: 'coins', x: 133, y: 30, n: 2 },
       { type: 'coin', x: 136, y: 28 },
-      { type: 'foe', kind: 'talker', x: 147, y: 26, human: true, word: 'awake', line: 'I lay *awake* with it for a week' },
+      { type: 'foe', kind: 'talker', x: 147, y: 25, human: true, word: 'awake', line: 'I lay *awake* with it for a week' },
       { type: 'label', x: 141, y: 28, id: 'ladder', noun: 'ladder', adj: 'broken', to: 'fixed' },
       { type: 'coins', x: 144, y: 23, n: 3 },
       { type: 'foe', kind: 'talker', x: 155, y: 33, human: true, word: 'fixed', line: 'it was *fixed* from the start, the whole thing' },
@@ -282,7 +282,7 @@ const ROOMS = [
       { type: 'coins', x: 496, y: 18, n: 2 },
       { type: 'coins', x: 507, y: 20, n: 3 },
       { type: 'word', x: 504, y: 21, word: 'wide', on: 'a torn billboard' },
-      { type: 'label', x: 513, y: 22, id: 'ledge', noun: 'ledge', adj: 'narrow', to: 'wide' },
+      { type: 'label', x: 512, y: 22, id: 'ledge', noun: 'ledge', adj: 'narrow', to: 'wide' },
       { type: 'ledge', x: 512, y: 23, x1: 515, id: 'ledge_tiles' },
       { type: 'coins', x: 519, y: 19, n: 3 },
       { type: 'crane', x: 525, y: 20, x1: 533, id: 'crane', noun: 'crane', adj: 'slow', to: 'fast' },
@@ -344,6 +344,10 @@ const OBJECTIVES = {
     },
     {
       "flag": "rent_paid",
+      "text": "the back-room desk (10 pages)"
+    },
+    {
+      "flag": ["rent_paid", "pages12"],
       "text": "the café"
     }
   ],

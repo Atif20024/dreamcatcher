@@ -111,3 +111,78 @@ Rerun or play in a browser: `eva-tether-trap`; get caught carrying Priya in the 
 | Winch | **My finding was wrong as stated.** The crater is `phys: 'moon'`, and `moonPrep` turns gravity back on every frame, so gravity was never stuck. **The real bug:** `reeling` stayed set after a catch, and with [F] held, a respawn above the rim line (the crevasse checkpoint, if the crater's is unlit) would play the rim scene and mark Priya safe with nobody on the line. | `dropCarry` ends the reel (and restores gravity). |
 
 Play in a browser: the timetable revert, seen from the ladder; Esc from the cards; all three rent versions; [E] mashed during the verdict; a resumed second-year run; a catch during the reel. None of this has been played.
+
+## Browser check
+
+Run on this branch merged with `redesign` at df0384e (merge clean, teach-card count and `places.js` needed nothing), in one tab on port 5183, sound off. The first look found real bugs; every line below is on the final code. `failure.js` covers Chef and Writer only, so the Astronaut's failure path was driven by hand (Priya, the drift, the hull).
+
+### Found and fixed
+
+| Bug | Evidence | Fix |
+|---|---|---|
+| **The press chase could not be won on the first pass.** Off web 1's east end Jo always missed web 2: 24 tries, run or walk, jumped or steered, landed on web 3, the floor or back on web 1 (which also ended in a hazard tile). Going back west to the ladder meets the Editor at col 563, 1.9 s in. Forced catch, for every player. The old route only worked because the Editor started in the city, far behind. | `__dc` drive | Web 1 ends at col 581 over web 2; hazard at col 591 removed. Web 2's east end still drops to web 3 for FOLD. |
+| **The Editor woke on the floor.** Walking the floor past col 561, unfed, started it behind Jo with the only ladder on its side. | drive | It starts only once the Draft is fed, as the room's comment already claimed. |
+| **The floor the Editor erased stayed gone** after it left at PRESS (gantry, and a trench by the ladder). | `s.erased` | Restored at PRESS. |
+| **The city's gaps were a trap.** With the Editor gone from the city, nothing brought Jo out of the three gaps between the roofs: no way up, 6 minutes on the clock. | drive | A fall below row 30 there costs a heart and returns him. |
+| **"narrow ledge" could not be reached with the pen** from the roof (64 px reach, nearest 66). | drive | Label one column west. |
+| **Riding the crane threw Jo to its trailing edge.** Scene code and Arcade friction both carried him: +33 px/s against the crane, then hung by the last pixels. | drive | Scene's carry deleted. Rider's offset now holds at 40 and 150 px/s. |
+| **Standing foes sank a whole tile** (all talkers, the landlady): a rig spawned with feet 8 px into the floor passes the separation limit. Their word bubbles fell in standing reach, so "jump for the word" was never needed; the "awake" talker fell off the mezzanine (W-S7 was not true). | positions, screenshot | `addFoe` lifts the feet to the tile's foot; that talker spawns on the plank and collides with one-ways. Words now take a jump. Shared code: this applies to every dream's foes. |
+| **The pen opened on the answer** on every machine, since "working" is always first in the satchel. | drive | Starts on the next word when the first is the answer. |
+| **Typing box header overprinted itself** (label wider than the box, over the counter). The prompt also stuck out under the box. | `aw_typing_box` | Box 480 wide, shorter label, prompt hidden. "+1 page" singular. |
+| **"Clip the next one" clipped the same hook.** `[F]` takes the nearest, which at the strike is the hook being cut, so obeying still lost the line. | drive | The aimed hook is out of `[F]`'s choice until the strike re-arms. |
+| **Stale objectives.** Rent paid at 4 pages said "the café" (the room data beat the scene's desk line). Picking Priya up again still said "go back for her". | drive | A list of flags in `roomObjective`; a pick-up always sets the objective. |
+| Restart inside the Editor's wipe left `blanking` set, and no catch ever fired again. | drive | Reset per run, with `desks`. |
+| Two scenarios were false: `panel-frame` passed only on a leftover panel (the pause menu never carried the flag), `slope-writer-attic-stairs` flaked once the landlady stood on the floor (her patrol reaches the stair foot). | repeats | Flag set; foes passive in slope runs. 4 of 4 after. |
+
+### Scenarios
+
+| Scenario | Result |
+|---|---|
+| `astro-first-board`, `astro-priya-carry`, `writer-pen-gates`, `writer-press-route` (new, `astroWriter.js`) | pass |
+| `writer-ladders-both-ways`, `ladder-jump-writer`, `readability-writer`, `readability-astronaut`, `bark-one-at-a-time` | pass |
+| failure set: `hit-knockback`, `zero-hearts-checkpoint`, `checkpoint-label`, `continue-run`; `restart-dream-writer` | pass |
+| phase2: `jo-walk`, `jo-skid`, `jo-turn`, `jo-jump-arc`, `jo-land-soft-hard`, `jo-float`, `jo-foot-slide`, `jo-route-writer`, `jo-route-astronaut` | pass |
+| round2: `slope-writer-arrival`, `slope-writer-attic-stairs`, `shadow-jump`, `shadow-gap`, `shadow-slope`, `shadow-places`; `scale-writer`, `scale-astronaut` | pass |
+| `touch-walk-jump-talk`, `eva-tether-trap`, `astro-pool-scale`, `astro-pool-hoops`, `reading-panel` | pass |
+| round2flow (4), wp6 (7) | pass |
+
+### Driven by hand
+
+| Flow | Result |
+|---|---|
+| Pen menu, wrong word | pass. Costs 1 ink, 1.4 s on the thing, its line, does not take; "honest" and "again" forms read right. |
+| Desk | pass. No keys: +3, `0/20 clean. 20 typos.`, carries 3, "Typos keep" once, `redraft it (3/4 pages)`. Redraft, all hit: +1, done. |
+| Page gates | pass at 10, 25, 50, shut one below. |
+| [Q] card, dog gate | pass. Card on entering the café; gate blocks at col 175.6; Q wakes the dog, adds noise, gate opens. |
+| "fast" from Isolde, "wide" from the billboard | pass. Both words picked up. Ledge solves, tiles solid, walkable. Crane fast: 1.77 s a way against 6.4 s. The ledge's 4-tile gap is also jumpable (8 tiles measured), so it stays optional. |
+| Lying timetable | pass. Reachable from the ground, menu stops the Editor (0 px in 1 s), 3 coins. Revert and its line seen from the ladder at row 26. |
+| Three rents | pass. 20 coins leaves 8, 5 leaves 0, 0 leaves 0, never negative; Tomasz's line; flag set in all three. |
+| Esc from the cards | pass. Closes, no float. |
+| First Board, trained and passed | pass. Verdict, seat line, grey year, second Board, selected. |
+| Failed quiz, short stats | pass. Numbers listed in the objective; door refuses a second attempt until trained. |
+| [E] mashed in the verdict and the fade | pass. Nothing opens, no drift. |
+| Second-year resume | pass. Grey back, objective and stats kept. |
+| Grey lift at selection | pass. Fades in 1.8 s, gone. |
+| Osei | pass. Once, at the airlock, before the descent. |
+| Priya: caught, going back, a catch in the reel | pass. She lies there again with the prompt, "go back for her", reel ends with gravity on, no rim scene, including a respawn above the rim line with [F] held. |
+| EVA streak | pass. Clip ahead holds; missed in free flight 2.07 s then the drift and a heart; on the hull, no heart. |
+| Gym bed by state | pass, state only. Gym bed and hum 0.8 in the gym, 0 under the grey hold and on leaving; no bed on EVA or crater; green on the field. Not heard. |
+
+### Fairness, in numbers
+
+Jo runs 280 px/s, walks 120. Editor 168 (210 on hard).
+
+- **Rain:** 44 tiles in 4.8 s, Editor then only at col 349. Lead never below 134 px (0.8 s), at the mark, then it grows. A 1 s stop at both the bench and the bus stop is safe; 2 s at the bench is caught. Fair, but the hops barely cost anything: the threat is stopping, not the terrain.
+- **Flat (70 px/s, computed):** 14.4 s for the Editor to reach col 458, plus 2 s per real cut; Jo crosses in about 4 s. Fair and quiet. Not raced by a bot.
+- **Press:** the Editor reaches PRESS at 5.9 s. With the fix Jo pulls it at 2.5 s (3.4 s of slack), 2.1 s after a 2 s dither at INK, 0.5 s after 4 s. Tight enough to feel, with room to fumble once. An untimed roller at col 575 hits about half the time and only knocks back.
+- **Idle Editor at col 553:** fair. Invisible and inert until the feed.
+- **Landlady at the attic stairs:** running or jumping past is clean; walking gets caught at col 67.
+
+### Not fixed, larger or a call for you
+
+- **Getting to FOLD is awkward.** Off web 2's east end Jo must steer back onto web 3; holding right lands on the floor past it, and the walk back is ladder, web 2, again. No lock (Editor is gone, only the Friday clock), but it is a re-climb. A hop from the ladder cannot reach web 3 (rows 26-27 pass under it, 23-25 land on web 2).
+- The Editor's erase reaches the ceiling row and gantry too (the "top tile of a column"). Harmless now that they return at PRESS, but visible.
+- The crater is very dark and Priya hard to see without the light; her pose reads fine at that size. Jo's hat is not dimmed with him there.
+- The verdict's silhouettes are low contrast, near black on near black. Deliberate-looking, your eye to judge.
+- Bed birds keep going in the grey year's "real silence" (campus bed): music is silent, the bed is not. Not heard, read from state.
+- `failure.js` has no Astronaut row.

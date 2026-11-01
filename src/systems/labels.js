@@ -117,7 +117,8 @@ export default class Labels {
     }
     s.puzzleActive = true;
     const handle = ModalManager.for(s).open({ kind: 'encounter', name: 'pen', freeze: 'physics', onKey: (e) => handler(e) });
-    let idx = 0; // never on the answer: which word fits is the whole thought
+    // never on the answer, while there is another word: which fits is the whole thought
+    let idx = words[0] === label.to && words.length > 1 ? 1 : 0;
     const cam = s.cameras.main;
     const cx = cam.width / 2;
     const cy = 110;

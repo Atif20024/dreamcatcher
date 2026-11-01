@@ -74,6 +74,8 @@ export default class WriterScene extends BaseLevel {
     this.orbCaught = false;
     this.cut = {};
     this.told = {};
+    this.desks = [];
+    this.blanking = false; // a restart inside the wipe kills the timer that clears it
   }
 
   // touch screens (src/ui/TouchControls.js): while the letters fall, ABC
@@ -143,6 +145,7 @@ export default class WriterScene extends BaseLevel {
         this.labels.add({ id: 'sleeper', x: f.x, y: f.y - 44, noun: 'guard', adj: 'sleeping', bound: true, follow: f });
       }
       if (def && def.word) {
+        this.physics.add.collider(f, this.oneWays); // the one on the mezzanine stays up there
         f.word = def.word;
         f.line = def.line;
         f.setFlipX(true);
@@ -344,7 +347,7 @@ export default class WriterScene extends BaseLevel {
 
   addPages(n, why) {
     this.pages = Math.max(0, this.pages + n);
-    if (n > 0) this.floatText(this.player.x, this.player.y - 70, `+${n} pages${why ? ` — ${why}` : ''}`, '#f2e0a0');
+    if (n > 0) this.floatText(this.player.x, this.player.y - 70, `+${n} page${n === 1 ? '' : 's'}${why ? ` — ${why}` : ''}`, '#f2e0a0');
     for (const [flag, need] of Object.entries(PAGE_GATES)) if (this.pages >= need) this.setFlag(flag);
     this.updateHud();
   }
@@ -749,6 +752,7 @@ export default class WriterScene extends BaseLevel {
     p.controlLockUntil = this.time.now + 999999;
     p.body.setVelocity(0, 0);
     p.typing = true;
+    this.promptText.setVisible(false);
     showTutorial(this, 'typing');
     this.typing = new Typing(this, {
       words: deskWords(desk.id),
@@ -929,7 +933,7 @@ export default class WriterScene extends BaseLevel {
     img.body.setAllowGravity(false);
     img.body.checkCollision.down = false;
     this.physics.add.collider(this.player, img);
-    this.crane = { img, x0, x1, dir: 1, fast: false, lastX: x0 };
+    this.crane = { img, x0, x1, dir: 1, fast: false };
     // the cable and the hook, so it reads as a crane and not a raft
     this.add.rectangle((x0 + x1) / 2, o.ty * T - 120, x1 - x0 + 64, 4, 0x3a3a44).setDepth(D.TERRAIN);
     this.labels.add({ id: 'crane', x: x0, y: o.ty * T - 20, noun: o.noun, adj: o.adj, to: o.to, follow: img });
@@ -1059,7 +1063,10 @@ export default class WriterScene extends BaseLevel {
     this.leversPulled.push(lever.id);
     this.floatText(lever.img.x, lever.img.y - 50, `${lever.name}. ${['then the press.', 'then the fold.', ''][expect] || ''}`, '#f2d580');
     // the rest of the run doubles back along the webs: it would walk through him
-    if (this.leversPulled.length === 2) for (const ed of this.editors) if (ed.room === 'press') ed.leave();
+    if (this.leversPulled.length === 2) {
+      for (const ed of this.editors) if (ed.room === 'press') ed.leave();
+      this.restoreErased(); // what it took on the way in: the gantry, the floor by the ladder
+    }
     if (this.leversPulled.length === 3) this.printBook();
   }
 
@@ -1615,6 +1622,8 @@ export default class WriterScene extends BaseLevel {
     }
     if (id === 'editor') this.updateFlat(time);
     if (id === 'city' || id === 'press' || id === 'agent') this.updateDeadline(time, dt);
+    // no way up out of the gaps between the roofs, and no Editor to come for him now
+    if (id === 'city' && p.x < px(534) && p.y > px(30)) this.fallOut();
     if (id === 'press') this.updatePress(time, dt);
     if (id === 'bookshop' && !this.F.at_shop) {
       this.setFlag('at_shop');
@@ -1623,7 +1632,7 @@ export default class WriterScene extends BaseLevel {
     }
     // the Inner Editor steps out when Jo passes its mark
     for (const ed of this.editors) {
-      if (ed.room === id && !ed.started && !ed.done && p.x > ed.from && (id !== 'press' || this.F.deadline)) {
+      if (ed.room === id && !ed.started && !ed.done && p.x > ed.from && (id !== 'press' || this.fed)) {
         ed.started = true;
         ed.start();
         this.activeEditor = ed;
@@ -1785,8 +1794,6 @@ export default class WriterScene extends BaseLevel {
       if (c.img.x >= c.x1) c.dir = -1;
       if (c.img.x <= c.x0) c.dir = 1;
       c.img.body.setVelocityX(c.dir * speed);
-      if (p.body.touching.down && c.img.body.touching.up) p.x += c.img.x - c.lastX;
-      c.lastX = c.img.x;
     }
     for (const f of this.foes) {
       if (!f.active) continue;

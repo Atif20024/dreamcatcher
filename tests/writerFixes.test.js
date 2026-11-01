@@ -227,3 +227,20 @@ describe('the rest of the review', () => {
     for (const key of ['copyshop', 'cafe', 'library', 'post', 'press']) for (const e of BEDS[key].events) expect(SHOTS[e.shot], e.shot).toBeTypeOf('function');
   });
 });
+
+describe('found in the browser', () => {
+  it('web 1 ends over web 2, so the way down to PRESS exists with the Editor behind', async () => {
+    const { buildWriterMap } = await import('../src/data/writer/map.js');
+    const map = buildWriterMap();
+    const lastCol = (row, ch) => map[row].lastIndexOf(ch);
+    expect(lastCol(18, '>') + 4).toBeLessThanOrEqual(lastCol(23, '<'));
+    expect(map[18][591]).not.toBe('^');
+  });
+  it('the copy shop sends him to the desk until the gate can open', async () => {
+    const { roomObjective } = await import('../src/play/Objectives.js');
+    const shop = rooms[idx('copyshop')];
+    expect(roomObjective(shop, { rent_paid: true })).toMatch(/back-room desk/);
+    expect(roomObjective(shop, { rent_paid: true, pages12: true })).toBe('the café');
+    expect(roomObjective(shop, { pages12: true })).toMatch(/the rent/);
+  });
+});

@@ -1,6 +1,6 @@
 // Objectives as data (plan §2.7): each room declares `objective`, either a
-// string or a list [{ text, flag?, unless? }]. The last entry whose `flag` is
-// set (and whose `unless` is not) wins; the first entry is unconditional.
+// string or a list [{ text, flag?, unless? }]. The last entry whose `flag` (or
+// every flag of a list) is set (and whose `unless` is not) wins; the first entry is unconditional.
 // Pure, so the lint and the unit tests use it too.
 export function roomObjective(room, flags = {}) {
   const o = room && room.objective;
@@ -9,7 +9,7 @@ export function roomObjective(room, flags = {}) {
   let out = null;
   for (const e of o) {
     const entry = typeof e === 'string' ? { text: e } : e;
-    if (entry.flag && !flags[entry.flag]) continue;
+    if (entry.flag && [].concat(entry.flag).some((f) => !flags[f])) continue;
     if (entry.unless && flags[entry.unless]) continue;
     out = entry.text;
   }

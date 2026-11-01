@@ -148,6 +148,7 @@ const slopeSites = SITES.map((site) => ({
   id: `slope-${site.id}`,
   async run(dc) {
     const sc = await arrive(dc, site.dream, site.place);
+    for (const f of sc.foes || []) f.passive = true; // the ground is under test: the landlady's patrol reaches the attic stairs' foot
     const p = sc.player;
     const ox = origin(sc, site);
     const out = {};

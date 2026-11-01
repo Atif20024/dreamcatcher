@@ -29,12 +29,12 @@ export default class Typing {
     this.done = false;
     const cam = scene.cameras.main;
     this.ui = scene.add.container(cam.width / 2, 40).setScrollFactor(0).setDepth(170);
-    this.bg = scene.add.rectangle(0, 82, 420, 174, 0x14101c, 0.88).setStrokeStyle(2, 0x8a8aa8);
+    this.bg = scene.add.rectangle(0, 82, 480, 174, 0x14101c, 0.88).setStrokeStyle(2, 0x8a8aa8);
     this.lineY = 105;
     this.line = scene.add.rectangle(0, this.lineY, 380, 2, 0xf2d580);
-    this.label = uiText(scene, 0, 8, 'each word: its first letter, on the line', { fontSize: '11px', color: '#c8c0b0' }).setOrigin(0.5);
-    this.count_ = uiText(scene, 190, 8, '', { fontSize: '11px', color: '#c8c0b0' }).setOrigin(1, 0.5);
-    this.page = uiText(scene, -198, 118, '', { fontSize: '11px', color: '#e8dcc8', wordWrap: { width: 396 } }).setOrigin(0, 0);
+    this.label = uiText(scene, -232, 8, 'first letter, on the line', { fontSize: '11px', color: '#c8c0b0' }).setOrigin(0, 0.5);
+    this.count_ = uiText(scene, 232, 8, '', { fontSize: '11px', color: '#c8c0b0' }).setOrigin(1, 0.5);
+    this.page = uiText(scene, -232, 118, '', { fontSize: '11px', color: '#e8dcc8', wordWrap: { width: 464 } }).setOrigin(0, 0);
     this.ui.add([this.bg, this.line, this.label, this.count_, this.page]);
     this.nextAt = scene.time.now + 600;
     this.handler = (e) => this.key(e);

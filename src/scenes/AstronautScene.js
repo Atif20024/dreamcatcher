@@ -79,6 +79,7 @@ export default class AstronautScene extends BaseLevel {
     this.priyaFollow = null;
     this.priyaStumbled = false;
     this.evaStruck = false;
+    this.evaHook = null;
     this.evaSnapUntil = 0;
     this.plateNudged = false;
     this.greyHold = false;
@@ -1489,7 +1490,7 @@ export default class AstronautScene extends BaseLevel {
     this.priyaLight = this.add.circle(pd.wx, pd.wy, 8, 0xf2e0a0, 0.5).setDepth(D.FOE).setVisible(false);
     this.addInteract(pd.wx, pd.wy, 'Priya', () => {
       this.carryingPriya = true;
-      if (!this.alarmOn) this.setObjective('the winch, at the rim — hold [F]'); // picked up again, after a fall
+      this.setObjective(this.alarmOn ? 'out of the crater, with her.' : 'the winch, at the rim — hold [F]'); // or picked up again, after a fall
       this.floatText(pd.wx, pd.wy - 50, 'she is breathing. you pick her up.\nthe Alarm is still screaming on your back.', '#88b8d8');
       this.time.delayedCall(4000, () => {
         if (this.alarmOn) this.floatText(this.player.x, this.player.y - 60, 'Priya, faint, on the radio:\n"…left shoulder. loose cable. [F]"', '#f2e0a0');
@@ -1854,7 +1855,8 @@ export default class AstronautScene extends BaseLevel {
 
     // the tether: [F] clips to the nearest hook in range; holding F reels
     if (this.roomPhys().room.id === 'p4_eva' || this.hooks.some((h) => Math.abs(h.x - p.x) < 300)) {
-      const near = this.hooks.filter((h) => Phaser.Math.Distance.Between(p.x, p.y, h.x, h.y) < 6.5 * T);
+      // (not the hook the debris is aiming at: "clip the next one" has to mean it)
+      const near = this.hooks.filter((h) => h !== this.evaHook && Phaser.Math.Distance.Between(p.x, p.y, h.x, h.y) < 6.5 * T);
       if (Phaser.Input.Keyboard.JustDown(this.keyF) && near.length) {
         this.tether = near.sort((a, c) => Math.abs(a.x - p.x) - Math.abs(c.x - p.x))[0];
         if (!this.tetherUsed) this.floatText(p.x, p.y - 56, 'clipped on. now push off: [Space]', '#7ec87e');
@@ -1880,6 +1882,7 @@ export default class AstronautScene extends BaseLevel {
         else if (time > this.evaSnapUntil) {
           this.evaSnapUntil = 0;
           this.evaStruck = false; // the same hook will do it again: now he knows
+          this.evaHook = null;
           if (touching) this.floatText(p.x, p.y - 56, 'the hull held you. clip on.', '#e8b84a');
           else this.driftAway();
         }
@@ -1901,6 +1904,7 @@ export default class AstronautScene extends BaseLevel {
   evaStrike() {
     this.evaStruck = true;
     const hook = this.tether;
+    this.evaHook = hook;
     const next = this.hooks[this.hooks.indexOf(hook) + 1];
     this.floatText(this.player.x, this.player.y - 56, 'Osei: "debris. clip the next one."', '#e8b84a');
     const streak = this.add.rectangle(hook.x + 460, hook.y - 280, 28, 2, 0xfff2c8).setAngle(-31).setDepth(D.PLAYER + 1);

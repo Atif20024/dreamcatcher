@@ -150,8 +150,7 @@ export function buildWriterMap() {
   fill(rows, 14, 33, 555, 555, 'H');
   fill(rows, 13, 13, 554, 599, '#');
   fill(rows, 17, 17, 557, 561, '#'); // the feed platform
-  fill(rows, 18, 18, 562, 590, '>'); // web 1
-  put(rows, 18, 591, '^');
+  fill(rows, 18, 18, 562, 581, '>'); // web 1: its end drops him on web 2, at any speed, with the Editor behind
   fill(rows, 23, 23, 560, 588, '<'); // web 2
   put(rows, 23, 559, '^');
   fill(rows, 28, 28, 562, 590, '>'); // web 3

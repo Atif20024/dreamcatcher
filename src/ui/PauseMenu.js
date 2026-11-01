@@ -180,6 +180,7 @@ export default class PauseMenu {
       add(uiText(s, cx, y, str, { align: 'center', wrap: W - 60, ...opts }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(this.depth + 2));
     add(dim(s, 0.72, this.depth));
     const frame = add(s.add.graphics().setScrollFactor(0).setDepth(this.depth + 1));
+    frame.isDCPanel = true;
     // lay the text out first, then size the panel to it
     let y = 0;
     const title = text(y, this.title, { size: 'body', color: 'accent' });
