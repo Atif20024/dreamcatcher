@@ -53,3 +53,12 @@ If `drift` reads 0 and `local` is still about 1, the guess is wrong and this nee
 - **Corner help:** `jo-jump-arc`, `jo-land-soft-hard`, `jo-float`, `hub-ladder-roof`, `hub-ladder-undercroft`, `dream-ladders-both-ways`, `writer-ladders-both-ways`, `hub-roof-drops`, `station-roof-rewards`
 - **Other changes:** `jo-contrast`, `scale-hub`, `station-return-staged`, `evening-postbox`, `evening-bench-gate`
 - **By eye:** the viaduct walk from col 390 to 470, the lapel in the hall, a ladder climb at game size, and the top-hat foe's alert
+
+## First browser run, after merging `redesign`
+
+All 14 scenarios above pass except `jo-contrast`, whose one failure is the Chef's candle in the yard (edge 1.97 against 3:1), from `redesign`. No console errors.
+
+- **The Evening's `local` guess was right.** With the 240 settling steps `drift` reads 0, and the Evening reads edge 7.17, local 6.86.
+- **Corner help.** Measured in the Writer on real jumps at three corners, both sides: a 2 or 4 px clip fires, nudges by exactly that, keeps -500 px/s and finishes the 148 px rise. A 7 px clip does not fire and stops dead. Normal jumps: 0 nudges and 0 px of drift across the hub, the Writer, and Chef, Gambler, Musician and Painter rooms. In the framework dreams only the no-nudge half was seen, because the search found no suitable corner in those rooms.
+- **By eye, all fine:** the lapel reads as a flower at the chest; the climb reads hand over hand at game size; the top-hat foe (`lq-crake`) keeps a clean red eye with no blotch.
+- **Viaduct.** The ghost is much shorter but still there: the houses are see-through from about col 396 to 407, about 11 tiles of walking, as listed under "Remaining". Clean from col 410. Left as it is.
