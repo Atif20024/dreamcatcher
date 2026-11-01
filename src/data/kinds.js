@@ -31,7 +31,7 @@ export const FOES = {
     // apprentices, the guild's inspectors, Bruno the foreman and his
     // porters, and the pigeons that get into every chapel (they hurt on
     // contact and can be stomped; a boy drawing does not frighten them)
-    rival: { texture: 'foe-rn-rival', human: true, speed: 85, sight: 150 },
+    rival: { texture: 'foe-rn-rival', human: true, speed: 85, sight: 150, lunge: 240 },
     inspector: { texture: 'foe-rn-inspector', human: true, speed: 55, sight: 190, cone: true },
     foreman: { texture: 'foe-rn-foreman', human: true, speed: 50, big: true, sight: 130 },
     porter: { texture: 'foe-rn-porter', human: true, speed: 45, big: true, sight: 110 },

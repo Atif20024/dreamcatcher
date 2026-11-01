@@ -41,7 +41,7 @@ export default {
     { prop: 'purser_cage', x: 9, y: 12 },
     { prop: 'wall_lamp', x: 24, y: 8, live: true },
     { prop: 'wall_lamp', x: 35, y: 8, live: true },
-    { prop: 'book_stand', x: 30, y: 12, when: 'clean_book' },
+    { prop: 'book_stand', x: 30, y: 12, when: 'clean_book', live: true },
     { prop: 'stair_up', x: 43, y: 12, layer: 'back' },
   ],
   lights: [],
@@ -61,7 +61,7 @@ export default {
     // a small brass plaque on the cage; Mr Pell says the rest himself
     { type: 'sign', text: 'MARKERS', size: 'small', x: 13, y: 8, dy: 6, board: 0x2a160e, padX: 6, padY: 3, scale: 2 },
     { type: 'sign', text: 'HURRICANE DECK', x: 43, y: 5, board: 0x2a160e, scale: 2 },
-    { type: 'npc', id: 'pell', cast: 'npc-lq-pell', x: 9, y: 11, facing: -1, talk: [{ conv: 'pell_full', if: 'marker3' }, { conv: 'pell_again', if: 'marker1' }, { conv: 'pell_clean', if: 'clean_book' }, { conv: 'pell_comped', if: 'met_pell' }, { conv: 'pell_first' }] },
+    { type: 'npc', id: 'pell', cast: 'npc-lq-pell', x: 9, y: 11, facing: -1, talk: [{ conv: 'pell_full', if: 'marker3' }, { conv: 'pell_again', if: 'marker1' }, { conv: 'pell_first' }, { conv: 'pell_clean', if: 'clean_book' }, { conv: 'pell_comped', if: 'met_pell' }] },
     // Crake comes when there is a marker in the book; he walks the corridor
     { type: 'foe', kind: 'crake', x: 19, y: 11, patrol: [18, 42], when: 'marker1' },
     { type: 'portal', id: 'office>deck', kind: 'door', x: 43, y: 11, to: { room: 'deck', portal: 'deck>office' }, door: { prompt: 'up to the hurricane deck', fade: 260 } },

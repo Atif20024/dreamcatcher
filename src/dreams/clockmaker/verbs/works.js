@@ -44,6 +44,7 @@ export default {
         // the rod from its pivot, the brass bob; the wound clock's are quiet
         g.lineStyle(4, 0x4a3a2a, 1).lineBetween(ox + (d.x + 0.5) * T, oy + d.row * T, ox + b.x, oy + b.y);
         g.fillStyle(0x8a6a2c, 1).fillCircle(ox + b.x, oy + b.y, 20);
+        g.lineStyle(2, 0x1e1410, 1).strokeCircle(ox + b.x, oy + b.y, 20); // brown on a brown wall: the first danger must read
         g.fillStyle(0xf2d580, 1).fillCircle(ox + b.x - 5, oy + b.y - 6, 9);
         if (F.clock_wound || s.encounterActive || now - ctx.state.hitAt < 1200) continue;
         const body = p.body;

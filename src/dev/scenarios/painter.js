@@ -152,8 +152,15 @@ export async function playCraft(dc, s, limit = 20000, until = null) {
     const d = a && !a.ending && a.t > 300 ? a.engine.due() : null;
     // a held step: down to start the brush, up on the gold
     if (d && d.mode === 'hold') {
-      if (!d.holding) dc.hold('interact');
-      else if (Math.abs(d.p - d.at) < d.half * 0.6) {
+      if (!d.holding) {
+        // (a down in the rest after a step is ignored: lift and press again)
+        dc.release('interact');
+        await dc.run(2);
+        dc.hold('interact');
+        await dc.run(2);
+        continue;
+      }
+      if (Math.abs(d.p - d.at) < d.half * 0.6) {
         dc.release('interact');
         presses += 1;
       }

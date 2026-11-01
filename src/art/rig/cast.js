@@ -297,7 +297,7 @@ export function castRig(look, spec = {}) {
 function scalePose(pose, k) {
   if (k === 1) return pose;
   const f = (ft) => (ft ? [ft[0] * k, Math.round(ft[1] * k), ft[2]] : ft);
-  return { ...pose, fF: f(pose.fF), fB: f(pose.fB), hips: Math.round((pose.hips || 0) * (k < 0.8 ? 0.7 : k)), hx: pose.hx ? pose.hx * k : pose.hx };
+  return { ...pose, fF: f(pose.fF), fB: f(pose.fB), hips: Math.round((pose.hips || 0) * (k < 0.8 ? 0.7 : k)), hx: pose.hx ? Math.round(pose.hx * k) : pose.hx }; // (whole pixels: at a fractional hx the head falls off the grid)
 }
 const STAND = { fF: [1, 0, 'flat'], fB: [-1, 0, 'flat'], aF: [-4, 10], aB: [6, 12] };
 const P = (o = {}) => ({ ...STAND, ...o });

@@ -115,6 +115,7 @@ const playthrough = {
   async run(dc) {
     const log = [];
     const s = await boot(dc);
+    const t0 = s.time.now;
     const ok = (k, v) => log.push(`${k}:${v ? 'ok' : 'FAIL'}`) && v;
     // 1. the lane, across the seam to Nell
     const nell = () => s.npcs.get('nell');
@@ -210,6 +211,7 @@ const playthrough = {
     ok('ending', s.ending.active);
     for (let i = 0; i < 900 && !s.ending.waitingForReturn; i++) await dc.run(1);
     ok('ending-card', !!s.ending.waitingForReturn && s.ending.caught);
+    const minutes = (s.time.now - t0) / 60000;
     dc.press('action', 3);
     // the passing-train wipe (WP6) starts the station under it at its middle
     for (let i = 0; i < 90 && !(dc.scene() && dc.scene().sys.settings.key === 'Hub'); i++) await dc.run(1);
@@ -227,7 +229,7 @@ const playthrough = {
     uncatch('clockmaker');
     clearRun('clockmaker');
     const pass = log.every((l) => l.endsWith(':ok'));
-    return { pass, detail: `${log.join(' ')}; encounter presses ${presses}` };
+    return { pass, detail: `${log.join(' ')}; encounter presses ${presses}; scripted run ${minutes.toFixed(1)} min of game time (the shaft climb skipped)` };
   },
 };
 

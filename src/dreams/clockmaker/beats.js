@@ -47,7 +47,8 @@ export default {
   seven_struck: [
     // (gates only move outside an encounter: the shot holds on this one as it swings)
     { lock: true },
-    { camera: { vista: 0.9, to: 'anchor:strike', ms: 400 } },
+    // (world px, between the gate and the rope: the anchor alone leaves Jo off the edge)
+    { camera: { vista: 0.9, to: { x: 3660, y: 340 }, ms: 400 } },
     { set: 'struck' },
     { music: 'setpiece' },
     { say: { who: 'jo', text: 'Seven, an hour late. Hear that? The whole town heard that.' } },

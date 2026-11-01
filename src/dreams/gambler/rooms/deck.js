@@ -45,7 +45,7 @@ export default {
     { prop: 'chimney', x: 33, y: 19, layer: 'back' },
     { prop: 'escape_pipe', x: 21, y: 19 },
     { prop: 'escape_pipe', x: 29, y: 19 },
-    { prop: 'escape_pipe', x: 32, y: 19, when: 'lost_nights' },
+    { prop: 'escape_pipe', x: 32, y: 19, when: 'lost_nights', live: true },
     { prop: 'pilot_house', x: 37, y: 19, layer: 'back' },
     { prop: 'texas_face', x: 15, y: 26, dx: 16, layer: 'fg' },
     { prop: 'ratline', x: 45, y: 26, layer: 'back' },

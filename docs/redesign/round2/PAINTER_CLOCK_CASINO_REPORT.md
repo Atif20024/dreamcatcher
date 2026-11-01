@@ -109,3 +109,73 @@ Results after merging `redesign`: vitest 494 passed; lint:content, lint:rooms, l
 **Merge:** conflicts in `scripts/lib/cast-bake.js` and `src/data/scale.js` kept both sides. `sheets/cast-lineup.png` took redesign's copy, since it is generated. I did not move the test piece to the new `onFlags` hook: `onRender` already works and nothing needs the change.
 
 **Add to the browser rerun list:** `painter-lapis-theft` (new, never run), `gambler-clean-office` (its coin check changed), and everything listed in the first round, now on the merged code. The scenario list from `redesign` should be rerun too, because merged code has only been through unit tests and lints here.
+
+# Browser check
+
+First browser run, port 5181, silent. Scenarios were rerun together on a clean page after the last fix. Screenshots are `pcc_*.jpg` in the session scratchpad. vitest 495 passed; lint:content, lint:rooms, lint:scale and `vite build` are clean.
+
+| Scenario | Result |
+|---|---|
+| `painter-board`, `clockmaker-board`, `gambler-board` (boarded from the hub) | pass |
+| `painter-lapis-theft` | pass (failed first: bug 1) |
+| `painter-playthrough` (2.4 min scripted), `painter-places`, `painter-coins`, `painter-ladder` | pass (playthrough failed first: scenario's hold driver) |
+| `clockmaker-playthrough`, `clockmaker-shaft`, `clockmaker-door`, `clockmaker-perf`, `clockmaker-coins`, `clockmaker-talk-on-e`, `clockmaker-seam-dip` | pass |
+| `slope-clockmaker-yard` (the `clockmaker-yard` site) | pass |
+| `gambler-clean-office` | pass (failed first: bug 2) |
+| `gambler-office`, `gambler-deck`, `gambler-cards`, `gambler-tilt`, `gambler-playthrough`, `gambler-places`, `gambler-coins`, `gambler-quay`, `gambler-saloon` | pass |
+| `dream-seams-dip` | pass (failed first: the scenario's flags now fire the stage beats, which lock Jo on purpose) |
+| `hub-thresholds-dip`, `hub-threshold-no-flicker` | pass |
+| `restart-checkpoint-chef/-clockmaker`, `restart-dream-chef/-writer/-clockmaker/-painter`, `restart-death-card`, `restart-evening` | pass |
+| `scale-*` (hub, chef, musician, astronaut, writer, painter, gambler, evening, clockmaker) | pass (`scale-gambler` failed first: bug 3) |
+| `readability-painter`, `readability-clockmaker`, `readability-gambler` | pass |
+
+## Bugs found and fixed
+
+1. **A stolen lapis jumped back into Jo's hand.** Grabbed on the top shelf, the stone reappeared on its stand beside him during the throw-out and he took it again, firing the beat a second time. Key items now wait while `thrownOut`.
+2. **Pell never introduced himself to a clean player.** `pell_clean` came before `pell_first`, so "The book hardly knows you" was his first line, the marker was never explained and `met_pell` never set. Reordered.
+3. **Bald and bare-headed people lost their heads for 2 frames in 8.** At a scaled body, `hx * k` is fractional and the head and hat fall off the grid: barman, casekeeper, clarinet, lady, and the banjo's hat. `scalePose` rounds it. Unit test added. It is shared art code, so every scaled body is rebaked.
+4. **A rival could never grab a Jo who stood still.** He winds up at 70 px, stops and reaches 42, so he looped forever at 67 px. Rivals now step in on the grab (`lunge` in `kinds.js`). Only rivals: see below.
+5. **The shaft was too tight for the gentlest dream.** The chain ladder was clear about 12% of the time, the foot of it was inside the swing, and the second bob met Jo stepping off the ladder. Now: the second pivot moved to x12, the third is shorter (2.6) so the foot is safe to wait on, and periods are 3800, 3600, 3400. Measured from the chain's foot before the last slow-down: clear 25% of the time; the slower period should beat that, not rerun. The bob has a dark outline (brown on a brown wall).
+6. **Job instructions were cut off.** "Hold [E], let go on the g…" and the third gear's hint overflowed the context slot. Shortened; two grind labels are shorter. All measured lines fit.
+7. **The old book's stand and the third pipe could be missing or stay.** Their props were not `live`. Now they follow the flag.
+8. **Three plates on top of each other** where a flag is just inside a door (room card, flag banner, "saved"). The flag banner now replaces the card in framework dreams.
+9. **The seventh strike's shot put Jo half out of frame, and the strike shot clipped the gate.** Anchor moved; `seven_struck` now frames a point between gate and rope (world px in `beats.js`).
+
+The playthrough scenario also reports its run length now, and `playCraft` handles a press lost in the rest after a step.
+
+## Seen by hand
+
+| Check | Result |
+|---|---|
+| Mash and hold, including a miss, letting go early and running off the end | pass; costs show in Gualtiero's lines |
+| Two marks, including a slack fold | pass; the altarpiece builds up |
+| Pick 2 of 3, with a wasted material | pass; HUD, repaint and verdict all follow |
+| Rival takes the lapis in the street, then the way home | pass after bug 4; Orazio's line plays |
+| Gualtiero at the trial, scaffold and bell | pass |
+| Pendulum draw order | pass: rods and bobs behind planks, ladders and Jo |
+| Bell chamber | pass; the bell reads well |
+| Seven strikes, with presses (7 s) and with none (25 s) | pass after bug 9; gate, lamps and Jo hold in frame; lamps light gate end first |
+| Nell's last lamp | works, with a gap below |
+| Townsfolk before and after | pass |
+| Child's window | aligned on the house |
+| Whistle | pass; the coin lands at Jo's feet and is taken at once |
+| Third gear with misses | pass; slips, window widens 0.16 to 0.28 |
+| Third pipe | pass; a blind run is clean 2 tries in 10, by design |
+| Clean office, brass, Pell, old book | pass; brass reachable (3 of 5 on one jump), the first plank removes it |
+| Lou's hands | tremble is small but visible; still at the landing |
+
+## Clockmaker length and gentleness
+
+Scripted run with no reading time: **1.3 min of game time**, shaft skipped. A blind climb of the shaft takes about 10 s. Adding reading, watching the bobs and learning the jobs gives my estimate of **3 to 4 minutes** for a first run, against the 6 to 8 estimated above. That estimate is not a measurement of a person.
+
+It is still gentle: nothing can fail, the first knock is free, none takes the last heart. A blind sprint up the shaft still takes 2 or 3 knocks and usually leaves 1 or 2 hearts.
+
+## Not fixed: for the owner
+
+- **Every other person foe has bug 4's dead zone.** Inspectors, the foreman, Crake and foes in other dreams cannot grab someone standing still. A `lunge` on each fixes it, but it changes balance in every dream, so I left it.
+- **Captions cover the context line** at the bottom left, including job hints. Shared HUD layout.
+- **The letterbox clips the objective plate** during conversations. Shared.
+- **Nell "reaches up with the pole"** but has no pole and stands 3 tiles from the lamp, which simply lights. Needs a pose and a prop.
+- **The child's caption portrait** does not match the child in the window (skin and clothes).
+- **The test panel shrinks** from the job's 96 by 120 to the small easel prop when the job ends.
+- **Sound** is still unheard: dev is silent.

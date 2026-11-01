@@ -411,6 +411,12 @@ export default class DreamScene extends BaseLevel {
     }
   }
 
+  // a flag just inside a door: its banner replaces the room's card (both name the place)
+  showCheckpointLabel(label, sub) {
+    if (label && this._titleCard && this._titleCard.active) this._titleCard.destroy();
+    super.showCheckpointLabel(label, sub);
+  }
+
   titleCard(text) {
     // round 2 WP6 (§9): a place's name arrives on the board, letter by letter
     if (this._titleCard && this._titleCard.active) this._titleCard.destroy();

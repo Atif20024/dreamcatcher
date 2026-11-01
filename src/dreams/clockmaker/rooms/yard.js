@@ -60,7 +60,7 @@ export default {
     { type: 'gate', id: 'g_yard_in', x: 2, y: 10, h: 6, requires: ['struck'], hint: 'OPENS WHEN THE CLOCK STRIKES' },
     { type: 'portal', id: 'yard>belfry', kind: 'door', x: 32, y: 11, to: { room: 'belfry', portal: 'belfry>yard' }, door: { prompt: 'in to the bell chamber', fade: 300 } },
     // the rope; the camera's anchor is the gate, so the shot holds both
-    { type: 'encounter', id: 'strike', x: 27, y: 11, anchor: { x: 4, y: 10 }, prompt: 'strike the hour', when: 'clock_wound', unless: 'struck' },
+    { type: 'encounter', id: 'strike', x: 27, y: 11, anchor: { x: 1, y: 10 }, prompt: 'strike the hour', when: 'clock_wound', unless: 'struck' },
     // coins: a hop at the foot of the hill, and the hilltop behind the bell
     { type: 'coin', id: 'c_hop1', x: 4, y: 13 },
     { type: 'coins', id: 'c_hop2', x: 5, y: 12, n: 2 },

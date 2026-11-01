@@ -22,9 +22,11 @@ g.put(2, 7, '====');  // the ledge (x 2–5): a full jump from C
 
 // the loose pendulums (room tiles): pivot x, row; length; swing; period
 export const PENDULUMS = [
-  { x: 12, row: 26, len: 4.6, amp: 0.85, period: 3400 },
-  { x: 13, row: 19, len: 4.6, amp: 0.85, period: 3000 },
-  { x: 14, row: 12, len: 3.4, amp: 0.8, period: 2600 },
+  { x: 12, row: 26, len: 4.6, amp: 0.85, period: 3800 },
+  // (clear of both ladder heads: it never meets Jo as he steps off)
+  { x: 12, row: 19, len: 4.6, amp: 0.85, period: 3600 },
+  // (over the foot of the chain, so he can wait there and watch; slow enough to climb between swings)
+  { x: 14, row: 12, len: 2.6, amp: 0.8, period: 3400 },
 ];
 
 export default {

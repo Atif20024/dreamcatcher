@@ -40,7 +40,7 @@ export const escapement = {
   presenter: 'world',
   view: 'escapement',
   camera: { zoom: 1.25 },
-  hint: '[E] as the bob crosses the brass. Off the beat, it slips',
+  hint: '[E] as the bob crosses. Off the beat, it slips',
   pose: 'interact',
   onRender(scene) {
     if (scene.music) scene.music.setState('tense');

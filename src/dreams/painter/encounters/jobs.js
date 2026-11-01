@@ -32,9 +32,9 @@ export const grind = {
     zone: 0.24,
     steps: [
       { label: 'crush the green earth', mode: 'mash', need: 5, at: 0.5, zone: 0.5, speed: 0.4 },
-      { label: 'grind it fine as flour', mode: 'hold', at: 0.62, zone: 0.24, speed: 0.45 },
+      { label: 'grind it fine', mode: 'hold', at: 0.62, zone: 0.24, speed: 0.45 },
       { label: 'wash it in the bowl', at: 0.35 },
-      { label: 'temper it with the yolk', mode: 'hold', at: 0.78, zone: 0.2, speed: 0.45 },
+      { label: 'temper with yolk', mode: 'hold', at: 0.78, zone: 0.2, speed: 0.45 },
     ],
   },
   presenter: 'world',

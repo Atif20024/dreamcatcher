@@ -98,10 +98,10 @@ export function craftWorld(scene, def, engine, ctx) {
     if (st.phase === 'dried') return 'the plaster dried. chip it off, lay it fresh…';
     if (st.auto) return `${st.label}: hold the ladder steady`;
     if (st.hint) return `${st.label}: ${st.hint}`;
-    if (st.mode === 'mash') return `${st.label}: tap [E] while the brush is on the gold`;
+    if (st.mode === 'mash') return `${st.label}: tap [E] on the gold`;
     if (st.mode === 'hold') return `${st.label}: hold [E], let go on the gold`;
     if (st.mode === 'double') return `${st.label}: [E] on one mark, [E] on the next`;
-    return `${st.label}: [E] when the brush is on the gold`;
+    return `${st.label}: [E] on the gold`;
   };
   const marks = (st) => `${def.title || 'THE WORK'}  ${Math.min(st.idx + 1, st.n)}/${st.n}`;
   const sync = (st) => {
