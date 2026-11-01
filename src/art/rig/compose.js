@@ -165,6 +165,26 @@ export function outline(g, letter = 'k') {
   return g;
 }
 
+// rim light: cloth with open air on its leading side (or, for 'all', above it)
+// takes the family's highlight, so a dark figure keeps an edge on a dark wall.
+// 'limbs' lights only the near arm and both legs. Run it before the outline.
+const RIM_LIMBS = new Set(['arm_f', 'fore_f', 'thigh_f', 'shin_f', 'thigh_b', 'shin_b']);
+export function rimPass(g, rig, mode = 'limbs') {
+  const lit = [];
+  for (let y = 0; y < g.h; y++)
+    for (let x = 0; x < g.w; x++) {
+      const ch = get(g, x, y);
+      const fam = ch && familyOf(rig, ch);
+      if (fam !== 'jacket' && fam !== 'pants') continue;
+      const part = partAt(g, x, y);
+      if (mode === 'limbs' && !RIM_LIMBS.has(part)) continue;
+      const open = !get(g, x + 1, y) || (mode === 'all' && !get(g, x, y - 1));
+      // a far limb stays one step down, so it never out-lights the near one
+      if (open) lit.push([x, y, tone(rig, fam, part.endsWith('_b') ? 1 : 0)]);
+    }
+  for (const [x, y, ch] of lit) g.px[y * g.w + x] = ch;
+}
+
 // rotate a whole composed grid about a pivot by an angle (nearest neighbour;
 // used for the few lying/tumbling frames: a fall, a KO, a float tumble)
 export function rotateGrid(g, angleDeg, cx, cy) {

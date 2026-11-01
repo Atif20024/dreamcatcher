@@ -32,7 +32,8 @@ export function walkCycle(g) {
     const h = i === 0 ? 0 : Math.max(1, Math.round(g.lift * Math.sin(Math.PI * p)));
     const swing = [swingX, h, i === 0 ? 'toe' : p >= 0.7 ? 'heel' : p <= 0.25 ? 'toe' : 'lift'];
     const arms = g.arms(p, i);
-    half1.push(P({ hips: g.hips[i], lean: g.lean || 0, chest: g.chest || 0, torso: g.torso, head: g.head || 'base', fF: planted, fB: swing, ...arms, _sway: g.sway ? g.sway * Math.sin(Math.PI * p) : 0 }));
+    // the hem lags a pixel as the step lands, and catches up by the passing frame
+    half1.push(P({ trail: p < 0.5 ? -1 : 0, hips: g.hips[i], lean: g.lean || 0, chest: g.chest || 0, torso: g.torso, head: g.head || 'base', fF: planted, fB: swing, ...arms, _sway: g.sway ? g.sway * Math.sin(Math.PI * p) : 0 }));
   }
   const half2 = half1.map((f) => ({ ...mirror(f), _sway: -f._sway }));
   return headLag([...half1, ...half2].map(({ _sway, ...f }) => ({ ...f, lean: (f.lean || 0) + Math.round(_sway) })));
@@ -49,7 +50,7 @@ export function runCycle({ step, k = 1, lean = 2, hips = [0, -1, 2, 1], pump = 1
     { hips: hips[1], fF: [d, 0, 'flat'], fB: [d + 2, H(7), 'lift'], aF: [-22 * pump, 80], aB: [20 * pump, 85] },
     { hips: hips[2], fF: [d - step, H(2), 'toe'], fB: [c, H(6), 'lift'], aF: [10 * pump, 85], aB: [-14 * pump, 80] },
     { hips: hips[3], fF: [d - step + 1, H(6), 'point'], fB: [c + 2, H(2), 'heel'], aF: [30 * pump, 85], aB: [-36 * pump, 80] },
-  ].map((f) => P({ lean, head, handF: 'fist', handB: 'fist', ...f }));
+  ].map((f) => P({ lean, head, handF: 'fist', handB: 'fist', trail: f.hips > 0 ? -2 : -1, ...f }));
   return headLag([...half, ...half.map(mirror)]);
 }
 
@@ -77,7 +78,7 @@ export const GAITS = {
   // an ordinary person: upright, arms low and loose, a gentle bob
   plain: (b) => ({ walk: { n: 8, step: STEP[b], lift: 3, hips: [0, -1, 0, 1], arms: swing(20, 8, 8) }, runAbove: 95 }),
   // the bouncer: twelve frames, weight rolled side to side, arms hang wide
-  heavy: (b) => ({ walk: { n: 12, step: 2, lift: 2, hips: [0, 0, -1, -1, 0, 1], sway: 1.4, chest: 1, arms: swing(12, 6, 4, 10) }, runAbove: 80, run: { lean: 1, pump: 0.7 } }),
+  heavy: (b) => ({ walk: { n: 12, step: 2, lift: 2, hips: [0, 0, -1, -1, 0, 1], sway: 2.2, chest: 1, arms: swing(12, 6, 4, 14) }, runAbove: 80, run: { lean: 1, pump: 0.7 } }),
   // cops, guards, security: measured, hands behind the back, chest out
   measured: (b) => ({ walk: { n: 10, step: 3, lift: 2, hips: [0, -1, 0, 0, 1], chest: 1, arms: behind() }, runAbove: 90, handsBehind: true }),
   // the landlady, managers, the collector: hurried, leaning in, short quick steps
@@ -202,9 +203,11 @@ const LOOP = {
 LOOP.kite_string = LOOP.string;
 LOOP.suitcase = LOOP.case;
 // empty hands: shift the weight, look along the street, check the time
-const LOOP_FREE = [0, 0, 1, 1, 0, 0, 2, 2].map((t, i) =>
-  P({ chest: t === 1 ? 1 : 0, fF: [t === 1 ? 2 : 1, 0, 'flat'], headFlip: t === 2, aF: t === 1 ? [30, 90] : [-4, 10], handF: t === 1 ? 'fist' : 'open', head: i === 3 ? 'blink' : 'base' })
-);
+// (the hips go, the feet stay: the planted feet are written back by hx)
+const LOOP_FREE = [0, 0, 1, 1, 0, 0, 2, 2].map((t, i) => {
+  const hx = t === 2 ? -1 : 0;
+  return P({ hx, chest: t === 1 ? 1 : 0, fF: [(t === 1 ? 2 : 1) - hx, 0, 'flat'], fB: [-1 - hx, 0, 'flat'], headFlip: t === 2, aF: t === 1 ? [30, 90] : [-4, 10], handF: t === 1 ? 'fist' : 'open', head: i === 3 ? 'blink' : 'base' });
+});
 export function taskLoop(held) {
   return LOOP[held] || LOOP_FREE;
 }

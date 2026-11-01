@@ -9,6 +9,7 @@ import jo from '../../data/rigs/jo.js';
 import { composeHuman } from './human.js';
 import { stamp, outline } from './compose.js';
 import { gaitPoses, gaitName as gaitNameOf, signatureIdle, taskLoop } from './gaits.js';
+import { costumeFor, costumeLayers, faceRows } from './costumes.js';
 
 
 // ---- colour ---------------------------------------------------------------------
@@ -27,15 +28,19 @@ const lum = (c) => {
 };
 // [hi, base, shade, deep] for one material
 export function tones(c) {
-  const dark = lum(c) < 0.18;
-  return [mix(c, LIGHT, dark ? 0.24 : 0.3), c, mix(mix(c, 0x000000, 0.22), COOL, 0.28), mix(mix(c, 0x000000, 0.48), COOL, 0.3)];
+  if (lum(c) < 0.18) {
+    // dark cloth: a real ramp, every step above the outline, or the shading is lost in it
+    const b = mix(c, 0x68688e, 0.2);
+    return [mix(b, LIGHT, 0.27), b, mix(b, 0x1a1828, 0.45), mix(b, 0x1a1828, 0.78)];
+  }
+  return [mix(c, LIGHT, 0.3), c, mix(mix(c, 0x000000, 0.22), COOL, 0.28), mix(mix(c, 0x000000, 0.48), COOL, 0.3)];
 }
 
 // ---- bodies ----------------------------------------------------------------------
 // Torsos face right: a coat (base colour) with a lighter placket/collar (the
 // look's trim), a belt and the trouser top. Anchor = the hip point.
-const TORSO_ADULT = jo.parts.torso.base;
-const TORSO_HUNCH = jo.parts.torso.hunch;
+const TORSO_ADULT = ['...IJJWW.', '..IJJJJWj', '.IJJJJJWw', '.IJJJJJWw', '.IJJJJWWj', '.IJJJJWwj', '.IJJJJWWj', '..IJJJJWj', '..jJJJJjj', '..KKKKuK.', '..QPPPPp.'];
+const TORSO_HUNCH = ['.........', '..IJJWW..', '.IJJJJWj.', 'IJJJJJWwj', 'IJJJJJWWj', 'IJJJJJWwj', '.IJJJJWWj', '..IJJJJWj', '..jJJJJjj', '..KKKKuK.', '..QPPPPp.'];
 const TORSO_DRESS = TORSO_ADULT.map((r, i) => (i === 9 ? '..jJJJJj.' : i === 10 ? '..JJJJJj.' : r));
 const TORSO_F = [
   '...IJWW..',
@@ -52,18 +57,18 @@ const TORSO_F = [
 ];
 const TORSO_F_DRESS = TORSO_F.map((r, i) => (i === 9 ? '..jJJJJj.' : i === 10 ? '..JJJJJj.' : r));
 const TORSO_BIG = [
-  '....IJJWW..',
-  '..IIJJJJJWj',
-  '.IJJJJJJJWw',
-  'IJJJJJJJJWw',
-  'IJJJJJJJJWj',
-  'IJJJJJJJJWj',
-  'IJJJJJJJJWj',
-  '.IJJJJJJJWj',
-  '.IJJJJJJJWj',
-  '..jJJJJJJjj',
-  '..KKKKKKuK.',
-  '..QPPPPPPp.',
+  '.....IJWW....',
+  '...IIJJJJWj..',
+  '.IIJJJJJJJWjj',
+  'IJJJJJJJJJWwj',
+  'IJJJJJJJJJWwj',
+  '.IJJJJJJJJWjj',
+  '.IJJJJJJJWWj.',
+  '..IJJJJJJWj..',
+  '...IJJJJJWj..',
+  '...jJJJJJjj..',
+  '...KKKKKuK...',
+  '...QPPPPPp...',
 ];
 const TORSO_CHILD = [
   '..IJWW.',
@@ -77,8 +82,8 @@ const TORSO_CHILD = [
 ];
 const TORSO_CHILD_DRESS = TORSO_CHILD.map((r, i) => (i === 6 ? '.jJJJj.' : i === 7 ? '.JJJJj.' : r));
 // a skirt / dress hem / apron, stamped over the front leg (anchor = the hip)
-const SKIRT = { rows: ['..JJJJJj.', '.IJJJJJjj', '.IJJJJJJj', 'IJJJJJJJj', 'IJJJJJJJjj', 'jjjjjjjjjj'], ox: 4, oy: 0 };
-const SKIRT_CHILD = { rows: ['.JJJJj.', 'IJJJJjj', 'IJJJJJj', 'jjjjjjj'], ox: 3, oy: 0 };
+const SKIRT = { rows: ['..JJJJJj.', '.IJJJJJjj', '.IJJJJJJj', 'IJJJJJJJj', 'IJJJJJJJjj', 'jjjjjjjjjj'], ox: 4, oy: 0, trail: true };
+const SKIRT_CHILD = { rows: ['.JJJJj.', 'IJJJJjj', 'IJJJJJj', 'jjjjjjj'], ox: 3, oy: 0, trail: true };
 const APRON = { rows: ['....WWw.', '...WWWWw', '...WWWWw', '...WWWWw', '...WWWWw', '...wwwww'], ox: 4, oy: 1 };
 
 const SOLE = 56;
@@ -92,7 +97,7 @@ export const BODIES = {
   // 1.66 m, narrower shoulders
   f: { metrics: metrics({ thigh: 7, shin: 8, upper: 6, fore: 6, thighR: 2.0, shinR: 1.6, armR: 1.55, foreR: 1.35 }), torso: TORSO_F, dress: TORSO_F_DRESS, anchor: [4, 10], neck: [5, -1], sF: [5, 1], sB: [4, 1], skirt: SKIRT, k: 15 / 16 },
   // 1.95 m and broad: bouncers, security, Marcus
-  big: { metrics: metrics({ thigh: 9, shin: 10, upper: 8, fore: 7, thighR: 2.6, shinR: 2.1, armR: 2.1, foreR: 1.85, hipSep: 1 }), torso: TORSO_BIG, dress: TORSO_BIG, anchor: [5, 11], neck: [6, -1], sF: [7, 2], sB: [4, 2], skirt: SKIRT, k: 19 / 16 },
+  big: { metrics: metrics({ thigh: 9, shin: 10, upper: 8, fore: 7, thighR: 2.6, shinR: 2.1, armR: 2.1, foreR: 1.85, hipSep: 1 }), torso: TORSO_BIG, dress: TORSO_BIG, anchor: [6, 11], neck: [7, 0], sF: [10, 3], sB: [2, 3], skirt: SKIRT, k: 19 / 16 },
   // 1.62 m with a stoop
   elderly: { metrics: metrics({ thigh: 7, shin: 7, upper: 6, fore: 6, thighR: 2.0, shinR: 1.6, armR: 1.55, foreR: 1.35 }), torso: TORSO_HUNCH, dress: TORSO_HUNCH.map((r, i) => (i === 9 ? '..jJJJJj.' : i === 10 ? '..JJJJJj.' : r)), anchor: [4, 10], neck: [5, 0], sF: [5, 2], sB: [4, 2], skirt: SKIRT, k: 14 / 16, lean: 1 },
   // 1.62 m, slight
@@ -127,7 +132,8 @@ export function headSet(base, beard) {
   const talk = beard ? setAt(b, 7, 6, 'm') : mouth(b, 'mm', 'mS');
   const laugh = beard ? setAt(blink, 7, 6, 'mm') : mouth(blink, 'mm', 'mm');
   // the foe's notice: the brow drops toward the nose, the pupil goes red
-  const alert = setAt(setAt(eyes(b, 'iX', 'iX'), 3, 5, 'Sa'), 3, 7, 'a');
+  // (2x2 and a faint glow beside it: on a dark foe a single red pixel vanishes)
+  const alert = setAt(setAt(setAt(setAt(eyes(b, 'XX', 'XX'), 3, 5, 'Sa'), 3, 7, 'a'), 4, 4, 'Y'), 5, 4, 'Y');
   const shout = beard ? setAt(alert, 7, 6, 'mm') : mouth(alert, 'mm', 'mm');
   // puzzled: the brow up, the pupil glancing back
   const search = setAt(setAt(eyes(b, 'ei', 'ei'), 3, 5, 'SS'), 2, 5, 'aa');
@@ -143,6 +149,7 @@ const HATS = {
   beanie: { rows: ['...UHH....', '.UUHHHHH..', '.UHHHHHHh.', '.hhhhhhhh.'], ox: 4, oy: 8 },
   fedora: { rows: ['...UHHH...', '..UHHHHh..', '..yyyyyr..', 'hhHHHHHHhh'], ox: 4, oy: 9 },
   toque: { rows: ['..UUHHH...', '.UHHHHHHh.', '.UHHHHHHh.', '..UHHHHh..', '..hhhhhh..'], ox: 4, oy: 10 },
+  chef_toque: { rows: ['..UUHHH...', '.UHHHHHHh.', '.UHHHHHHh.', '.UHHHHHHh.', '..UHHHHh..', '..hhhhhh..'], ox: 4, oy: 11 },
   baker: { rows: ['..UHHHHH..', '.UHHHHHHh.', '..hhhhhh..'], ox: 4, oy: 9 },
   straw: { rows: ['....UHHH....', '...UHHHHH...', '...yyyyyr...', 'hhHHHHHHHHhh'], ox: 6, oy: 9 },
   bandana: { rows: ['..UHHHH...', '.UHHHHHHh.', 'hHhhhhhh..', 'h.........'], ox: 4, oy: 8 },
@@ -198,6 +205,8 @@ const HELD = {
   glass: { rows: ['Z.Z', 'ZAZ', '.Z.', 'ZZZ'], ox: 1, oy: 3, arm: [30, 90] },
   banjo: { rows: ['....F', '...F.', '..F..', '.ZAA.', 'ZAAAA', 'AAxAA', '.AAA.'], ox: 3, oy: 3, arm: [20, 70], back: [40, 50] },
   clarinet: { rows: ['F', 'F', 'F', 'F', 'F', 'A', 'A'], ox: 0, oy: 1, arm: [70, 100] },
+  // signature props (src/art/rig/costumes.js)
+  cane: { rows: ['FF', '.F', '.F', '.F', '.F', '.F', '.F', '.F', '.F', '.F', '.f', '.f', '.f'], ox: 1, oy: 1, arm: [18, 12] },
 };
 HELD.kite_string = HELD.string;
 
@@ -235,6 +244,7 @@ export function castRig(look, spec = {}) {
   const [N, a] = tones(hairC);
   const [Z, Ab, x] = tones(A);
   const palette = {
+    Y: 0x8a2a2a,
     k: 0x1a1828,
     I, J, j, q, W: mix(W, Wl, 0.3), w, v, Q, P: Pp, p, o, R, S: Ss, s, t, C, B: Bb, b, d, U, H: Hh, h, g, y, r, n,
     a, N, Z, A: Ab, x, F: 0x6a4a32, f: 0x4a3222,
@@ -272,7 +282,9 @@ export function castRig(look, spec = {}) {
     hat: HATS[hatName] || { rows: [], ox: 0, oy: 0, flipShift: 0 },
     over: spec.dress ? B.skirt : spec.apron ? APRON : null,
   };
-  return { id: 'cast', palette, families, metrics: B.metrics, parts, body: bodyName, k: B.k, lean: B.lean || 0 };
+  // dark cloth keeps a lit edge against a dark wall
+  const rim = lum(T) < 0.18 || lum(P) < 0.13 ? 'all' : null;
+  return { id: 'cast', palette, families, metrics: B.metrics, parts, body: bodyName, k: B.k, lean: B.lean || 0, rim, B, torsoRows: torso, headSpec: { hair: variantHair, beard: variantBeard } };
 }
 
 // ---- poses -------------------------------------------------------------------
@@ -293,7 +305,7 @@ const TALK = [
 ];
 const IDLE = [0, 1, 1, 0].map((c, i) => P({ chest: c, head: i === 3 ? 'blink' : 'base' }));
 const WAVE = [0, 1, 2, 1].map((i) => P({ aF: [150, -20 + i * 25], handF: 'up', head: 'talk' }));
-const SEATED = { hips: -7, fF: [6, 0, 'flat'], fB: [5, 0, 'flat'], aF: [30, 50], aB: [25, 50] };
+const SEATED = { hips: -7, fF: [8, 0, 'flat'], fB: [6, 0, 'flat'], aF: [40, 25], aB: [32, 28], handF: 'flat', handB: 'flat' };
 // foes: the notice (3 frames: the head snaps round, the brow drops, the red
 // glint, then a point), the tell (0.4 s, weight back, arms back then up), the
 // grab (lunge, both hands out), the throw (lift and heave), the search
@@ -330,16 +342,34 @@ const FOE = {
   ],
 };
 
+// the character's own costume, face and prop (src/art/rig/costumes.js). The
+// bake names the character here, so it goes on the rig here (once)
+function dress(rig, key) {
+  if (!key || rig.dressed) return;
+  rig.dressed = true;
+  const c = costumeFor(key, rig.body);
+  if (!c) return;
+  if (c.pal) Object.assign(rig.palette, c.pal);
+  if (c.hat && HATS[c.hat]) rig.parts.hat = HATS[c.hat];
+  rig.parts.head = headSet(faceRows(HAIR[c.hair || rig.headSpec.hair] || HAIR.short, c.face), rig.headSpec.beard);
+  rig.parts.over = [].concat(rig.parts.over || [], costumeLayers(c.over, rig.torsoRows));
+  if (c.tallBoots) rig.parts.shinFamily = 'boot';
+  rig.prop = c.prop || null;
+}
+
 // opts: { key, gait }. Walks and runs come from the gait generator
 // (src/art/rig/gaits.js) per body: exact integer steps, never scaled, so the
 // planted foot moves one step a frame.
-export function castPoses(rig, held, opts = {}) {
+export function castPoses(rig, heldIn, opts = {}) {
+  dress(rig, opts.key);
   const k = rig.k;
   const lean = rig.lean;
+  // a look's held thing wins; otherwise the character's signature prop
+  const held = heldIn || rig.prop || null;
   const H = HELD[held] || null;
   const withHeld = (pose) => {
     if (!H) return pose;
-    const out = { ...pose, aF: pose.heldArm || H.arm, handF: H.hand || 'fist' };
+    const out = { ...pose, aF: pose.heldArm || H.arm, handF: H.hand || 'fist', prop: held };
     if (H.back) out.aB = pose.heldArmB || H.back;
     return out;
   };
@@ -389,7 +419,7 @@ export function composeCast(rig, pose, held) {
   const g = comp.body;
   // the composer outlined the body: strip that ring so the extras join it cleanly
   for (let i = 0; i < g.px.length; i++) if (g.px[i] === 'k' && g.part[i] === 'outline') g.px[i] = null;
-  const H = HELD[held];
+  const H = HELD[held || pose.prop];
   if (H && comp.attach.hand_f && !pose.noHeld) {
     const [hx, hy] = comp.attach.hand_f;
     // the hand stays in front of the grip

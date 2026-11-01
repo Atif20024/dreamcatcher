@@ -12,7 +12,8 @@ import { encodePNG, decodePNG } from '../scripts/lib/png.js';
 import { image, setPx } from '../scripts/lib/raster.js';
 import { importPack } from '../scripts/lib/importer.js';
 import { GAITS, FOE_GAITS } from '../src/art/rig/gaits.js';
-import { castRig, castPoses } from '../src/art/rig/cast.js';
+import { castRig, castPoses, tones } from '../src/art/rig/cast.js';
+import { costumeFor, costumeLayers } from '../src/art/rig/costumes.js';
 import { FOES } from '../src/data/kinds.js';
 
 const counts = Object.fromEntries(Object.keys(joManifest.animations).map((a) => [a, POSES[a].length]));
@@ -184,6 +185,43 @@ describe('gaits (phase 2 motion)', () => {
     const rig = castRig({ pal: {} }, {});
     expect(castPoses(rig, null).windup.length).toBe(3);
     expect(castPoses(rig, null).alert.length).toBe(3);
+  });
+});
+
+describe('fresh review character fixes', () => {
+  const footXs = (p) => {
+    const c = composeHuman(joRig, p).contacts;
+    return [c.f, c.b];
+  };
+  it("Jo's weight shift moves his hips, never his feet", () => {
+    const planted = footXs(POSES.idle[0]);
+    expect(POSES.idle.some((p) => p.hx)).toBe(true);
+    for (const p of POSES.idle) expect(footXs(p)).toEqual(planted);
+  });
+  it('dark cloth keeps a ramp above the outline', () => {
+    const value = (c) => ((c >> 16) & 255) + ((c >> 8) & 255) + (c & 255);
+    const [hi, base, shade, deep] = tones(0x14141c);
+    expect(value(hi)).toBeGreaterThan(value(base));
+    expect(value(base)).toBeGreaterThan(value(shade));
+    expect(value(shade)).toBeGreaterThan(value(deep));
+    expect(value(deep)).toBeGreaterThan(value(0x1a1828));
+  });
+  it('costumes: torso layers fit their torso, and the legacy dreams are left alone', () => {
+    expect(costumeFor('pt-p-clerk', 'm')).toBe(null);
+    const rig = castRig({ pal: {} }, { body: 'big' });
+    const layers = costumeLayers(['tie', 'badge', 'crossbelt', 'tails'], rig.torsoRows);
+    expect(layers.length).toBe(4);
+    for (const l of layers.filter((x) => x.torso)) {
+      expect(l.rows.map((r) => r.length)).toEqual(rig.torsoRows.map((r) => r.length));
+      expect(l.rows.join('').replace(/\./g, '').length).toBeGreaterThan(0);
+    }
+  });
+  it('a character is dressed by key, and a prop reaches its frames', () => {
+    const rig = castRig({ pal: {} }, { body: 'elderly', sex: 'f' });
+    const P = castPoses(rig, null, { key: 'ev-p-delphine' });
+    expect(rig.prop).toBe('cane');
+    expect(P.idle[0].prop).toBe('cane');
+    expect([].concat(rig.parts.over).length).toBeGreaterThan(0);
   });
 });
 
