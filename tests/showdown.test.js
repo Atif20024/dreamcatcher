@@ -382,6 +382,21 @@ describe('SHOWDOWN: the last table', () => {
     expect(h.result).toMatchObject({ ok: true, stood: true });
   });
 
+  it('tilted, the creep still drifts to RAISE but never walks off STAND UP', () => {
+    const h = showdown({ mode: 'final', stack: 160, buyin: 100, tilt: 0.8, seed: 3, creepMs: 1000 });
+    until(h, 'decide');
+    const verb = () => h.state().menu[h.state().cursor].id;
+    expect(verb()).toBe('call');
+    for (let i = 0; i < 12; i++) h.update(100);
+    expect(verb()).toBe('raise');
+    h.move('right'); // past the dark FOLD and BLUFF
+    expect(verb()).toBe('stand');
+    for (let i = 0; i < 100; i++) h.update(100);
+    expect(verb()).toBe('stand');
+    h.press('act');
+    expect(h.result).toMatchObject({ ok: true, stood: true });
+  });
+
   it('the habit is once a sitting: a hand won does not bring it back', () => {
     for (let seed = 1; seed < 100; seed++) {
       const h = showdown({ mode: 'final', stack: 160, buyin: 100, seed, creepMs: 1000 });

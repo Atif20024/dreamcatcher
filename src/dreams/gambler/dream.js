@@ -132,7 +132,7 @@ const calls = {
       said = `The bank took the forty. $${p.stack} left in Lou's purse.`;
     } else {
       bust(p);
-      said = 'The bank took the forty. Lou counts out a fresh stake, slowly.';
+      said = 'The bank took the stake. Lou counts out a fresh one, slowly.';
     }
     return toQuay(scene, ['THE BANK TAKES IT', said], SPOTS.saloon).then(() => scene.caption.say('lou', 'Ten at a time. Let the box be kind to you. Sit down again when you like.', { ms: 3200 }));
   },

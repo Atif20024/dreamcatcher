@@ -238,6 +238,7 @@ export default class AstronautScene extends BaseLevel {
   applyRunExtra(x) {
     if (x.stats) this.stats = { ...this.stats, ...x.stats };
     if (x.power !== undefined) this.power = x.power;
+    if (this.F.rescue_on && !this.F.reentry) this.carry = 'core'; // only the core starts the rescue
     if (this.F.rejected && !this.F.selected) this.greyOverlay(); // a run resumed in the second year
   }
 
@@ -843,7 +844,7 @@ export default class AstronautScene extends BaseLevel {
       await this.dialog.show([
         { name: 'Dr. Halvorsen', text: `Numbers first, candidate. The board sees them before it sees you.\n\n${this.shortStatLine()}` },
       ]);
-      this.setObjective(`train it up:\n${this.shortStatLine()}`);
+      this.setObjective(`a year to train.\n${this.shortStatLine()}`);
       this.doorLight.setFillStyle(0xf2d580);
       return;
     }
@@ -2053,7 +2054,7 @@ export default class AstronautScene extends BaseLevel {
       this.reeling = false;
       this.player.body.setAllowGravity(true);
     }
-    this.carry = null;
+    if (this.carry !== 'core') this.carry = null; // the core stays on him: d4's "...Yeah." has to be true
     this.carryingPriya = false;
     this.updateSatchel();
     if (lostHer) this.setObjective('the crater. go back for her.');

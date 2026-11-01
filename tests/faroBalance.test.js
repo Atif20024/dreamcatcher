@@ -4,6 +4,8 @@
 // there in every bet (splits and the rake).
 import { describe, it, expect } from 'vitest';
 import { faro, STEADY, FARO_TARGET } from '../src/engines/faro.js';
+import { faroEnc } from '../src/dreams/gambler/encounters/tables.js';
+import { newPurse } from '../src/engines/purse.js';
 
 // play one sitting to the end; strat(state) → the index of the bet to take
 function sit(seed, strat, opts = {}) {
@@ -60,5 +62,37 @@ describe('faro balance (seeded)', () => {
     let bets = 0;
     for (let seed = 1; seed <= 500; seed++) bets += sit(seed, flat10).bets;
     expect(bets / 500).toBeLessThan(12);
+  });
+});
+
+describe('the stake (A7)', () => {
+  const sitWith = (stack) => ({ F: { purse: { ...newPurse(), stack } } });
+  const stakeOf = (sc) => faroEnc.params(sc.F).bank;
+
+  it('stakes forty, or what he has if less', () => {
+    expect(stakeOf(sitWith(100))).toBe(40);
+    expect(stakeOf(sitWith(40))).toBe(40);
+    expect(stakeOf(sitWith(30))).toBe(30);
+  });
+
+  it('the bank coming back pays the stack by what moved: never below nothing, no money from nowhere', () => {
+    for (const [stack, bank, after] of [[100, 70, 130], [100, 25, 85], [30, 0, 0], [30, 8, 8], [30, 70, 70]]) {
+      const sc = sitWith(stack);
+      faroEnc.onResult(sc, { bank });
+      expect(sc.F.purse.stack).toBe(after);
+    }
+    // the back key before any result: what he sat down with
+    const sc = sitWith(30);
+    faroEnc.onResult(sc, {});
+    expect(sc.F.purse.stack).toBe(30);
+  });
+
+  it('a short stake plays the same box: same seed, same cards', () => {
+    const cards = (bank) => {
+      const e = faro({ bank, target: FARO_TARGET, seed: 7 });
+      e.press();
+      return e.state().last.kind + e.state().last.banker;
+    };
+    expect(cards(30)).toBe(cards(40));
   });
 });

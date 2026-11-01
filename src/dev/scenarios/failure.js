@@ -1,5 +1,5 @@
 // Phase 1.1 (failure, checkpoints, save): one failure model in every dream.
-// Each scenario runs across Chef, Writer, Gambler and Painter.
+// Each scenario runs across Chef, Writer and Astronaut.
 //   hit-knockback          a hit costs one heart, knocks back, never teleports
 //   zero-hearts-checkpoint zero hearts → death card → back at the last flag,
 //                          hearts refilled, same scene instance (no restart),
@@ -12,6 +12,7 @@ import { getRun, clearRun } from '../../utils/save.js';
 const DREAMS = [
   { id: 'chef', place: null, scene: 'Dream' },
   { id: 'writer', place: 'cafe', scene: 'Writer' },
+  { id: 'astronaut', place: 'gym', scene: 'Astronaut' },
 ];
 
 const dist = (a, b) => Math.round(Math.hypot(a.x - b.x, a.y - b.y));
