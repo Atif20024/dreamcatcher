@@ -9,21 +9,28 @@
 //   line under them: Lou's whisper, what just happened, or the rule book.
 // TILT is drawn here too: tilted, the tells blur and Lou is drowned out.
 // The purse (F.purse) is written back on every hand; the HUD reads it.
+// A pot won at tables 1-3 lights STAND UP gold and says so (the dream's
+// verb, practised before the last table); a dim row of keys sits at the foot.
+// Touch: each verb's hit band is 60 UI units tall (the plates stay small).
 import { drawPanel } from '../../ui/Panel.js';
 import { uiText } from '../../ui/text.js';
 import { hud } from '../../ui/hud.js';
 import { playTone } from '../../systems/audio.js';
-import { RULES, TELLS } from '../../engines/showdown.js';
+import { RULES, TELLS, PLAYERS } from '../../engines/showdown.js';
 import { FARO_RANKS } from '../../engines/faro.js';
-import { LOU_TIPS } from './dialogue.js';
+import { line as slateLine, mark } from '../../engines/purse.js';
+import { LOU_TIPS, LOU_SEES, LOU_MISREADS, LOU_OWN, LOU_LAST } from './dialogue.js';
 import { addTapZone } from '../../input/touchTaps.js';
 
 const RANK_LABEL = ['', '', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 const D = 160; // UI depth (adopted by the UI scene: never zoomed)
 const PX = 40;
-const PY = 190; // above the table: the people sit under it, in the room
+const PY = 168; // above the table: the people sit under it, in the room
 const PW = 880;
-const PH = 212;
+const PH = 236; // the last row is the keys
+const KEYS_Y = PY + PH - 26;
+const HIT_UP = 20; // a verb's touch band: from 20 over its label to 40 under it
+const HIT_H = 60;
 const INK = '#f2e9d8';
 const DIM = '#9c8f7a';
 const ACC = '#e9b84a';
@@ -99,12 +106,14 @@ function stage(scene) {
       texts = [];
       g.clear();
     },
-    drawFrame(accent = null, glow = 0) {
+    drawFrame(accent = null, glow = 0, wash = null) {
       frame.clear();
       // a solid ground under the panel: the room never shows through the cards
       frame.fillStyle(0x14122a, 0.7).fillRoundedRect(PX, PY, PW, PH, 4);
       drawPanel(frame, PX, PY, PW, PH, { accent });
-      if (glow) frame.lineStyle(2, 0xf6d98a, glow).strokeRoundedRect(PX - 3, PY - 3, PW + 6, PH + 6, 6);
+      // the slate's signal on the ground itself (gold at the goal, red under the stop)
+      if (wash) frame.fillStyle(wash.color, wash.alpha).fillRoundedRect(PX + 2, PY + 2, PW - 4, PH - 4, 4);
+      if (glow) frame.lineStyle(3, accent || 0xf6d98a, glow).strokeRoundedRect(PX - 4, PY - 4, PW + 8, PH + 8, 6);
     },
     destroy() {
       texts.forEach((t) => t.destroy());
@@ -121,21 +130,29 @@ function options(ui, items, cursor, y, { active = true } = {}) {
   items.forEach((it, i) => {
     const cx = PX + 20 + slot * i + slot / 2;
     const on = active && i === cursor;
-    const col = !it.enabled ? DIM : it.dark ? '#c8bca8' : on ? ACC : INK;
+    // hot: the table is beaten and this is the way out (STAND UP, gold)
+    const col = !it.enabled ? DIM : it.hot ? '#f6d98a' : it.dark ? '#c8bca8' : on ? ACC : INK;
+    if (it.hot && it.enabled) ui.g.fillStyle(0xc8a24a, 0.28).fillRoundedRect(cx - slot / 2 + 6, y - 7, slot - 12, 30, 4);
     const t = ui.text(cx, y, it.label, { color: col, align: 'center' });
     if (on) {
       const w = t.width + 18;
-      ui.g.lineStyle(2, 0xe9b84a, 1).strokeRoundedRect(cx - w / 2, y - 5, w, 26, 3);
+      ui.g.lineStyle(2, it.hot ? 0xf6d98a : 0xe9b84a, 1).strokeRoundedRect(cx - w / 2, y - 5, w, 26, 3);
     }
     if (it.dark && it.enabled) ui.g.fillStyle(0x0e0b14, 0.35).fillRoundedRect(cx - t.width / 2 - 8, y - 4, t.width + 16, 24, 3);
   });
 }
 
 // the options row's hit rects (touch screens): one slot per verb, the
-// same slots options() draws in
-function optionRects(n, y) {
+// same slots options() draws in, 60 UI units tall (about 40 CSS px on a
+// 667 x 375 phone) so a thumb finds them
+export function optionRects(n, y) {
   const slot = (PW - 40) / n;
-  return Array.from({ length: n }, (_, i) => ({ x: PX + 20 + slot * i, y: y - 10, w: slot, h: 36 }));
+  return Array.from({ length: n }, (_, i) => ({ x: PX + 20 + slot * i, y: y - HIT_UP, w: slot, h: HIT_H }));
+}
+
+// the dim row of keys at the foot of a panel (touch: the taps cover it)
+function keysRow(ui, text) {
+  ui.text(PX + 22, KEYS_Y, text, { color: DIM });
 }
 
 // walk an engine's cursor to `want` with its own moves (so a tilted table
@@ -160,7 +177,7 @@ export function slatePresenter(scene, def, engine) {
     sig = k;
     ui.clear();
     ui.drawFrame(0xc8a24a);
-    ui.text(PX + 24, PY + 14, 'THE SLATE: CHALK YOUR LINE BEFORE THE FIRST CARD', { color: ACC });
+    ui.text(PX + 24, PY + 14, 'THE SLATE: YOUR NIGHT AT THE TABLES, BEFORE THE FIRST CARD', { color: ACC });
     // the slate itself: dark board, chalk numbers
     ui.g.fillStyle(0x6a4a2e, 1).fillRect(PX + 24, PY + 40, 520, 120);
     ui.g.fillStyle(0x263030, 1).fillRect(PX + 30, PY + 46, 508, 108);
@@ -168,15 +185,15 @@ export function slatePresenter(scene, def, engine) {
       const y = PY + 54 + i * 32;
       const on = st.row === i;
       ui.text(PX + 44, y, r.label, { color: on ? ACC : INK });
-      ui.text(PX + 300, y, `${r.first ? ' ' : '<'}  $${r.value}  ${r.last ? ' ' : '>'}`, { color: on ? ACC : INK });
+      ui.text(PX + 300, y, `${r.first ? ' ' : '<'}  ${r.sign || ''}$${r.value}  ${r.last ? ' ' : '>'}`, { color: on ? ACC : INK });
       if (on) ui.g.lineStyle(2, 0xe9b84a, 1).strokeRect(PX + 36, y - 5, 496, 26);
     });
-    const hints = ['what comes aboard of Lou\'s $100', 'under this line, the night is over', 'at this line, the night is won'];
+    const hints = ["what comes aboard of Lou's $100", 'this far down at the card tables, the night is over', 'this far up at the card tables, the night is won'];
     ui.text(PX + 564, PY + 50, st.confirm ? 'Chalk it. It stays on you all night; nobody makes you obey it.' : hints[st.row], { color: INK, wrap: 300 });
     const btnY = PY + 166;
     ui.text(PX + 564, btnY, 'CHALK IT', { color: st.confirm ? ACC : DIM });
     if (st.confirm) ui.g.lineStyle(2, 0xe9b84a, 1).strokeRoundedRect(PX + 556, btnY - 5, 112, 26, 3);
-    ui.text(PX + 24, PY + 170, '[UP][DOWN] row  [LEFT][RIGHT] number  [E] next', { color: DIM });
+    keysRow(ui, '[UP][DOWN] row  [LEFT][RIGHT] number  [E] next');
   };
   // touch: a row's label picks the row, the left / right of its number
   // steps it, CHALK IT (picked, then tapped again) sets the slate
@@ -255,8 +272,9 @@ export function faroPresenter(scene, def, engine) {
     if (st.phase === 'draw') line = l.draws > 1 ? `The dealer turns ${l.draws} pairs before your ${FARO_RANKS[st.card]} shows…` : 'The dealer turns a pair…';
     else if (st.phase === 'show' && l) {
       line = `${KIND_WORD[l.kind]}${l.kind === 'win' ? ` $${l.stake}, LESS $${l.rake} TO THE HOUSE` : l.free ? ' (THE HOUSE STAKED IT)' : ` $${-l.net}`}`;
-    } else line = st.row === 0 ? `Your card: ${st.cardLabel}. [LEFT][RIGHT] to change, [DOWN] to the bets.` : st.houseMoney ? 'The house stakes this first bet (a comp on Mr Pell\'s book).' : '[UP] picks the card. Splits go to the bank: that is the edge.';
-    ui.text(PX + 24, PY + 160, line, { color: st.phase === 'show' && l && l.kind === 'win' ? ACC : INK });
+    } else line = st.row === 0 ? `Your card: ${st.cardLabel}. Any rank: the box does not care which.` : st.houseMoney ? "The house stakes this first bet: $10 on Mr Pell's book." : '10 AT A TIME: THE BOX IS KIND. Splits go to the bank: that is the edge.';
+    ui.text(PX + 24, PY + 166, line, { color: st.phase === 'show' && l && l.kind === 'win' ? ACC : INK });
+    keysRow(ui, st.row === 0 ? '[LEFT][RIGHT] card  [DOWN] the bets  [E] play' : '[LEFT][RIGHT] choose  [UP] card  [E] play');
   };
   const at0 = engine.state().now;
   // touch: a card on the layout picks it; a bet is picked, then played by
@@ -304,8 +322,21 @@ export function faroPresenter(scene, def, engine) {
 }
 
 // ---- SHOWDOWN ---------------------------------------------------------------------
+export const BEATEN_LINE = 'TABLE BEATEN: STAND UP WHILE IT IS YOURS.';
+
+// what Lou whispers: the verb at table 1; from table 2 what he sees (a wrong
+// tip is a true sight, misread)
+export function louLine(tip) {
+  if (!tip) return '';
+  const l = tip.look;
+  if (!l) return LOU_TIPS[tip.say];
+  if (l.own) return LOU_OWN;
+  if (!l.tell) return LOU_TIPS[tip.say];
+  return l.misread ? LOU_MISREADS[l.tell] : LOU_SEES[l.tell];
+}
+
 // what the line under the verbs says
-function infoLine(st) {
+export function infoLine(st) {
   const L = st.last;
   if (st.phase === 'deal') return { text: st.mode === 'final' ? 'The Judge slides the deck across. "One more, Jo."' : 'Antes in. The cards come round…', color: DIM };
   if (st.phase === 'reveal' && L) {
@@ -313,19 +344,29 @@ function infoLine(st) {
       if (L.saved) return { text: `FOLDED. SAVED $${L.saved}: calling would have lost.`, color: ACC };
       return { text: `Folded. That hand would have taken a pot of $${L.missed}.`, color: DIM };
     }
-    if (L.kind === 'final') return L.joWins ? { text: `Your card. +$${L.back - L.put}, the house took $${L.rake}. He shuffles another.`, color: INK } : { text: 'His card. The night\'s profit goes across the table.', color: INK };
+    if (L.kind === 'final') return L.joWins ? { text: `Your card. +$${L.back - L.put}, the house took $${L.rake}. He shuffles another.`, color: INK } : { text: "His card. The night's profit goes across the table.", color: INK };
     const rake = L.joWins ? ` The house took $${L.rake} of the $${L.pot} pot.` : '';
+    // the pot that beats the table: the way out, in gold
+    const beaten = L.joWins && L.beaten ? ` ${BEATEN_LINE}` : '';
     if (L.kind === 'bluff') {
-      if (L.bluffWorked) return { text: `Bluff: everyone folded (the tells said scared or weak).${rake}`, color: ACC };
-      return { text: `Bluff called: ${L.callers.map((id) => st.opps.find((o) => o.id === id).name).join(', ')} had something. The tell said so.`, color: INK };
+      if (L.bluffWorked) return { text: `Bluff: everyone folded.${rake}${beaten}`, color: ACC };
+      return { text: `Bluff called: ${L.callers.map((id) => PLAYERS[id].name).join(', ')} had something. The tell said so.`, color: INK };
     }
-    if (L.joWins) return { text: `${L.split ? 'Split pot' : 'Your pot'} with ${L.joHand.toLowerCase()}.${rake}`, color: ACC };
-    return { text: `Their hand is better. -$${L.put}.`, color: INK };
+    if (L.joWins) return { text: `${L.split ? 'Split pot' : 'Your pot'} with ${L.joHand.toLowerCase()}.${beaten || rake}`, color: ACC };
+    return { text: `Their hand is better. -$${L.put}.${L.allIn ? ' All in.' : ''}`, color: INK };
   }
-  if (st.mode === 'final') return { text: 'CALL plays the profit. RAISE plays it all. STAND UP takes it home.', color: INK };
+  // a dim verb under the cursor says why (it never lands there; the hint
+  // rides on the hovered id when a tap or a key tried it)
+  const m = st.menu && st.menu[st.cursor];
+  if (m && !m.enabled && m.why) return { text: `${m.label}: ${m.why}.`, color: DIM };
+  if (st.mode === 'final') {
+    const call = st.profit >= 20 ? 'CALL plays the profit' : `CALL plays $${st.stake}`;
+    return { text: `${call}. RAISE plays it all. STAND UP takes it home.`, color: INK };
+  }
+  if (st.won) return { text: BEATEN_LINE, color: '#f6d98a' };
   if (st.tip) {
-    if (st.tilted) return { text: 'LOU: …   (you can\'t hear him: you\'re steaming)', color: DIM };
-    return { text: `LOU: ${LOU_TIPS[st.tip.say]}`, color: INK };
+    if (st.tilted) return { text: "LOU: …   (you can't hear him: you're steaming)", color: DIM };
+    return { text: `LOU: ${louLine(st.tip)}`, color: INK };
   }
   return { text: RULES, color: DIM };
 }
@@ -340,27 +381,40 @@ export function showdownPresenter(scene, def, engine, ctx) {
   let sig = null;
   let lastHand = 0;
   let creepFlash = 0;
+  let tapAt = -1e9;
+  let why = null; // a dim verb tried: its reason, for a moment
+  let told = false; // the objective said TABLE BEATEN
   const F = scene.F;
   const P = F.purse;
   const flag = def.flag || null;
   // touch: a verb is picked by a tap and played by a second (the cursor is
-  // the table's own: tilted, it still creeps); in a reveal, a tap deals on
+  // the table's own: tilted, it still creeps, but not in the half second
+  // after a tap); in a reveal, a tap deals on
   const offTap = panelTaps(scene, (x, y) => {
     const st = engine.state();
     if (st.phase !== 'decide') return engine.press('act');
     const i = optionRects(st.menu.length, PY + 138).findIndex((r) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
-    if (i < 0 || !st.menu[i].enabled) return;
+    if (i < 0) return;
+    if (!st.menu[i].enabled) {
+      why = { i, t: scene.time.now };
+      return;
+    }
+    tapAt = scene.time.now;
     if (st.cursor === i) engine.press('act');
     else cursorTo(engine, () => engine.state().cursor, i, st.menu.length);
   });
   const draw = (st) => {
-    const k = JSON.stringify([st.phase, st.hand, st.cursor, st.tilted, st.won, !!st.last]);
+    const showWhy = why && scene.time.now - why.t < 1800 ? why.i : -1;
+    const k = JSON.stringify([st.phase, st.hand, st.cursor, st.tilted, st.won, !!st.last, showWhy]);
     if (k === sig) return;
     sig = k;
     ui.clear();
-    // the slate speaks: the table dims under the stop-loss, brightens at the goal
-    const line = P ? (st.stack < P.stop ? 'below' : st.stack >= P.goal ? 'goal' : 'between') : 'between';
-    ui.drawFrame(line === 'goal' ? 0xf6d98a : line === 'below' ? 0x6a3a3a : null, line === 'goal' ? 0.6 : 0);
+    // the slate speaks: the table dims under the stop-loss, brightens at the
+    // goal (on the stack less what is owed, once the lines are live)
+    const ln = P ? slateLine({ ...P, stack: st.stack }) : 'between';
+    if (ln === 'goal') ui.drawFrame(0xf6d98a, 0.95, { color: 0xc8a24a, alpha: 0.1 });
+    else if (ln === 'below') ui.drawFrame(0xb04a3a, 0.8, { color: 0x000000, alpha: 0.25 });
+    else ui.drawFrame(null);
     const showAll = st.phase === 'reveal' || st.phase === 'done';
     // the players
     const ow = Math.min(200, 600 / Math.max(1, st.opps.length));
@@ -387,10 +441,11 @@ export function showdownPresenter(scene, def, engine, ctx) {
     ui.g.fillStyle(0x3a2a1a, 1).fillRect(PX + PW - 64, PY + 40, 44, 10);
     ui.g.fillStyle(0x0e0b14, 1).fillRect(PX + PW - 58, PY + 43, 32, 4);
     ui.text(PX + PW - 20, PY + 56, 'HOUSE', { color: DIM, align: 'right' });
-    // the verbs, then one line
+    // the verbs, then one line, then the keys
     options(ui, st.menu, st.cursor, PY + 138, { active: st.phase === 'decide' });
-    const info = infoLine(st);
+    const info = showWhy >= 0 && st.phase === 'decide' ? { text: `${st.menu[showWhy].label}: ${st.menu[showWhy].why || 'not now'}.`, color: DIM } : infoLine(st);
     ui.text(PX + 22, PY + 174, info.text, { color: info.color, wrap: PW - 44 });
+    keysRow(ui, st.mode === 'final' ? '[LEFT][RIGHT] choose  [E] play  (no walking off this one)' : '[LEFT][RIGHT] choose  [E] play  [BACKSPACE] step away');
   };
   // the tells, on the people (true, never random); a hum's notes, the
   // little finger off the glass, the hand at the collar or flat on the baize
@@ -406,7 +461,7 @@ export function showdownPresenter(scene, def, engine, ctx) {
       const hy = n.y - 46;
       if (o.tell === 'hum') {
         for (let i = 0; i < 2; i++) {
-          const k = ((t / 1400 + i * 0.5) % 1);
+          const k = (t / 1400 + i * 0.5) % 1;
           const nx = n.x + 6 + i * 8 + jitter;
           const ny = n.y - 70 - k * 24;
           world.fillStyle(0xf2e9d8, a * (1 - k)).fillCircle(nx, ny, 3).fillRect(nx + 2, ny - 10, 1.5, 10);
@@ -429,16 +484,23 @@ export function showdownPresenter(scene, def, engine, ctx) {
     if (!P) return;
     P.stack = st.stack;
     P.tilt = st.tilt;
-    if (P.stack < P.stop) P.crossedStop = true;
-    if (P.stack >= P.goal) P.reachedGoal = true;
+    mark(P);
     P.peak = Math.max(P.peak || 0, P.stack);
     if (st.won && flag && !F[flag]) F[flag] = true;
+    // the goal line says it too: the table is beaten, stand up (tables 1-3)
+    if (st.won && flag && !told && scene.setObjective) {
+      told = true;
+      scene.setObjective('stand_up');
+    }
   };
   return {
     enter(st) {
       hud.set('context', '');
       draw(st);
       sync(st);
+      // the last table: Lou, cracked, the habit's own voice (he cannot be
+      // heard over a steaming head)
+      if (st.mode === 'final' && !st.tilted && scene.caption) scene.caption.say('lou', LOU_LAST, { ms: 4000 });
     },
     render(st, outcome) {
       const t = scene.time.now;
@@ -450,6 +512,9 @@ export function showdownPresenter(scene, def, engine, ctx) {
         if (e === 'creep') creepFlash = t;
       }
       if (outcome === 'move') tone(1800, 0.02, 'triangle', 0.015);
+      // a tap holds the creep off for half a second (the cursor is not
+      // snatched from under a thumb between its two taps)
+      if (t - tapAt < 500 && engine.holdCreep) engine.holdCreep();
       // the rake: a brass coin drops from the pot into the house's slot
       if (st.phase === 'reveal' && st.hand !== lastHand && st.last && st.last.joWins && st.last.rake) {
         lastHand = st.hand;
@@ -460,7 +525,7 @@ export function showdownPresenter(scene, def, engine, ctx) {
       draw(st);
       drawTells(st, t);
       sync(st);
-      // tilted, the bet creeping is seen: the cursor box blinks red a moment
+      // the bet creeping is seen: the cursor box blinks red a moment
       if (creepFlash && t - creepFlash < 300) ui.g.lineStyle(2, 0xd5443c, 1).strokeRect(PX + 4, PY + 132, PW - 8, 34);
     },
     outro(result) {
@@ -478,6 +543,8 @@ export function showdownPresenter(scene, def, engine, ctx) {
         P.won += L.won - led0.won;
         P.lost += L.lost - led0.lost;
       }
+      // the room's own goal line comes back on the next frame
+      if (told) scene._objKey = null;
       offTap();
       world.destroy();
       coin.destroy();

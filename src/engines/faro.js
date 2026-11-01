@@ -9,10 +9,11 @@
 // go the player's way 55 % of the time; after that 47 %. And the hook
 // (STEADY): bet the small stake and the box is kind for a while (70 %), the
 // way a house is kind to a careful newcomer. A $20 bet plays the true odds.
-// Flat $10 play busts about 12 % of the time; $20 every bet about 64 %
-// (tests/faroBalance.test.js runs the seeded numbers).
+// The bank wants $40 taken to $70 (FARO_TARGET: about ten careful bets, not
+// a grind). Flat $10 play rarely busts; $20 every bet busts about half the
+// time (tests/faroBalance.test.js runs the seeded numbers).
 //
-//   const e = faro({ bank: 40, target: 80, seed: 2 });
+//   const e = faro({ bank: 40, target: FARO_TARGET, seed: 2 });
 //   e.move('right'); e.press('act'); e.update(dt); e.state(); e.done; e.result
 //
 // Rows: the card (← A … K →) and the bet (BET $10 · BET $20 · STAND UP);
@@ -26,8 +27,9 @@ import { rakeOf } from './purse.js';
 export const STEADY = Object.freeze({ stake: 10, p: 0.7, upTo: 30 });
 
 export const FARO_RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+export const FARO_TARGET = 70;
 
-export function faro({ bank = 40, target = 80, stakes = [10, 20], schedule = [0.55, 0.55], p = 0.47, split = 0.06, steady = STEADY, seed = 1, drawMs = 900, showMs = 1500, freeFirst = false } = {}) {
+export function faro({ bank = 40, target = FARO_TARGET, stakes = [10, 20], schedule = [0.55, 0.55], p = 0.47, split = 0.06, steady = STEADY, seed = 1, drawMs = 700, showMs = 1200, freeFirst = false } = {}) {
   const r = rng(seed + 101);
   const s = {
     bank,

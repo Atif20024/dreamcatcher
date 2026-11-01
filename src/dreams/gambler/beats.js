@@ -21,10 +21,10 @@ export default {
   // comps: friendly gifts that go on Mr Pell's book
   comp_drink: [{ call: 'compDrink' }, { say: { who: 'jo', text: 'Warm. Sweet. The room gets a little louder.' } }],
   comp_stake: [{ call: 'compStake' }],
-  // the faro bank: doubled
+  // the faro bank: forty taken to seventy
   faro_done: [
     { set: 'faro_done' },
-    { say: { who: 'lou', text: 'Eighty. Lovely. Remember how easy that was. It will not be.' } },
+    { say: { who: 'lou', text: 'Seventy. Lovely. Remember how easy that was. It will not be.' } },
     { objective: 'to_cards' },
     { sting: 'gate' },
   ],

@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
 import { showdown, rank, tier, PLAYERS, TELLS, bestVerb, deck, shuffle, rng } from '../src/engines/showdown.js';
 import { faro } from '../src/engines/faro.js';
 import { slate } from '../src/engines/slate.js';
-import { newPurse, rakeOf, win, lose, tilt, cool, isTilted, line, signMarker, bust, cashOut, ledgerLines, TILTED } from '../src/engines/purse.js';
+import { newPurse, rakeOf, win, lose, tilt, cool, isTilted, line, signMarker, bust, cashOut, ledgerLines, TILTED, rebase, compStake, net } from '../src/engines/purse.js';
 
 const c = (r, s = 0) => ({ r, s });
 const until = (e, phase, dt = 50, limit = 400) => {
@@ -60,7 +60,11 @@ describe('SHOWDOWN: the hands', () => {
 
   it("Lou's right answer reads the tells", () => {
     const nothing = [c(2), c(5, 1), c(9, 2)];
-    expect(bestVerb([c(4), c(4, 1), c(9)], ['hum'])).toBe('raise');
+    // a pair against a tell that means a pair or better is a coin flip: see it
+    expect(bestVerb([c(4), c(4, 1), c(9)], ['hum'])).toBe('call');
+    expect(bestVerb([c(4), c(4, 1), c(9)], ['pinky', 'flat'])).toBe('call');
+    expect(bestVerb([c(4), c(4, 1), c(9)], ['quiet'])).toBe('raise');
+    expect(bestVerb([c(4), c(4, 1), c(4, 2)], ['hum'])).toBe('raise');
     expect(bestVerb(nothing, ['collar', 'still'])).toBe('bluff');
     expect(bestVerb(nothing, ['pinky', 'collar'])).toBe('fold');
     expect(bestVerb(nothing, ['quiet'])).toBe('call');
@@ -170,18 +174,27 @@ describe('SHOWDOWN: the table', () => {
     }
   });
 
-  it('TILT: a bad beat (a pair that lost) raises it; tilted, the bet creeps up by itself', () => {
-    for (let seed = 1; seed < 2000; seed++) {
+  it('TILT: one lost pair-raise nudges it; a loss straight after (chasing) tips it; tilted, the bet creeps', () => {
+    let seen = 0;
+    for (let seed = 1; seed < 4000 && seen < 3; seed++) {
       const t = showdown({ seats: ['judge'], seed, lou: null });
       const st = until(t, 'decide');
-      if (rank(st.jo).cat < 1) continue;
+      if (rank(st.jo).cat < 1 || !t.state().menu.find((m) => m.id === 'raise').enabled) continue;
       t.press('raise');
       const last = t.state().last;
-      if (last.joWins) continue;
-      // a bad beat, and a pot of $50 lost on top of it
-      expect(t.state().tilt).toBeCloseTo(0.35 + 0.15, 5);
-      break;
+      if (last.joWins || last.split) continue;
+      seen++;
+      // a bad beat, and a pot of $50 lost on top of it: a nudge, not a tilt
+      expect(t.state().tilt).toBeCloseTo(0.35 + 0.1, 5);
+      expect(t.state().tilted).toBe(false);
+      // the next hand lost too: the streak tips it
+      t.update(5000);
+      until(t, 'decide');
+      t.press('call');
+      const l2 = t.state().last;
+      if (!l2.joWins && !l2.split) expect(t.state().tilted).toBe(true);
     }
+    expect(seen).toBeGreaterThan(0);
     const e = tableWhere((st) => rank(st.jo).cat === 0, { seats: ['judge'], tilt: 0.8, creepMs: 1000 });
     const st = until(e, 'decide');
     expect(st.tilted).toBe(true);
@@ -210,6 +223,96 @@ describe('SHOWDOWN: the table', () => {
     const t3 = showdown({ seats: ['judge', 'sorrel', 'nico'], seed: 4, lou: { wrongEvery: 4, firstWrong: true } });
     expect(t3.state().tip.right).toBe(false);
   });
+
+  // play `n` hands at a deep table, folding, and note the hands Lou got wrong
+  const wrongHands = (seed, n = 24, lou = { wrongEvery: 4 }) => {
+    const t = showdown({ seats: ['judge'], stack: 10000, seed, lou });
+    const out = [];
+    for (let h = 0; h < n; h++) {
+      until(t, 'decide');
+      if (!t.state().tip.right) out.push(t.state().hand);
+      t.press('fold');
+      t.update(5000);
+    }
+    return out;
+  };
+
+  it("Lou's misses follow no countable schedule (a seeded coin, not every fourth hand)", () => {
+    let periodic = 0;
+    let total = 0;
+    let hands = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const w = wrongHands(seed);
+      total += w.length;
+      hands += 24;
+      // every miss on the same beat of four: what a player could count
+      if (w.length >= 3 && new Set(w.map((h) => h % 4)).size === 1) periodic++;
+      // the same seed, the same misses (a replay is a replay)
+      expect(wrongHands(seed)).toEqual(w);
+    }
+    expect(periodic).toBeLessThanOrEqual(1);
+    expect(total / hands).toBeGreaterThan(0.15);
+    expect(total / hands).toBeLessThan(0.35);
+    // Lou has his own coin: the deal is the same with him or without him
+    const a = showdown({ seats: ['judge'], seed: 9 });
+    const b = showdown({ seats: ['judge'], seed: 9, lou: null });
+    expect(a.state().jo).toEqual(b.state().jo);
+  });
+
+  it('from table 2 Lou says what he sees: a true tell at the table; wrong, the same sight misread', () => {
+    let misreads = 0;
+    for (let seed = 1; seed < 300; seed++) {
+      const t = showdown({ seats: ['sorrel', 'nico'], seed, lou: { wrongEvery: 4, describe: true } });
+      const st = t.state();
+      const look = st.tip.look;
+      expect(look).toBeTruthy();
+      expect(look.misread).toBe(!st.tip.right);
+      if (look.own) expect(st.tip.best).toBe('raise');
+      else expect(st.opps.find((o) => o.id === look.id).tell).toBe(look.tell);
+      if (look.misread) misreads++;
+    }
+    expect(misreads).toBeGreaterThan(20);
+    // the first table names the verb
+    expect(showdown({ seats: ['judge'], seed: 3 }).state().tip.look).toBeNull();
+  });
+
+  it('a pot won lights STAND UP: the table is beaten, and the way out is hot', () => {
+    for (let seed = 1; seed < 300; seed++) {
+      const t = showdown({ seats: ['judge'], seed, lou: null });
+      until(t, 'decide');
+      expect(t.state().menu.find((m) => m.id === 'stand').hot).toBe(false);
+      t.press('call');
+      const last = t.state().last;
+      if (!last.joWins) continue;
+      expect(last.beaten).toBe(true);
+      t.update(5000);
+      const st = until(t, 'decide');
+      expect(st.won).toBe(true);
+      expect(st.menu.find((m) => m.id === 'stand').hot).toBe(true);
+      return;
+    }
+    throw new Error('no winning call found');
+  });
+
+  it('a short stack never goes under nothing: ALL IN with what is left, no $20 bets it cannot cover', () => {
+    for (let seed = 1; seed < 60; seed++) {
+      const t = showdown({ seats: ['judge'], stack: 8, seed, lou: null });
+      const st = until(t, 'decide');
+      expect(st.stack).toBe(3);
+      const callItem = st.menu.find((m) => m.id === 'call');
+      expect(callItem.label).toBe('ALL IN $3');
+      expect(st.menu.find((m) => m.id === 'raise').enabled).toBe(false);
+      expect(st.menu.find((m) => m.id === 'bluff').enabled).toBe(false);
+      t.press('call');
+      expect(t.state().stack).toBeGreaterThanOrEqual(0);
+      if (!t.state().last.joWins) expect(t.state().stack).toBe(0);
+    }
+    // nothing at all left after the ante: there is no CALL $0
+    const z = showdown({ seats: ['judge'], stack: 5, seed: 2, lou: null });
+    const st = until(z, 'decide');
+    expect(st.menu.find((m) => m.id === 'call').enabled).toBe(false);
+    expect(st.menu[st.cursor].enabled).toBe(true);
+  });
 });
 
 describe('SHOWDOWN: the last table', () => {
@@ -223,6 +326,43 @@ describe('SHOWDOWN: the last table', () => {
     e.press('stand');
     expect(e.done).toBe(true);
     expect(e.result).toMatchObject({ ok: true, stood: true, stack: 160 });
+  });
+
+  it("the Judge's hum is true at the last table too: he hums only when his third card pairs him", () => {
+    let hums = 0;
+    for (let seed = 1; seed < 200; seed++) {
+      const e = showdown({ mode: 'final', stack: 160, buyin: 100, seed });
+      const o = e.state().opps[0];
+      const paired = o.cards[2].r === 13 || o.cards[2].r === 9;
+      expect(o.tell === 'hum').toBe(paired);
+      if (paired) hums++;
+    }
+    expect(hums).toBeGreaterThan(0);
+    expect(hums).toBeLessThan(100);
+  });
+
+  it('the profit is net of debt, a broke night has no CALL $0, and the habit drifts the cursor back to CALL once', () => {
+    // $50 of a $160 stack is a marker: the profit is $10, so CALL plays the $20 floor
+    const d = showdown({ mode: 'final', stack: 160, buyin: 100, debt: 50, seed: 3 });
+    let st = until(d, 'decide');
+    expect(st.profit).toBe(10);
+    expect(st.menu.find((m) => m.id === 'call').label).toBe('CALL $20');
+    // nothing left: CALL is dark, STAND UP is the way
+    const z = showdown({ mode: 'final', stack: 0, buyin: 100, seed: 3 });
+    st = until(z, 'decide');
+    expect(st.menu.find((m) => m.id === 'call').enabled).toBe(false);
+    // the habit: off CALL, it drifts back by itself, once
+    const h = showdown({ mode: 'final', stack: 160, buyin: 100, seed: 3, creepMs: 1000 });
+    until(h, 'decide');
+    h.move('left'); // wraps to STAND UP
+    expect(h.state().menu[h.state().cursor].id).toBe('stand');
+    for (let i = 0; i < 12; i++) h.update(100);
+    expect(h.state().menu[h.state().cursor].id).toBe('call');
+    h.move('left');
+    for (let i = 0; i < 30; i++) h.update(100);
+    expect(h.state().menu[h.state().cursor].id).toBe('stand');
+    h.press('act');
+    expect(h.result).toMatchObject({ ok: true, stood: true });
   });
 
   it('taking the hand is a fair coin with the night on it: a loss ends the night, a win slides another', () => {
@@ -317,33 +457,68 @@ describe('the faro bank', () => {
 });
 
 describe('the slate and the purse', () => {
-  it('three numbers are chalked; the stop-loss always sits under the buy-in', () => {
+  it('three numbers are chalked as a night at the tables: buy-in, down $N, up $N', () => {
     const e = slate();
-    expect(e.state().rows.map((r) => r.value)).toEqual([100, 60, 140]);
+    const st = e.state();
+    expect(st.rows.map((r) => r.value)).toEqual([100, 30, 20]);
+    expect(st.rows.map((r) => r.sign)).toEqual(['', '-', '+']);
     e.move('left'); // buy-in 80
-    e.move('left'); // 60: the stop drops under it
+    e.move('left'); // 60
     expect(e.state().rows[1].value).toBeLessThan(60);
     e.press();
+    e.move('right'); // down $40
     e.press();
     e.press();
     e.press();
-    expect(e.result).toMatchObject({ ok: true, buyin: 60, goal: 140 });
+    expect(e.result).toMatchObject({ ok: true, buyin: 60, down: 40, up: 20 });
   });
 
-  it('the line: below the stop-loss, between, at the goal; markers are debt', () => {
-    const p = newPurse({ buyin: 100, stop: 60, goal: 140 });
+  it('a default slate is not met by the faro payout alone: the lines go live at the card room door', () => {
+    const r = slate();
+    for (let k = 0; k < 4; k++) r.press();
+    const p = newPurse(r.result);
+    // the faro bank: forty to seventy, all of it in the stack
+    p.stack += 30;
+    win(p, 0);
     expect(line(p)).toBe('between');
-    lose(p, 50);
+    expect(p.reachedGoal).toBe(false);
+    // at the card room door the lines go onto what Jo carries in
+    rebase(p);
+    expect(p.stop).toBe(100);
+    expect(p.goal).toBe(150);
+    expect(line(p)).toBe('between');
+    expect(p.reachedGoal).toBe(false);
+    win(p, 20);
+    expect(line(p)).toBe('goal');
+    lose(p, 60);
     expect(line(p)).toBe('below');
     expect(p.crossedStop).toBe(true);
-    win(p, 100, { rake: 5 });
-    expect(line(p)).toBe('goal');
-    expect(p.rake).toBe(5);
-    signMarker(p, 50);
-    expect(cashOut(p)).toMatchObject({ cash: 150, paid: 50, owed: 0 });
+    // a bust puts the lines back on the stack he walks in with next
     bust(p);
-    expect(p.stack).toBe(100);
-    expect(p.busts).toBe(1);
+    expect(p.based).toBe(false);
+  });
+
+  it('the line reads the stack less what is owed: a marker never lights the goal; comps are debt', () => {
+    const p = newPurse({ buyin: 100, down: 30, up: 20 });
+    compStake(p, 10); // the dealer's free first bet: $10 on Mr Pell's book
+    expect(p.comps).toBe(1);
+    expect(p.debt).toBe(10);
+    p.stack = 130;
+    rebase(p);
+    expect(p.goal).toBe(140); // 120 net + 20
+    signMarker(p, 50);
+    expect(net(p)).toBe(120);
+    expect(line(p)).toBe('between'); // $180 in hand, $60 of it owed
+    expect(p.reachedGoal).toBe(false);
+    lose(p, 20);
+    expect(line(p)).toBe('between');
+    expect(cashOut(p)).toMatchObject({ cash: 100, paid: 60, owed: 0 });
+    const lines = ledgerLines(p, 9).join(' ');
+    expect(lines).toMatch(/Markers: \$60, paid \$60/);
+    // a comp alone still shows on the last line
+    const q = newPurse();
+    compStake(q);
+    expect(ledgerLines(q, 9).join(' ')).toMatch(/Owed Mr Pell \$10, paid \$10/);
   });
 
   it('TILT rises on the bad things and comes down only in the air (ten seconds walking)', () => {

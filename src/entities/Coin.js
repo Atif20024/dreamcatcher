@@ -14,8 +14,17 @@ const SPIN = [
   ['..ccc..', '.cCCCc.', '.cChCc.', '.cChCc.', '.cCCCc.', '..ccc..'],
 ];
 
-export function createCoinTextures(scene, dreamId, pal) {
-  SPIN.forEach((rows, i) => createPixelTexture(scene, `coin-${dreamId}-${i}`, rows, pal, 3));
+// a round coin (a dream's `coin.shape: 'round'`): THE LAST HAND's silver
+// half dimes read as grey squares hanging in the air with the square spin
+const ROUND = [
+  ['..ccc..', '.cCCCc.', 'cCCChCc', 'cCChCCc', 'cCCCCCc', '.cCCCc.', '..ccc..'],
+  ['..ccc..', '.cCCCc.', '.cCChc.', '.cChCc.', '.cCCCc.', '.cCCCc.', '..ccc..'],
+  ['...c...', '..cCc..', '..cCc..', '..chc..', '..cCc..', '..cCc..', '...c...'],
+  ['..ccc..', '.cCCCc.', '.chCCc.', '.cChCc.', '.cCCCc.', '.cCCCc.', '..ccc..'],
+];
+
+export function createCoinTextures(scene, dreamId, pal, shape = null) {
+  (shape === 'round' ? ROUND : SPIN).forEach((rows, i) => createPixelTexture(scene, `coin-${dreamId}-${i}`, rows, pal, 3));
 }
 
 const SHARD = { rows: ['...s...', '..sSs..', '.sSHSs.', 'sSHHHSs', '.sSHSs.', '..sSs..', '...s...'], pal: { s: 0x4a8a9a, S: 0x7ec8d8, H: 0xe8fcff } };

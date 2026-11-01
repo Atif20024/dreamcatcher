@@ -7,24 +7,30 @@
 //                        its neighbours live, its own music key, loop and acoustics
 //   gambler-coins        40–55 half dimes placed, worth 5 each
 //   gambler-legacy       ?warp=gambler_legacy still plays the neon casino
-//   gambler-quay         Lou, then the slate by real input (three numbers), the
-//                        purse and the HUD slate; the saloon door opens
-//   gambler-saloon       a comp on Mr Pell's book (TILT), the faro bank by real
-//                        input to $80: the first sitting bets $20 (the true
-//                        odds: a bust puts Jo at the saloon door, what is left
-//                        of the stack kept), then $10 a bet (the careful way)
-//   gambler-cards        the three tables played on the tells by real input
-//                        (STAND UP after a pot), the third opens, the rake and
-//                        the folds go to the ledger
-//   gambler-tilt         tilted: the bet creeps, Lou is drowned, the tells blur;
-//                        ten seconds on the guard and it is gone
+//   gambler-quay         Lou, then the slate by real input (buy-in, down $N,
+//                        up $N at the tables), the purse and the HUD slate;
+//                        the saloon door opens
+//   gambler-saloon       comps on Mr Pell's book (the whisky: TILT; the
+//                        dealer's stake: a real $10 debt), the faro bank by
+//                        real input to $70: the first sitting bets $20 (the
+//                        true odds: a bust puts Jo at the saloon door, what is
+//                        left of the stack kept), then $10 a bet (the careful way)
+//   gambler-cards        the slate's lines go live at the door; the three
+//                        tables played on the tells by real input: a pot won
+//                        says TABLE BEATEN (the goal line, STAND UP lit gold),
+//                        STAND UP; the third opens, the rake and the folds go
+//                        to the ledger; verb touch bands 60 units tall
+//   gambler-tilt         the first tilt: Lou's caption and the meter pulses;
+//                        tilted: the bet creeps, Lou is drowned, the tells
+//                        blur; ten seconds on the guard and it is gone
 //   gambler-office       a marker: the corridor ceiling drops a tile, the lamps
 //                        dim, Crake walks it; the stair up
 //   gambler-deck         the escape pipes scald on their beat; the ladder to
 //                        the texas roof; the pilot house door
 //   gambler-playthrough  board-less, quay to landing with real inputs at every
 //                        table; at the last table the hand is TAKEN first (no
-//                        orb, ever: a win deals another, a loss is the quay),
+//                        orb, ever: a win deals another, a loss is the foot
+//                        of the hurricane deck, the stack never under the buy-in),
 //                        then Jo comes back and STANDS UP: the lamp dips, the
 //                        landing, Lou's line, the coin, CAUGHT, the station
 import { clearRun, getSave } from '../../utils/save.js';
@@ -34,6 +40,7 @@ import { BUDGET } from '../../core/PerfBudget.js';
 import { buses } from '../../audio/AudioBus.js';
 import { hud } from '../../ui/hud.js';
 import { bestVerb } from '../../engines/showdown.js';
+import { optionRects } from '../../dreams/gambler/table.js';
 
 const T = 32;
 const keyOf = (dc) => dc.scene() && dc.scene().sys.settings.key;
@@ -213,6 +220,12 @@ async function playTable(dc, s, { maxHands = 40, takeLast = false } = {}) {
   const log = { hands: 0, verbs: {} };
   for (let i = 0; i < 6000 && s.encounters.busy; i++) {
     const st = e.state();
+    // a pot won at tables 1-3: the table says so before Jo stands up
+    if (st.phase === 'decide' && st.won && st.mode !== 'final' && !log.beaten) {
+      const stand = st.menu.find((m) => m.id === 'stand');
+      const obj = (s.objectiveText && s.objectiveText.text) || '';
+      log.beaten = { hot: !!stand.hot, objective: /TABLE BEATEN/.test(obj) };
+    }
     if (st.phase === 'decide') {
       let verb;
       if (st.mode === 'final') verb = takeLast ? 'call' : 'stand';
@@ -352,13 +365,14 @@ async function quayPart(dc, s, ok) {
   p = at(s, 'quay', 29, 15);
   await walkTo(dc, s, p.x, { frames: 300, tol: 18 });
   ok('slate-started', await sitDown(dc, s));
-  // buy-in $100, stop-loss one lower ($50), goal one higher ($160)
+  // buy-in $100, stop-loss one lower (down $20), goal one higher (up $30)
   ok('slate-chalked', await playSlate(dc, s, [0, -1, 1]));
   await waitBeats(dc, s);
   await dc.run(4);
   const P = s.F.purse;
-  ok('purse', !!s.F.slate_set && P.buyin === 100 && P.stop === 50 && P.goal === 160 && P.stack === 100);
-  ok('hud-slate', hud.get('meters').some((m) => m.id === 'slate' && m.visible && /STOP \$50 · GOAL \$160/.test(m.label)) && hud.get('meters').some((m) => m.id === 'stack' && m.ticks && m.ticks.length === 2));
+  ok('purse', !!s.F.slate_set && P.buyin === 100 && P.down === 20 && P.up === 30 && P.stack === 100 && !P.based);
+  ok('hud-slate', hud.get('meters').some((m) => m.id === 'slate' && m.visible && /STOP -\$20 · GOAL \+\$30/.test(m.label)) && hud.get('meters').some((m) => m.id === 'stack' && m.ticks && m.ticks.length === 2));
+  ok('hud-coins-named', /^HALF DIMES \d+$/.test((hud.get('coins') || {}).text || ''));
   p = at(s, 'quay', 70, 15);
   ok('reach-door', await walkTo(dc, s, p.x, { frames: 2400, tol: 20 }));
   ok('into-saloon', await door(dc, s, 'saloon'));
@@ -386,6 +400,13 @@ async function saloonPart(dc, s, ok, { comp = true } = {}) {
     const t0 = s.F.purse.tilt;
     await talk(dc, s, 0);
     ok('comp-on-the-book', s.F.purse.comps === 1 && s.F.purse.tilt > t0);
+    // the dealer's free stake: a real $10 on Mr Pell's book
+    const dl = s.npcs.get('dealer');
+    put(s, dl.x - 30, s.player.y);
+    await dc.run(6);
+    const d0 = s.F.purse.debt;
+    await talk(dc, s, 0);
+    ok('comp-stake-is-debt', s.F.purse.comps === 2 && s.F.purse.debt === d0 + 10 && !!s.F.faro_free);
   }
   let res = null;
   let busts = 0;
@@ -408,7 +429,7 @@ async function saloonPart(dc, s, ok, { comp = true } = {}) {
       if (busts === 1) ok('bust-to-saloon-door', s.roomId === 'saloon' && Math.abs(s.player.x - door0.x) < 40 && s.F.purse.stack === Math.max(0, stack0 - 40) && s.F.purse.busts === 1);
     }
   }
-  ok('faro-doubled', !!s.F.faro_done && s.F.purse.stack >= stack0 + 40 - 4);
+  ok('faro-won', !!s.F.faro_done && s.F.purse.stack >= stack0 + 30 - 4);
   return { busts, faro: res && res.result };
 }
 
@@ -434,6 +455,13 @@ const saloonScenario = {
 // the card room: three tables on the tells, standing up after a pot
 async function cardsPart(dc, s, ok) {
   const stats = {};
+  await dc.run(4);
+  // the slate's lines go live on what Jo walked in with (net of debt)
+  const P0 = s.F.purse;
+  const base = P0.stack - (P0.debt || 0);
+  ok('lines-live', P0.based && P0.goal === base + P0.up && P0.stop === Math.max(0, base - P0.down) && !P0.reachedGoal);
+  // a thumb finds the verbs: every hit band at least 60 UI units tall
+  ok('touch-bands', optionRects(5, 306).every((r) => r.h >= 60));
   for (const [id, col] of [['t1', 8], ['t2', 20], ['t3', 32]]) {
     for (let tries = 0; tries < 4 && !s.F[`${id}_won`]; tries++) {
       if (s.roomId !== 'cards') {
@@ -460,6 +488,8 @@ async function cardsPart(dc, s, ok) {
       for (let i = 0; i < 200 && s.roomId !== 'cards'; i++) await dc.run(1);
     }
     ok(`${id}-won`, !!s.F[`${id}_won`]);
+    const b = stats[id] && stats[id].beaten;
+    ok(`${id}-beaten-taught`, !!b && b.hot && b.objective);
     await dc.run(10);
   }
   ok('table3-opened', !!s.F.table3_open);
@@ -495,6 +525,10 @@ const tiltScenario = {
     s.F.purse.tilt = 0.9;
     await dc.run(10);
     ok('tilted-flag', !!s.F.tilted);
+    // the first time it bites, Lou says so and the meter pulses
+    const said = s.caption.log.some((l) => l.who === 'lou' && /ears are ringing/.test(l.text));
+    const pulse = hud.get('meters').some((m) => m.id === 'tilt' && m.label === 'TILTED');
+    ok('first-tilt-told', !!s.F.tilt_told && said && pulse);
     // at a table, tilted: the cursor drifts to the big bet on its own; Lou is drowned
     const p = at(s, 'cards', 8, 11);
     put(s, p.x, p.y);
@@ -659,10 +693,11 @@ async function finale(dc, s, ok, log) {
     if (r && r.last && !r.last.joWins) {
       for (let i = 0; i < 400 && s.encounters.busy; i++) await dc.run(1);
       await waitBeats(dc, s, 2400);
-      for (let i = 0; i < 300 && s.roomId !== 'quay'; i++) await dc.run(1);
+      for (let i = 0; i < 300 && s.roomId !== 'deck'; i++) await dc.run(1);
       await dc.run(60);
-      lost = s.roomId === 'quay';
-      ok('lost-night-to-quay', lost && P.stack <= P.buyin && (s.F.lost_nights || 0) >= 1);
+      lost = s.roomId === 'deck';
+      // the foot of the deck (a short way back up); never a $0 last hand
+      ok('lost-night-to-deck', lost && P.stack >= P.buyin && P.tilt === 0 && (s.F.lost_nights || 0) >= 1);
     } else {
       // a win: the Judge slides another; the table is still up, still no orb
       for (let i = 0; i < 300 && r.engine.state().phase !== 'decide'; i++) await dc.run(1);

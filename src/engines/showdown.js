@@ -21,6 +21,17 @@
 // each, face up, the same two for both (kings and nines: anybody's hand); the
 // third card decides. CALL plays for the night's profit, RAISE for the whole
 // stack; FOLD and BLUFF are dark; STAND UP is the only way out of the room.
+// The Judge's tell there is true like every other: he hums only when his
+// third card pairs him. And the habit: the cursor sits on CALL, and once,
+// if Jo moves it off, it drifts back by itself (calm or not).
+//
+// A short stack never goes under nothing: CALL becomes ALL IN $n (what is
+// left), RAISE and BLUFF are dark when they cannot be covered.
+//
+// Lou's tips: a seeded coin (his own, so the deal is the same with or without
+// him) makes about one in four wrong; no countable pattern. At table 1 he
+// names the verb; from table 2 (lou.describe) he says what he SEES and Jo
+// maps it to a verb himself; a wrong tip is a true sight, misread.
 import { rakeOf, TILT_EVENTS, TILTED } from './purse.js';
 
 export const RANKS = ['', '', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
@@ -110,21 +121,24 @@ export const PLAYERS = Object.freeze({
 
 // tells in words (the panel says it as well as showing it)
 export const TELLS = Object.freeze({
-  hum: { word: 'HUMS', strong: true },
+  hum: { word: 'HUMS', strong: true, pair: true }, // a pair or better, every time
   quiet: { word: 'QUIET', strong: false },
   pinky: { word: 'PINKY OFF THE GLASS', strong: true },
   still: { word: 'HAND STILL', strong: false, folds: true },
   collar: { word: 'TOUCHES HIS COLLAR', strong: false, folds: true },
-  flat: { word: 'HANDS FLAT', strong: true },
+  flat: { word: 'HANDS FLAT', strong: true, pair: true },
 });
 
 export const VERBS = ['call', 'raise', 'fold', 'bluff', 'stand'];
 export const VERB_LABELS = { call: 'CALL', raise: 'RAISE', fold: 'FOLD', bluff: 'BLUFF', stand: 'STAND UP' };
 
 // what a sharp would do, reading these tells with this hand (Lou's advice
-// when he is right)
+// when he is right). A pair against a tell that means a pair or better (the
+// Judge humming, Nico's hands flat) is a coin flip: see it, don't raise it.
 export function bestVerb(joCards, tells) {
-  if (rank(joCards).cat >= 1) return 'raise';
+  const cat = rank(joCards).cat;
+  if (cat >= 2) return 'raise';
+  if (cat === 1) return tells.some((t) => TELLS[t].pair) ? 'call' : 'raise';
   if (tells.length && tells.every((t) => TELLS[t].folds)) return 'bluff';
   if (tells.some((t) => TELLS[t].strong)) return 'fold';
   return 'call';
@@ -132,6 +146,18 @@ export function bestVerb(joCards, tells) {
 
 // Lou's habits: what he says when he is wrong
 const LOU_WRONG = { fold: 'call', call: 'bluff', raise: 'call', bluff: 'call' };
+
+// who Lou looks at for a verb: the tell that decides it (a strong one for a
+// fold, a scared one for a bluff); null when it is Jo's own hand that decides
+function lookAt(opps, best, r) {
+  const pick = (f) => opps.filter(f);
+  let c = [];
+  if (best === 'fold') c = pick((o) => TELLS[o.tell].strong);
+  else if (best === 'bluff') c = pick((o) => TELLS[o.tell].folds);
+  else if (best === 'call') c = pick((o) => TELLS[o.tell].pair);
+  if (!c.length) c = opps;
+  return c.length ? c[Math.floor(r() * c.length)] : null;
+}
 
 export function showdown({
   seats = ['judge'],
@@ -143,12 +169,14 @@ export function showdown({
   seed = 1,
   mode = 'table',
   buyin = 100,
-  lou = { wrongEvery: 4, firstWrong: false },
+  debt = 0, // what Jo owes (the last hand's profit is net of it)
+  lou = { wrongEvery: 4, firstWrong: false, describe: false },
   dealMs = 700,
   revealMs = 2600,
   creepMs = 1800,
 } = {}) {
   const r = rng(seed);
+  const lr = rng(seed * 31 + 7919); // Lou's own coin: the deal never depends on him
   const final = mode === 'final';
   const s = {
     phase: 'deal',
@@ -161,6 +189,8 @@ export function showdown({
     pot: 0,
     cursor: 0,
     creepT: 0,
+    habit: false, // the last table's one drift back to CALL, spent
+    streak: 0, // losses in a row (chasing)
     won: false, // a pot won at this table (the table is beaten)
     last: null, // the last hand's outcome
     tip: null,
@@ -177,24 +207,31 @@ export function showdown({
     if (final) {
       const prof = finalStake();
       return [
-        { id: 'call', label: `CALL $${prof}`, enabled: live, cost: prof },
+        { id: 'call', label: `CALL $${prof}`, enabled: live && prof > 0, cost: prof },
         { id: 'raise', label: `RAISE $${s.stack}`, enabled: live, cost: s.stack },
         { id: 'fold', label: 'FOLD', enabled: false, why: 'the cards are face up: nothing to fold' },
         { id: 'bluff', label: 'BLUFF', enabled: false, why: 'the cards are face up: nothing to hide' },
         { id: 'stand', label: 'STAND UP', enabled: live, dark: true },
       ];
     }
+    // a short stack: CALL puts in what is left; the $20 bets need $20
+    const short = s.stack < call;
+    const cover = s.stack >= raise;
+    const poor = 'not enough left to cover it';
     return [
-      { id: 'call', label: `CALL $${call}`, enabled: live, cost: call },
-      { id: 'raise', label: `RAISE $${raise}`, enabled: live && jp, cost: raise, why: jp ? null : 'a raise wants a pair' },
+      { id: 'call', label: short ? `ALL IN $${s.stack}` : `CALL $${call}`, enabled: live && s.stack > 0, cost: Math.min(call, s.stack), allIn: short, why: s.stack > 0 ? null : 'nothing left to call with' },
+      { id: 'raise', label: `RAISE $${raise}`, enabled: live && jp && cover, cost: raise, why: !jp ? 'a raise wants a pair' : cover ? null : poor },
       { id: 'fold', label: 'FOLD', enabled: live },
-      { id: 'bluff', label: `BLUFF $${raise}`, enabled: live && !jp, cost: raise, why: jp ? 'you have it: raise' : null },
-      { id: 'stand', label: 'STAND UP', enabled: live },
+      { id: 'bluff', label: `BLUFF $${raise}`, enabled: live && !jp && cover, cost: raise, why: jp ? 'you have it: raise' : cover ? null : poor },
+      // a pot won here: the table is beaten, and the way out is lit gold
+      { id: 'stand', label: 'STAND UP', enabled: live, hot: s.won },
     ];
   };
 
-  // the night's profit is what the last hand is played for (at least $20)
-  const finalStake = () => Math.min(s.stack, Math.max(20, s.stack - buyin));
+  // the night's profit is what the last hand is played for (at least $20,
+  // never more than Jo has); profit is net of what he owes
+  const profit = () => s.stack - debt - buyin;
+  const finalStake = () => Math.max(0, Math.min(s.stack, Math.max(20, profit())));
 
   const snapCursor = () => {
     const m = menu();
@@ -217,7 +254,8 @@ export function showdown({
       const voe = [pick(13, 0), pick(9, 2), null];
       s.jo[2] = d.pop();
       voe[2] = d.pop();
-      s.opps = [{ id: 'judge', cards: voe, up: [voe[0], voe[1]], tell: 'hum', folded: false, inPot: 0 }];
+      // his tell is true here too: he hums only if his third card pairs him
+      s.opps = [{ id: 'judge', cards: voe, up: [voe[0], voe[1]], tell: PLAYERS.judge.tell(tier(voe)), folded: false, inPot: 0 }];
       s.pot = 0;
     } else {
       if (s.stack < ante) return finish({ ok: s.won, bust: true });
@@ -231,16 +269,22 @@ export function showdown({
     }
     s.ledger.hands += 1;
     s.events.push('deal');
-    // Lou at Jo's shoulder: one tip a hand; about one in four is his habit talking
+    // Lou at Jo's shoulder: one tip a hand; about one in four is his habit
+    // talking (his own seeded coin: no pattern to count)
     if (lou && !final) {
       const right = bestVerb(s.jo, s.opps.map((o) => o.tell));
-      const wrong = (lou.firstWrong && s.hand === 1) || (lou.wrongEvery && (s.hand + seed) % lou.wrongEvery === 0);
-      s.tip = { say: wrong ? LOU_WRONG[right] : right, right: !wrong, best: right };
+      const coin = lr();
+      const wrong = (lou.firstWrong && s.hand === 1) || (!!lou.wrongEvery && coin < 1 / lou.wrongEvery);
+      const who = lookAt(s.opps, right, lr);
+      // from table 2 he says what he sees (and, wrong, misreads it)
+      const look = lou.describe ? { id: who ? who.id : null, tell: who ? who.tell : null, misread: wrong, own: right === 'raise' && !wrong } : null;
+      s.tip = { say: wrong ? LOU_WRONG[right] : right, right: !wrong, best: right, look };
     } else s.tip = null;
     s.phase = 'deal';
     s.phaseT = 0;
     s.creepT = 0;
     s.cursor = 0;
+    s.habit = false;
   };
 
   const best = (list) => list.reduce((m, o) => Math.max(m, rank(o.cards).score), -1);
@@ -302,10 +346,13 @@ export function showdown({
       return 'fold';
     }
     if (verb === 'call') {
-      s.stack -= call;
-      s.pot += call * (seats.length + 1);
-      for (const o of opps()) o.inPot += call;
-      out = settle(true, ante + call, 'call');
+      // all in when short: everyone matches only what Jo could put in
+      const put = item.cost;
+      s.stack -= put;
+      s.pot += put * (seats.length + 1);
+      for (const o of opps()) o.inPot += put;
+      out = settle(true, ante + put, 'call');
+      if (item.allIn) out.allIn = true;
     } else {
       // raise or bluff: each player calls or folds by their hand (the tell said which)
       s.stack -= raise;
@@ -324,8 +371,10 @@ export function showdown({
       if (verb === 'bluff') out.bluffWorked = callers.length === 0;
     }
     if (out.joWins) {
+      if (!s.won) out.beaten = true; // the first pot here: the table is beaten
       s.won = true;
       s.ledger.won += 1;
+      s.streak = 0;
       tiltBy('won');
       s.events.push('win');
     } else {
@@ -334,6 +383,9 @@ export function showdown({
       else if (out.joCat >= 1) tiltBy('bad_beat');
       else tiltBy('lost');
       if (s.pot >= 40) tiltBy('big_loss');
+      // chasing: a loss straight after a loss
+      if (s.streak > 0) tiltBy('streak');
+      s.streak += 1;
       s.events.push('lose');
     }
     reveal(out);
@@ -367,6 +419,19 @@ export function showdown({
         s.phase = 'decide';
         s.phaseT = 0;
         snapCursor();
+      } else if (s.phase === 'decide' && final && !s.habit && s.tilt < TILTED && menu()[s.cursor].id !== 'call') {
+        // the habit: off CALL, the hand drifts back to it once, by itself
+        s.creepT += dt;
+        if (s.creepT >= creepMs) {
+          s.creepT = 0;
+          s.habit = true;
+          const m = menu();
+          const i = m.findIndex((x) => x.id === 'call' && x.enabled);
+          if (i >= 0) {
+            s.cursor = i;
+            s.events.push('creep');
+          }
+        }
       } else if (s.phase === 'decide' && s.tilt >= TILTED) {
         // tilted, the bet creeps up by itself: the cursor drifts to the big bet
         s.creepT += dt;
@@ -393,6 +458,10 @@ export function showdown({
       }
       if (s.stack < ante) return finish({ ok: false, bust: true, won: s.won });
       deal();
+    },
+    // a tap on a touch screen holds the creep off a moment (the presenter)
+    holdCreep() {
+      s.creepT = 0;
     },
     move(dir) {
       if (s.phase !== 'decide') return null;
@@ -437,6 +506,8 @@ export function showdown({
         tilt: s.tilt,
         tilted: s.tilt >= TILTED,
         pot: s.pot,
+        profit: final ? profit() : null,
+        stake: final ? finalStake() : null,
         jo: s.jo.slice(),
         joHand: s.jo.length && s.jo.every(Boolean) ? rank(s.jo).name : '',
         opps: s.opps.map((o) => ({

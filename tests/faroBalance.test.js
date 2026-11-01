@@ -1,13 +1,13 @@
 // The faro bank's balance, by seeded simulation: a sensible player ($10 a
-// bet) rarely busts on the way from $40 to $80; one who always bets $20
+// bet) rarely busts on the way from $40 to $70; one who always bets $20
 // plays the true odds and busts most of the time. The house edge is still
 // there in every bet (splits and the rake).
 import { describe, it, expect } from 'vitest';
-import { faro, STEADY } from '../src/engines/faro.js';
+import { faro, STEADY, FARO_TARGET } from '../src/engines/faro.js';
 
 // play one sitting to the end; strat(state) → the index of the bet to take
 function sit(seed, strat, opts = {}) {
-  const e = faro({ bank: 40, target: 80, seed, ...opts });
+  const e = faro({ bank: 40, target: FARO_TARGET, seed, ...opts });
   for (let guard = 0; !e.done && guard < 400; guard++) {
     const want = strat(e.state());
     for (let k = 0; k < 4 && e.state().pick !== want; k++) e.move('right');
@@ -39,7 +39,8 @@ describe('faro balance (seeded)', () => {
   });
 
   it('always betting $20 plays the true odds: the bank wins most nights', () => {
-    expect(bustRate(flat20)).toBeGreaterThan(0.45);
+    expect(FARO_TARGET).toBe(70);
+    expect(bustRate(flat20)).toBeGreaterThan(0.35);
   });
 
   it('the edge is still real at the small stake: splits and the rake cost every sitting', () => {
@@ -55,9 +56,9 @@ describe('faro balance (seeded)', () => {
     expect(STEADY.p).toBeLessThan(0.75);
   });
 
-  it('a careful run is reasonable in length (not a grind)', () => {
+  it('a careful run is reasonable in length (not a grind: about ten bets)', () => {
     let bets = 0;
     for (let seed = 1; seed <= 500; seed++) bets += sit(seed, flat10).bets;
-    expect(bets / 500).toBeLessThan(18);
+    expect(bets / 500).toBeLessThan(12);
   });
 });
