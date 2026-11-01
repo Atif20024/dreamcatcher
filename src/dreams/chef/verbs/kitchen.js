@@ -119,8 +119,8 @@ export default {
       }
       if (!warn) f.warned = false;
       if (warn) {
-        g.fillStyle(0x4a8ae8, 0.75).fillEllipse(f.x, f.y - 20, 30, 6);
-        g.fillStyle(0xbcd8ff, 0.8).fillEllipse(f.x, f.y - 21, 14, 3);
+        g.fillStyle(0x4a8ae8, 0.75).fillEllipse(f.x, f.y - 20, 48, 14);
+        g.fillStyle(0xbcd8ff, 0.8).fillEllipse(f.x, f.y - 22, 26, 6);
       } else if (fire) {
         const w = Math.sin(now / 45 + f.x) * 3;
         g.fillStyle(0xe8541e, 0.9).fillTriangle(f.x - 16, f.y - 20, f.x + 16, f.y - 20, f.x + w, f.y - 74);

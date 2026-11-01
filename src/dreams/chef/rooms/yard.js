@@ -21,7 +21,8 @@ export default {
   decor: [],
   props: [
     { prop: 'hotel_wall', x: 16, y: 16, layer: 'back' },
-    ...[3, 9, 15].map((x) => ({ prop: 'yard_lamp', x, y: 11, layer: 'back' })),
+    ...[3, 9, 15, 21, 27].map((x) => ({ prop: 'yard_wash', x, y: 16, layer: 'back' })),
+    ...[3, 9, 15, 21, 27].map((x) => ({ prop: 'yard_lamp', x, y: 11, layer: 'back' })),
     { prop: 'yard_crates', x: 7, y: 16, layer: 'back' },
     { prop: 'milk_churn', x: 11, y: 16 },
     { prop: 'yard_bins', x: 16, y: 16, layer: 'back' },
