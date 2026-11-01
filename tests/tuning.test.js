@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+vi.mock('phaser', () => ({ default: { Math: { RandomDataGenerator: class {} }, Display: { Color: {} }, GameObjects: { BitmapText: class {} } } }));
 import { TUNING, tier, tuneEncounter, foePace, ventBeat } from '../src/data/tuning.js';
 import { VENTS } from '../src/dreams/gambler/rooms/deck.js';
 import { craft } from '../src/engines/craft.js';

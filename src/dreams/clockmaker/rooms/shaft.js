@@ -16,7 +16,7 @@ g.fill(0, 2, 1, 31); // its walls
 g.fill(20, 2, 21, 31);
 g.put(6, 25, '==============');  // plank A (x 6–19)
 g.ladder(17, 25, 31, [25]); // floor → A
-g.put(2, 18, '=============');  // plank B (x 2–14)
+g.put(2, 18, '===============');  // plank B (x 2–16: past the chain, so a shove off it either way lands here)
 g.ladder(7, 18, 24, [18]); // A → B
 g.put(8, 11, '============');  // plank C (x 8–19)
 g.ladder(14, 11, 17, [11]); // B → C: the weight's chain
@@ -40,7 +40,7 @@ export const SHAFT_TRAIN = {
   onRun: 'cage_up',
   who: 'jo',
   wrongWay: 'The pawl holds it. Wrong way round.',
-  fouls: 'It won\'t go on: it fouls the next wheel. The other one.',
+  fouls: 'It won\'t go on: it fouls the next wheel. The other peg.',
   drive: { x: 368, y: ROW, r: 24 },
   output: { x: 528, y: ROW, r: 24, turns: -1 },
   rod: [[528, ROW], [592, ROW], [592, 306]],

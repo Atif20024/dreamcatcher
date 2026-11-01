@@ -1,14 +1,14 @@
 // The clock's works (THE STOPPED HOUR; no keys of its own): what the state of
 // the clock does to the world.
 //   the loose pendulums (room.pendulums, tiles): swing and count nothing until
-//     the clock is wound. A knock sends Jo off his ledge to the one below; the
-//     first is free and none takes his last heart (logic.js pendulumToll): this
-//     is where the first-time player learns that a thing can hurt, softly
+//     the clock is wound. A knock sends Jo off his ledge to the one below and
+//     drops what he carries (verbs/wheels.js): that is the whole cost, no heart,
+//     no coins. The gentlest dream's first danger
 //   the sound: no tick anywhere until the clock is wound, then it is in every
 //     place (the *_going keys in music.js)
 //   the stage: the first step out on the hill, the first step back on the
 //     lit green (beats out_on_hill, green_lit)
-import { bobAt, bobHits, pendulumToll } from '../logic.js';
+import { bobAt, bobHits } from '../logic.js';
 import { sfx } from '../../../systems/audio.js';
 
 const T = 32;
@@ -52,12 +52,9 @@ export default {
         ctx.state.hitAt = now;
         const hits = F.pendulum_hits || 0;
         F.pendulum_hits = hits + 1;
-        if (pendulumToll(hits, s.health ? s.health.hearts : 3)) s.hurt({ sourceX: ox + b.x });
-        else {
-          sfx('hurt');
-          s.knockback(ox + b.x);
-          s.cameras.main.shake(120, 0.004);
-        }
+        sfx('hurt');
+        s.knockback(ox + b.x);
+        s.cameras.main.shake(120, 0.004);
         if (!hits) s.caption.say('jo', "It doesn't hit hard. It doesn't stop, either. Wait for it.", { ms: 3200 });
       }
     }
@@ -73,6 +70,11 @@ export default {
       ctx.state.greenPlayed = true;
       F.child_waved = true;
       s.beats.play('green_lit').catch((e) => console.warn('[dream] beat', e));
+    }
+    // he has said he took them off: the rest of it, as the room gives it room
+    if (s.roomId === 'belfry' && F.why_told && !F.gear3_given) {
+      s.beats.play('keeper_why_on').catch((e) => console.warn('[dream] beat', e));
+      return;
     }
     // down the lane, near his door: the end of the dream, as the choice left it
     if (s.roomId !== 'lane') return;

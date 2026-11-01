@@ -6,7 +6,7 @@ One page, written before the build. All names are invented. Places, gears and di
 
 **Ansel Dunmarrow**, 74. Keeper of the town clock for forty-one years, and not one tooth slipped. A stiff left hip, a leather apron, a small brass wheel always in his hand.
 
-**Why this hour stopped.** Six is winding time. One evening his wife Ida laid the table for six and he went up anyway, because six wants winding. The weight stuck. It took him an hour, and he could have left it: nobody looks up. Ida died at half past six, quietly, at the table. He came down the hill at seven.
+**Why this hour stopped.** Six is winding time. One evening his wife Ida had supper on for six, a table for two, and he went up anyway, because six wants winding. The weight stuck. It took him an hour, and he could have left it: nobody looks up. Ida died at half past six, quietly, at the table. He came down the hill at seven. Afterwards he went back up, took the gears off one by one and put the hands back to six.
 
 So in the dream it is never seven. **The gears did not slip. He took them off himself.** If it never strikes seven, he is not late. The town waits inside his hour, and Ida is still somebody who sends a pie up at five. Nell says "slipped" because that is what you say.
 
@@ -28,7 +28,7 @@ So in the dream it is never seven. **The gears did not slip. He took them off hi
 Under the bell, after "If it never gets to seven, I'm not late":
 
 - **"Go home. I'll strike it."** He sets off down the hill as Jo strikes, each lamp lighting ahead of him. Jo is alone at the rope. By the time Jo reaches the lane he has gone in, the door is on the latch, and nobody saw it: the work nobody sees, done for the man who did it for forty-one years.
-- **"Strike it with me."** He stands at the rope and counts the strokes aloud. "I never had a second man." He waits at his door for Jo: "Stand there a minute. Till I've got the door shut."
+- **"Strike it with me."** He stands at the rope and calls each stroke before it falls: his number, a ring closing on it with the swing, and the strike follows his word (the windows are the same). "I never had a second man." He waits at his door for Jo: "Stand there a minute. Till I've got the door shut."
 
 Both go on to the same orb. They differ in the yard, the green, the door, and the ending's second line.
 
@@ -47,7 +47,7 @@ Jo picks up a real brass wheel, carries it on his back through the room, and han
   2. **The shaft** (under the pendulums): a big wheel from the floor, a small one from plank B, up the chain to plank C. Only the big wheel reaches the first peg. A knock drops what Jo is carrying to the floor below; it stays there to be fetched.
   3. **The bell chamber** (both ideas together): four wheels, one in the pendulum's swing, one on the joists, two on the gallery; seven pegs; only an even count works.
 
-Length comes from doing this, not from distance. The dream stays gentle: the first knock is free, none takes the last heart, and a train can't be failed. One number moves: the chain's pendulum is slower (3400 to 4400 ms), because a wheel may have to cross it twice.
+Length comes from doing this, not from distance. The dream stays gentle: a knock costs no heart and no coins (the dropped wheel is the cost), and a train can't be failed. One number moves: the chain's pendulum is slower (3400 to 4400 ms), because a wheel may have to cross it twice.
 
 ## What is not changing
 

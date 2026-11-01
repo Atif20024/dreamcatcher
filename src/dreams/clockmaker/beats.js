@@ -37,6 +37,25 @@ export default {
     { objective: 'hear_keeper' },
     { sting: 'gate' },
   ],
+  // what he says under the bell, and what Jo looks at while it sinks in: the wheels
+  // he has just hung, turning under the gallery; the bell over them, not ringing
+  // (the first part is his keeper_why; works.js starts this when that has closed)
+  keeper_why_on: [
+    { lock: true },
+    { camera: { push: 1.7, to: { x: 70 * 32 + 688, y: 30 * 32 + 310 }, ms: 900 } },
+    { say: { who: 'jo', text: 'Under the gallery my wheels are turning his train. He took it down, and I hung it back.' } },
+    { wait: 3400 },
+    { camera: 'pop' },
+    { lock: false },
+    { talk: 'keeper_why_b' },
+    { lock: true },
+    { camera: { push: 1.7, to: { x: 70 * 32 + 688, y: 30 * 32 + 130 }, ms: 900 } },
+    { say: { who: 'jo', text: 'Over his head, the bell. Not a sound out of it since six.' } },
+    { wait: 2800 },
+    { camera: 'pop' },
+    { lock: false },
+    { talk: 'keeper_why_c' },
+  ],
   // the third gear, under the bell: it is going. The tick starts here, and
   // from here on it is in every room (verbs/works.js)
   clock_done: [

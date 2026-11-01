@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 
 // the dream imports painters that import phaser (browser-only)
-vi.mock('phaser', () => ({ default: { Math: { RandomDataGenerator: class {} }, Display: { Color: {} } } }));
+vi.mock('phaser', () => ({ default: { Math: { RandomDataGenerator: class {} }, Display: { Color: {} }, GameObjects: { BitmapText: class {} } } }));
 
 import { newTrain, take, hang, lift, lay, goHome, trainState, teeth } from '../src/engines/geartrain.js';
 import { BENCH_TRAIN } from '../src/dreams/clockmaker/rooms/clockhouse.js';
@@ -156,7 +156,7 @@ describe('the dreamer', () => {
     expect(a[3]).toBe('Nell knew. Nell lit the last lamp.');
   });
   it('the choice sets one flag either way, and both reach the third gear', () => {
-    const n = dream.conversations.keeper_why.nodes;
+    const n = dream.conversations.keeper_why_c.nodes;
     const [go, stay] = n.j3.choices;
     expect(go.set).toEqual({ keeper_goes: true });
     expect(stay.set).toEqual({ keeper_stays: true });

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { escapement } from '../src/engines/escapement.js';
-import { bobAt, bobHits, pendulumToll, lampFlags } from '../src/dreams/clockmaker/logic.js';
+import { bobAt, bobHits, strainAt, lampFlags } from '../src/dreams/clockmaker/logic.js';
 
 const toWindow = (e) => {
   for (let i = 0; i < 2000 && !e.state().inWindow; i++) e.update(10);
@@ -101,10 +101,11 @@ describe('the pendulum', () => {
     expect(bobHits(bob, { left: 110, right: 134, top: 90, bottom: 134 })).toBe(true);
     expect(bobHits(bob, { left: 130, right: 154, top: 90, bottom: 134 })).toBe(false);
   });
-  it('the first knock is free, and it never takes the last heart', () => {
-    expect(pendulumToll(0, 3)).toBe(0);
-    expect(pendulumToll(1, 3)).toBe(1);
-    expect(pendulumToll(5, 1)).toBe(0);
+  it('a held train winds up slowly and snaps back, from rest, a little', () => {
+    expect(strainAt(0)).toBe(0);
+    expect(strainAt(800)).toBeGreaterThan(strainAt(200));
+    expect(strainAt(1099)).toBeLessThan(strainAt(900) / 2);
+    for (let t = 0; t < 2200; t += 50) expect(strainAt(t)).toBeLessThanOrEqual(0.24);
   });
 });
 
