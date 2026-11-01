@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('phaser', () => ({ default: { Math: { RandomDataGenerator: class {} }, Display: { Color: {} } } }));
+vi.mock('phaser', () => ({ default: { Math: { RandomDataGenerator: class {} }, Display: { Color: {} }, GameObjects: { BitmapText: class {} } } }));
 
 const { FOES } = await import('../src/data/kinds.js');
 const { default: writer } = await import('../src/data/writer/rooms.js');
