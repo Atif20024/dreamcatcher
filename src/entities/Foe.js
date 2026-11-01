@@ -9,7 +9,7 @@ import { D } from '../builders/depths.js';
 import { solveGround } from './ground.js';
 import { uiText } from '../ui/text.js';
 import { foePace } from '../data/tuning.js';
-import { WINDUP_RANGE, GRAB_REACH, WINDUP_MS, GRAB_MS } from './grab.js';
+import { WINDUP_RANGE, GRAB_REACH, WINDUP_MS, GRAB_MS, GRACE_MS, GRACE_EVERY_MS } from './grab.js';
 
 const T = 32;
 
@@ -159,6 +159,22 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
   enter(state, ms) {
     this.state = state;
     this.stateUntil = this.scene.time.now + ms;
+    // a duck is a reaction: holding Down before the tell doesn't count
+    if (state === 'windup') this.duckedAtTell = !!(this.scene.player && this.scene.player.crouching);
+  }
+
+  // hand back: a wind-up or a grab under way is dropped, and he leaves Jo be until `until`
+  standDown(until) {
+    this.calmUntil = until;
+    if (this.state === 'windup' || this.state === 'grabbing') {
+      this.clearTint();
+      this.enter('patrol', 0);
+    }
+  }
+
+  // the world stood still for ms (the pause menu): his clocks stood still with it
+  shiftClock(ms) {
+    for (const k of ['stateUntil', 'calmUntil', 'seenPlayerAt', 'alertAt']) if (this[k]) this[k] += ms;
   }
 
   // --- perception ------------------------------------------------------
@@ -274,11 +290,12 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
     const wall = this.footing(time);
     // not updated for a while = a conversation, a card, an encounter: a wind-up
     // doesn't finish behind one, and Jo gets a moment before he's looked at again
-    if (this.human && time - (this.lastTick ?? time) > 150) {
-      this.calmUntil = time + 900;
-      if (this.state === 'windup' || this.state === 'grabbing') {
-        this.clearTint();
-        this.enter('patrol', 0);
+    const gap = time - (this.lastTick ?? time);
+    if (this.human && gap > 150) {
+      if (time - (this.graceAt ?? -Infinity) < GRACE_EVERY_MS) this.shiftClock(gap);
+      else {
+        this.graceAt = time;
+        this.standDown(time + GRACE_MS);
       }
     }
     this.lastTick = time;
@@ -337,6 +354,7 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
     if (this.state === 'windup') {
       this.setVelocityX(0);
       this.setTint(0xffa0a0);
+      if (!player.crouching) this.duckedAtTell = false; // up, and down again in time: that's a reaction
       if (time > this.stateUntil) {
         this.clearTint();
         this.enter('grabbing', GRAB_MS);
@@ -345,7 +363,7 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
     }
     if (this.state === 'grabbing') {
       const reach = Math.abs(player.x - this.x) < GRAB_REACH && Math.abs(player.y - this.y) < 50;
-      const ducking = player.crouching; // slipping under the grab
+      const ducking = player.crouching && !this.duckedAtTell; // slipping under the grab
       // he winds up further off than he reaches: the step in is what closes it
       if (this.def.lunge) this.setVelocityX(Math.sign(player.x - this.x) * this.def.lunge);
       if (reach && !ducking && !player.busy) {

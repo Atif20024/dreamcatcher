@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { TUNING, tier, tuneEncounter, foePace } from '../src/data/tuning.js';
+import { TUNING, tier, tuneEncounter, foePace, ventBeat } from '../src/data/tuning.js';
+import { VENTS } from '../src/dreams/gambler/rooms/deck.js';
 import { craft } from '../src/engines/craft.js';
 import { GIORNATA_STEPS } from '../src/dreams/painter/contract.js';
 import * as clockwork from '../src/dreams/clockmaker/encounters/clockwork.js';
@@ -14,7 +15,7 @@ describe('the tuning tables', () => {
     expect(tuneEncounter('clockmaker', { speed: 140, window: 38 }, 0)).toEqual({ speed: 140, window: 38 });
   });
 
-  it('tiers cap at two; a dream without a table passes through', () => {
+  it('tiers cap at two; a dream with only a walking pace in its table passes through', () => {
     expect([0, 1, 2, 5].map(tier)).toEqual([0, 1, 2, 2]);
     const p = { a: 1 };
     expect(tuneEncounter('chef', p, 3)).toBe(p);
@@ -59,9 +60,33 @@ describe('the tuning tables', () => {
     }
   });
 
-  it('people walk a little faster, the older dreams as they did', () => {
+  it('people walk a little faster, on one curve in every dream', () => {
     expect(foePace('painter', 0)).toBe(1);
     expect(foePace('painter', 5)).toBe(1.16);
     expect(foePace('astronaut', 2)).toBeCloseTo(1.16);
+    for (const id of ['chef', 'astronaut', 'writer', 'nowhere']) {
+      expect(foePace(id, 0)).toBe(1);
+      expect(foePace(id, 1)).toBeCloseTo(1.08);
+      expect(foePace(id, 5)).toBeCloseTo(1.16); // was 1.4 at five catches
+    }
+    for (const id of Object.keys(TUNING)) expect(foePace(id, 5)).toBeLessThanOrEqual(1.16);
+  });
+
+  it("the boat's pipes always leave a gap to cross and a warning, tilted or not", () => {
+    for (const v of VENTS) {
+      for (const d of [0, 1, 2]) {
+        for (const tilted of [false, true]) {
+          const { on, warn } = ventBeat(v, tilted, d);
+          expect(v.period - on).toBeGreaterThanOrEqual(700);
+          expect(warn).toBeGreaterThanOrEqual(200);
+          expect(warn).toBeLessThan(v.period - on);
+        }
+      }
+    }
+    // the case that was 418 ms: the third pipe, tier 2, tilted
+    expect(ventBeat(VENTS[2], true, 2).on).toBe(1500);
+    // and nobody else's beat moved
+    expect(ventBeat(VENTS[0], false, 2).on).toBeCloseTo(1320);
+    expect(ventBeat(VENTS[0], false, 2).warn).toBe(320);
   });
 });

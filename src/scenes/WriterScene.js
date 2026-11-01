@@ -792,7 +792,7 @@ export default class WriterScene extends BaseLevel {
       this.addInteract(o.wx, floor - 20, 'Maren', async () => {
         if (!this.F.met_wren) {
           const answer = await this.dialog.show(DIALOGUES.d1);
-          this.F.only_listening = answer === 'listening';
+          if (answer === 'listening') this.setFlag('only_listening');
           await this.dialog.show(DIALOGUES[`d1_${answer || 'stealing'}`]);
           await this.dialog.show(DIALOGUES.d1_end);
           this.setFlag('met_wren');
@@ -1192,7 +1192,7 @@ export default class WriterScene extends BaseLevel {
     this.tweens.add({ targets: wren, alpha: 1, duration: 400 });
     this.walkPerson(wren, 'wren', this.player.x - 40, async () => {
       const soup = this.add.image(wren.x + 16, floor - 30, 'wr-soup').setDepth(12);
-      await this.dialog.show(DIALOGUES.d3b);
+      await this.dialog.show(this.F.only_listening ? DIALOGUES.d3b_listening : DIALOGUES.d3b);
       soup.destroy();
       this.addWord('again', 'the soup');
       this.setFlag('rewritten');

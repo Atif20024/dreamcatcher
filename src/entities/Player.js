@@ -30,6 +30,7 @@ const T = 32;
 // 44 px/m, a brisk human walk; the default 280 (6.4 m/s) is, honestly, a
 // run, and every dream's jumps are tuned to it, so it stays the default.
 export const WALK_SPEED = 80;
+export const CROUCH_SPEED = 140; // half a run: a crouch costs time, and the glass holds under it
 // Jo's anchor (feedback 3). The owner saw the WP6 glow ("unnatural") and
 // then the outline that replaced it ("looks worse"), and chose: Jo is drawn
 // plain (no light pool, rim or outline) and carries a real light of the
@@ -731,7 +732,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
     // horizontal
     if (!locked) {
-      const v = this.walking ? Math.min(this.speed, WALK_SPEED) : this.speed;
+      let v = this.walking ? Math.min(this.speed, WALK_SPEED) : this.speed;
+      if (crouch && grounded) v = Math.min(v, CROUCH_SPEED);
       const target = left ? -v : right ? v : 0;
       if (this.slippery && grounded) {
         body.setVelocityX(Phaser.Math.Linear(body.velocity.x, target, perFrame(this.slipFactor, dt)));

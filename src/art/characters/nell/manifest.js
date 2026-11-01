@@ -1,4 +1,4 @@
-// Wren, the lamplighter (proof dream NPC). Same scale class as Jo (2× rig,
+// Nell, the lamplighter (proof dream NPC). Same scale class as Jo (2× rig,
 // about 82 px tall). Her task loop is the fidget; `talk` plays while she is
 // the speaker in a scene box (src/actors/Npc.js).
 export default {

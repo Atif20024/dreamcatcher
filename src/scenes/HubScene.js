@@ -25,7 +25,7 @@ import Silhouettes from '../entities/Silhouette.js';
 import Phrases from '../systems/rhythm.js';
 import { hubState, headline, pembertonLine, teaLine, runningDreams, caughtRunning, progress } from '../systems/hubState.js';
 import { getSave, updateSave, getRun } from '../utils/save.js';
-import { getWallet, spend, addCoins, PRICES } from '../systems/wallet.js';
+import { getWallet, spend, addCoins, heartsFull, PRICES } from '../systems/wallet.js';
 import { HATS, hatById } from '../data/hats.js';
 import { sfx, music, musicDirector, sting, accordion, chime, playFx } from '../systems/audio.js';
 import { prepareDream } from '../core/boarding.js';
@@ -1594,6 +1594,7 @@ export default class HubScene extends BaseLevel {
         } else await this.say('bilal', 'Twenty. Come back with change in your coat.');
       } else if (pick === 'shard') {
         if (sv.shop.shardsBought >= 3) await this.say('bilal', 'Three is all I ever find.');
+        else if (heartsFull(this.difficulty, sv.shards)) await this.say('bilal', "You're full, friend. Keep your money.");
         else if (pay(shardCost)) {
           updateSave((x) => {
             x.shop.shardsBought += 1;

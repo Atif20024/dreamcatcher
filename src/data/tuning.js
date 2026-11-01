@@ -1,7 +1,7 @@
 // How much harder a dream plays with dreams already caught (DESIGN.md §4). One
 // table per dream, three tiers like the Chef's rail (engines/tickets.js): first
-// time, one caught, two or more. Light on purpose: a dream picked late has more
-// hearts too, and nothing here can stop anyone finishing.
+// time, one caught, two or more. Light on purpose: nothing here can stop anyone
+// finishing.
 export const tier = (d) => Math.max(0, Math.min(2, d | 0));
 
 export const TUNING = {
@@ -12,6 +12,10 @@ export const TUNING = {
   gambler: { louWrongEvery: [4, 4, 3], ventWarnMs: [450, 400, 320], ventOn: [1, 1.1, 1.2], foePace: [1, 1.05, 1.1] },
   // the gentle one stays gentle: a hand a touch livelier, the same brass, the same patience
   clockmaker: { dialSpeed: [1, 1.05, 1.1], foePace: [1, 1, 1] },
+  // the older dreams carry their own difficulty in their scenes; the walk is one curve with the rest
+  chef: { foePace: [1, 1.08, 1.16] },
+  astronaut: { foePace: [1, 1.08, 1.16] },
+  writer: { foePace: [1, 1.08, 1.16] },
 };
 
 const scaled = (v, k) => (v == null ? v : v * k);
@@ -46,8 +50,20 @@ export function tuneEncounter(dreamId, params, difficulty = 0) {
   return params;
 }
 
-// a person's walking pace (the older dreams keep the old 8 % a catch)
+// a person's walking pace (anywhere without a table: the same three tiers)
 export function foePace(dreamId, difficulty = 0) {
   const t = TUNING[dreamId];
-  return t ? t.foePace[tier(difficulty)] : 1 + 0.08 * (difficulty || 0);
+  return t ? t.foePace[tier(difficulty)] : 1 + 0.08 * tier(difficulty);
+}
+
+// a pipe's beat on the boat. Tilted, Jo gets more steam and less warning, but never
+// a gap too short to cross (229 ms) after a person's reaction, nor no warning at all
+export const VENT_MIN_OFF_MS = 700;
+export const VENT_TILT_WARN_MS = 200;
+export function ventBeat(v, tilted, difficulty = 0) {
+  const d = tier(difficulty);
+  return {
+    on: Math.min((tilted ? v.on * 1.35 : v.on) * TUNING.gambler.ventOn[d], v.period - VENT_MIN_OFF_MS),
+    warn: tilted ? VENT_TILT_WARN_MS : TUNING.gambler.ventWarnMs[d],
+  };
 }

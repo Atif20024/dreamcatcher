@@ -38,6 +38,7 @@ export const DIALOGUES = {
   d2b: [say('emmerich', "Your pages. Lay them out. A story has a shape before it has a sentence.")],
   d3: [say('wren', "Forty. That's… that's a good number. Mine was a hundred and ten.")],
   d3b: [say('wren', 'Soup. And a word. The only one that ever mattered to me.'), say('wren', 'Again.')],
+  d3b_listening: [say('wren', 'Still only listening?'), say('wren', 'Soup. And a word. The only one that ever mattered to me.'), say('wren', 'Again.')],
   d4: [say('emmerich', '{pages} pages. Forty of them are the book. Find them.'), say('emmerich', 'The pencil. It does not write. It only takes away.')],
   d4_cut: [say('emmerich', 'Page three. You cut it.'), say('emmerich', 'It was the best thing in there. That is why.')],
   d4_kept: [say('emmerich', 'You kept page three.'), say('emmerich', 'Good. Somebody should.')],
