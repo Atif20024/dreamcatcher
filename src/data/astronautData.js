@@ -209,11 +209,11 @@ export const BOARD_QUESTIONS = [
 
 // Priya's notebook — five pages, sixty seconds of honest reading.
 export const NOTEBOOK = [
-  'PAGE 1 — the stack.\nMeridian LV-3. Three stages.\nFirst stage lights, you are\nalready committed.\n(she has drawn a small rocket\nwith a face on it)',
-  'PAGE 2 — the station.\nHAB you sleep. NODE joins.\nLAB works. AIRLOCK leaves.\nLearn them in the dark.\n(the modules are labelled twice,\nthe second time neater)',
-  'PAGE 3 — history.\nFounded 1974. First crew:\nOkonkwo, Vance, Liu.\nLiu never flew again and\nnever said why.',
-  'PAGE 4 — emergencies.\nDepress: MASK FIRST, then seal.\nYou have more time than you\nthink and less than you want.\nBolt order on the truss:\nread it off the code plate,\nnever from memory.',
-  'PAGE 5 — (the last page)\nthings that are true at altitude:\nyour hands are slower.\nyour heart is louder.\neverybody you have ever met\nis in the window.\n— P.',
+  'PAGE 1 — the stack.\nMeridian LV-3. Three stages. First stage lights, you are already committed.\n(she has drawn a small rocket with a face on it)',
+  'PAGE 2 — the station.\nHAB you sleep. NODE joins. LAB works. AIRLOCK leaves.\nLearn them in the dark.\n(the modules are labelled twice, the second time neater)',
+  'PAGE 3 — history.\nFounded 1974. First crew: Okonkwo, Vance, Liu.\nLiu never flew again and never said why.',
+  'PAGE 4 — emergencies.\nDepress: MASK FIRST, then seal.\nYou have more time than you think and less than you want.\nBolt order on the truss: read it off the code plate, never from memory.',
+  'PAGE 5 — (the last page)\nthings that are true at altitude:\nyour hands are slower.\nyour heart is louder.\neverybody you have ever met is in the window.\n— P.',
 ];
 
 // ---------------------------------------------------------------------------

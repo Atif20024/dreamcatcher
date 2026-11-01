@@ -118,6 +118,7 @@ export class ReadingPanel {
   }
 
   _key(e) {
+    if (e.repeat) return; // a held key must not page through and close the note
     const c = e.code;
     if (c === 'Escape') return this.close('esc');
     if (c === 'ArrowLeft' || c === 'KeyA') {
@@ -216,13 +217,11 @@ export class ReadingPanel {
     const lines = this.pages[this.page] || [''];
     lines.forEach((ln, i) => paintGlyphs(ctx, ln, READING.padX * S, (y + i * pitch()) * S, { size: 'body', scale: S, color: this.ink }));
     this.widest = Math.max(0, ...lines.map((l) => widthOf(l)));
-    // the hints: the small face, about three quarters of the body's pixel
+    // the hints: the small face at the body's pixel (they say how to close)
     const foot = footerText({ page: this.page, pages: this.pages.length, touch: !!touchState.on });
-    const fs = Math.max(1, Math.round(S * 0.75));
+    const fs = S;
     const fh = measure('small', 'A', fs).height;
-    ctx.globalAlpha = 0.8;
     paintGlyphs(ctx, foot, Wd - READING.padX * S, Hd - Math.round(READING.padY * S * 0.6) - fh, { size: 'small', scale: fs, color: this.ink, align: 'right' });
-    ctx.globalAlpha = 1;
   }
 
   _draw() {
