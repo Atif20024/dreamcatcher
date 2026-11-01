@@ -25,6 +25,7 @@ import beats from './painter/beats.js';
 import { T, px, overlaps } from './painter/util.js';
 import { uiText, PLATE } from '../ui/text.js';
 import { hud } from '../ui/hud.js';
+import { ladderPass } from '../world/ladders.js';
 
 const NIGHT_ROOMS = new Set(['cafe', 'roofs', 'cypress', 'sky']);
 
@@ -152,7 +153,7 @@ export default class PainterScene extends BaseLevel {
     this.buildHud();
 
     this.physics.add.collider(this.player, this.solids);
-    this.physics.add.collider(this.player, this.oneWays);
+    this.physics.add.collider(this.player, this.oneWays, null, ladderPass(this)); // a plank over a ladder lets a climber through
     this.physics.add.collider(this.player, this.strokeGroup, (p, s) => this.onStrokeContact(p, s));
     this.physics.add.collider(this.enemies, this.solids);
     this.physics.add.collider(this.enemies, this.oneWays);

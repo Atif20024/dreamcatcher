@@ -226,6 +226,7 @@ export default class EveningScene extends BaseLevel {
     this.weatherHooks();
     if (params.get('weather')) this.weather.force(params.get('weather'));
 
+    this.ladderLids = true; // a climber passes the floor over a ladder (the Player reads this)
     this.physics.add.collider(p, this.solids, null, () => !p.climbing);
     this.physics.add.collider(p, this.oneWays, null, () => !p.climbing);
 

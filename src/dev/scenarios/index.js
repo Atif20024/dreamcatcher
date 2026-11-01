@@ -49,3 +49,6 @@ SCENARIOS.push(...gambler);
 // phones and tablets: the touch layer drives Jo and answers the dialogue
 import touch from './touch.js';
 SCENARIOS.push(...touch);
+// every ladder climbs both ways and leads somewhere (the undercroft's grate)
+import ladders from './ladders.js';
+SCENARIOS.push(...ladders);

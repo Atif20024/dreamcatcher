@@ -8,6 +8,7 @@
 //   const c = Terrain.colliders(scene, roomGraphEntry)                    // physics groups
 //   Terrain.surfaceAt(room, lib)(tx, ty)                                  // 'grass' | 'stone' | 'wood'…
 import { roleOf, isSolidChar, slopeRoleAt, crestSides } from '../builders/legend.js';
+import { openLadderTop, addLadderCap } from './ladders.js';
 import { classifyRoom, evaluateDecor, materialMap, seedOf, gridView } from './terrainRules.js';
 import { canvas as mkCanvas, T } from '../art/materials/painters.js';
 import { paintDecor } from '../art/materials/decor.js';
@@ -349,6 +350,8 @@ export const Terrain = {
           x = e + 1;
           continue;
         }
+        // open air over a ladder's head: a cap to climb out onto (world/ladders.js)
+        if (openLadderTop(charAt, x, y)) addLadderCap(scene, oneWays, X + x * T, Y + y * T);
         if (role === 'hazard') {
           const z = scene.add.zone(X + x * T + 4, Y + y * T + 16, 24, 16).setOrigin(0, 0);
           scene.physics.add.existing(z, true);
@@ -382,7 +385,7 @@ export const Terrain = {
         const sRole = slopeRoleAt(charAt, x, y);
         if (sRole) (target.slopeGrid[wy] ||= {})[wx] = sRole;
         else if (isSolidChar(grid[y][x]) && role !== 'gate') (target.solidGrid[wy] ||= {})[wx] = true;
-        if (role === 'oneway') ((target.oneWayGrid ||= {})[wy] ||= {})[wx] = wy * T;
+        if (role === 'oneway' || openLadderTop(charAt, x, y)) ((target.oneWayGrid ||= {})[wy] ||= {})[wx] = wy * T;
         if (role === 'liquid') (target.surfaceGrid[wy] ||= {})[wx] = 'liquid';
       }
   },
