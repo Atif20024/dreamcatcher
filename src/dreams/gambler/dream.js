@@ -37,7 +37,7 @@ import boat from './verbs/boat.js';
 import props from './props.js';
 import materials from './materials.js';
 import { MUSIC_KEYS } from './music.js';
-import { newPurse, tilt, signMarker, bust, ledgerLines, compStake, rebase } from '../../engines/purse.js';
+import { newPurse, tilt, signMarker, bust, lostLast, ledgerLines, compStake } from '../../engines/purse.js';
 import { paintSky, paintBackdropLayer } from '../../art/backdrops/painted.js';
 
 // Port Merrow at dusk: river fog, warehouse roofs, a slate-blue sky with the
@@ -148,11 +148,7 @@ const calls = {
     const F = scene.F;
     const p = F.purse;
     F.lost_nights = (F.lost_nights || 0) + 1;
-    if (p) {
-      p.stack = Math.max(p.stack, p.buyin);
-      p.tilt = 0;
-      rebase(p);
-    }
+    if (p) lostLast(p);
     return toQuay(scene, ['THE NIGHT, ACROSS THE TABLE', 'The profit went across the table. The Judge is dealing another.'], SPOTS.deck).then(() => scene.caption.say('lou', "I always found my way back up. Every time. That's the one I always took.", { ms: 3400 }));
   },
 };

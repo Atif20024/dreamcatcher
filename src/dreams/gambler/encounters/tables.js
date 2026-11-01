@@ -54,7 +54,7 @@ export const faroEnc = {
   onResult(scene, r) {
     const p = purse(scene.F);
     const st = r;
-    p.stack += (st.bank ?? 40) - 40;
+    p.stack = Math.max(0, p.stack + (st.bank ?? 40) - 40);
     p.turns += st.turns || 0;
     p.rake += st.rake || 0;
     if (scene.F.faro_free && (st.bets || 0) > 0) scene.F.faro_free_used = true;

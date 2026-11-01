@@ -170,6 +170,14 @@ export function bust(p) {
   return p;
 }
 
+// the last hand lost: the bar is never under what he sat down with, up to
+// the buy-in (no $0 last hand, and never better off than standing up)
+export function lostLast(p) {
+  p.stack = Math.max(p.stack, Math.min(p.buyin, p.sat ?? p.buyin));
+  p.tilt = 0;
+  return rebase(p);
+}
+
 // the night's result: what Jo walks down the gangway with, the debt paid
 export function cashOut(p) {
   const paid = Math.min(p.debt, p.stack);
@@ -192,4 +200,4 @@ export function ledgerLines(p, minutes = 0) {
   return out;
 }
 
-export default { newPurse, rakeOf, win, lose, tilt, cool, isTilted, line, net, mark, rebase, compStake, signMarker, bust, cashOut, ledgerLines };
+export default { newPurse, rakeOf, win, lose, tilt, cool, isTilted, line, net, mark, rebase, compStake, signMarker, bust, lostLast, cashOut, ledgerLines };

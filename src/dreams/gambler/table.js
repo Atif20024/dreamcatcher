@@ -503,6 +503,7 @@ export function showdownPresenter(scene, def, engine, ctx) {
   return {
     enter(st) {
       hud.set('context', '');
+      if (P && st.mode === 'final') P.sat = st.stack;
       draw(st);
       sync(st);
       // the last table: Lou, cracked, the habit's own voice (he cannot be

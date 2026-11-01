@@ -34,13 +34,20 @@ Updated 2026-10-29 after the owner's change of direction. The owner's words over
 - The racer dream: design doc by a pro-gamer advisor (`docs/dream_racer.md`), then the build.
 - Open issue: on the painter's daylight street, Jo's contrast is 2.7:1, below the 3:1 target; recolouring his coat would fix it.
 
-## Owner's list (2026-11-01), first, one by one
-Each fix is followed by a senior game designer and a pro gamer review, then fixes, until they converge. Things already fixed in Astronaut and Chef stay as they are.
-1. Casino polish and phone key gaps (in progress).
-2. Hub ladder before the platforms: walking up to it snaps Jo back to the upper level. Make it climbable both ways.
-3. Notes are still unreadable: the reading panel's text must be easy to read at every window size and on phones.
-4. THE LAST STOP (Evening) is out of proportion, e.g. the swing: everything to Jo's scale (1 m = 44 px).
-5. The racing train can't be seen: build the racer dream (`docs/dream_racer.md`) with its own train and platform at the station (was #9b).
+## Owner's list (2026-11-01), first
+Jobs run in parallel: at most 2 with a browser, 1 without, reviewers alongside. Each fix gets a senior game designer and pro gamer review until they converge. Name the relevant skills in each brief; ask the owner before a major change. Things already fixed in Astronaut and Chef stay as they are.
+
+Done: casino polish and phone keys; the ladder before the platforms; readable notes; the audit's repo fixes.
+
+Running: THE LAST STOP scale (`round2/LAST_STOP_SCALE_REPORT.md`); Jo and the cast (`advice/fresh_review_art.md`); cleanup, deleting the legacy dreams (`round2/CLEANUP_REPORT.md`); designs for the athlete and the doctor.
+
+Next, as slots free:
+1. Feel: `advice/fresh_review_feel.md`. Refresh-rate independence first (jump, run, ice, the camera), keeping how 60 Hz feels; landing weight and sound; SFX through their bus; the reduced-shake setting.
+2. The station counts every dream (owner's decision): the fade, crowd, shop and lines stretch across all running dreams, nothing closes early, THE LAST STOP stays open. Boards get a length or mood word, and the first visit points to a gentle dream. `advice/fresh_review_design.md` M1.
+3. Build the racer (`docs/dream_racer.md`), with a tenth platform: BAYS in `src/data/hub/rooms.js` is full.
+4. Build the athlete (`docs/dream_athlete.md`) on platform 3 and the doctor (`docs/dream_doctor.md`) on platform 8 (owner's decision).
+5. The fresh design review's fixes: variety of verbs, difficulty scaling in framework dreams, economy, dialogue, the Evening's cast including every dream.
+6. Speed: measure, fix the biggest cost. Also the failing `readability-chef` check, the flaky `dream-ladders-both-ways` first run, the `audioMix` test's slow startup, and a look at the notes' larger hints on a phone.
 
 ## Next, in order
 The build order follows `advice/lead_design_review.md` §5. One agent at a time.
@@ -55,8 +62,6 @@ The build order follows `advice/lead_design_review.md` §5. One agent at a time.
 | 6 | Chef rebuild: the ticket rail as the verb | L |
 | 7 | Astronaut rebuild: one circuit, the Board, the grey year, sim, EVA, the moon | L |
 | 8 | Writer rebuild: keep the pen | L |
-| 9 | Gambler rebuild per `advice/gambler_champion_critique.md` (owner approved): the *Lantern Queen* riverboat in 1884, Lou's dream, SHOWDOWN three-card poker, tilt, the slate, and standing up as the catch | L |
-| 9b | The racer dream: build from `docs/dream_racer.md` (new, owner's request) | L |
 | 10 | Musician polish (busking, the road, Marcus sits) and painter polish | M |
 | 11 | Hub between dreams: lamps for each catch, people on benches | M |
 | 12 | The Evening payoff: the people from caught dreams appear in the town | M |

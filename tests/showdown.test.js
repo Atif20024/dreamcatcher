@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { showdown, rank, tier, PLAYERS, TELLS, bestVerb, deck, shuffle, rng } from '../src/engines/showdown.js';
 import { faro } from '../src/engines/faro.js';
 import { slate } from '../src/engines/slate.js';
-import { newPurse, rakeOf, win, lose, tilt, cool, isTilted, line, signMarker, bust, cashOut, ledgerLines, TILTED, rebase, compStake, net } from '../src/engines/purse.js';
+import { newPurse, rakeOf, win, lose, tilt, cool, isTilted, line, signMarker, bust, lostLast, cashOut, ledgerLines, TILTED, rebase, compStake, net } from '../src/engines/purse.js';
 import { infoLine, BEATEN_LINE } from '../src/dreams/gambler/table.js';
 
 vi.mock('../src/ui/text.js', () => ({ uiText: () => null })); // table.js draws through Phaser; infoLine does not
@@ -665,5 +665,18 @@ describe('the slate and the purse', () => {
     expect(lines.join(' ')).toMatch(/kept \$30/);
     expect(lines.join(' ')).toMatch(/up \$18/);
     expect(lines.length).toBeLessThanOrEqual(4);
+  });
+});
+
+describe('lostLast', () => {
+  it('never leaves Jo better off than standing up', () => {
+    const p = newPurse({ buyin: 100 });
+    Object.assign(p, { stack: 40, sat: 60 });
+    expect(lostLast(p).stack).toBe(60);
+  });
+  it('refills a big loss to the buy-in, no more', () => {
+    const p = newPurse({ buyin: 100 });
+    Object.assign(p, { stack: 0, sat: 150 });
+    expect(lostLast(p).stack).toBe(100);
   });
 });
