@@ -1,6 +1,5 @@
 // THE LAST HAND — the gambler's dream (platform 7), rebuilt on the phase-3
-// framework from docs/redesign/advice/gambler_champion_critique.md (the old
-// neon casino, GamblerScene, stays behind ?legacy=1 / ?warp=gambler_legacy).
+// framework from docs/redesign/advice/gambler_champion_critique.md.
 //
 // Lou Verrick's dream. Seventy-eight on the train, a retired river gambler
 // who was never ruined by one terrible night but ground down by a thousand

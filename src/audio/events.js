@@ -192,6 +192,22 @@ export const SHOTS = {
     for (let i = 0; i < 5; i++) v.noise({ dur: 0.015, vol: 0.04, f: 2000 + Math.random() * 3000, q: 2, when: i * 0.07 + Math.random() * 0.05 });
   },
 
+  // --- the riverboat (THE LAST HAND) ---------------------------------------
+  // the steam whistle, a long way off: a low chord behind its own hiss
+  steam_whistle: (v) => {
+    [370, 466].forEach((f) => v.tone({ freq: f, dur: 2.4, type: 'sawtooth', vol: 0.008, attack: 0.25, hold: 1.5, filter: { type: 'lowpass', f: 1300 } }));
+    v.noise({ dur: 2.4, vol: 0.012, f: 1800, q: 1, env: 'swell' });
+  },
+  // the paddle wheel: buckets slapping the river, one every 0.66 s (the gm_pilot loop's beat)
+  paddle_wheel: (v) => {
+    for (let i = 0; i < 6; i++) {
+      v.noise({ dur: 0.18, vol: 0.03, f: 260, q: 0.7, when: i * 0.66 });
+      v.noise({ dur: 0.3, vol: 0.012, f: 2200, q: 0.6, env: 'swell', when: i * 0.66 + 0.1 });
+    }
+  },
+  // the deck bell: two strokes
+  deck_bell: (v) => [0, 0.5].forEach((w) => bellPartials(v, 988, 0.022, 1.6, w, [[1, 1], [2.4, 0.3]])),
+
   // --- the ward (THE WHITE COAT, unlaunched) -------------------------------
   pager: (v) => [988, 784].forEach((f, i) => v.tone({ freq: f, dur: 0.2, vol: 0.015, when: i * 0.25 })),
 };

@@ -51,6 +51,7 @@ export default {
   light: { tint: 0xe4e0ec },
   backdrop: { set: 'verrane_dawn', horizon: 27 },
   ambience: 'gm_deck',
+  events: 'river',
   acoustics: 'open',
   music: { state: 'explore', key: 'deck' },
   objective: [{ text: 'deck' }],
