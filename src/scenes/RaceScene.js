@@ -111,7 +111,6 @@ export default class RaceScene extends Phaser.Scene {
     hud.region('race-speedo', null);
     hud.region('race-strip', null);
     if (this.pauseMenu) this.pauseMenu.destroy();
-    this.cameras.main.setRotation(0);
   }
 
   // ---- what stands on the road's edges ----------------------------------------

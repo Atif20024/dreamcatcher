@@ -38,7 +38,7 @@ export default {
   objective: [{ text: 'drive' }, { text: 'raced', flag: 'race_test_passed' }],
   titleCard: 'THE PEREVAL GARAGE',
   entities: [
-    { type: 'spawn', id: 'start', x: 6, y: 11 },
-    { type: 'checkpoint', id: 'garage', label: 'THE PEREVAL GARAGE', x: 8, y: 11 },
+    { type: 'spawn', id: 'start', x: 7, y: 11 },
+    { type: 'checkpoint', id: 'garage', label: 'THE PEREVAL GARAGE', x: 7, y: 11 },
   ],
 };

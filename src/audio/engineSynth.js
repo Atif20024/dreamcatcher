@@ -125,9 +125,10 @@ function makeNoise(ctx, dest, type, f, q) {
 }
 
 export class EngineSynth {
-  constructor() {
-    this.ctx = buses.ctx();
-    this.dest = buses.bus('sfx');
+  // (a scenario hands it an OfflineAudioContext: the dev build has no live one)
+  constructor({ ctx = buses.ctx(), dest = buses.bus('sfx') } = {}) {
+    this.ctx = ctx;
+    this.dest = dest;
     this.voices = [];
     this.silent = false;
     this.last = { voices: [], road: 0, squeal: 0 };

@@ -68,26 +68,41 @@ function layerTex(scene, key, canvas) {
   return key;
 }
 
+// (paintTexture repaints an existing key: these are the same every race)
+const painted = (s, key, w, h, fn) => (s.textures.exists(key) ? key : paintTexture(s, key, w, h, fn));
+
+// every painted texture, one call each: the garage paints them a frame apart, so
+// the door's dip has nothing left to paint (a first race cost 110 ms in one frame)
+export const PAINT_STEPS = [
+  (s) => layerTex(s, 'race:sky', paintSky(SKY)),
+  (s) => layerTex(s, 'race:far', paintBackdropLayer('far_ridge', PINEWOOD, 5)),
+  (s) => layerTex(s, 'race:mid', paintBackdropLayer('town_row', { ...PINEWOOD, mistA: 0.16 }, 9)),
+  (s) => layerTex(s, 'race:near', paintBackdropLayer('tree_band', { ...PINEWOOD, haze: 0.06, mistA: 0.06 }, 12)),
+  (s) => painted(s, 'race:farverge', 256, 32, paintFarVerge),
+  (s) => painted(s, 'race:road', 512, ROAD_BOT - ROAD_TOP, paintRoad),
+  (s) => painted(s, 'race:verge', 512, 128, paintVerge),
+  (s) => painted(s, 'race:kerb', 256, 32, paintKerb),
+];
+
 export class RaceRoad {
   constructor(scene) {
     const s = (this.scene = scene);
     const W = 1200; // past the screen's edges: the camera zooms out to 0.9
     const x0 = 480 - W / 2;
     const tile = (x, y, w, h, key, depth, oy = 0) => s.add.tileSprite(x, y, w, h, key).setOrigin(0, oy).setDepth(depth);
-    this.sky = s.add.image(480, 200, layerTex(s, 'race:sky', paintSky(SKY))).setDisplaySize(W, 620).setDepth(0);
+    const [skyT, farT, midT, nearT, farVergeT, roadT, vergeT, kerbT] = PAINT_STEPS.map((p) => p(s));
+    const h = (key) => s.textures.get(key).getSourceImage().height;
+    this.sky = s.add.image(480, 200, skyT).setDisplaySize(W, 620).setDepth(0);
     const horizon = ROAD_TOP - 20;
-    const far = paintBackdropLayer('far_ridge', PINEWOOD, 5);
-    const mid = paintBackdropLayer('town_row', { ...PINEWOOD, mistA: 0.16 }, 9);
-    const near = paintBackdropLayer('tree_band', { ...PINEWOOD, haze: 0.06, mistA: 0.06 }, 12);
     this.layers = [
-      { ts: tile(x0, horizon, W, far.height, layerTex(s, 'race:far', far), 1, 1), f: 0.1 },
-      { ts: tile(x0, horizon + 4, W, mid.height, layerTex(s, 'race:mid', mid), 2, 1), f: 0.35 },
-      { ts: tile(x0, horizon + 8, W, near.height, layerTex(s, 'race:near', near), 3, 1), f: 0.7 },
+      { ts: tile(x0, horizon, W, h(farT), farT, 1, 1), f: 0.1 },
+      { ts: tile(x0, horizon + 4, W, h(midT), midT, 2, 1), f: 0.35 },
+      { ts: tile(x0, horizon + 8, W, h(nearT), nearT, 3, 1), f: 0.7 },
     ];
-    this.farVerge = tile(x0, horizon, W, ROAD_TOP - horizon, paintTexture(s, 'race:farverge', 256, 32, paintFarVerge), 4);
-    this.road = tile(x0, ROAD_TOP, W, ROAD_BOT - ROAD_TOP, paintTexture(s, 'race:road', 512, ROAD_BOT - ROAD_TOP, paintRoad), 5);
-    this.verge = tile(x0, ROAD_BOT, W, 180, paintTexture(s, 'race:verge', 512, 128, paintVerge), 6);
-    this.kerb = tile(x0, 522, W, 80, paintTexture(s, 'race:kerb', 256, 32, paintKerb), 60);
+    this.farVerge = tile(x0, horizon, W, ROAD_TOP - horizon, farVergeT, 4);
+    this.road = tile(x0, ROAD_TOP, W, ROAD_BOT - ROAD_TOP, roadT, 5);
+    this.verge = tile(x0, ROAD_BOT, W, 180, vergeT, 6);
+    this.kerb = tile(x0, 522, W, 80, kerbT, 60);
     this.layerW = LAYER_W;
   }
 

@@ -8,6 +8,7 @@ import { sfx } from '../../../systems/audio.js';
 import { LAYER_DEPTH } from '../../../world/RoomStreamer.js';
 import { CAR_SIZE } from '../../../art/carKit.js';
 import { prizeOwed, flagOf } from '../race/result.js';
+import { PAINT_STEPS } from '../race/RaceRoad.js';
 
 const T = 32;
 const TRACK = 'test';
@@ -72,8 +73,12 @@ export default {
     if (!scene.resuming) scene.caption.say('ottavia', "You're the one who plays by ear. Good. She is at the door. Don't lift.", { ms: 4200 });
   },
   update(ctx) {
+    // the road's textures, one a frame while the place fades up: the door has none to paint
+    if ((ctx.state.painted ||= 0) < PAINT_STEPS.length) PAINT_STEPS[ctx.state.painted++](ctx.scene);
     if (ctx.state.checked) return;
     ctx.state.checked = true; // (the first live frame: a resumed run's flags are in by now)
+    // (a resumed run comes back with the goal it was saved with: the race has moved it on)
+    if (ctx.scene.F[flagOf(TRACK, 'passed')]) ctx.scene.setObjective('raced');
     payPrize(ctx.scene);
   },
 };

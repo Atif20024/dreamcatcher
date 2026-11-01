@@ -342,7 +342,8 @@ export default class TouchControls {
     }
     for (const b of L.buttons) {
       const vis = show && (this.play || b.id === 'pause');
-      const t = this.label(b.id, b.label, b.x, b.y + 1, b.id === 'jump' ? 'small' : 'body');
+      const t = this.label(b.id, b.label, b.x, b.y + 1, b.id === 'jump' || b.shape === 'pedal' ? 'small' : 'body');
+      if (t.rawText !== b.label) t.setText(b.label); // (the same id on another layout: JUMP, SLING)
       t.setVisible(vis && b.id !== 'pause');
       if (b.id !== 'pause') t.setColor(on(b.id) ? 'brass-light' : 'ink');
       // a label wider than its plate drops to the small face

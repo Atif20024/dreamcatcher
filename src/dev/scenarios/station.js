@@ -15,6 +15,7 @@
 import { getSave, updateSave } from '../../utils/save.js';
 import { chimeLog } from '../../systems/audio.js';
 import { DREAMS } from '../../data/dreams.js';
+import { runningDreams } from '../../systems/hubState.js';
 
 const T = 32;
 const FLOOR = 832;
@@ -105,7 +106,7 @@ const countsAll = {
           lines.push(`${name}:${ok ? 'ok' : 'FAIL'}`);
           if (!ok) pass = false;
         };
-        const running = DREAMS.filter((d) => d.scene);
+        const running = runningDreams();
         // one short of the board: nothing closed yet
         updateSave((s) => running.slice(1).forEach((d) => completeDreamFlat(s, d.id)));
         let sc = await hub(dc);

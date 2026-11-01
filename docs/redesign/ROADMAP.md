@@ -31,7 +31,7 @@ Updated 2026-10-29 after the owner's change of direction. The owner's words over
 
 ## In progress
 - (done) Room transitions: dips through dark at real doorways; see round2/TRANSITIONS_REPORT.md. Legacy scenes still blend until rebuilt.
-- The racer dream: design doc by a pro-gamer advisor (`docs/dream_racer.md`), then the build.
+- The racer dream: design doc by a pro-gamer advisor (`docs/dream_racer.md`), then the build. Stage 1 is in (`round2/RACER_STAGE1_REPORT.md`): RaceScene, the car, one test road, platform 10, the garage. It is marked `unfinished`, so the station does not count it until it has an ending.
 - Open issue: on the painter's daylight street, Jo's contrast is 2.7:1, below the 3:1 target; recolouring his coat would fix it.
 
 ## Owner's list (2026-11-01), first

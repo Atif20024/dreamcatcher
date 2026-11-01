@@ -118,7 +118,7 @@ export function layoutRace(opts = {}) {
   const brake = { id: 'left', shape: 'pedal', x: gas.x - pw - g, y: py + Math.round(ph * 0.1), r: pw / 2, w: pw, h: Math.round(ph * 0.8), label: 'BRAKE' };
   const down = { id: 'down', x: m + r, y: H - m - r, r, label: '', arrow: 'down' };
   const up = { id: 'up', x: m + r, y: down.y - 2 * r - g, r, label: '', arrow: 'up' };
-  const sling = { id: 'jump', x: up.x + 2 * r + g, y: (up.y + down.y) / 2, r: Math.round(r * 0.9), label: 'SLING' };
+  const sling = { id: 'jump', x: up.x + 2.1 * r + g, y: (up.y + down.y) / 2, r: Math.round(r * 1.1), label: 'SLING' };
   const pause = L.buttons.find((x) => x.id === 'pause');
   const top = up.y - r;
   return {

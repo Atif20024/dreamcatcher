@@ -8,6 +8,7 @@
 //   racer-pause         Esc stops the road and the engine; resume; restart from the lamp; the menu's way out
 //   racer-touch         real touches on the pedals and lane buttons
 //   racer-draft         3 s behind a rival fills the bar; pull out and sling
+//   racer-engine-offline the engine's real graph rendered offline: level and pitch, no speakers
 //   racer-frame-time    work per frame at speed against 16.67 ms
 //   racer-platform      platform 10 on the station: its train, its row, boards through the real code; nothing counts it
 import { getRun, clearRun, getSave } from '../../utils/save.js';
@@ -16,9 +17,11 @@ import { TRACKS } from '../../dreams/racer/race/tracks.js';
 import { packsFor } from '../../art/baked.js';
 import { caughtRunning, runningCount } from '../../systems/hubState.js';
 import { enableTouch } from '../../ui/TouchControls.js';
+import { EngineSynth } from '../../audio/engineSynth.js';
 import { touchState } from '../../input/touchState.js';
 import { hud } from '../../ui/hud.js';
 import { BAYS, bayIndex } from '../../data/hub/rooms.js';
+import { BUDGET } from '../../core/PerfBudget.js';
 
 const until = async (dc, test, max = 400) => {
   for (let i = 0; i < max; i++) {
@@ -73,7 +76,6 @@ const raceStart = {
   expect: 'pass',
   async run(dc) {
     const s = await garage(dc);
-    const saved0 = !!getRun('racer');
     const rows = {};
     s.interaction.items.get('race:test').onUse();
     await until(dc, () => dc.scene() && dc.scene().sys.settings.key === 'Race' && dc.scene().race);
@@ -108,7 +110,7 @@ const raceStart = {
     rows.engine = r.engine.state();
     dc.releaseAll();
     rows.readability = dc.readability();
-    const ok = !saved0 && rows.savedAtDoor && rows.lightsAt < 0 && rows.heldBeforeGo === 0 && rows.moved > 10 && rows.wheelOk && rows.parallax.join() === '0.1,0.35,0.7' && rows.farMoved < rows.roadMoved && rows.lane === 0 && Math.abs(rows.scale - 0.92) < 0.01 && rows.engine.voices.length === 2 && rows.engine.voices[0].freq > 52;
+    const ok = rows.savedAtDoor && rows.checkpoint === 'THE PEREVAL GARAGE' && !rows.readability.length && rows.lightsAt < 0 && rows.heldBeforeGo === 0 && rows.moved > 10 && rows.wheelOk && rows.parallax.join() === '0.1,0.35,0.7' && rows.farMoved < rows.roadMoved && rows.lane === 0 && Math.abs(rows.scale - 0.92) < 0.01 && rows.engine.voices.length === 2 && rows.engine.voices[0].freq > 52;
     return { pass: ok, detail: rows };
   },
 };
@@ -137,7 +139,7 @@ const finishReturn = {
     await until(dc, () => dc.scene() && dc.scene().sys.settings.key === 'Dream' && dc.scene().F && dc.scene().F[f('paid')]);
     await dc.run(5);
     const s = dc.scene();
-    rows.back = { room: s.roomId, resuming: s.resuming, x: Math.round(s.player.x) };
+    rows.back = { room: s.roomId, resuming: s.resuming, x: Math.round(s.player.x), goal: hud.s.objective };
     const worth = 3 * TRACKS.test.prize[1];
     rows.paid = getSave().wallet.total - wallet0;
     run = getRun('racer');
@@ -151,7 +153,7 @@ const finishReturn = {
     }
     rows.paidAfterContinues = getSave().wallet.total - wallet0;
     rows.coins = dc.scene().levelCoins;
-    return { pass: rows.savedOnLine.best === 1 && rows.savedOnLine.passed === true && rows.savedOnLine.paid === undefined && rows.notPaidYet && rows.card.items.includes('garage') && rows.back.room === 'garage' && rows.back.resuming && rows.paid === worth && rows.paidAfterContinues === worth && rows.flagSaved === TRACKS.test.prize[1] && rows.coins === TRACKS.test.prize[1], detail: rows };
+    return { pass: rows.savedOnLine.best === 1 && rows.savedOnLine.passed === true && rows.savedOnLine.paid === undefined && rows.notPaidYet && rows.card.items.includes('garage') && rows.back.room === 'garage' && rows.back.resuming && /season/.test(rows.back.goal) && rows.paid === worth && rows.paidAfterContinues === worth && rows.flagSaved === TRACKS.test.prize[1] && rows.coins === TRACKS.test.prize[1], detail: rows };
   },
 };
 
@@ -344,6 +346,7 @@ const draft = {
     await dc.run(100);
     rows.gain = +(race.jo.v - v0).toFixed(1);
     rows.lines = r.lines.filter((l) => l.visible).length;
+    await dc.run(100);
     rows.passed = race.jo.d > rival.d;
     rows.rubs = race.jo.rubs;
     dc.releaseAll();
@@ -351,13 +354,88 @@ const draft = {
   },
 };
 
+// Dev is silent, so no ear has heard this: render the real graph into an offline
+// buffer (it never reaches the speakers) and read the signal. Level and pitch only.
+const engineOffline = {
+  id: 'racer-engine-offline',
+  expect: 'pass',
+  async run() {
+    const render = async (cars, slip = 0, speed = 30) => {
+      const ctx = new OfflineAudioContext(1, 22050, 44100);
+      const e = new EngineSynth({ ctx, dest: ctx.destination });
+      e.update({ cars, slip, speed });
+      const asked = e.state().voices.map((v) => +v.freq.toFixed(1));
+      const buf = await ctx.startRendering();
+      const d = buf.getChannelData(0).subarray(8000);
+      let rms = 0;
+      let peak = 0;
+      for (const x of d) {
+        rms += x * x;
+        peak = Math.max(peak, Math.abs(x));
+      }
+      // the strongest repeat in the signal, between 40 and 500 Hz
+      let best = 0;
+      let bestLag = 0;
+      for (let lag = 88; lag < 1100; lag++) {
+        let s = 0;
+        for (let i = 0; i + lag < 8000; i++) s += d[i] * d[i + lag];
+        if (s > best) {
+          best = s;
+          bestLag = lag;
+        }
+      }
+      return { asked, rms: +Math.sqrt(rms / d.length).toFixed(4), peak: +peak.toFixed(3), heardHz: +(44100 / bestLag).toFixed(1) };
+    };
+    const car = (v, throttle = true, dx = 0) => ({ id: 'jo', v, throttle, dx, closing: 0 });
+    const rows = {
+      idle: await render([car(0, false)], 0, 0),
+      mid: await render([car(18)]),
+      top: await render([car(36)]),
+      lifted: await render([car(36, false)]),
+      three: await render([car(30), { ...car(30, true, 10), id: 'a', base: 65 }, { ...car(30, true, -20), id: 'b', base: 72 }, { ...car(30, true, 70), id: 'c', base: 79 }]),
+      squeal: await render([car(30)], 10),
+    };
+    const near = (a, b) => Math.abs(a - b) / b < 0.2;
+    const ok = rows.mid.rms > 0.01 && rows.top.peak < 1 && rows.top.heardHz > rows.mid.heardHz && rows.mid.heardHz > rows.idle.heardHz && near(rows.top.heardHz, rows.top.asked[0] / 2) /* the sub an octave down carries the repeat */ && rows.lifted.rms < rows.top.rms && rows.three.asked.length === 3 && rows.squeal.rms > rows.mid.rms * 0.9;
+    return { pass: ok, detail: rows };
+  },
+};
+
 const frameTime = {
   id: 'racer-frame-time',
   expect: 'pass',
   async run(dc) {
-    const r = await rolling(dc, { v: 34, d: 100 });
+    // the door: every frame of the dip into the race, as room-entry-budget times a door
+    const s = await garage(dc);
+    s.interaction.items.get('race:test').onUse();
+    let doorMax = 0;
+    for (let i = 0; i < 200 && !(dc.scene() && dc.scene().sys.settings.key === 'Race' && dc.scene().race); i++) {
+      const t0 = performance.now();
+      dc.step(1);
+      doorMax = Math.max(doorMax, performance.now() - t0);
+      await new Promise((res) => setTimeout(res, 0));
+    }
+    const r = dc.scene();
+    {
+      const t0 = performance.now();
+      dc.step(1);
+      doorMax = Math.max(doorMax, performance.now() - t0);
+    }
+    r.race.t = 0.5;
+    r.race.launchTried = true;
+    Object.assign(r.race.jo, { v: 34, d: 100 });
     dc.hold('right');
     const times = [];
+    // the same measure as SPEED_REPORT: the wait on a 1-pixel read after the frame is
+    // included, and the real draw calls are counted, so the frame is known to have been drawn
+    const gl = window.game.renderer.gl;
+    const px1 = new Uint8Array(4);
+    let draws = 0;
+    const drawArrays = gl.drawArrays;
+    gl.drawArrays = function (...a) {
+      draws += 1;
+      return drawArrays.apply(this, a);
+    };
     for (let i = 0; i < 600; i++) {
       // keep the road busy: both cars on screen, the slingshot's lines on half the time
       if (i % 200 === 0) {
@@ -367,9 +445,11 @@ const frameTime = {
       r.race.jo.slingT = i % 200 < 100 ? 1 : 0;
       const t0 = performance.now();
       dc.step(1);
+      gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px1);
       times.push(performance.now() - t0);
       if (i % 60 === 0) await new Promise((res) => setTimeout(res, 0));
     }
+    gl.drawArrays = drawArrays;
     dc.releaseAll();
     times.sort((a, b) => a - b);
     const avg = times.reduce((a, b) => a + b, 0) / times.length;
@@ -383,10 +463,13 @@ const frameTime = {
       maxMs: +times[times.length - 1].toFixed(2),
       budgetMs: 16.67,
       objects: list.length,
+      drawsPerFrame: +(draws / times.length).toFixed(1),
+      doorWorstMs: +doorMax.toFixed(1),
+      doorBudgetMs: BUDGET.doorFrameMs,
       carsPackMB: +((pack.width * pack.height * 4) / 1048576).toFixed(2),
       racerPacks,
     };
-    return { pass: rows.avgMs < 16.67 && rows.p95Ms < 16.67 && racerPacks.includes('cars'), detail: rows };
+    return { pass: rows.avgMs < 16.67 && rows.p95Ms < 16.67 && rows.drawsPerFrame > 0 && rows.doorWorstMs <= BUDGET.doorFrameMs && racerPacks.includes('cars'), detail: rows };
   },
 };
 
@@ -436,4 +519,4 @@ const platform = {
   },
 };
 
-export default [raceStart, finishReturn, failMessage, failFair, pause, touchDrive, draft, frameTime, platform];
+export default [raceStart, finishReturn, failMessage, failFair, pause, touchDrive, draft, engineOffline, frameTime, platform];
