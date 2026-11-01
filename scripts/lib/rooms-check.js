@@ -9,6 +9,8 @@ import painterRooms from '../../src/data/painter/rooms.js';
 import gamblerRooms from '../../src/data/gambler/rooms.js';
 import { roleOf, isSolidChar, isSlopeChar } from '../../src/builders/legend.js';
 import { maskAt, wearAt } from '../../src/builders/autotile.js';
+import { ladderHeads, HEAD_MIN_ROWS } from './ladder-heads.js';
+import { REACH } from '../../src/world/reach.js';
 
 // Headroom (phase 2): Jo is drawn about 82 px tall now (a 2× rig), so a
 // standable spot needs 3 clear tiles (96 px) above the floor. The dreams
@@ -207,6 +209,13 @@ export function runRoomChecks() {
     const allSections = new Set(rooms.map((r) => r.section));
     for (const s of allSections) {
       if (!sectionsWithFoes.has(s) && !exempt.has(s)) warn(dream, s, 'section has no foe');
+    }
+
+    // (5) ladder-head headroom: room to stand where Jo steps off a ladder
+    for (const h of ladderHeads(dream, rooms)) {
+      const where = `ladder head col ${h.col} row ${h.row} (${h.kind})`;
+      if (h.clear < HEAD_MIN_ROWS) fail(dream, h.room, `${where}: ${h.clear} clear row(s) over it, needs ${HEAD_MIN_ROWS} (${REACH.body} for the 82 px body)`);
+      else if (h.clear < REACH.body) warn(dream, h.room, `${where}: ${h.clear} clear rows over it, the 82 px body needs ${REACH.body}`);
     }
   }
 

@@ -140,6 +140,7 @@ export default class HubScene extends BaseLevel {
     this.buildPlatforms();
     this.buildGate();
     this.buildThresholds();
+    this.ladderLids = true; // (before the safety net: its reach map reads it)
     this.buildSafetyNet();
     this.buildUndercroft();
     this.buildRoof();
@@ -151,7 +152,6 @@ export default class HubScene extends BaseLevel {
     // he can climb down through the concourse into the undercroft and back
     // (ladderLids: the Player grabs a ladder under a floor tile, and steps
     // out on top of it at the head)
-    this.ladderLids = true;
     this.physics.add.collider(this.player, this.solids, null, () => !this.player.climbing);
     this.physics.add.collider(this.player, this.oneWays, null, () => !this.player.climbing);
 
@@ -223,7 +223,7 @@ export default class HubScene extends BaseLevel {
   // below the undercroft's floor, he is put back on his last safe footing
   // through the station's short dip. Nothing here can hurt: no heart lost.
   buildSafetyNet() {
-    const g = reachGrid(buildHubMap());
+    const g = reachGrid(buildHubMap(), { lids: this.ladderLids });
     const row = HUB_ROWS.FLOOR - 1;
     const hall = [];
     for (let c = 31; c < 79; c++) hall.push([c, row]);

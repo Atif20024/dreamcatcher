@@ -126,7 +126,19 @@ const roof = {
     await dc.run(30);
     const onRoof = Math.abs(p.y + 24 - ROOF) < 6 && grounded(p);
     lines.push(`up: climbed ${up.climbed} in ${up.frames} frames, feet ${Math.round(p.y + 24)} (leads ${ROOF}) ${onRoof}`);
+    // NICE 4: standing on the hatch shows the [↓] over his head
+    await dc.run(30);
+    const hint = !!(p.hatchHint && p.hatchHint.visible);
+    lines.push(`hatch hint ${hint}`);
     await walkTo(dc, s, ladderX + 3 * T);
+    // NICE 5: crossing the hatch with DOWN already held walks on
+    dc.hold('down');
+    await dc.run(20);
+    await walkTo(dc, s, ladderX - 3 * T);
+    const crossed = !p.climbing && Math.abs(p.y + 24 - ROOF) < 6;
+    dc.release('down');
+    await dc.run(10);
+    lines.push(`crossed with DOWN held: ${crossed}`);
     await walkTo(dc, s, ladderX);
     const down = await climb(dc, s, 'down', 900);
     await dc.run(60);
@@ -134,7 +146,7 @@ const roof = {
     lines.push(`down: climbed ${down.climbed} in ${down.frames} frames, feet ${Math.round(p.y + 24)} (concourse ${FLOOR}) ${onFloor}`);
     const net = s.rescues - r0;
     lines.push(`net fired ${net}`);
-    return { pass: there && up.climbed && onRoof && down.climbed && onFloor && net === 0, detail: lines.join('; ') };
+    return { pass: there && up.climbed && onRoof && hint && crossed && down.climbed && onFloor && net === 0, detail: lines.join('; ') };
   },
 };
 
@@ -265,11 +277,11 @@ const dreamLadders = {
   },
 };
 
-// THE SECOND DRAFT is one long level: every ladder in it. Two stay out: the
-// café's broken one (col 141) until it is fixed, and the library's top
-// shelf (col 210), whose plank has 22 px under the ceiling -- a headroom
-// item on the Writer's own list, not a ladder fault (see LADDER_REPORT.md)
-const WRITER_SKIP = [141, 210];
+// THE SECOND DRAFT is one long level: every ladder in it. One stays out:
+// the café's broken one (col 141) until it is fixed. The library's top
+// shelf (col 210) is in since the stacks' roof went up two rows (it had
+// 22 px of headroom; NOTES_READABILITY_REPORT.md, Task B)
+const WRITER_SKIP = [141];
 const writerLadders = {
   id: 'writer-ladders-both-ways',
   async run(dc) {
