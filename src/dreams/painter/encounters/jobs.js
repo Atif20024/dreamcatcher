@@ -91,7 +91,7 @@ export const masterpiece = {
   keys: KEYS,
   pose: 'brush_hold',
   // the panel stands on its trestle on the dais (guild.js)
-  work: { w: 96, h: 120, dx: 0, dy: 143, depth: -10.5, paint: (ctx, w, h, k) => paintPanel(ctx, w, h, k, panelLost) },
+  work: { w: 96, h: 120, dx: 0, dy: 143, depth: -10.5, keep: true, paint: (ctx, w, h, k) => paintPanel(ctx, w, h, k, panelLost) },
   // the store on the HUD; what is wasted is remembered for Folco's verdict
   onRender(scene, st) {
     const kit = scene.F.test_kit;

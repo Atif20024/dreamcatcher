@@ -978,7 +978,7 @@ export default class BaseLevel extends Phaser.Scene {
       if (was && this.player && this.player.locate) this.player.locate('room', room.id ?? rooms.indexOf(room));
       if (room.music) this._roomState = room.music.state || 'explore';
     }
-    if (this.placeAudio) this.placeAudio.update(this.time.now);
+    if (this.placeAudio && !this.greyHold) this.placeAudio.update(this.time.now); // (the astronaut's grey year: real silence)
     if (this.parallax) {
       this.parallax.update();
       // vista zoom on the same t; written only while it changes, so other

@@ -18,7 +18,7 @@ export class CaptionBar {
     this.log = [];
     const cam = scene.cameras.main;
     this.cx = cam.width / 2;
-    this.y = cam.height - 64;
+    this.bottom = cam.height - 44; // above the bottom strip: the job hints left, [ESC] PAUSE right
     this.bg = scene.add.graphics().setScrollFactor(0).setDepth(DEPTH);
     this.chip = scene.add.image(0, 0, '__WHITE').setScrollFactor(0).setDepth(DEPTH + 1).setVisible(false);
     this.name = uiText(scene, 0, 0, '', { size: 'small', color: 'accent' }).setScrollFactor(0).setDepth(DEPTH + 1);
@@ -61,7 +61,7 @@ export class CaptionBar {
     const w = Math.max(220, Math.min(680, Math.max(this.text.width, this.name.width) + 40 + chipW));
     const h = Math.max(54, this.text.height + this.name.height + 26);
     const x0 = Math.round(this.cx - w / 2);
-    const y0 = Math.round(this.y - h / 2);
+    const y0 = Math.round(this.bottom - h);
     this.bg.clear();
     drawPanel(this.bg, x0, y0, w, h, { alpha: 0.88 });
     if (art) {

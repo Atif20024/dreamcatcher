@@ -62,6 +62,41 @@ const items = {
 };
 
 const calls = {
+  // the lamplighter's last lamp (the green, column 21): the pole from her side, the
+  // walk over (legs from the ground covered, like any stride), the hook up to the wick
+  nellToLamp(scene) {
+    const n = scene.npcs.get('nell');
+    if (!n) return null;
+    const lampX = (scene.graph.room('green').tx + 21) * 32 + 16;
+    const key = 'dc-nell-pole';
+    if (!scene.textures.exists(key)) {
+      const ct = scene.textures.createCanvas(key, 6, 78);
+      const c = ct.getContext();
+      c.fillStyle = '#6a4a2c';
+      c.fillRect(2, 4, 2, 74);
+      c.fillStyle = '#c8a050';
+      c.fillRect(0, 0, 6, 5);
+      ct.refresh();
+    }
+    const pole = scene.add.image(n.x + n.facing * 10, n.y - 2, key).setOrigin(0.5, 1).setDepth(n.img.depth + 0.2);
+    const stop = lampX - 26;
+    n.facing = stop > n.x ? 1 : -1;
+    n.turns = false;
+    n.vx = 40 * n.facing;
+    return new Promise((res) => {
+      scene.tweens.add({
+        targets: n,
+        x: stop,
+        duration: (Math.abs(stop - n.x) / 40) * 1000,
+        onUpdate: () => pole.setX(n.x + n.facing * 10),
+        onComplete: () => {
+          n.vx = 0;
+          n.turns = true;
+          scene.tweens.add({ targets: pole, angle: 12 * n.facing, y: pole.y - 10, duration: 500, yoyo: true, hold: 500, onComplete: () => { pole.destroy(); res(); } });
+        },
+      });
+    });
+  },
   // the gear is out of the satchel and in the clock
   seated(scene) {
     scene.satchel = (scene.satchel || []).filter((n) => n !== items.gear2.name);

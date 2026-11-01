@@ -42,7 +42,7 @@ export default {
     { prop: 'cabin_door_white', x: 70, y: 16 },
     { prop: 'rope_coil', x: 52, y: 16 },
   ],
-  lights: [{ x: 29, y: 13, r: 90, color: 0xffd890 }],
+  lights: [{ x: 4, y: 13, r: 130, color: 0xffd890 }, { x: 18, y: 13, r: 90, color: 0xffd890 }, { x: 29, y: 13, r: 90, color: 0xffd890 }], // the gas lamps are lit: Jo reads against them
   enclosure: { fgFoliage: [], frames: [] },
   light: { tint: 0xf0e4e8 },
   backdrop: { set: 'merrow_dusk', horizon: 16 },

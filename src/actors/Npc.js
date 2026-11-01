@@ -112,7 +112,7 @@ export class Npc {
       this.t = 0;
       this.anim.playOnce(this.task);
     }
-    this.anim.update(dt, { x: this.x, y: this.y, facing: this.facing, grounded: true, vx: 0, vy: 0, inputX: 0, ev: {} });
+    this.anim.update(dt, { x: this.x, y: this.y, facing: this.facing, grounded: true, vx: this.vx || 0, vy: 0, inputX: Math.sign(this.vx || 0), ev: {} });
     const f = this.anim.frameName();
     this.img.setFrame(f).setPosition(this.x, this.y).setFlipX(this.facing < 0);
     const hf = this.anim.hatFrame();

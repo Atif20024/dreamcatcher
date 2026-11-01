@@ -167,8 +167,9 @@ export default {
     const st = ctx.state;
     const def = SERVICES[key];
     const tickets = def.tickets.filter((k) => !F[`served_${k.id}`]); // a Continue does not do them twice
-    const stock = def.stock ? { grill: def.stock.grill + (F.stock_grill || 0), sauce: def.stock.sauce + (F.stock_sauce || 0), larder: def.stock.larder + (F.stock_larder || 0) } : {};
+    const stock = F.stock_left && def.stock ? F.stock_left : def.stock ? { grill: def.stock.grill + (F.stock_grill || 0), sauce: def.stock.sauce + (F.stock_sauce || 0), larder: def.stock.larder + (F.stock_larder || 0) } : {};
     st.svs[key] = new Service({ ...def, tickets, difficulty: s.difficulty || 0, stock });
+    if (def.stock) F.stock_left = st.svs[key].stock; // the same object: a saved run carries what the rush has used
     if (key === 'prep') st.svs[key].t = F.prep_t || 0; // nor does the clock start over
     if (key === 'dining') F.plate_hand = true; // off the table, into his hands, same frame
     // the one thing worth knowing as the clock starts, said once

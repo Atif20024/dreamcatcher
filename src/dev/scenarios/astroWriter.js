@@ -287,6 +287,12 @@ const pressRoute = {
     await dc.run(2);
     if (s.leversPulled.length !== 2 || !ed.done) fails.push(`levers ${s.leversPulled}, Editor done ${ed.done}`);
     if (s.erased.length) fails.push('the floor it took did not come back');
+    // on to FOLD: right held off web 2 stops at the frame and lands on web 3, not the floor past it
+    await walk('right', () => p.y > 25 * T, 700);
+    dc.hold('right');
+    for (let i = 0; i < 120 && !p.body.blocked.down; i++) await dc.run(1);
+    dc.release('right');
+    if (Math.abs(p.y - 27.3 * T) > T) fails.push(`off web 2 landed at row ${(p.y / T).toFixed(1)}, not on web 3`);
     return { pass: !fails.length, detail: fails.join('; ') || `PRESS pulled ${lead} px ahead of the Editor` };
   },
 };
