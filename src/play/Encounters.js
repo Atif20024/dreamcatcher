@@ -15,8 +15,9 @@
 //
 // The host supplies the Phaser side: makePresenter(def, engine, ctx),
 // enter(def, ctx), exit(def, result, ctx). Tests pass a fake host, which is
-// the point of the split: the logic runs without a renderer. def.onResult(result,
-// flags) lets a set write how it went, before its onWin beat reads it.
+// the point of the split: the logic runs without a renderer. def.onFlags(result,
+// flags) lets a set write how it went, before its onWin beat reads it. (Not
+// onResult: THE LAST HAND's presenters own that name, with their own arguments.)
 
 export class Encounters {
   constructor({ defs = {}, host = {}, bus = null } = {}) {
@@ -71,7 +72,7 @@ export class Encounters {
     a.ending = true;
     const done = () => {
       if (a.presenter && a.presenter.destroy) a.presenter.destroy();
-      if (result && result.ok && a.def.onResult) a.def.onResult(result, a.ctx.flags || {});
+      if (result && result.ok && a.def.onFlags) a.def.onFlags(result, a.ctx.flags || {});
       if (this.host.exit) this.host.exit(a.def, result, a.ctx);
       this.active = null;
       if (this.bus) this.bus.emit('encounter:end', { id: a.id, result });

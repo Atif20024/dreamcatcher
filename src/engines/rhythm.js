@@ -12,7 +12,9 @@
 //                                events carry it as `pitch`, so a right answer
 //                                plays the tune it was just played
 //   div: 0.5                     each slot is an eighth (real syncopation)
-//   third: true                  a "third bar": the offsets of its hits make `rush`
+//   third: true                  a "third bar": `rush` is how much earlier its hits
+//                                are than Jo's own other bars (so a laggy speaker
+//                                or a player's habit does not read as rushing)
 //   breath: 1500, song: 0        a pause after this bar (between songs)
 // Variants per set: rests: false turns every rest into a note (Mr. Tally's
 // set list: "no silences"); a phrase of only rests is "do nothing for a bar"
@@ -45,10 +47,12 @@ const norm = (p, rests) => {
 };
 
 // how far to move a phrase's start so it lands on the band's nearest beat:
-// sinceBeat ms after the band's last beat → ms to wait (negative: already late)
+// sinceBeat ms after the band's last beat → ms to wait. It only ever waits for
+// the next beat: running ahead would sound the first note early and squeeze it
+// against the second. (Under 25 ms late is on the beat, near enough to take.)
 export function beatCorrection(sinceBeat, bandBeatMs) {
   const x = ((sinceBeat % bandBeatMs) + bandBeatMs) % bandBeatMs;
-  return x > bandBeatMs / 2 ? bandBeatMs - x : -x;
+  return x < 25 ? -x : bandBeatMs - x;
 }
 
 export function rhythm({ bpm = 96, phrases = [[1, 1, 1, 1]], window = 150, rests = true, retries = 2, assist = 0.88, lead = 2, nervePerMiss = 16, nerveRelief = 12, freezeMs = 1500, judgeBeats = 0.75, gap = 0.5, nerve = 0, rushMs = 35 } = {}) {
@@ -74,18 +78,23 @@ export function rhythm({ bpm = 96, phrases = [[1, 1, 1, 1]], window = 150, rests
     offs: [], // every hit's offset from its slot (ms, negative is early)
     answered: -1,
     breathMs: 0,
+    pendingBreath: null,
+    strays: 0, // presses in this play bar that hit nothing: mashing
   };
   const events = [];
   const cur = () => list[s.idx];
   const len = (p) => (p.hold ? p.hold : p.beats.length);
   const slot = (p) => s.beatMs * (p.div || 1);
   const mean = (a) => (a.length ? a.reduce((t, n) => t + n, 0) / a.length : 0);
+  // the player's own feel: every bar that is not a third bar
+  const home = () => mean(s.offs.filter((o) => !o.third).map((o) => o.off));
   const thirdOffs = () => s.offs.filter((o) => o.third).map((o) => o.off);
   const startListen = () => {
     s.phase = 'listen';
     s.phaseT = 0;
     s.previewed = -1;
     s.answered = -1;
+    s.strays = 0;
     s.hits = cur().beats.map(() => null);
     s.holding = false;
     s.held = 0;
@@ -97,21 +106,30 @@ export function rhythm({ bpm = 96, phrases = [[1, 1, 1, 1]], window = 150, rests
   const judge = () => {
     const p = cur();
     let ok;
+    // one slip is a slip; more than that is mashing, and the bar does not count
+    const mashed = !p.hold && s.strays >= 2;
     if (p.hold) ok = s.hits[0] === true;
-    else ok = p.beats.every((b, i) => (b === 1 ? s.hits[i] === true : s.hits[i] !== false));
+    else ok = !mashed && p.beats.every((b, i) => (b === 1 ? s.hits[i] === true : s.hits[i] !== false));
     s.lastOk = ok;
     const barOffs = s.offs.filter((o) => o.idx === s.idx && o.tries === s.tries).map((o) => o.off);
-    events.push({ type: 'judge', idx: s.idx, ok, rushed: p.third && barOffs.length > 0 && mean(barOffs) < -rushMs });
+    events.push({ type: 'judge', idx: s.idx, ok, rushed: p.third && barOffs.length > 0 && mean(barOffs) - home() < -rushMs });
     if (ok) {
       s.passes += 1;
       addNerve(-nerveRelief);
     } else {
-      const missed = p.hold ? 1 : p.beats.filter((b, i) => (b === 1 ? s.hits[i] !== true : s.hits[i] === false)).length;
+      const missed = p.hold ? 1 : Math.max(1, p.beats.filter((b, i) => (b === 1 ? s.hits[i] !== true : s.hits[i] === false)).length);
       s.misses += missed;
       addNerve(nervePerMiss * Math.max(1, missed));
     }
     s.phase = 'judge';
     s.phaseT = 0;
+  };
+  const startBreath = (from) => {
+    s.phase = 'breath';
+    s.phaseT = 0;
+    s.breathMs = from.breath;
+    s.pendingBreath = null;
+    events.push({ type: 'breath', song: from.song });
   };
   const advance = () => {
     const ok = s.lastOk;
@@ -136,14 +154,13 @@ export function rhythm({ bpm = 96, phrases = [[1, 1, 1, 1]], window = 150, rests
       s.phaseT = 0;
       s.freezes += 1;
       s.nerve = 60;
+      // (a freeze on a song's last bar still gets the song change after it)
+      s.pendingBreath = !again && from.breath ? from : null;
       events.push({ type: 'freeze' });
       return;
     }
     if (!again && from.breath) {
-      s.phase = 'breath';
-      s.phaseT = 0;
-      s.breathMs = from.breath;
-      events.push({ type: 'breath', song: from.song });
+      startBreath(from);
       return;
     }
     startListen();
@@ -156,7 +173,7 @@ export function rhythm({ bpm = 96, phrases = [[1, 1, 1, 1]], window = 150, rests
     get result() {
       if (!api.done) return null;
       const third = thirdOffs();
-      const rush = Math.round(mean(third));
+      const rush = third.length ? Math.round(mean(third) - home()) : 0;
       return { ok: true, passes: s.passes, misses: s.misses, total: list.length, perfect: s.misses === 0, freezes: s.freezes, ms: Math.round(s.t), offsets: s.offs.map((o) => o.off), rush, rushed: third.length > 0 && rush < -rushMs };
     },
     phrases: list,
@@ -181,7 +198,10 @@ export function rhythm({ bpm = 96, phrases = [[1, 1, 1, 1]], window = 150, rests
         return;
       }
       if (s.phase === 'frozen') {
-        if (s.phaseT >= freezeMs) startListen();
+        if (s.phaseT >= freezeMs) {
+          if (s.pendingBreath) startBreath(s.pendingBreath);
+          else startListen();
+        }
         return;
       }
       if (s.phase === 'listen') {
@@ -280,15 +300,18 @@ export function rhythm({ bpm = 96, phrases = [[1, 1, 1, 1]], window = 150, rests
           best = i;
         }
       });
-      if (best < 0 || bestD > window) {
+      const stray = () => {
+        if (s.phase === 'play') s.strays += 1;
         events.push({ type: 'stray' });
-        return 'stray';
-      }
+        return s.strays >= 2 ? 'miss' : 'stray';
+      };
+      if (best < 0 || bestD > window) return stray();
       if (p.beats[best] === 0) {
         if (s.hits[best] === null) {
           s.hits[best] = false;
-          // playing into a third bar's rest is the rush itself
-          if (p.third) s.offs.push({ idx: s.idx, tries: s.tries, off: -window, third: true });
+          // coming in early over a third bar's rest is the rush itself (a late
+          // press that lands nearest a rest is lag, not hurry)
+          if (p.third && t < best * B) s.offs.push({ idx: s.idx, tries: s.tries, off: -window, third: true });
           events.push({ type: 'rest', i: best });
         }
         return 'rest';
@@ -300,7 +323,7 @@ export function rhythm({ bpm = 96, phrases = [[1, 1, 1, 1]], window = 150, rests
         events.push({ type: 'hit', i: best, off, pitch: p.notes[best] });
         return 'hit';
       }
-      return 'stray';
+      return stray();
     },
     // the key comes up: only a held note cares
     release() {

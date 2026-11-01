@@ -36,8 +36,9 @@ export default {
     const loud = drowned(s.graph.roomAt(p.x, p.y), p.y);
     if (loud && !ctx.state.inRoar) {
       sfx('roar');
-      if (!ctx.flags.roar_told) ctx.services.caption.say('jo', "The crowd's right through this wall. I can't hear my own horn.", { ms: 2800 });
-      ctx.flags.roar_told = true;
+      // (twice: he may have missed it the first time, on his way to a wisp)
+      ctx.flags.roar_told = (ctx.flags.roar_told || 0) + 1;
+      if (ctx.flags.roar_told <= 2) ctx.services.caption.say('jo', ctx.flags.roar_told === 1 ? "The crowd's right through this wall. I can't hear my own horn." : "Can't hear the horn up here. Jump it.", { ms: 2800 });
     }
     ctx.state.inRoar = loud;
     if (!ctx.input.justDown('act2')) return;

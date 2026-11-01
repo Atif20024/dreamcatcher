@@ -10,6 +10,7 @@ import { BeatRunner } from '../src/play/BeatRunner.js';
 import { Encounters } from '../src/play/Encounters.js';
 import { DialogueRunner, conversationIssues } from '../src/narrative/DialogueRunner.js';
 import beats from '../src/dreams/musician/beats.js';
+import { slateEnc, faroEnc } from '../src/dreams/gambler/encounters/tables.js';
 import { CONVERSATIONS, BARKS, CAST } from '../src/dreams/musician/dialogue.js';
 import cellar from '../src/dreams/musician/rooms/cellar.js';
 import backstage from '../src/dreams/musician/rooms/backstage.js';
@@ -133,11 +134,27 @@ describe('the trumpet is in the band\'s key', () => {
     expect(bigSetParams({}).bpm).toBe(MUSIC_KEYS.stage.bpm);
   });
 
-  it('a call lands on the nearest band beat, by the shorter way', () => {
-    expect(beatCorrection(10, 500)).toBe(-10); // just past: run a little ahead
+  it('waiting for the beat keeps the call in time: the first interval is the grid', () => {
+    const e = rhythm({ bpm: 86, lead: 0, phrases: [[1, 1, 1]] });
+    e.takeEvents();
+    e.nudge(beatCorrection(340, 60000 / 86));
+    const at = [];
+    for (let t = 0; at.length < 2 && t < 5000; t += DT) {
+      e.update(DT);
+      for (const x of e.takeEvents()) if (x.type === 'preview') at.push(t);
+    }
+    expect(Math.abs(at[1] - at[0] - 60000 / 86)).toBeLessThan(DT + 1);
+  });
+
+  it('a call only ever waits for the band', () => {
+    expect(beatCorrection(10, 500)).toBe(-10); // on the beat, near enough
     expect(beatCorrection(490, 500)).toBe(10); // just before: wait a little
     expect(beatCorrection(1010, 500)).toBe(-10);
     expect(beatCorrection(0, 500) === 0).toBe(true);
+    // well past a beat: wait for the next one, never run ahead
+    expect(beatCorrection(100, 500)).toBe(400);
+    expect(beatCorrection(340, 697)).toBe(357);
+    for (let x = 25; x < 697; x += 7) expect(beatCorrection(x, 697)).toBeGreaterThan(0);
     const e = rhythm({ bpm: 120, lead: 0, phrases: [[1, 1]] });
     e.takeEvents();
     e.nudge(100);
@@ -227,6 +244,32 @@ describe('the third bar is mechanical', () => {
     expect(rushing(third(), (st) => st.third).result.rush).toBeLessThan(-35);
   });
 
+  it("it is measured against Jo's own bars: a late or early player is not a rusher", () => {
+    for (const offset of [100, 60, 20]) {
+      const e = rhythm({ bpm: 90, lead: 0, phrases: third() });
+      perform(e, { offset });
+      expect(e.result.rushed).toBe(false);
+      expect(Math.abs(e.result.rush)).toBeLessThan(20);
+    }
+    // a player with 100 ms of speaker lag who hurries the third bar still rushes
+    const e = rhythm({ bpm: 90, lead: 0, phrases: third() });
+    const pressed = new Set();
+    for (let f = 0; f < 60000 && !e.done; f++) {
+      e.update(DT);
+      const st = e.state();
+      const d = e.due();
+      if (!d) continue;
+      d.beats.forEach((b, i) => {
+        const key = `${st.idx}:${st.tries}:${i}`;
+        if (b === 1 && !pressed.has(key) && d.t >= i * d.beatMs + (st.third ? 40 : 100)) {
+          pressed.add(key);
+          e.press();
+        }
+      });
+    }
+    expect(e.result.rushed).toBe(true);
+  });
+
   it('rushing the other bars does not count', () => {
     const r = rushing(third(), (st) => !st.third).result;
     expect(r.rushed).toBe(false);
@@ -235,8 +278,12 @@ describe('the third bar is mechanical', () => {
 
   it('playing into a third bar\'s rest is the rush itself (the blank)', () => {
     const e = rhythm({ bpm: 120, lead: 0, retries: 0, phrases: [{ beats: [0, 0, 0, 0], third: true, voice: 'bass' }] });
-    perform(e, { restPress: (st, i) => i === 1 });
+    perform(e, { offset: -40, restPress: (st, i) => i === 1 });
     expect(e.result.rushed).toBe(true);
+    // a press that lands late, nearest a rest, is lag and not hurry
+    const lag = rhythm({ bpm: 120, lead: 0, retries: 0, phrases: [{ beats: [0, 0, 0, 0], third: true, voice: 'bass' }] });
+    perform(lag, { offset: 40, restPress: (st, i) => i === 1 });
+    expect(lag.result.rushed).toBe(false);
     const calm = rhythm({ bpm: 120, lead: 0, retries: 0, phrases: [{ beats: [0, 0, 0, 0], third: true, voice: 'bass' }] });
     perform(calm);
     expect(calm.result.rushed).toBe(false);
@@ -251,6 +298,9 @@ describe('the third bar is mechanical', () => {
     }
     expect(cellarPhrases().filter((p) => p.third).length).toBe(2);
     expect(bigSetCues({ choice_nia: true }).third.who).toBe('nia');
+    // whatever the list, somebody says so live: the ending never comes out of nowhere
+    expect(bigSetCues({ choice_tally: true }).third.who).toBe('session');
+    expect(bigSetCues({ choice_tally: true, marcus_stays: true }).third.who).toBe('marcus');
   });
 });
 
@@ -272,6 +322,61 @@ describe('results change what happens, never whether it finishes', () => {
     });
   }
 
+  // the masher: a key every 110 ms, whatever is on the staff
+  const mash = (params) => {
+    const e = rhythm(params);
+    for (let f = 0, t = 0; f < 60000 && !e.done; f++) {
+      e.update(DT);
+      t += DT;
+      if (t >= 110) {
+        t = 0;
+        e.press();
+        e.release();
+      }
+      e.takeEvents();
+    }
+    return e;
+  };
+
+  it('mashing is not playing, on either list, and it still finishes', () => {
+    for (const F of [{ choice_tally: true }, { choice_nia: true }]) {
+      const e = mash(bigSetParams(F));
+      expect(e.done).toBe(true);
+      expect(e.result.perfect).toBe(false);
+      expect(e.result.passes).toBeLessThan(e.result.total / 2);
+    }
+  });
+
+  it('one slip in a bar is forgiven; the second is mashing', () => {
+    const slip = rhythm({ bpm: 90, lead: 0, retries: 0, phrases: [[1, 1, 1, 1]] });
+    perform(slip, { skip: () => false });
+    expect(slip.result.perfect).toBe(true);
+    const e = rhythm({ bpm: 90, lead: 0, retries: 0, phrases: [[1, 1]] });
+    while (e.state().phase !== 'play') e.update(DT);
+    expect(e.press()).toBe('hit');
+    expect(e.press()).toBe('stray'); // one, free
+    expect(e.press()).toBe('miss'); // two: mashing
+  });
+
+  it("Tally's list has no four-taps-a-second bar", () => {
+    const t = rhythm(bigSetParams({ choice_tally: true }));
+    expect(t.phrases.some((p) => p.div < 1)).toBe(false);
+    expect(rhythm(bigSetParams({ choice_nia: true })).phrases.filter((p) => p.div < 1).length).toBe(1);
+  });
+
+  it('a freeze on the last bar of a song still gets the song change', () => {
+    const e = rhythm({ bpm: 120, lead: 0, retries: 0, nervePerMiss: 60, phrases: [bar('0 1', { breath: 1500, song: 0 }), bar('0 1', { song: 1 })] });
+    const seen = [];
+    for (let f = 0; f < 60000 && !e.done; f++) {
+      e.update(DT);
+      for (const x of e.takeEvents()) if (x.type === 'freeze' || x.type === 'breath' || x.type === 'phrase') seen.push(x.type);
+    }
+    const i = seen.indexOf('freeze');
+    expect(i).toBeGreaterThan(-1);
+    expect(seen[i + 1]).toBe('breath');
+    expect(seen[i + 2]).toBe('phrase');
+  });
+
   it('a retried bar slows that bar, not the rest of the set', () => {
     const e = rhythm({ bpm: 120, retries: 2, nervePerMiss: 0, phrases: [[1, 1], [1, 1]] });
     const seen = [];
@@ -288,7 +393,7 @@ describe('results change what happens, never whether it finishes', () => {
   it('how it went reads: perfect, misses, freezes', () => {
     const clean = rhythm(cellarGig.params);
     perform(clean);
-    expect(gigFlags('cellar', clean.result)).toEqual({ cellar_perfect: true, cellar_froze: false, cellar_rushed: false });
+    expect(gigFlags('cellar', clean.result)).toEqual({ cellar_played: true, cellar_perfect: true, cellar_froze: false, cellar_rushed: false });
     const silent = rhythm(cellarGig.params);
     perform(silent, { skip: () => true });
     expect(silent.result.freezes).toBeGreaterThan(0);
@@ -309,6 +414,14 @@ describe('results change what happens, never whether it finishes', () => {
     enc.finish({ ok: true, perfect: true, freezes: 0, rushed: false });
     await done;
     expect(order).toEqual(['exit perfect=true']);
+    // the Gambler's own onResult(scene, result) belongs to its presenter: a
+    // real def through the real Encounters must exit, and call nothing of its own
+    const gambler = new Encounters({ defs: { slate: slateEnc }, host: {} });
+    const p3 = gambler.start('slate', { flags: {} });
+    gambler.finish({ ok: true, buyin: 100, down: 50, up: 300 });
+    await p3;
+    expect(gambler.busy).toBe(false);
+    expect(faroEnc.onFlags).toBeUndefined();
     const left = {};
     const enc2 = new Encounters({ defs: { gig: { ...cellarGig, params: { phrases: [[1]] } } }, host: {} });
     const p2 = enc2.start('gig', { flags: left });
@@ -426,6 +539,8 @@ describe('the story holds together', () => {
     for (const F of [{ cellar_perfect: true }, {}, { cellar_froze: true }]) {
       const w = walk('ray_lesson', F);
       expect(w.lines.map((l) => l.text).join(' ')).toMatch(/A rest is a note too/);
+      expect(w.lines.map((l) => l.text).join(' ')).toMatch(/Play the room/);
+      expect(w.lines.length).toBeLessThanOrEqual(5);
       expect(w.fx).toContainEqual({ beat: 'ray_drill_start' });
       expect(w.F.ray_talked).toBe(true);
       expect(w.F.ray_lesson).toBeUndefined(); // the gate waits for the drill
@@ -435,8 +550,8 @@ describe('the story holds together', () => {
   it("Ray's lesson is played: the drill opens the gate, with no nerve, and ends on a bar of nothing", async () => {
     const e = rhythm(rayDrill.params);
     expect(e.phrases[0].beats).toEqual([1, 1, 0, 1]);
-    expect(e.phrases[1].beats).toEqual([1, 0, 1, 1]);
-    expect(e.phrases[2].silent).toBe(true);
+    expect(e.phrases[1].silent).toBe(true);
+    expect(e.phrases.length).toBe(2);
     perform(e, { skip: () => true });
     expect(e.result.freezes).toBe(0);
     const g = alley.entities.find((x) => x.id === 'g_dock');
@@ -484,12 +599,13 @@ describe('the story holds together', () => {
     const noop = () => undefined;
     const run = async (F) => {
       lines.length = 0;
-      const r = new BeatRunner({ beats, flags: () => F, delay: () => Promise.resolve(), handlers: { talk: (id) => lines.push(id), say: noop, set: noop, call: noop } });
+      const r = new BeatRunner({ beats, flags: () => F, delay: () => Promise.resolve(), handlers: { talk: (id) => lines.push(id), say: noop, set: noop, call: (v) => v === 'markRoom' && (F._in_backstage = !F.left) } });
       await r.play('marcus_calls');
       return [...lines];
     };
     expect(await run({})).toEqual(['marcus_call']);
     expect(await run({ marcus_left: 'go' })).toEqual([]); // not a second time
+    expect(await run({ left: true })).toEqual([]); // he walked back out in time
   });
 
   it('every path through Marcus leaves the flag the Evening reads', () => {
@@ -502,8 +618,6 @@ describe('the story holds together', () => {
   it('Nia and Tally say what the gig earned', () => {
     expect(walk('nia_rush', { cellar_rushed: true }).lines[0].text).toBe('You rush the third bar.');
     expect(walk('nia_rush', {}).lines[0].text).toMatch(/held/);
-    expect(walk('marcus_call', { cellar_rushed: true }).lines[1].text).toMatch(/Nia says you rush/);
-    expect(walk('marcus_call', {}).lines[1].text).toMatch(/held the third bar/);
     expect(walk('tally_offer', { cellar_froze: true }).lines[0].text).toMatch(/stopped dead/);
     expect(walk('tally_offer', { cellar_perfect: true }).lines[0].text).toMatch(/not one wrong note/);
     expect(walk('tally_offer', {}).lines[0].text).toBe("Nine people at the Cellar. I count. It's what I'm for.");
@@ -559,7 +673,7 @@ describe('the rooms use what they have', () => {
     expect(res.map((e) => e.id).sort()).toEqual(['bin', 'horn', 'pane']);
     for (const r of res) expect(beats[r.beat]).toBeTruthy();
     const people = street.entities.filter((e) => e.type === 'npc' && e.x > 29 && e.x < 71);
-    expect(people.length).toBeGreaterThanOrEqual(2);
+    expect(people.length).toBeGreaterThanOrEqual(1);
     for (const p of people) for (const t of p.talk) expect(CONVERSATIONS[t.conv]).toBeTruthy();
   });
 

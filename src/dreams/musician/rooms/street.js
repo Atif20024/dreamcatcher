@@ -4,8 +4,7 @@
 // Cellar's bouncer sends musicians round the back. The bus shelter, the
 // parked car and a shop awning are the high road (it pays); the iron arch at
 // the far end is the alley mouth (a seam: no cut). Past the bouncer the street
-// has its own life: a sweeper who stays for the shelter's roof, a woman reading
-// under the awning, and two more things that answer the horn (the shelter's
+// has its own life: a sweeper who stays for the shelter's roof, and two more things that answer the horn (the shelter's
 // glass, whatever lives in the dumpster).
 import { grid } from './grid.js';
 
@@ -58,7 +57,6 @@ export default {
     // the rest of the street: people, and more things the horn can wake
     { type: 'npc', id: 'sweeper', cast: 'ev-p-sweeper', x: 46, y: 15, facing: -1, talk: [{ conv: 'sweeper_glass', if: 'pane_rang' }, { conv: 'sweeper' }] },
     { type: 'resonant', id: 'pane', x: 43, y: 14, r: 2, set: 'pane_rang', beat: 'pane_rings' },
-    { type: 'npc', id: 'reader', cast: 'ev-p-priya', x: 60, y: 15, facing: -1, talk: [{ conv: 'reader_again', if: 'met_reader' }, { conv: 'reader' }] },
     { type: 'resonant', id: 'bin', x: 64, y: 14, r: 2, set: 'bin_rang', beat: 'bin_answers' },
     // coins (busker coins, worth 1): a breadcrumb on the kerb, then the high
     // road: the shelter roof, the car roof, the awning, a run along the top

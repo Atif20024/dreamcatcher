@@ -81,7 +81,8 @@ export default {
     { objective: 'to_dock' },
   ],
   // Saturday: Marcus calls Jo over as he comes through the door
-  marcus_calls: [{ wait: 900 }, { if: { flag: 'marcus_left', not: true }, then: [{ talk: 'marcus_call' }] }],
+  // (only if Jo is still in the room: walking back out inside the wait is no scene)
+  marcus_calls: [{ wait: 900 }, { call: 'markRoom' }, { if: { all: [{ flag: '_in_backstage' }, { flag: 'marcus_left', not: true }] }, then: [{ talk: 'marcus_call' }] }],
   marcus_goes: [{ call: 'afterTalk' }, { say: { who: 'jo', text: 'He hugs me, hard, and goes out through the loading door.' } }, { wait: 1800 }, { fade: 'out', ms: 260 }, { set: 'marcus_gone' }, { fade: 'in', ms: 260 }],
   marcus_walks: [{ call: 'afterTalk' }, { say: { who: 'jo', text: 'He waits. Then he picks up his sticks and walks.' } }, { wait: 1800 }, { fade: 'out', ms: 260 }, { set: 'marcus_gone' }, { fade: 'in', ms: 260 }],
   // the things backstage that are not just furniture

@@ -20,7 +20,6 @@ export const CAST = {
   crew: { name: 'OTHER STAGEHAND', portrait: 'portrait-mus-crew', face: 'foe-roadie', voicePitch: 0.75 },
   session: { name: 'SESSION GUY', portrait: 'portrait-mus-session', face: 'npc-scalper', voicePitch: 0.9 },
   sweeper: { name: 'SWEEPER', portrait: 'portrait-mus-sweeper', face: 'ev-p-sweeper', voicePitch: 0.8 },
-  reader: { name: 'WOMAN WITH A BOOK', portrait: 'portrait-mus-reader', face: 'ev-p-priya', voicePitch: 1.1 },
 };
 
 const conv = (id, cast, nodes, extra = {}) => ({ id, channel: 'scene', camera: 'talk', cast, nodes, ...extra });
@@ -28,19 +27,12 @@ const conv = (id, cast, nodes, extra = {}) => ({ id, channel: 'scene', camera: '
 export const CONVERSATIONS = {
   // ---- the street ----
   bouncer: conv('bouncer', ['bouncer', 'jo'], {
-    start: { who: 'bouncer', text: 'Case like that, you are a musician. Musicians go round the back.', next: 'j1' },
-    j1: { who: 'jo', expr: 'doubt', text: 'Round the back where?', next: 'b2' },
+    start: { who: 'bouncer', text: 'Case like that, you are a musician. Musicians go round the back.', next: 'b2' },
     b2: { who: 'bouncer', text: 'The alley. Stage door, under the blue sign. If the sign is dead, wake it up.', set: { met_bouncer: true }, end: true },
   }),
   bouncer_again: conv('bouncer_again', ['bouncer'], { start: { who: 'bouncer', text: 'The alley. Under the blue sign.', end: true } }, { replayable: true }),
   sweeper: conv('sweeper', ['sweeper'], { start: { who: 'sweeper', text: 'Last bus went by at ten. I stay for the roof.', end: true } }, { replayable: true }),
   sweeper_glass: conv('sweeper_glass', ['sweeper'], { start: { who: 'sweeper', text: 'Do that to the glass again and I bill you for it.', end: true } }, { replayable: true }),
-  reader: conv('reader', ['reader', 'jo'], {
-    start: { who: 'reader', text: 'Saturday? They sold that out in March. You with the band?', next: 'j1' },
-    j1: { who: 'jo', expr: 'doubt', text: 'Which band?', next: 'r2' },
-    r2: { who: 'reader', text: 'Exactly.', set: { met_reader: true }, end: true },
-  }),
-  reader_again: conv('reader_again', ['reader'], { start: { who: 'reader', text: 'Page ninety. Nobody in this book has a trumpet either.', end: true } }, { replayable: true }),
 
   // ---- the Blue Cellar ----
   delphine_first: conv('delphine_first', ['delphine', 'jo'], {
@@ -86,28 +78,24 @@ export const CONVERSATIONS = {
     // only a clean gig hears the famous line; each way in lands on the same lesson
     start: { who: 'ray', if: 'cellar_perfect', text: 'You played every note right.', next: 'j1', else: 'froze' },
     j1: { who: 'jo', expr: 'smile', text: '…Thank you?', next: 'r2' },
-    r2: { who: 'ray', text: "Wasn't a compliment. A player piano plays every note right. You're playing notes, son. Play the room.", next: 'j2' },
+    r2: { who: 'ray', text: "Wasn't a compliment. A player piano plays every note right.", next: 'r3' },
     froze: { who: 'ray', if: 'cellar_froze', text: 'You stopped, up there. Whole room leaned in.', next: 'jf', else: 'most' },
     jf: { who: 'jo', expr: 'doubt', text: 'I froze.', next: 'rf' },
-    rf: { who: 'ray', text: "I know. Best thing you played all night, and you didn't mean it.", next: 'r2b' },
-    most: { who: 'ray', text: "You played most of the notes. That isn't what I'm about to say.", next: 'jm' },
-    jm: { who: 'jo', expr: 'doubt', text: '…Sorry?', next: 'r2b' },
-    r2b: { who: 'ray', text: "Get them all and you're a player piano. You're playing notes, son. Play the room.", next: 'j2' },
-    j2: { who: 'jo', expr: 'doubt', text: "I don't know what that means.", next: 'r3' },
-    r3: { who: 'ray', text: 'Then stop playing until you do. A rest is a note too. Leave it empty.', next: 'r4' },
+    rf: { who: 'ray', text: "I know. Best thing you played all night, and you didn't mean it.", next: 'r3' },
+    most: { who: 'ray', text: "You played most of the notes. Get them all and you're a player piano.", next: 'r3' },
+    r3: { who: 'ray', text: "You're playing notes, son. Play the room. A rest is a note too.", next: 'r4' },
     r4: { who: 'ray', text: 'I clap, you answer. Where I leave a hole, you leave a hole.', set: { ray_talked: true }, effects: [{ beat: 'ray_drill_start' }], end: true },
   }),
   ray_again: conv('ray_again', ['ray'], { start: { who: 'ray', text: 'Again. I clap, you answer.', effects: [{ beat: 'ray_drill_start' }], end: true } }, { replayable: true }),
   ray_after: conv('ray_after', ['ray'], {
     start: { who: 'ray', if: 'ray_drill_perfect', text: 'Hollow ring, you leave it alone. Go on. Saturday is through that door.', end: true, else: 'rough' },
-    rough: { who: 'ray', text: "You played through it. You'll hear it when you hear it. Saturday is through that door.", end: true },
+    rough: { who: 'ray', if: 'ray_drill_played', text: "You played through it. You'll hear it when you hear it. Saturday is through that door.", end: true, else: 'plain' },
+    plain: { who: 'ray', text: 'Go on. Saturday is through that door.', end: true },
   }, { replayable: true }),
 
   // ---- backstage, Saturday ----
   marcus_call: conv('marcus_call', ['marcus', 'jo'], {
-    start: { who: 'marcus', expr: 'smile', text: 'Jo! Some roadie slung your laminate up on the catwalk with the cable. Get it before Tally finds you without.', next: 'm1' },
-    m1: { who: 'marcus', if: 'cellar_rushed', text: "Nia says you rush. Everybody rushes. Rushing's just wanting it too bad.", next: 'm2', else: 'm1b' },
-    m1b: { who: 'marcus', expr: 'smile', text: 'Nia says you held the third bar. She sounded annoyed about it.', next: 'm2' },
+    start: { who: 'marcus', expr: 'smile', text: 'Jo! Some roadie slung your laminate up on the catwalk with the cable. Get it before Tally finds you without.', next: 'm2' },
     m2: { who: 'marcus', text: 'Listen. I got the call. The warehouse job. Days, benefits. Starts Monday.', next: 'j1' },
     j1: { who: 'jo', expr: 'doubt', text: "We've got the set in twenty—", next: 'm3' },
     m3: { who: 'marcus', text: "You've got the set. I've got a kid with our first set list on his wall. I wrote it on a napkin. He thinks daddy's a drummer. I'm telling you what I need.", next: 'j2' },

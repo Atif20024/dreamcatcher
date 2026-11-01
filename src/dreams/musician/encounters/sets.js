@@ -25,7 +25,7 @@ export function bar(text, extra = {}) {
 
 // perfect / froze / rushed, under the gig's name
 export function gigFlags(name, r) {
-  return { [`${name}_perfect`]: !!r.perfect, [`${name}_froze`]: r.freezes > 0, [`${name}_rushed`]: !!r.rushed };
+  return { [`${name}_played`]: true, [`${name}_perfect`]: !!r.perfect, [`${name}_froze`]: r.freezes > 0, [`${name}_rushed`]: !!r.rushed };
 }
 
 const flagsFor = (name) => (r, F) => Object.assign(F, gigFlags(name, r));
@@ -44,7 +44,7 @@ export const neon = {
   hint: 'listen, then [E] or [Q] on each note',
   lead: 'the sign hums. listen…',
   pose: 'play_trumpet',
-  onResult: flagsFor('neon'),
+  onFlags: flagsFor('neon'),
   onWin: 'neon_done',
 };
 
@@ -62,7 +62,7 @@ export const cellarGig = {
   title: 'OPEN MIC',
   engine: rhythm,
   scale: scaleOf(MUSIC_KEYS.cellar),
-  params: { bpm: 86, gap: 1, retries: 2, phrases: cellarPhrases() },
+  params: { bpm: 86, gap: 1, retries: 1, phrases: cellarPhrases() },
   cues: {
     phrase: { 2: { who: 'delphine', text: "That hole in the bar? Leave it, honey. It's part of the song." } },
     songs: ['FIRST SONG', 'SECOND SONG'],
@@ -74,7 +74,7 @@ export const cellarGig = {
   hint: '[E] or [Q] on a note; nothing on a ring',
   lead: 'nine chairs. Delphine counts you in…',
   pose: 'play_trumpet',
-  onResult: flagsFor('cellar'),
+  onFlags: flagsFor('cellar'),
   onWin: 'cellar_done',
 };
 
@@ -85,7 +85,7 @@ export const rayDrill = {
   title: "RAY'S LESSON",
   engine: rhythm,
   scale: scaleOf(MUSIC_KEYS.cellar),
-  params: { bpm: 86, gap: 1, retries: 3, nervePerMiss: 0, nerveRelief: 0, lead: 2, phrases: [bar('0 2 . 4', { voice: 'clap' }), bar('4 . 2 0', { voice: 'clap' }), bar('. . . .')] },
+  params: { bpm: 86, gap: 1, retries: 2, nervePerMiss: 0, nerveRelief: 0, lead: 2, phrases: [bar('0 2 . 4', { voice: 'clap' }), bar('. . . .')] },
   nerve: false,
   presenter: 'world',
   view: 'rhythm',
@@ -94,7 +94,7 @@ export const rayDrill = {
   hint: 'he claps. you answer. leave the holes alone',
   lead: 'Ray puts his cigarette down…',
   pose: 'play_trumpet',
-  onResult: flagsFor('ray_drill'),
+  onFlags: flagsFor('ray_drill'),
   onWin: 'ray_drill_done',
 };
 
@@ -103,8 +103,10 @@ export const rayDrill = {
 // on his list hammers the note before it. The band is in E Mixolydian.
 export function bigSetPhrases(F = {}) {
   const tally = !!F.choice_tally;
-  const song1 = [bar('4 4 . 7'), bar('7 . 6 4'), bar('2 3 4 .', { third: true }), bar('4 . 0 .', { breath: 1500 })].map((p) => ({ ...p, song: 0 }));
-  const song2 = [bar('7 6 . 4 2'), bar('. 2 4 7'), bar('4 . 4 6 . 7 . .', { div: 0.5, third: true }), bar('7 . 6 4 3', { breath: 1500 })].map((p) => ({ ...p, song: 1 }));
+  const song1 = [bar('0 4 . 7'), bar('7 . 6 4'), bar('2 3 4 .', { third: true }), bar('4 . 0 .', { breath: 1500 })].map((p) => ({ ...p, song: 0 }));
+  // (Tally's third bar stays on the quarters: filled eighths would be four taps a second)
+  const push = tally ? bar('4 4 6 7', { third: true }) : bar('4 . 4 6 . 7 . .', { div: 0.5, third: true });
+  const song2 = [bar('7 6 . 4 2'), bar('. 2 4 7'), push, bar('7 . 6 4 0', { breath: 1500 })].map((p) => ({ ...p, song: 1 }));
   const song3 = [bar('4 6 7 . 9'), bar('9 . 7 6 4')];
   // bar three of the last song is the blank itself: on Nia's list the rush
   // is playing into it at all
@@ -119,7 +121,7 @@ export function bigSetParams(F = {}) {
   return {
     bpm: 120,
     gap: 1,
-    retries: 2,
+    retries: 1,
     rests: !F.choice_tally,
     lead: 4, // the crowd claps him in
     phrases: bigSetPhrases(F),
@@ -139,7 +141,7 @@ export function bigSetCues(F = {}) {
   return {
     songs: nia ? ['TUESDAY', 'NINE CHAIRS', 'ROUND THE BACK'] : ['BIG NIGHT', 'HANDS UP', 'BIG NIGHT AGAIN'],
     soloist: nia ? 'nia_set' : null,
-    third: nia ? { who: 'nia', text: 'Third bar.' } : marcus ? { who: 'marcus', text: 'Easy. It comes to you.' } : null,
+    third: nia ? { who: 'nia', text: 'Third bar.' } : marcus ? { who: 'marcus', text: 'Easy. It comes to you.' } : { who: 'session', text: "You're a hair ahead of the click, man." },
     freeze: marcus ? { who: 'marcus', text: 'Hey. Eyes on me. I got it.' } : nia ? { who: 'nia', text: "I've got the bar. Come in when I do." } : { who: 'session', text: "Click's still going, man." },
   };
 }
@@ -158,7 +160,7 @@ export const bigSet = {
   hint: '[E] or [Q] on a note; nothing on a ring',
   lead: 'eight thousand people clap you in…',
   pose: 'play_trumpet',
-  onResult: flagsFor('set'),
+  onFlags: flagsFor('set'),
   onWin: 'set_done',
 };
 

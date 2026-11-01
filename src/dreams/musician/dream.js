@@ -76,6 +76,9 @@ export default {
   // Saturday starts when Jo comes through the door: Marcus cannot be walked past
   onEnter: { backstage: 'marcus_calls' },
   calls: {
+    markRoom: (s) => {
+      s.F._in_backstage = s.roomId === 'backstage';
+    },
     // a beat fired from a line waits for the box to close before it goes on
     afterTalk: (s) =>
       new Promise((res) => {

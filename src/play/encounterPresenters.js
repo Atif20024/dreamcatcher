@@ -218,6 +218,7 @@ function rhythmWorld(scene, def, engine, ctx) {
   let songShot = null;
   const songName = (i) => (cues.songs && i != null ? cues.songs[i] : null);
   let nextSong = null;
+  let freezesSaid = 0;
   const marks = (st) => `${songName(st.song) || def.title || 'THE SET'}  ${Math.min(st.idx + 1, st.total)}/${st.total}`;
   const hint = (st) => {
     if (st.phase === 'frozen') return '…frozen. breathe.';
@@ -276,7 +277,8 @@ function rhythmWorld(scene, def, engine, ctx) {
         } else if (ev.type === 'freeze') {
           cam.shake(220, 0.006);
           sfx('fail');
-          say(cues.freeze);
+          // (twice is help; every time is nagging)
+          if ((freezesSaid += 1) <= 2) say(cues.freeze);
         } else if (ev.type === 'breath') {
           // between songs: the lights come up, the crowd answers, the camera moves in
           nextSong = songName((ev.song ?? -1) + 1);

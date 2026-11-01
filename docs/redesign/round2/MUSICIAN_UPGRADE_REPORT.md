@@ -91,3 +91,77 @@ vitest (all files pass, including the 49 new tests), `lint:content`, `lint:rooms
 - Eighth-note bars at 120 bpm on Tally's list (eight notes at 250 ms): may be too hard.
 - The drowned landing: whether jumping or stamping `wisp_s2` is fair, and whether the caption arrives early enough.
 - Length: the drill adds about 20 s and Marcus's scene is no longer optional, so a first run grows past the review's 11-13 minutes. Pacing curve otherwise unchanged.
+
+# Round 2
+
+Review: `docs/redesign/advice/musician_review_r1.md`. I checked each item against the code before changing it. All held, with one small correction under NICE. Still no browser, no audio and no human play.
+
+## MUST
+
+| Item | What I did |
+|---|---|
+| **M1** my `onResult` hook broke the Gambler | **My regression, and it would have hung that dream's first encounter.** The Gambler already owns `onResult(scene, result)`, and round 1's tests never ran one of its defs. Renamed mine to `onFlags`. A new test runs the real `slateEnc` through the real `Encounters` and expects it to exit. |
+| **M2** `beatCorrection` jumped the clock forward | It now only waits for the next band beat (under 25 ms late counts as on the beat). The test that encoded the bug is corrected, and a new one proves the first interval stays on the grid after a wait. |
+
+## SHOULD
+
+| Item | What I did |
+|---|---|
+| **S1** rush measure | `rush` is now the third bars' mean minus the mean of the player's own other bars, so speaker lag or a habit no longer reads as rushing. The live judge uses the same measure. A press over a third-bar rest counts only if it came early. Tested with uniformly late players and with a laggy player who does hurry. The -35 ms number is unchanged, as the review advised. |
+| **S2** Tally has no third-bar cue | The session player now says "You're a hair ahead of the click, man." Every list has a live cue before the ending's line. |
+| **S3** freeze cue repeats | Said on the first two freezes only. |
+| **S4** mashing gives a perfect set | The second stray press in a bar now fails that bar, on every list; one slip is forgiven. A 110 ms masher now passes fewer than half the bars on both lists, and still finishes. Tally's filled eighth bar is now a quarter-note bar, so there is no four-taps-a-second bar and his list still has no rests. |
+| **S5** length | See below. |
+| **S6** drowned landing | The caption shows on the first two entries, and the second one says what to do: "Can't hear the horn up here. Jump it." |
+| **S7** freeze at a song boundary | The song change now runs after the freeze. Tested. |
+
+## Length cuts
+
+- Ray: `j2`, `jm`, and the duplicate `r2b` are gone. His lesson is 3-5 boxes, was 5-7. "Player piano" and "Play the room" remain on every path.
+- Drill: bar 2 is gone (it repeated an open-mic bar), retries 3 to 2. Clean 14 s, was 20 s.
+- Marcus: `m1`/`m1b` are gone. Laminate, the job, the napkin and the choice remain.
+- Street: the reader NPC is gone. Sweeper and both resonant objects remain.
+- Bouncer: Jo's "Round the back where?" is gone (one box).
+- Open mic and set: retries 2 to 1. A clean run or a one-note miss is unchanged. A player who keeps failing moves on sooner: silent set 161 s, was 244 s; silent mic 102 s, was 161 s.
+- **Not cut:** the stairs. Removing landings would mean moving rooms and entities with no way to test the jumps here, for an estimated 15-20 s.
+
+**New first-run estimate, not measured (the review estimated 13-15 min before these cuts):**
+
+| Part | Time |
+|---|---|
+| Mandatory talk, 23-26 boxes (was 28-30) at about 5 s | about 2:00 |
+| Gigs played clean, plus waiting for the beat | about 2:25 |
+| Scripted waits | about 0:15 |
+| Walking and climbing | about 4:50 |
+| **Clean run** | **about 9:30** |
+
+With ordinary misses and one death, about **10-11 min**. That is inside the 6-10 bar only for a clean run. Getting a typical first run under 10 needs the stairs shortened, which should be done with a browser.
+
+## NICE
+
+| Item | Result |
+|---|---|
+| N2 | Done: Marcus's scene checks that Jo is still backstage. |
+| N3 | Done: a new `_played` flag, so `ray_after` no longer claims a drill an old save never ran. |
+| N6 | Done, unheard: song 1 opens on the tonic and song 2 now ends on it. Song 1 already ended on E; the review's "B" was off. |
+| N1 | Not done: a seated talk loop needs new art and eyes. |
+| N4 | Left for the owner: whether Marcus staying should make the set easier or cost something. It is a design call. |
+| N5 | Not done: the atlas size was not checked separately. `npm run atlas` and `lint:scale` pass. |
+
+## Scripted play after round 2 (engine time, without the beat wait)
+
+| Gig | Clean | One miss a bar | Half the notes | Silent |
+|---|---|---|---|---|
+| Neon | 13 s | 25 s | 25 s, 0 freezes | 64 s |
+| Open mic | 42 s | 87 s, 0 freezes | 89 s, 1 freeze | 102 s |
+| Ray's drill | 14 s | 21 s | 21 s | 29 s |
+| Set (Nia) | 69 s | 126 s, 0 freezes | 137 s, 4 freezes | 161 s |
+| Set (Tally) | 70 s | 138 s, 0 freezes | 144 s, 4 freezes | 173 s |
+
+## Still to rerun in a browser
+
+Everything listed in round 1, plus:
+
+- One Gambler run through the slate (the test is headless).
+- Whether the wait before each call feels like the band counting or like a stall.
+- Whether the two-stray rule ever catches an honest player who double-taps.
