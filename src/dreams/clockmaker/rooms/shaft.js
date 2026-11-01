@@ -2,7 +2,7 @@
 // The great iron weight hangs on its chain. With the gears slipped the
 // pendulums swing loose and count nothing: the first thing in the first-time
 // player's dream that can hurt, slowly, on a beat you can watch before you go.
-// Three of them, each a little quicker: one across the floor, one across a
+// Three of them: one across the floor, one across a
 // plank, one across the chain itself (a knock drops Jo to the plank he left).
 // The second gear is at the top, caged, and the cage runs off a train: its big
 // wheel is on the shaft floor in the first bob's swing, its small one on plank B.
@@ -27,8 +27,9 @@ export const PENDULUMS = [
   { x: 12, row: 26, len: 4.6, amp: 0.85, period: 3800 },
   // (clear of both ladder heads: it never meets Jo as he steps off)
   { x: 12, row: 19, len: 4.6, amp: 0.85, period: 3600 },
-  // (over the foot of the chain, so he can wait there and watch; slow enough to climb between swings)
-  { x: 14, row: 12, len: 2.6, amp: 0.8, period: 3400 },
+  // (over the foot of the chain, so he can wait there and watch. Slower than the others:
+  // the chain takes 1.5 s, Jo may have to cross it twice with a wheel, and it was clear a quarter of the time)
+  { x: 14, row: 12, len: 2.6, amp: 0.8, period: 4400 },
 ];
 
 // (room px) big to the drive, small to the ratchet: only that way round touches

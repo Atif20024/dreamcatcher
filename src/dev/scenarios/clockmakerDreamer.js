@@ -9,21 +9,37 @@
 //   clockmaker-length   the whole dream at a reader's pace, talking to everyone:
 //                       a bot's number, with no looking around or thinking in it
 import { clearRun, getSave } from '../../utils/save.js';
-import { boot, put, walkTo, jumpTo, playEncounter, uncatch } from './phase3.js';
+import { boot, put, walkTo as walk, jumpTo, playEncounter, uncatch } from './phase3.js';
 
 const T = 32;
+// a long scripted run must let the page breathe (microtasks alone never do)
+const breathe = () => new Promise((r) => setTimeout(r));
+const walkTo = async (...a) => {
+  const r = await walk(...a);
+  await breathe();
+  return r;
+};
 
 function bot(dc, s, { pick = 0, read = false } = {}) {
   const b = {
     log: [],
+    rooms: {},
     ok(k, v) {
       b.log.push(`${k}:${v ? 'ok' : 'FAIL'}`);
+      // the time since the last check goes to the room Jo is in now
+      const now = s.time.now;
+      b.rooms[s.roomId] = (b.rooms[s.roomId] || 0) + (now - (b.last ?? now));
+      b.last = now;
+      window.__dcClock = b.log; // its progress can be read from outside
+      // the first thing wrong ends the run (the rest would only wait out its timeouts)
+      if (!v) throw new Error(b.log.join(' '));
       return v;
     },
     wx: (room, col) => (s.graph.room(room).tx + col) * T + 16,
     // a conversation: at a reader's pace the line types out and then sits
     async talk() {
-      for (let i = 0; i < 4000 && s.sceneBox.active; i++) {
+      for (let i = 0; i < 400 && s.sceneBox.active; i++) {
+        await breathe();
         const box = s.sceneBox;
         if (box.choosing) {
           box.choiceIdx = pick;
@@ -42,6 +58,7 @@ function bot(dc, s, { pick = 0, read = false } = {}) {
       for (let i = 0; i < 6000 && (s.beats.busy || s.sceneBox.active || s.transitions.busy); i++) {
         if (s.sceneBox.active) await b.talk();
         else await dc.run(1);
+        if (i % 60 === 0) await breathe();
       }
     },
     async use() {
@@ -57,7 +74,8 @@ function bot(dc, s, { pick = 0, read = false } = {}) {
     async chat(id) {
       const n = s.npcs.get(id);
       if (!n) return false;
-      await walkTo(dc, s, n.x - 36, { frames: 900, tol: 20 });
+      // (he may have paced on while Jo was walking over)
+      for (let i = 0; i < 4 && Math.abs(n.x - s.player.x) > 60; i++) await walkTo(dc, s, n.x - 36, { frames: 900, tol: 20 });
       await b.use();
       await b.talk();
       await b.quiet();
@@ -85,6 +103,15 @@ function bot(dc, s, { pick = 0, read = false } = {}) {
 const FLOORS = [32, 25, 18, 11];
 const LADDERS = { 32: 17, 25: 7, 18: 14 }; // the ladder up from each floor (room column)
 
+const BOB_ON = { 32: 0, 25: 1, 18: 2 }; // which pendulum swings over each floor
+
+// what a person does: watch the bob, and go when it is up at the end of its swing
+async function watchBob(dc, s, floor) {
+  const d = s.graph.room('shaft').data.pendulums[BOB_ON[floor]];
+  if (!d) return;
+  for (let i = 0; i < 300 && Math.abs(Math.sin((2 * Math.PI * s.time.now) / d.period)) < 0.97; i++) await dc.run(1);
+}
+
 async function climbTo(dc, s, b, target) {
   const r = s.graph.room('shaft');
   const p = s.player;
@@ -93,7 +120,13 @@ async function climbTo(dc, s, b, target) {
     const here = level();
     const up = target < here;
     const lad = up ? LADDERS[here] : LADDERS[here + 7];
+    await watchBob(dc, s, here);
     if (!(await walkTo(dc, s, b.wx('shaft', lad), { frames: 500, tol: 6 }))) continue;
+    // the chain: straight after the bob has gone by, and up
+    if (lad === LADDERS[18]) {
+      const T3 = s.graph.room('shaft').data.pendulums[2].period;
+      for (let i = 0; i < 400 && Math.abs(((s.time.now / T3) % 0.5) - 0.06) > 0.012; i++) await dc.run(1);
+    }
     const dir = up ? 'up' : 'down';
     dc.hold(dir);
     let was = false;
@@ -115,6 +148,7 @@ async function carryUp(dc, s, b, t, wheelId, peg) {
       const l = t.st.lying[wheelId];
       const floor = FLOORS.find((f) => Math.abs((l.y + 32) / T - f) < 1.5);
       await climbTo(dc, s, b, floor);
+      await watchBob(dc, s, floor);
       await walkTo(dc, s, t.ox + l.x, { frames: 500, tol: 14 });
       await b.use();
       if (t.st.carried !== wheelId) continue;
@@ -140,8 +174,11 @@ async function fullRun(dc, opts = {}) {
     await b.quiet();
     await walkTo(dc, s, b.wx('lane', 23), { frames: 900, tol: 30 });
     await dc.run(240);
-    dc.press('act2', 3);
+    dc.press('KeyQ', 3);
     await dc.run(180);
+    // (the puddle dip is in front of him: a hop, which walkTo won't do this near its target)
+    await walkTo(dc, s, b.wx('lane', 36), { frames: 600, tol: 20 });
+    await jumpTo(dc, s, 'right', 18);
     await b.chat('watch');
   }
   await walkTo(dc, s, b.wx('green', 18) - 36, { frames: 1400, tol: 20 });
@@ -205,8 +242,14 @@ async function fullRun(dc, opts = {}) {
   const bt = b.train('belfry');
   const floorRow = 12;
   const onFloor = async () => {
-    if ((p.body.bottom - (s.graph.room('belfry').ty * T)) / T < floorRow - 0.5) {
-      await walkTo(dc, s, b.wx('belfry', 16), { frames: 300, tol: 8 });
+    // off the west end of the gallery (or the east end of the joists), down to the floor
+    const up = () => (p.body.bottom - s.graph.room('belfry').ty * T) / T < floorRow - 0.5;
+    const x16 = b.wx('belfry', 16);
+    for (let tries = 0; tries < 4 && up(); tries++) {
+      const dir = p.x > x16 ? 'left' : 'right';
+      dc.hold(dir);
+      for (let f = 0; f < 400 && up() && (dir === 'left' ? p.x > x16 : p.x < x16); f++) await dc.run(1);
+      dc.release(dir);
       await dc.run(40);
     }
   };
@@ -254,6 +297,7 @@ async function fullRun(dc, opts = {}) {
   await playEncounter(dc, s);
   await dc.run(10);
   await b.quiet();
+  await dc.run(5);
   ok('clock-wound', !!s.F.clock_wound);
   ok('tick-starts', !tickBefore && !!s.music.cur.tick);
   ok('he-went-out', !!s.F.keeper_out && !s.npcs.get('keeper_rise'));
@@ -286,7 +330,7 @@ async function fullRun(dc, opts = {}) {
   if (opts.read) await b.chat('nell');
   ok('objective-lane', /down the lane/.test(s.objectiveText ? s.objectiveText.text : 'down the lane'));
   // 8. his door
-  await walkTo(dc, s, b.wx('lane', 12), { frames: 1800, tol: 40 });
+  await walkTo(dc, s, b.wx('lane', 10), { frames: 1800, tol: 20 });
   for (let i = 0; i < 300 && !s.beats.busy && !s.F.home; i++) await dc.run(1);
   if (opts.pick) ok('he-waits-at-the-door', !!s.npcs.get('keeper_door') || !!s.F.home);
   else ok('he-is-already-in', !s.npcs.get('keeper_door'));
@@ -321,7 +365,7 @@ const playthrough = {
     b.ok('board-caught', !!row && /CAUGHT/.test(row.status));
     uncatch('clockmaker');
     clearRun('clockmaker');
-    return { pass: b.log.every((l) => l.endsWith(':ok')), detail: `${b.log.join(' ')}; ${(ms / 60000).toFixed(1)} min of game time, no reading; ${hits} knocks, ${hearts} hearts left` };
+    return { pass: b.log.every((l) => l.endsWith(':ok')), detail: `${b.log.join(' ')}; ${(ms / 60000).toFixed(1)} min of game time, no reading; ${hits} knocks, ${hearts} hearts left; ${Object.entries(b.rooms).map(([k, v]) => `${k} ${(v / 1000).toFixed(0)}s`).join(', ')}` };
   },
 };
 
@@ -340,9 +384,10 @@ const length = {
   id: 'clockmaker-length',
   async run(dc) {
     const { b, ms, hits } = await fullRun(dc, { pick: 0, read: true });
+    const rooms = Object.entries(b.rooms).map(([k, v]) => `${k} ${(v / 1000).toFixed(0)}s`).join(', ');
     uncatch('clockmaker');
     clearRun('clockmaker');
-    return { pass: b.log.every((l) => l.endsWith(':ok')), detail: `${(ms / 60000).toFixed(1)} min of game time at a reader's pace, talking to everyone; a bot: no thinking at the wall, no looking around, no wrong turns; ${hits} knocks; ${b.log.filter((l) => l.endsWith('FAIL')).join(' ')}` };
+    return { pass: b.log.every((l) => l.endsWith(':ok')), detail: `${(ms / 60000).toFixed(1)} min of game time at a reader's pace, talking to everyone; a bot: no thinking at the wall, no looking around, no wrong turns; ${hits} knocks; ${rooms}` };
   },
 };
 
@@ -377,16 +422,40 @@ const wheels = {
     await b.at(bench.ox + 512, 'wheel:bench2', 16);
     ok('hang-second', await b.peg(bench, 'b'));
     ok('locked', bench.judder > 0 && !s.F.bench_done);
-    // a saved run: flags restored whole, nothing on his back
     await b.peg(bench, 'b');
     ok('carried', bench.st.carried === 'bench2');
-    await walkTo(dc, s, 15 * T, { frames: 400, tol: 30 });
+    // a saved run, continued: the wall comes back as it was, and nothing on his back
+    s.saveRun();
+    window.history.replaceState(null, '', window.location.pathname);
+    dc.scene().scene.start('Dream', { dreamId: 'clockmaker', resume: true });
+    for (let i = 0; i < 200 && !(dc.scene() && dc.scene() !== s && dc.scene().player && dc.scene().verbs); i++) {
+      await breathe();
+      dc.step(1);
+    }
+    await dc.run(10);
+    const again = dc.scene();
+    const t2 = again.verbs.find((v) => v.mod.id === 'wheels').ctx.state.trains.find((t) => t.def.id === 'bench');
+    ok('continue-wall', t2.st.hung.a === 'bench1');
+    ok('continue-empty-handed', !t2.st.carried && t2.st.lying.bench2.x === 512);
+    ok('continue-flag', !!again.F.met_keeper);
+    await this.doors(dc, ok);
+    clearRun('clockmaker');
+    return { pass: b.log.every((l) => l.endsWith(':ok')), detail: b.log.join(' ') };
+  },
+  async doors(dc, ok) {
+    const s = await boot(dc, 'clockhouse');
+    const b = bot(dc, s);
+    const verb = s.verbs.find((v) => v.mod.id === 'wheels').ctx.state;
+    const bench = b.train('bench');
+    s.F.met_keeper = true;
+    await b.at(bench.ox + 480, 'wheel:bench1', 16);
+    ok('carried-again', bench.st.carried === 'bench1');
     // through a door a wheel does not go: it goes home
     verb.carrying = bench;
     s.roomId = 'green';
     await dc.run(2);
     s.roomId = 'clockhouse';
-    ok('home-through-a-door', !bench.st.carried && bench.st.lying.bench2.x === 512);
+    ok('home-through-a-door', !bench.st.carried && bench.st.lying.bench1.x === 480);
     // the shaft: a wheel that fouls stays on his back; a knock drops it
     const s2 = await boot(dc, 'shaft');
     const b2 = bot(dc, s2);
@@ -406,8 +475,6 @@ const wheels = {
     s2.F.pendulum_hits = (s2.F.pendulum_hits || 0) + 1;
     await dc.run(30);
     ok('knock-drops-it', !sh.st.carried && sh.st.lying.shaft_big.y === 25 * T - 32 && !!v2);
-    clearRun('clockmaker');
-    return { pass: b.log.every((l) => l.endsWith(':ok')), detail: b.log.join(' ') };
   },
 };
 

@@ -164,6 +164,19 @@ describe('the dreamer', () => {
     expect(n.s1.next).toBe('give');
     expect(n.give.set.gear3_given).toBe(true);
   });
+  it('no beat opens a conversation with the input locked (the box would never close)', () => {
+    const walk = (steps, locked) => {
+      for (const st of steps) {
+        if ('lock' in st) locked = st.lock;
+        if (st.talk) expect(locked).toBe(false);
+        if (st.if) {
+          walk(st.then || [], locked);
+          walk(st.else || [], locked);
+        }
+      }
+    };
+    for (const steps of Object.values(dream.beats)) walk(steps, false);
+  });
   it('the Evening has him only if Jo saw him home, not for boarding the train', () => {
     expect(CAST.ansel.knows).toBe('ansel');
     expect(dream.persist.home).toBe('met.ansel');

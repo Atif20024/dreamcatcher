@@ -132,7 +132,10 @@ export default {
     {
       if: 'keeper_stays',
       then: [
+        // (a locked input would lock the box too: nobody could ever finish this)
+        { lock: false },
         { talk: 'keeper_door' },
+        { lock: true },
         { call: 'keeperIn' },
         { set: 'home' },
         { sfx: 'click' },

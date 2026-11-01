@@ -89,8 +89,6 @@ export default {
         t.imgs.output.img.setPosition(ox + def.output.x, oy + def.output.y);
         trains.push(t);
         this.sync(ctx, t);
-        // a saved run is not holding anything: a carried wheel went home at the save
-        if (goHome(def, t.st)) this.save(ctx, t);
         const here = () => s.roomId === r.id && !ctx.flags[def.flag] && !s.encounterActive && (!def.needs || ctx.flags[def.needs]);
         // Jo's hand reaches a peg from below or level with it, never down through a floor
         const below = (y) => s.player.y + 22 >= oy + y - 8;
@@ -157,6 +155,11 @@ export default {
     t.raw = raw;
     t.st = load(ctx.flags, t);
     if (!t.st.carried && ctx.state.carrying === t) ctx.state.carrying = null;
+    // a saved run was not holding anything: a wheel carried at the save has gone home
+    if (t.st.carried && ctx.state.carrying !== t) {
+      goHome(t.def, t.st);
+      this.save(ctx, t);
+    }
   },
   save(ctx, t) {
     t.raw = JSON.stringify(t.st);

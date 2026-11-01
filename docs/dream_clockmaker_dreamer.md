@@ -45,9 +45,9 @@ Jo picks up a real brass wheel, carries it on his back through the room, and han
 - **Taught safely, then tested:**
   1. **The bench** (clock house, no hazard, Ansel beside you): two wheels on the floor and shelf. One wheel reaches, and goes the wrong way. He explains. Two wheels by the other pegs: right.
   2. **The shaft** (under the pendulums): a big wheel from the floor, a small one from plank B, up the chain to plank C. Only the big wheel reaches the first peg. A knock drops what Jo is carrying to the floor below; it stays there to be fetched.
-  3. **The bell chamber** (both ideas together): four wheels, one in the pendulum's swing, one on the joists, two on the gallery; nine pegs; only an even count works.
+  3. **The bell chamber** (both ideas together): four wheels, one in the pendulum's swing, one on the joists, two on the gallery; seven pegs; only an even count works.
 
-Length comes from doing this, not from distance. The dream stays gentle: the first knock is free, none takes the last heart, a train can't be failed, and the pendulum rules are unchanged.
+Length comes from doing this, not from distance. The dream stays gentle: the first knock is free, none takes the last heart, and a train can't be failed. One number moves: the chain's pendulum is slower (3400 to 4400 ms), because a wheel may have to cross it twice.
 
 ## What is not changing
 

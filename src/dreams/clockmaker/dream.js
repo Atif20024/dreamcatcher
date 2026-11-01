@@ -232,6 +232,7 @@ export default {
       'Nell knew. Nell lit the last lamp.',
     ],
     vista: 0.8,
+    imageH: 190, // its lines must clear the foot of the screen and the [E] hint
     paint(ctx, w, h) {
       // the town from the bell yard, every lamp lit
       ctx.drawImage(paintSky({ ...DUSK_SKY, top: 0x1a1c40, mid: 0x5a3a6a, stars: 70, sun: null }), 0, 0, w, h);
