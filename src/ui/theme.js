@@ -41,11 +41,12 @@ export const PLACES = Object.freeze({
   painter: { name: "THE MASTER'S LADDER", shadow: 0x1e2040, warm: 0xf2c070, accent: 0xe8b830, grade: 0xe4dff0, outline: 'light', line: 0.9 },
   gambler: { name: 'THE LAST HAND', shadow: 0x1c1430, warm: 0xf2b868, accent: 0x2f7a4a, grade: 0xe0d8ec, outline: 'light', line: 0.85 },
   clockmaker: { name: 'THE STOPPED HOUR', shadow: 0x1a1c3a, warm: 0xffc870, accent: 0x6fae8c, grade: 0xd4d2ec, outline: 'light', line: 0.9 },
+  racer: { name: 'THE LONG STRAIGHT', shadow: 0x1a2030, warm: 0xf2b868, accent: 0x1f7a78, grade: 0xe8e4f0, outline: 'dark', line: 0.5 },
   evening: { name: 'THE LONG EVENING', shadow: 0x2a1e30, warm: 0xf0b45a, accent: 0xf0b45a, inverted: true },
 });
 
 // the scene (or a dream id) → its place in PLACES
-const SCENE_PLACE = { Hub: 'hub', Title: 'hub', Boot: 'hub', Astronaut: 'astronaut', Writer: 'writer', Evening: 'evening' };
+const SCENE_PLACE = { Hub: 'hub', Title: 'hub', Boot: 'hub', Race: 'racer', Astronaut: 'astronaut', Writer: 'writer', Evening: 'evening' };
 export function placeOf(sceneOrId) {
   if (!sceneOrId) return 'hub';
   if (typeof sceneOrId === 'string') return PLACES[sceneOrId] ? sceneOrId : SCENE_PLACE[sceneOrId] || 'hub';

@@ -69,7 +69,7 @@ describe('reach: every drop has a way back', () => {
     expect(g.has(there, ...foot)).toBe(true);
     expect(g.has(back, ...foot)).toBe(true);
     // and the whole undercroft floor, end to end, is somewhere he can get home from
-    for (let c = 30; c < 165; c++) if (g.node(c, HUB_ROWS.UNDER - 1)) expect(g.has(back, c, HUB_ROWS.UNDER - 1)).toBe(true);
+    for (let c = 30; c < 172; c++) if (g.node(c, HUB_ROWS.UNDER - 1)) expect(g.has(back, c, HUB_ROWS.UNDER - 1)).toBe(true);
   });
 
   it('a lid hatch in a small grid: down through the tile, and up out of it', () => {

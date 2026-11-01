@@ -68,6 +68,7 @@ const MARKS = {
   stripe: ['........', 'EEEEEEEE', 'eeeeeeee', '........', 'EEEEEEEE', 'eeeeeeee', '........', '........'],
   quill: ['.......E', '......EE', '.....EE.', '....EE..', '...EE...', '..ee....', '.e......', 'e.......'],
   sun: ['E..E..E.', '.E.E.E..', '..EEE...', 'EEEeEEE.', '..EEE...', '.E.E.E..', 'E..E..E.', '........'],
+  wheel: ['..EEEE..', '.E.ee.E.', 'E..ee..E', 'EeeEEeeE', 'EeeEEeeE', 'E..ee..E', '.E.ee.E.', '..EEEE..'],
   wings: ['E......E', 'EE....EE', 'EEE..EEE', '.EEEEEE.', '..EeeE..', '...EE...', '........', '........'],
   spade: ['...E....', '..EEE...', '.EEEEE..', 'EEEEEEE.', 'EEEEEEE.', '.E.e.E..', '...e....', '..eee...'],
   cross: ['..EEE...', '..EEE...', 'EEEEEEE.', 'EEEEEEE.', 'EEEEEEE.', '..EEE...', '..EEE...', '........'],

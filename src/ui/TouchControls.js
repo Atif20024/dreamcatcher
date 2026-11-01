@@ -22,7 +22,7 @@
 //   a landscape lock (both may be refused: errors are swallowed).
 // - The DOM listeners sit on window in the capture phase: a touch on a
 //   button never reaches Phaser (the HUD footer is a music button there).
-import { layoutTouch, layoutContext, controlsAt, keyOf, TOUCH_KEYS, toGame, isPortrait, GAME_W, GAME_H } from '../input/touchLayout.js';
+import { layoutTouch, layoutRace, layoutContext, controlsAt, keyOf, TOUCH_KEYS, toGame, isPortrait, GAME_W, GAME_H } from '../input/touchLayout.js';
 import { openSoftKeyboard, closeSoftKeyboard } from '../input/softKeyboard.js';
 import { routeZoneTap, zonesHideControls } from '../input/touchTaps.js';
 import { touchState } from '../input/touchState.js';
@@ -116,10 +116,13 @@ export default class TouchControls {
 
   ensureLayout() {
     const r = this.rect();
-    const key = `${Math.round(r.width)}x${Math.round(r.height)}`;
+    // the scene in front says which controls it drives with (RaceScene: pedals)
+    const owner = ownerScene(this.game);
+    const race = !!owner && owner.touchProfile === 'race';
+    const key = `${Math.round(r.width)}x${Math.round(r.height)}${race ? 'race' : ''}`;
     if (!this.layout || this.layoutKey !== key) {
       this.layoutKey = key;
-      this.layout = layoutTouch({ cssW: r.width || GAME_W, cssH: r.height || GAME_H });
+      this.layout = (race ? layoutRace : layoutTouch)({ cssW: r.width || GAME_W, cssH: r.height || GAME_H });
       this.ctxSig = null;
       this.sig = '';
       setHudInsets(this.layout.insets);
@@ -325,7 +328,10 @@ export default class TouchControls {
       g.fillStyle(THEME.panel, lit ? PLATE_ON : PLATE_A).fillCircle(x, y, r);
       g.lineStyle(Math.max(1, Math.round(r / 22)), lit ? THEME['brass-light'] : THEME['panel-edge'], lit ? 1 : 0.75).strokeCircle(x, y, r - 0.5);
     };
-    if (show && this.play) {
+    // (the last layout's labels go when the controls change: the d-pad's and the pedals')
+    const ids = new Set(L.buttons.map((b) => b.id));
+    for (const [id, t] of Object.entries(this.labels)) if (!id.startsWith('ctx:') && !ids.has(id)) t.setVisible(false);
+    if (show && this.play && L.pad) {
       const P = L.pad;
       // the pad's well, then the four arms with their arrows
       g.fillStyle(THEME.panel, 0.18).fillCircle(P.cx, P.cy, P.d + P.r * 0.7);
@@ -342,7 +348,17 @@ export default class TouchControls {
       // a label wider than its plate drops to the small face
       if (t.width > b.r * 1.7 && t.scaleX > 1) t.setScale(1);
       if (!vis) continue;
+      if (b.shape === 'pedal') {
+        // a pedal: a tall ribbed plate, as under a driver's foot
+        const lit = on(b.id);
+        g.fillStyle(THEME.panel, lit ? PLATE_ON : PLATE_A).fillRect(b.x - b.w / 2, b.y - b.h / 2, b.w, b.h);
+        g.lineStyle(2, lit ? THEME['brass-light'] : THEME['panel-edge'], lit ? 1 : 0.75).strokeRect(b.x - b.w / 2, b.y - b.h / 2, b.w, b.h);
+        g.fillStyle(lit ? THEME['brass-light'] : THEME['panel-edge'], 0.5);
+        for (let ry = b.y - b.h / 2 + 10; ry < b.y + b.h / 2 - 6; ry += 14) if (Math.abs(ry - b.y) > 14) g.fillRect(b.x - b.w / 2 + 8, ry, b.w - 16, 3);
+        continue;
+      }
       plate(b.x, b.y, b.r, on(b.id));
+      if (b.arrow) arrow(g, b.x, b.y, b.r * 0.42, b.arrow, on(b.id) ? THEME['brass-light'] : THEME.ink);
       if (b.id === 'pause') {
         // two bars: pause (Esc)
         const h = b.r * 0.8;

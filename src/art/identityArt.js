@@ -12,7 +12,7 @@ import { IDENTITY, PLACES } from '../ui/theme.js';
 // the seven running dreams, in board order: the hall web's rounds, outside in
 const WEB_FIRST = ['chef', 'musician', 'writer', 'painter', 'astronaut', 'gambler', 'clockmaker'];
 // a dream added later takes the next round by itself
-export const WEB_ORDER = [...WEB_FIRST, ...DREAMS.filter((d) => d.scene && !WEB_FIRST.includes(d.id)).map((d) => d.id)];
+export const WEB_ORDER = [...WEB_FIRST, ...DREAMS.filter((d) => d.scene && !d.unfinished && !WEB_FIRST.includes(d.id)).map((d) => d.id)];
 export const WEB_SPOKES = 7;
 
 // the web's rounds: each round's points are the midpoints of the last

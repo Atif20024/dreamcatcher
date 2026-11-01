@@ -1,4 +1,4 @@
-// Crossroads Station: 167x34 tiles, five and a half screens wide, two tall.
+// Crossroads Station: 174x34 tiles, nearly six screens wide, two tall.
 //
 //  rows  0- 7  roof air; row 8 = the train-shed roof walkway
 //  rows  9-25  the hall (17 rows = two screens tall)
@@ -7,9 +7,9 @@
 //  row  33     bedrock
 //
 // cols   0- 29 Front Steps   30- 79 Great Hall   80-109 Platforms 1-4
-//      110-156 Platforms 5-8, then 9 (THE STOPPED HOUR) and G (THE LAST
-//      STOP) past the luggage ramp   157-166 The Service Gate
-const W = 167;
+//      110-163 Platforms 5-8, then 9 (THE STOPPED HOUR), G (THE LAST STOP)
+//      and 10 (THE LONG STRAIGHT) past the luggage ramp   164-173 The Service Gate
+const W = 174;
 const H = 34;
 
 const blank = () => Array.from({ length: H }, () => '.'.repeat(W));
@@ -34,7 +34,7 @@ export function buildHubMap() {
   // --- bedrock, and the earth under the steps and past the gate ---------
   fill(rows, 33, 33, 0, W - 1, '#');
   fill(rows, 31, 32, 0, 29, '#');
-  fill(rows, 28, 32, 165, 166, '#');
+  fill(rows, 28, 32, 172, 173, '#');
 
   // --- front steps: street at row 30, a flight of sixteen 8 px risers up
   // to the hall (round 2: half-pitch stair-slopes, walked, never jumped):
@@ -48,7 +48,7 @@ export function buildHubMap() {
   // hall floor / platform concourse. The way down to the undercroft is a
   // ladder under the floor tile at col 77: press DOWN on it to climb below,
   // so the concourse never drops anyone by surprise.
-  fill(rows, 26, 27, 14, 164, '#');
+  fill(rows, 26, 27, 14, 171, '#');
   fill(rows, 27, 32, 77, 77, 'H');
 
   // --- great hall verticals ---------------------------------------------
@@ -82,16 +82,16 @@ export function buildHubMap() {
   fill(rows, 25, 25, 138, 139, '#');
   put(rows, 24, 139, 'S');
   put(rows, 25, 140, 'S');
-  stairs(rows, 26, 158, 1, 'r'); // (25,158)
-  fill(rows, 25, 25, 159, 161, '#');
+  stairs(rows, 26, 165, 1, 'r'); // (25,165)
+  fill(rows, 25, 25, 166, 168, '#');
 
   // --- the service gate ---------------------------------------------------
-  fill(rows, 12, 25, 163, 164, 'G');
-  fill(rows, 9, 11, 163, 164, '#'); // lintel
+  fill(rows, 12, 25, 170, 171, 'G');
+  fill(rows, 9, 11, 170, 171, '#'); // lintel
   // the station's east end wall, behind the gate, from the leads down to
   // the earth. It used to stop at the roof, leaving a two-tile shaft behind
   // the gate: a drop off the roof's end landed in it with no way out.
-  fill(rows, 9, 27, 165, 166, '#');
+  fill(rows, 9, 27, 172, 173, '#');
 
   return rows;
 }

@@ -18,6 +18,7 @@ const ROOTS = {
   painter: ['dreams/painter'],
   gambler: ['dreams/gambler'],
   clockmaker: ['dreams/clockmaker'],
+  racer: ['dreams/racer', 'scenes/RaceScene.js'],
   astronaut: ['scenes/AstronautScene.js', 'data/astronaut', 'data/astronautData.js', 'themes/astronaut.js', 'systems/astroPuzzles.js'],
   writer: ['scenes/WriterScene.js', 'data/writer', 'systems/writerPuzzles.js'],
   evening: ['scenes/EveningScene.js', 'scenes/evening', 'data/evening', 'systems/evening.js', 'systems/talk.js', 'entities/Townsfolk.js'],

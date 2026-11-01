@@ -50,7 +50,7 @@ const DOORS_X = px(22);
 const BAY_PROP_X = 5.4 * T; // on the concourse, between the gate and the bay's lamp
 const LUGGAGE_COINS = 5; // what a tagged case holds, in that dream's coin
 const ROOF_HINT = "There's a bench at the far end. And one on the clock, if you can jump.";
-const SHED_END_X = px(156);
+const SHED_END_X = px(163);
 
 // --- the people of the station: what they say, per dreamsCaught -----------
 const LAST_WALK = {

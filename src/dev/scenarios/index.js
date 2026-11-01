@@ -68,3 +68,6 @@ import roomEntry from './roomEntry.js';
 SCENARIOS.push(...roomEntry);
 import packs from './packs.js';
 SCENARIOS.push(...packs);
+// THE LONG STRAIGHT: the race scene, its hand-off, the pedals, the platform
+import racer from './racer.js';
+SCENARIOS.push(...racer);

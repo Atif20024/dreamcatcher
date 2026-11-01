@@ -28,4 +28,5 @@ export const PLACE_OWNERS = {
   gambler: ['gambler'],
   clockmaker: ['clockmaker'],
   evening: ['evening', 'crowd'],
+  racer: ['racer'], // the cars and road props (src/art/carKit.js); no people of its own yet
 };

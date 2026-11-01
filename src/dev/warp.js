@@ -10,6 +10,7 @@ export const DREAM_WARP = {
   writer: { scene: 'Writer', param: 'wr', fallback: 'attic' },
   painter: { scene: 'Dream', param: null, framework: true },
   gambler: { scene: 'Dream', param: null, framework: true },
+  racer: { scene: 'Dream', param: null, framework: true },
   evening: { scene: 'Evening', param: 'ev', fallback: 'arch' },
   // framework dreams (DreamScene reads ?warp= itself: dream:room[:spawn])
   clockmaker: { scene: 'Dream', param: null, framework: true },

@@ -70,6 +70,7 @@ export async function scaleIssues(ROOT) {
     check(key, 'prop', cls, h, S.PROP_CLASSES[cls].h);
   }
   await trainKitChecks(imp, S, check); // round 2 WP3
+  await carKitChecks(imp, R, check);
   for (const [key, [, h, cls]] of Object.entries(S.CLOCK_PROP_SIZES)) check(key, 'prop', cls, h, S.PROP_CLASSES[cls].h);
   // the Evening's painted arch and rope swing (not kit grids)
   check('ev-arch', 'prop', 'gateArch', S.EVENING_ARCH.h, S.PROP_CLASSES.gateArch.h);
@@ -83,6 +84,20 @@ export async function scaleIssues(ROOT) {
   // the rest of the listed exceptions (not measured here)
   for (const [key, owner] of Object.entries(S.SCALE_EXCEPTIONS)) if (!out.exceptions.some((e) => e.key === key)) out.exceptions.push({ key, h: null, range: null, owner });
   return out;
+}
+
+// THE LONG STRAIGHT's cars, measured off the baked frames: 3.8 m long, 1.1 m to
+// the scuttle (the wheel sits on the frame's last row), the driver's head over it
+async function carKitChecks(imp, R, check) {
+  const { carFrames, CAR_SIZE, LIVERIES } = await imp('src/art/carKit.js');
+  const frames = carFrames();
+  for (const id of Object.keys(LIVERIES)) {
+    const b = R.bbox(frames[`car-${id}`]);
+    check(`car-${id} (length, px)`, 'prop', 'car', b.w, [160, 174]);
+    check(`car-${id} (head over the road, px)`, 'prop', 'car', CAR_SIZE.frameH - b.y, [52, 64]);
+  }
+  const w = R.bbox(frames['wheel-0']);
+  check('wheel (px)', 'prop', 'car', w.h, [26, 30]);
 }
 
 // round 2 WP3: the train kit and the station furniture are painted in code

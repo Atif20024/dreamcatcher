@@ -186,7 +186,7 @@ const roofRewards = {
         // the far bench
         put(s, px(151), ROOF - 24);
         await dc.run(30);
-        put(s, px(155), ROOF - 24);
+        put(s, px(162), ROOF - 24);
         await dc.run(10);
         dc.hold('down');
         await dc.run(280);
