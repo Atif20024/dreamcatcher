@@ -25,6 +25,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - run: npm test
+      - run: npm run lint:content
+      - run: npm run lint:rooms
+      - run: npm run lint:scale
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
