@@ -45,7 +45,7 @@ export const PLACES = Object.freeze({
 });
 
 // the scene (or a dream id) → its place in PLACES
-const SCENE_PLACE = { Hub: 'hub', Title: 'hub', Boot: 'hub', Chef: 'chef', Astronaut: 'astronaut', Writer: 'writer', Evening: 'evening' };
+const SCENE_PLACE = { Hub: 'hub', Title: 'hub', Boot: 'hub', Astronaut: 'astronaut', Writer: 'writer', Evening: 'evening' };
 export function placeOf(sceneOrId) {
   if (!sceneOrId) return 'hub';
   if (typeof sceneOrId === 'string') return PLACES[sceneOrId] ? sceneOrId : SCENE_PLACE[sceneOrId] || 'hub';

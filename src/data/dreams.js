@@ -9,10 +9,11 @@
 
 export const DREAMS = [
   {
-    id: 'chef', platform: 1, title: 'FIVE-STAR DREAM', scene: 'Chef', propsKind: 'produce', ambientLoop: 'sizzle',
+    // FIVE-STAR DREAM (src/dreams/chef/, DreamScene): Le Rêve, 1957, the ticket rail
+    id: 'chef', platform: 1, title: 'FIVE-STAR DREAM', scene: 'Dream', propsKind: 'produce', ambientLoop: 'fs_yard',
     coin: { name: 'brass tip', worth: 5, budget: [60, 80], pal: { c: 0xb8862c, C: 0xf2d580, h: 0xfff2c8 } },
     livery: { body: 0xb83a34, trim: 0xf2e6cc, window: 0xf2c078, emblem: 'cloche' },
-    conductor: 'Five-Star Dream, sir. The kitchen at Le Rêve, and the critics are in tonight.\nAre you ready to cook for people who came to be disappointed?',
+    conductor: 'Five-Star Dream, sir. The kitchen at Le Rêve, and the Carnet is in tonight.\nAre you ready to cook for people who came to be disappointed?',
     roLine: "Kitchen grease. You've been somewhere hot. Sit, I'll get it off.",
   },
   {

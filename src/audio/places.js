@@ -30,7 +30,7 @@ export const BEDS = {
   piazza: bed(['church_bell', 50, 80, 0.8], ['swifts', 15, 30, 0.6]),
   // the scene-built dreams
   kitchen: bed(['pan_clatter', 5, 10], ['ticket_bell', 12, 20], ['chop', 9, 16], ['order_call', 14, 24], ['steam', 10, 18, 0.8]),
-  chef_street: bed(['traffic', 10, 18, 0.7], ['horn', 25, 45, 0.6], ['bird', 8, 16, 0.6]),
+  chef_street: bed(['traffic', 10, 18, 0.7], ['drain', 8, 16, 0.7]),
   writer: bed(['carriage_bell', 15, 30], ['paper', 8, 15], ['crumple', 20, 40, 0.8], ['clock_hour', 60, 90, 0.7]),
   writer_street: bed(['traffic', 9, 16, 0.7], ['horn', 25, 50, 0.5], ['drain', 15, 30, 0.6]),
   orbit: bed(['console_beep', 4, 9], ['relay', 10, 20], ['airlock', 25, 45, 0.8], ['radio_chirp', 15, 30]),
@@ -48,16 +48,6 @@ export const BEDS = {
 // the legacy dreams, room by room: acoustics, wall, bed
 const R = (acoustics, events, wall = false) => ({ acoustics, events, wall });
 export const LEGACY_ROOMS = {
-  chef: {
-    // out on the kerb the wireless is inside; the walk-in hears nearly nothing
-    arrival: R('open', 'chef_street', true),
-    alley_dock: R('open', 'chef_street', 1200),
-    freezer: R('room', null, 400),
-    the_line: R('room', 'kitchen'),
-    loft: R('room', 'kitchen', 1400),
-    the_pass: R('room', 'kitchen'),
-    rooftop: R('open', 'chef_street', 700),
-  },
   writer: {
     arrival: R('open', 'writer_street'),
     attic: R('room', 'writer'),

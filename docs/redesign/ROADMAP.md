@@ -42,7 +42,7 @@ Done: casino polish and phone keys; the ladder before the platforms; readable no
 Also done: THE LAST STOP at scale; Jo and the cast; legacy dreams deleted.
 
 Owner's decisions after the deep review (`advice/deep_review_*.md`), to do before the racer, athlete and doctor:
-1. Chef: full rebuild on the framework around the ticket rail. Running.
+1. Chef: full rebuild on the framework around the ticket rail. Built: `round2/CHEF_REPORT.md`.
 2. Astronaut and Writer: every MUST and SHOULD fix, no rebuild; the owner decides after playing. Writer keeps its length.
 3. Painter: a way to play per craft job, plus the review's fixes.
 4. Clockmaker: each gear its own place, people in the town, a staged payoff, plus the review's fixes.

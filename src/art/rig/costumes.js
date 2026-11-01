@@ -176,7 +176,6 @@ export const COSTUMES = {
   'foe-manager': { face: 'round', over: ['tie', 'lapel'], pal: RED },
   'foe-proofreader': { face: 'thin', over: ['lapel'] },
   'foe-sous-chef': { hat: 'chef_toque', face: 'round', over: ['bib', 'apron', 'towel'] },
-  'foe-dock-hand': { face: 'snub', over: ['scarf'], pal: RED },
   'foe-roadie': { face: 'heavy', over: ['keys'] },
   'foe-heckler': { face: 'round', over: ['scarf'], pal: GOLD },
   'foe-talker': { face: 'round', over: ['waistcoat'] },
@@ -244,6 +243,15 @@ export const COSTUMES = {
   'npc-lq-porter': { face: 'heavy', over: ['badge', 'scarf'], pal: RED },
   'npc-lq-lady': { over: ['shawl', 'bustle'] },
   'npc-lq-clerk': { face: 'thin', over: ['tie'], pal: RED },
+  // le rêve, 1957: whites, aprons; Chef alone wears red at the throat
+  'npc-rv-marguerite': { face: 'hook', over: ['bib', 'apron', 'towel'] },
+  'npc-rv-aurelio': { face: 'long', over: ['scarf', 'apron'], pal: RED },
+  'npc-rv-bastien': { face: 'snub', over: ['leather'] },
+  'npc-rv-tome': { face: 'round', over: ['bib', 'apron'] },
+  'npc-rv-luc': { face: 'thin', over: ['waistcoat', 'tie'] },
+  'npc-rv-porter': { face: 'heavy', over: ['keys'] },
+  'npc-rv-commis': { face: 'plain', over: ['bib', 'apron', 'towel'] },
+  'npc-rv-commis2': { face: 'heavy', over: ['bib', 'apron'] },
 };
 
 // Anyone not named still gets a face of their own: the crowd stops being one
