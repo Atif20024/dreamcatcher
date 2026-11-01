@@ -38,6 +38,7 @@ import materials from './materials.js';
 import { MUSIC_KEYS } from './music.js';
 import { newPurse, tilt, signMarker, bust, lostLast, ledgerLines, compStake } from '../../engines/purse.js';
 import { paintSky, paintBackdropLayer } from '../../art/backdrops/painted.js';
+import { slatePresenter, faroPresenter, showdownPresenter } from './table.js';
 
 // Port Merrow at dusk: river fog, warehouse roofs, a slate-blue sky with the
 // last of the light low in the west; the far bank of the Verrane
@@ -171,6 +172,8 @@ export default {
   conversations: CONVERSATIONS,
   barks: BARKS,
   encounters: { slate: slateEnc, faro: faroEnc, t1, t2, t3, lasthand },
+  // the gangway slate, the faro bank, SHOWDOWN (table.js)
+  presenters: { lq_slate: { world: slatePresenter }, lq_faro: { world: faroPresenter }, lq_cards: { world: showdownPresenter } },
   items: {},
   markMet: true,
   objectives: {

@@ -19,7 +19,8 @@ import { CARDS } from '../src/data/teach.js';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 // framework dreams import the painters, which import phaser: stub it (as the atlas build does)
 register('./lib/stub-loader.js', import.meta.url);
-const { FRAMEWORK_DREAMS } = await import('../src/dreams/index.js');
+const { FRAMEWORK_DREAMS, loadAllFrameworkDreams } = await import('../src/dreams/index.js');
+await loadAllFrameworkDreams();
 const { dreamIssues } = await import('./lib/dream-checks.js');
 const { SHARED_MATERIALS, SHARED_DECOR_RULES } = await import('../src/world/MaterialLibrary.js');
 const { PROP_IDS } = await import('../src/art/props.js');

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { registerAtlases } from '../art/baked.js';
+import { loadEverything } from '../core/boarding.js';
 import { uiText } from '../ui/text.js';
 import { IDENTITY } from '../ui/theme.js';
 import { dreamcatcherTexture, WEB_ORDER } from '../art/identityArt.js';
@@ -52,7 +53,12 @@ export default class BootScene extends Phaser.Scene {
     const index = this.cache.json.get('atlas-index');
     if (index) registerAtlases(this.textures, index);
     else console.warn('[boot] no atlas index: characters fall back to runtime string-art');
-    this.registry.set('booted', true);
-    this.scene.start(this.registry.get('firstScene') || 'Title');
+    const go = () => {
+      this.registry.set('booted', true);
+      this.scene.start(this.registry.get('firstScene') || 'Title');
+    };
+    // dev warps jump straight into a dream; the public site boards one (src/core/boarding.js)
+    if (import.meta.env.DEV) loadEverything(this.game).then(go);
+    else go();
   }
 }

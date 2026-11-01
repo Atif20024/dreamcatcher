@@ -3,9 +3,7 @@ import { createJoTextures } from '../entities/jo.js';
 import { drawCityBackdrop } from '../utils/backdrop.js';
 import { toggleMusic, sfx } from '../systems/audio.js';
 import { paintSky, paintBackdropLayer, paintLandmark } from '../art/backdrops/painted.js';
-import { FIORALBA } from '../dreams/painter/dream.js';
-import { VERRANE } from '../dreams/gambler/dream.js';
-import GAMBLER_PROPS from '../dreams/gambler/props.js';
+import { dreamModule } from '../dreams/index.js';
 import { arrivalTrain } from '../entities/Train.js';
 import { stationTex } from '../art/trainArt.js';
 import { hubTex } from '../art/hubArt.js';
@@ -65,6 +63,7 @@ const INTROS = {
     sub: 'Fioralba, the spring of the contest. The workshop door is open.',
     doorX: 700,
     draw(scene) {
+      const { FIORALBA } = dreamModule('painter');
       const c = document.createElement('canvas');
       c.width = 960;
       c.height = 540;
@@ -104,6 +103,7 @@ const INTROS = {
     sub: 'Port Merrow, autumn 1884. The Lantern Queen sails at dusk.',
     doorX: 700,
     draw(scene) {
+      const { VERRANE, default: gambler } = dreamModule('gambler');
       const c = document.createElement('canvas');
       c.width = 960;
       c.height = 540;
@@ -114,7 +114,7 @@ const INTROS = {
       const town = paintBackdropLayer('town_row', VERRANE.DUSK, 9);
       for (let x = -100; x < 960; x += town.width) ctx.drawImage(town, x, 470 - town.height + 4);
       // the boat, its stern and paddlebox to the right of the platform
-      const boat = GAMBLER_PROPS.lq_boat;
+      const boat = gambler.props.lq_boat;
       const b = document.createElement('canvas');
       b.width = boat.w;
       b.height = boat.h;

@@ -1,12 +1,41 @@
-// What a train needs before it leaves (SPEED_REPORT round 2): the atlas packs
-// of the place it goes to. Started when Jo commits at the door; the train wipe
-// holds at full cover until it is done, and a failure leaves him at the station.
+// What a train needs before it leaves (SPEED_REPORT round 2): the JS chunk and
+// the atlas packs of the place it goes to. Started when Jo commits at the door;
+// the train wipe holds at full cover until it is done, and a failure leaves him
+// at the station.
 //
-//   const ready = prepareDream(hubScene, 'gambler');
+//   const ready = prepareDream(hubScene, 'gambler', 'Dream');
 //   trainWipe(hub, () => ready.then(startIt, showWhy), ...)
 import { packsFor, evictPacks, registerPacks } from '../art/baked.js';
+import { loadFrameworkDream, loadAllFrameworkDreams } from '../dreams/index.js';
 
-export function prepareDream(scene, place) {
+const SCENES = {
+  Dream: () => import('../scenes/DreamScene.js'),
+  Astronaut: () => import('../scenes/AstronautScene.js'),
+  Writer: () => import('../scenes/WriterScene.js'),
+  Evening: () => import('../scenes/EveningScene.js'),
+};
+
+async function loadScene(game, key) {
+  if (!SCENES[key] || game.scene.getScene(key)) return;
+  const mod = await SCENES[key]();
+  if (game.scene.getScene(key)) return; // (two boardings raced)
+  game.scene.add(key, mod.default, false);
+  game.scene.bringToTop('UI'); // the HUD and the wipe stay over it
+}
+
+// dev: warps jump straight in, so everything loads at boot
+export async function loadEverything(game) {
+  await Promise.all([loadAllFrameworkDreams(), ...Object.keys(SCENES).map((k) => loadScene(game, k))]);
+}
+
+export function prepareDream(scene, place, sceneKey) {
+  const ready = Promise.all([loadScene(scene.game, sceneKey), loadFrameworkDream(place), loadPacks(scene, place)]);
+  // the caller reads a failure seconds later, inside the wipe: not an unhandled rejection
+  ready.catch(() => {});
+  return ready;
+}
+
+function loadPacks(scene, place) {
   const want = packsFor(place);
   // (a dev page loads everything at boot, for warps: nothing to do)
   if (!scene.registry.get('leanPacks')) return Promise.resolve();

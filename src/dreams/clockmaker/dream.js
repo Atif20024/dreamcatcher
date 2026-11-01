@@ -30,6 +30,7 @@ import works from './verbs/works.js';
 import props from './props.js';
 import { hud } from '../../ui/hud.js';
 import { paintSky, paintBackdropLayer } from '../../art/backdrops/painted.js';
+import { escapementWorld } from './presenter.js';
 
 const DUSK = { sky: 0xd88a78, hill: 0x4a3a5a, house: 0x3a3048, roof: 0x4a2e3e, window: 0xffc870, light: 0xf2c890, rim: 0xf2a878, deep: 0x1a1420, leaf: 0x3a5040, trunk: 0x2a2028, mist: 0xe8a088, mistA: 0.28 };
 const DUSK_SKY = { top: 0x2a2a58, mid: 0x8a5a7a, bottom: 0xf2a676, sun: { x: 360, y: 470, r: 16, color: 0xffc070 }, clouds: 8, stars: 24, cloud: 0x6a4a6a, cloudLit: 0xf2a070, seed: 4 };
@@ -84,6 +85,8 @@ export default {
   conversations: CONVERSATIONS,
   barks: BARKS,
   encounters: { clockwork: clockworkEnc, escapement, strike },
+  // the third gear, the seven strikes
+  presenters: { escapement: { world: escapementWorld } },
   items,
   objectives: {
     find_lamplighter: 'the lamps are out: find the lamplighter on the green',

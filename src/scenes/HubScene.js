@@ -1498,7 +1498,7 @@ export default class HubScene extends BaseLevel {
     this.persistClock();
     this.boarding = d.id;
     // what the train needs starts loading now: most times it is there before the doors shut
-    const ready = prepareDream(this, d === LAST_STOP ? 'evening' : d.id);
+    const ready = prepareDream(this, d === LAST_STOP ? 'evening' : d.id, d.scene);
     // through the gate and up the platform into the lit door (about 1.4 s),
     // the door shuts, and the train runs away into the shed (round 2 WP3)
     train.walkIn(this.player, () => {
@@ -1534,7 +1534,7 @@ export default class HubScene extends BaseLevel {
       () => {
         this.persistClock();
         this.player.controlLockUntil = this.time.now + 99999;
-        const ready = prepareDream(this, 'evening');
+        const ready = prepareDream(this, 'evening', 'Evening');
         this.cameras.main.fadeOut(1200, 20, 14, 8);
         this.time.delayedCall(1250, () =>
           ready.then(
