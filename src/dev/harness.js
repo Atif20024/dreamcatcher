@@ -146,8 +146,18 @@ const dc = {
     // booted, and the first scene past its loader (a warp mid-load would
     // stop a scene whose preload is still running)
     const settled = () => game().registry.get('booted') && game().scene.scenes.some((s) => !['UI', 'Boot'].includes(s.sys.settings.key) && s.sys.settings.status === 5);
-    for (let i = 0; i < 400 && !settled(); i++) await new Promise((r) => setTimeout(r, 25));
-    return !!game().registry.get('booted');
+    let stepped = false;
+    for (let i = 0; i < 400 && !settled(); i++) {
+      // with the pane hidden rAF never ticks, so Boot's scene.start waits in
+      // the queue, and a later warp would run that scene beside the warp's
+      if (game().registry.get('booted')) {
+        dc.step(1);
+        stepped = true;
+      }
+      await new Promise((r) => setTimeout(r, 25));
+    }
+    if (stepped) dc.resume();
+    return !!settled();
   },
   async runScenarios(only) {
     await dc.ready();

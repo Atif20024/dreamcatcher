@@ -13,6 +13,7 @@ import { uiText, PLATE } from '../ui/text.js';
 import { characterManifest } from '../art/baked.js';
 import { boardTitle } from '../ui/BoardTitle.js';
 import { wipeActive } from '../ui/TrainWipe.js';
+import { dreamById } from '../data/dreams.js';
 
 // Close-up entry shots: a zoomed street scene, Jo walks to the door, fade in.
 const INTROS = {
