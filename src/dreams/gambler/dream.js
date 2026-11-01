@@ -49,11 +49,16 @@ const DAWN = { sky: 0xb8b0c0, hill: 0x6a6a78, house: 0x8a8088, roof: 0x5a5260, w
 const DAWN_SKY = { top: 0x5a6a8a, mid: 0xb8a8b8, bottom: 0xf2c8a0, sun: { x: 420, y: 500, r: 18, color: 0xffd8a0 }, clouds: 6, cloud: 0x9a8aa0, cloudLit: 0xffd0a8, seed: 22 };
 export const VERRANE = { DUSK, DUSK_SKY, DAWN, DAWN_SKY };
 
-// the quay checkpoint: where a bust or the lost last hand puts Jo
-function toQuay(scene, lines) {
-  const r = scene.graph.room('quay');
-  const x = (r.tx + 6) * 32 + 16;
-  const y = (r.ty + 15) * 32 + 32 - 22;
+// the checkpoints a setback puts Jo at: the quay (a bust at the tables, the
+// lost last hand) or the saloon door (the faro bank took the forty)
+const SPOTS = {
+  quay: { room: 'quay', tx: 6, ty: 15, id: 'cp_quay', label: 'PORT MERROW' },
+  saloon: { room: 'saloon', tx: 6, ty: 11, id: 'cp_saloon', label: 'THE MAIN SALOON' },
+};
+function toQuay(scene, lines, spot = SPOTS.quay) {
+  const r = scene.graph.room(spot.room);
+  const x = (r.tx + spot.tx) * 32 + 16;
+  const y = (r.ty + spot.ty) * 32 + 32 - 22;
   const cam = scene.cameras.main;
   scene.inputs.suspend(true);
   // the split-flap board says it; the caption says the rest
@@ -65,7 +70,7 @@ function toQuay(scene, lines) {
       scene.player.setPosition(x, y);
       scene.player.body.reset(x, y);
       scene.player.setVelocity(0, 0);
-      scene.checkpoint = { ...(scene.checkpoint || {}), x, y, id: 'cp_quay', label: 'PORT MERROW' };
+      scene.checkpoint = { ...(scene.checkpoint || {}), x, y, id: spot.id, label: spot.label };
       cam.fadeIn(600, 0x14, 0x12, 0x2a);
       scene.inputs.suspend(false);
       res();
@@ -108,6 +113,22 @@ const calls = {
     bust(p);
     scene.F.busts = (scene.F.busts || 0) + 1;
     return toQuay(scene, ['BUSTED', 'Back on the quay. Lou\'s bar is reset. The night is not.']).then(() => scene.caption.say('lou', "It happens. It happened to me most nights. The slate's still chalked.", { ms: 3200 }));
+  },
+  // the faro bank took the forty: not the quay, the saloon door. Lou has
+  // what is left of the stack; only if it cannot cover another forty is his
+  // bar reset (a bust in the ledger either way)
+  faroBust(scene) {
+    const p = scene.F.purse;
+    scene.F.busts = (scene.F.busts || 0) + 1;
+    let said;
+    if (p.stack >= 40) {
+      p.busts += 1;
+      said = `The bank took the forty. $${p.stack} left in Lou's purse.`;
+    } else {
+      bust(p);
+      said = 'The bank took the forty. Lou counts out a fresh stake, slowly.';
+    }
+    return toQuay(scene, ['THE BANK TAKES IT', said], SPOTS.saloon).then(() => scene.caption.say('lou', 'Ten at a time. Let the box be kind to you. Sit down again when you like.', { ms: 3200 }));
   },
   stoodUp(scene) {
     const F = scene.F;

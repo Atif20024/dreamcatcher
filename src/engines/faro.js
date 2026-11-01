@@ -6,7 +6,11 @@
 // bank takes half. That split is the house's edge, and it is real.
 //
 // The beginner's run is real too, and honest about it: the first two bets
-// go the player's way 55 % of the time; after that 47 %.
+// go the player's way 55 % of the time; after that 47 %. And the hook
+// (STEADY): bet the small stake and the box is kind for a while (70 %), the
+// way a house is kind to a careful newcomer. A $20 bet plays the true odds.
+// Flat $10 play busts about 12 % of the time; $20 every bet about 64 %
+// (tests/faroBalance.test.js runs the seeded numbers).
 //
 //   const e = faro({ bank: 40, target: 80, seed: 2 });
 //   e.move('right'); e.press('act'); e.update(dt); e.state(); e.done; e.result
@@ -16,9 +20,14 @@
 import { rng } from './showdown.js';
 import { rakeOf } from './purse.js';
 
+// the hook (the dream's own memory of an easy bank): while Jo bets small the
+// box is kind to him, the way a house is kind to a careful newcomer it wants
+// back tomorrow. A big bet always plays the true odds.
+export const STEADY = Object.freeze({ stake: 10, p: 0.7, upTo: 30 });
+
 export const FARO_RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
-export function faro({ bank = 40, target = 80, stakes = [10, 20], schedule = [0.55, 0.55], p = 0.47, split = 0.06, seed = 1, drawMs = 900, showMs = 1500, freeFirst = false } = {}) {
+export function faro({ bank = 40, target = 80, stakes = [10, 20], schedule = [0.55, 0.55], p = 0.47, split = 0.06, steady = STEADY, seed = 1, drawMs = 900, showMs = 1500, freeFirst = false } = {}) {
   const r = rng(seed + 101);
   const s = {
     bank,
@@ -50,7 +59,9 @@ export function faro({ bank = 40, target = 80, stakes = [10, 20], schedule = [0.
   // one bet: the dealer draws pairs from the box until the rank shows
   const bet = (stake) => {
     s.bets += 1;
-    const pWin = s.bets <= schedule.length ? schedule[s.bets - 1] : p;
+    const kind0 = s.bets <= schedule.length ? schedule[s.bets - 1] : p;
+    // the hook: a careful beginner (small bets) is let to win for a while
+    const pWin = steady && stake <= steady.stake && s.bets <= steady.upTo ? Math.max(kind0, steady.p) : kind0;
     const x = r();
     const kind = x < split ? 'split' : x < split + (1 - split) * pWin ? 'win' : 'lose';
     // the cards the box gave up (the other rank is whatever came off with it)

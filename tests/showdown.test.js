@@ -258,7 +258,7 @@ describe('the faro bank', () => {
       let w = 0;
       let n = 0;
       for (let seed = 1; seed < 3000; seed++) {
-        const e = faro({ bank: 1000, target: 5000, seed });
+        const e = faro({ bank: 1000, target: 5000, seed, steady: null });
         for (let b = 0; b < k; b++) {
           e.press();
           e.update(5000);
