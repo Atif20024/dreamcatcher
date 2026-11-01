@@ -18,7 +18,7 @@ describe('unified warp', () => {
   });
   it('chef/musician/hub have no legacy param but pick the scene', () => {
     expect(resolveWarp('?warp=chef:start').legacy).toEqual({});
-    expect(firstSceneKey('?warp=chef:start')).toBe('Chef');
+    expect(firstSceneKey('?warp=chef:start')).toBe('Dream');
     expect(firstSceneKey('?warp=hub')).toBe('Hub');
     expect(firstSceneKey('')).toBeNull(); // no warp: the title boots
   });

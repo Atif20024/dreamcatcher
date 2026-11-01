@@ -9,7 +9,10 @@ import painter from './painter/dream.js';
 // THE LAST HAND (gambler, platform 7): the Lantern Queen, 1884
 import gambler from './gambler/dream.js';
 
-export const FRAMEWORK_DREAMS = { clockmaker, musician, painter, gambler };
+// FIVE-STAR DREAM (chef, platform 1): Le Rêve, 1957, the ticket rail
+import chef from './chef/dream.js';
+
+export const FRAMEWORK_DREAMS = { clockmaker, musician, painter, gambler, chef };
 
 // old ids that still resolve (?warp=proof:start)
 export const DREAM_ALIASES = { proof: 'clockmaker' };

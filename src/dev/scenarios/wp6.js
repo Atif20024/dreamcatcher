@@ -89,7 +89,7 @@ const joContrastSc = {
 const lampCheckpoint = {
   id: 'lamp-checkpoint',
   async run(dc) {
-    const sc = await arrive(dc, 'chef', null);
+    const sc = await arrive(dc, 'astronaut', 'gym');
     const f = sc.flags.getChildren().find((x) => x.texture.key === 'flag');
     if (!f) return { pass: false, detail: 'no lamp' };
     const isLamp = f.texture.key === 'flag' && f.height > 32 && !!sc.textures.get('flag').dcLamp;
@@ -98,7 +98,7 @@ const lampCheckpoint = {
     dc.step(40);
     const lit = f.texture.key === 'flag-lit';
     const glow = !!(f.dcGlow && f.dcGlow.lamp.alpha > 0.3);
-    const rang = chimeLog.filter((c) => c.seq > n0).some((c) => c.event === 'lamp' && c.place === 'chef');
+    const rang = chimeLog.filter((c) => c.seq > n0).some((c) => c.event === 'lamp' && c.place === 'astronaut');
     const respawn = sc.checkpoint && Math.abs(sc.checkpoint.x - f.x) < 1;
     // the lamp stands on its floor: its foot is the old flag's foot (wy + 16)
     const foot = Math.round(f.getBottomRight().y - f.y);
@@ -205,7 +205,7 @@ const chimeEvents = {
 const panelFrame = {
   id: 'panel-frame',
   async run(dc) {
-    const sc = await arrive(dc, 'chef', null);
+    const sc = await arrive(dc, 'astronaut', 'gym');
     sc.openPauseMenu();
     dc.step(10);
     const ui = window.game.scene.getScene('UI');

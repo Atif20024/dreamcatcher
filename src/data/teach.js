@@ -24,9 +24,7 @@ export const CARDS = {
     name: 'WALL JUMP',
     hint: 'only on ribbed walls. jump into one, hold toward the wall, then jump again off it',
     key: '↑ / SPACE',
-    staged: 'chef chimney: the shaft floor is solid, a missed jump just lands you back at its foot',
     triggers: [
-      { dream: 'chef', zone: { room: 'alley_dock', x0: 11, x1: 15 } },
       { dream: '*', event: 'Player first touch of a ribbed wall in the air' },
     ],
   },
@@ -35,7 +33,6 @@ export const CARDS = {
     hint: 'weight holds it open: stand on it, or leave something heavy',
     key: '',
     triggers: [
-      { dream: 'chef', zone: { room: 'alley_dock', x0: 44, x1: 48 } },
       { dream: 'writer', zone: { room: 'postoffice', x0: 1, x1: 6 } },
     ],
   },
