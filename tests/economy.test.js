@@ -1,15 +1,25 @@
 import { describe, it, expect } from 'vitest';
-import { heartsMax, PRICES, HEARTS_CAP } from '../src/systems/wallet.js';
+import { heartsMax, heartsFull, PRICES, HEARTS_CAP } from '../src/systems/wallet.js';
 import { HATS } from '../src/data/hats.js';
 
 describe("Bilal's stall", () => {
-  it('a whole heart of shards always adds a heart, even when caught dreams have filled the row', () => {
+  it('caught dreams give five hearts at most; a whole heart of shards adds one on top, up to the cap', () => {
     expect(heartsMax(0, 0)).toBe(3);
     expect(heartsMax(0, 3)).toBe(4);
-    expect(heartsMax(3, 0)).toBe(6);
-    expect(heartsMax(5, 2)).toBe(6);
-    expect(heartsMax(5, 3)).toBe(7);
+    expect(heartsMax(2, 0)).toBe(5);
+    expect(heartsMax(3, 0)).toBe(5);
+    expect(heartsMax(5, 0)).toBe(5);
+    expect(heartsMax(5, 2)).toBe(5);
+    expect(heartsMax(5, 3)).toBe(6);
+    expect(heartsMax(5, 9)).toBe(HEARTS_CAP);
     expect(heartsMax(5, 99)).toBe(HEARTS_CAP);
+  });
+
+  it('Bilal only calls it full when another shard really buys nothing', () => {
+    expect(heartsFull(5, 8)).toBe(false); // the ninth shard is the last heart
+    expect(heartsFull(5, 9)).toBe(true);
+    expect(heartsFull(0, 11)).toBe(false); // three hearts of shards on three: six, and catches still to come
+    expect(heartsFull(2, 11)).toBe(true); // every shard there is (8 found + 3 bought), base 5
   });
 
   it('the shelf costs more than a full run pays, and a heart is within one good dream or two', () => {

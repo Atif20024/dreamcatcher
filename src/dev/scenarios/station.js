@@ -301,4 +301,119 @@ const postbox = {
     ),
 };
 
-export default [returnStaged, countsAll, prompts, roofRewards, benchGate, postbox];
+// the stall: a shard costs what it says and joins the tally; with the row at its
+// longest Bilal says so and keeps his shard (and Jo's money)
+const bilalBuy = {
+  id: 'bilal-buy',
+  run: (dc) =>
+    withSave(
+      async () => {
+        const s = await hub(dc);
+        const show = s.dialog.show.bind(s.dialog);
+        const said = [];
+        let answers = ['shard', 'done'];
+        s.dialog.show = async (pages) => {
+          said.push(pages[0].text);
+          return pages[0].choices ? answers.shift() : undefined;
+        };
+        s.allCaught = false;
+        s.difficulty = 0;
+        await s.shop();
+        const paid = getSave().wallet.total === 440 && getSave().shards === 1 && getSave().shop.shardsBought === 1;
+        // five catches and nine shards: eight hearts already
+        updateSave((x) => (x.shards = 9));
+        s.difficulty = 5;
+        said.length = 0;
+        answers = ['shard', 'done'];
+        await s.shop();
+        const full = said.some((t) => /full/.test(t)) && getSave().wallet.total === 440 && getSave().shards === 9 && getSave().shop.shardsBought === 1;
+        s.dialog.show = show;
+        return { pass: paid && full, detail: { paid, full, said } };
+      },
+      (x) => {
+        x.wallet.total = 500;
+        x.shards = 0;
+        x.shop.shardsBought = 0;
+      }
+    ),
+};
+
+// a shard or a coin is paid once, whatever a reload does; the postcard's mark goes
+// with the thing it marks; a whole heart of shards counts at once, past the old six
+const continueOnce = {
+  id: 'continue-pays-once',
+  run: (dc) =>
+    withSave(
+      async () => {
+        const { addCoins } = await import('../../systems/wallet.js');
+        const { clearRun, getRun, setRun } = await import('../../utils/save.js');
+        const lines = [];
+        let pass = true;
+        const check = (name, ok, extra = '') => {
+          lines.push(`${ok ? 'ok' : 'FAIL'} ${name}${extra === '' ? '' : ` (${extra})`}`);
+          pass = pass && ok;
+        };
+        clearRun('chef');
+        dc.warp('chef', 'cold');
+        await dc.run(60);
+        for (let k = 0; k < 3 && !dc.scene().player; k++) await dc.run(40);
+        let s = dc.scene();
+        s.difficulty = 5;
+        s.maxLives = 6;
+        s.lives = 6;
+        const shard = s.shardItems[0];
+        check('the postcard marks the shard', !!(shard.mark && shard.mark.active));
+        s.player.setPosition(shard.x, shard.y);
+        s.player.body.reset(shard.x, shard.y);
+        await dc.run(2);
+        check('the sixth shard: a seventh heart, at once', s.maxLives === 7 && s.lives === 7 && getSave().shards === 6, `${s.lives}/${s.maxLives}`);
+        check('saved at the pickup', (getRun('chef').extra.shardsTaken || []).includes(shard.pickKey));
+
+        // coins taken since that save, then the page goes away
+        const was = getSave().wallet.byDream.chef || 0;
+        const total = getSave().wallet.total;
+        addCoins('chef', 10);
+        s.scene.restart({ dreamId: 'chef', resume: true });
+        await dc.run(30);
+        s = dc.scene();
+        check('the shard stays gone', !s.shardItems[0].active && getSave().shards === 6);
+        check('its mark stays gone', !s.shardItems[0].mark.active);
+        check('coins since the save come back out', getSave().wallet.total === total && (getSave().wallet.byDream.chef || 0) === was, `${total} -> ${getSave().wallet.total}`);
+
+        // a save from before: no figure, nothing touched
+        const r = getRun('chef');
+        delete r.extra.walletAtSave;
+        setRun('chef', r);
+        addCoins('chef', 10);
+        const kept = getSave().wallet.total;
+        s.scene.restart({ dreamId: 'chef', resume: true });
+        await dc.run(30);
+        check('an old save loads, wallet untouched', getSave().wallet.total === kept && !!dc.scene().player);
+        clearRun('chef');
+
+        // the old scenes' moments
+        clearRun('writer');
+        dc.warp('writer', 'library');
+        await dc.run(60);
+        for (let k = 0; k < 3 && !dc.scene().player; k++) await dc.run(40);
+        s = dc.scene();
+        const m = s.momentMarks[0];
+        check('the postcard marks a moment', !!(m && m.mark.active));
+        if (m) {
+          s.tutorialActive = false;
+          s.F[m.id] = true;
+          s.updatePickups(s.time.now, 16);
+          check('its mark goes when taken', !m.mark.active);
+        }
+        clearRun('writer');
+        return { pass, detail: lines.join('; ') };
+      },
+      (x) => {
+        x.shards = 5;
+        x.shop.postcards.chef = true;
+        x.shop.postcards.writer = true;
+      }
+    ),
+};
+
+export default [returnStaged, countsAll, prompts, roofRewards, benchGate, postbox, bilalBuy, continueOnce];

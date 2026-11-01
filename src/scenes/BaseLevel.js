@@ -198,6 +198,7 @@ export default class BaseLevel extends Phaser.Scene {
     this.satchel = [];
     this.satchelHud = this.hud.line('context');
     this.coinsSinceCP = 0;
+    this.momentMarks = [];
 
     // the dream's ambient loop (data/dreams.js `ambientLoop`), finally heard:
     // synthesised on the ambience bus (src/audio/). DreamScene runs its own
@@ -334,6 +335,7 @@ export default class BaseLevel extends Phaser.Scene {
     this.time.delayedCall(1000, () => {
       this.player.setPosition(this.checkpoint.x, this.checkpoint.y);
       this.player.setVelocity(0, 0);
+      this.calmFoes();
       this.tweens.add({
         targets: [wipe, label],
         alpha: 0,
@@ -346,6 +348,11 @@ export default class BaseLevel extends Phaser.Scene {
       });
       this.loseHeart();
     });
+  }
+
+  // Jo is back at a lamp: nobody's hand is already out, and he gets to his feet first
+  calmFoes() {
+    for (const f of this.foes || []) if (f.active) f.standDown(this.time.now + 1500);
   }
 
   // a scripted heart loss (thrown out, a bet lost): no knockback, no i-frame check
@@ -452,7 +459,7 @@ export default class BaseLevel extends Phaser.Scene {
         const dy = o.dy || 0;
         for (let i = 0; i < n; i++) place(o.wx + i * dx * T, o.wy + i * dy * T);
       } else if (o.type === 'moment' && getSave().shop.postcards[this.dream && this.dream.id]) {
-        postcardMark(this, o.wx, o.wy - 54); // the postcard marks the small moments (§2)
+        this.momentMarks.push({ id: o.id, mark: postcardMark(this, o.wx, o.wy - 54) }); // the postcard marks the small moments (§2)
       } else if (o.type === 'shard') {
         const img = this.add.image(o.wx, o.wy, 'heart-shard').setDepth(21);
         if (getSave().shop.postcards[this.dream && this.dream.id]) img.mark = postcardMark(this, o.wx, o.wy - 30);
@@ -472,6 +479,8 @@ export default class BaseLevel extends Phaser.Scene {
         this.updateCoinHud();
       });
     }
+    // (legacy scenes: a moment taken, now or before a Continue, is its own flag)
+    for (const m of this.momentMarks || []) if (this.F && this.F[m.id] && m.mark.active) m.mark.destroy();
     for (const img of this.shardItems || []) {
       if (!img.active) continue;
       if (Phaser.Math.Distance.Between(this.player.x, this.player.y, img.x, img.y) < 22) {
@@ -481,11 +490,13 @@ export default class BaseLevel extends Phaser.Scene {
         const sv = updateSave((x) => (x.shards = (x.shards || 0) + 1));
         this.updateShardHud();
         this.floatText(this.player.x, this.player.y - 60, sv.shards % 3 === 0 ? 'a heart, whole.' : `heart shard — ${sv.shards % 3}/3`, '#7ec8d8');
-        if (sv.shards % 3 === 0) {
-          this.maxLives = Math.min(6, this.maxLives + 1);
+        const max = heartsMax(this.difficulty, sv.shards);
+        if (max > this.maxLives) {
+          this.maxLives = max;
           this.lives += 1;
           this.updateHearts();
         }
+        this.saveRun(); // in the tally now, so gone from the world on a Continue
       }
     }
   }
@@ -739,6 +750,7 @@ export default class BaseLevel extends Phaser.Scene {
     this.safeGround = null;
     this.health.refill();
     this.health.setInvulnerable(this.time.now, 1500);
+    this.calmFoes();
     this.updateHearts();
     this.cameras.main.centerOn(this.player.x, this.player.y);
     this.cameras.main.fadeIn(350, 0x14, 0x12, 0x2a); // death fades through the night indigo (§9)
@@ -844,6 +856,7 @@ export default class BaseLevel extends Phaser.Scene {
         objective: this.objectiveText ? this.objectiveText.text : '',
         coinsTaken: (this.placedCoins || []).filter((c) => !c.img.active).map((c) => c.key),
         shardsTaken: (this.shardItems || []).filter((i) => !i.active).map((i) => i.pickKey),
+        walletAtSave: this.dream ? getWallet().byDream[this.dream.id] || 0 : undefined,
       },
       elapsed: (this.run.elapsed || 0) + Math.max(0, this.time.now - (this._runClock || this.levelStartedAt)),
     });
@@ -872,7 +885,18 @@ export default class BaseLevel extends Phaser.Scene {
     const coinsTaken = new Set(x.coinsTaken || []);
     for (const c of this.placedCoins || []) if (coinsTaken.has(c.key) && c.img.active) c.img.destroy();
     const shardsTaken = new Set(x.shardsTaken || []);
-    for (const i of this.shardItems || []) if (shardsTaken.has(i.pickKey) && i.active) i.destroy();
+    for (const i of this.shardItems || []) {
+      if (!shardsTaken.has(i.pickKey) || !i.active) continue;
+      if (i.mark) i.mark.destroy();
+      i.destroy();
+    }
+    // coins taken after the last save are back in the world, so they come out of
+    // the wallet (a save from before this has no figure, and is left as it is)
+    if (this.dream && x.walletAtSave !== undefined) {
+      const over = (getWallet().byDream[this.dream.id] || 0) - x.walletAtSave;
+      if (over > 0) deductWorth(this.dream.id, over);
+      this.updateCoinHud();
+    }
     this.placePlayer(pos);
     this.applyRunExtra(x, r);
     if (r.hearts) this.lives = Math.max(1, Math.min(this.maxLives, r.hearts));
@@ -891,6 +915,16 @@ export default class BaseLevel extends Phaser.Scene {
   // (freeze: 'world'); this only keeps the scene's `paused` flag in step
   freezeWorld(on) {
     this.paused = on;
+    const now = this.time.now;
+    if (on) this._pausedAt ??= now;
+    else if (this._pausedAt !== undefined) {
+      // a pause isn't a conversation: the foes pick up where they stopped
+      for (const f of this.foes || []) {
+        f.shiftClock(now - this._pausedAt);
+        f.lastTick = now;
+      }
+      this._pausedAt = undefined;
+    }
     if (!on) {
       // swallow the key that closed the menu so it does not reopen it
       Phaser.Input.Keyboard.JustDown(this.keyEsc);

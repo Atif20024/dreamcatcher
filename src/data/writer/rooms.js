@@ -298,8 +298,9 @@ const ROOMS = [
       // It steps out once the Draft is fed (past the typo desk and the ladder,
       // where it would catch a climber for nothing) and walks away at the PRESS lever.
       { type: 'editor', x: 553, y: 33, from: 561, stop: 598, follow: true },
-      { type: 'foe', kind: 'proofreader', x: 545, y: 33, patrol: [542, 552], human: true },
-      { type: 'foe', kind: 'proofreader', x: 550, y: 33, patrol: [546, 553], human: true },
+      // (they keep clear of the lamp and the desk: three tiles or more, see tests/foeCheckpoint.test.js)
+      { type: 'foe', kind: 'proofreader', x: 548, y: 33, patrol: [547, 552], human: true },
+      { type: 'foe', kind: 'proofreader', x: 551, y: 33, patrol: [548, 553], human: true },
       { type: 'desk', x: 543, y: 33, id: 'typo_desk', fixTypos: true },
       { type: 'checkpoint', x: 544, y: 33, id: 'CP6a', label: 'THE PRESS HALL' },
       { type: 'coins', x: 556, y: 24, n: 3 },

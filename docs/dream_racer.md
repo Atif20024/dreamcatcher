@@ -6,7 +6,7 @@ Design doc by a pro-gamer advisor. Read-only on code: nothing was built or run. 
 - **Platform.** 10 (new). Platforms 2, 5, 7, 9 and G are taken, and 1, 3, 4, 6 and 8 already hold board lines in `src/data/dreams.js`. If the hub cannot hold a tenth, the fallback is 8: THE WHITE COAT is only a board line and has no scene.
 - **The dreamer.** **Ottavia Castellane**, 71, bus-garage fitter, with a ring of old black under her nails. For forty years she has listened to engines and said "that's a quarter-tone flat" to people who never asked.
 - **Her dream.** In 1958 she was 22 and the only person at the Pereval garage who tuned by ear. She never drove. The seat was Aldo's, then Dante's. In the dream the car is hers for one season, with her on the pit-wall radio and Jo at the wheel.
-- **Era and place.** The **Marenna Coast**, spring 1958. A pine-and-cliff road circuit run on closed public roads: stone villages, a harbour, terraced vineyards, a salt road, a level crossing. Straw bales and a few flags are the only safety. Cars are cigar-shaped, open-wheeled or cycle-winged, with thin tyres and drum brakes. No seat belts. Races are called *coppe* (cups).
+- **Era and place.** The **Calvessa Coast**, spring 1958. A pine-and-cliff road circuit run on closed public roads: stone villages, a harbour, terraced vineyards, a salt road, a level crossing. Straw bales and a few flags are the only safety. Cars are cigar-shaped, open-wheeled or cycle-winged, with thin tyres and drum brakes. No seat belts. Races are called *coppe* (cups).
 - **Jo's role.** Jo is the driver the garage can afford: a stranger with good hands who plays by ear (the trumpet). He drives; Ottavia, on the radio, tells him what the engine is saying. Mechanics and drivers are one body here: neither works alone.
 
 ## 2. Story arc
@@ -99,7 +99,7 @@ The clock-house pattern. Each place has one goal on an arrival card, a verb, a f
 | 3 | **Gull Bend return**, dawn, 1.8 km, cliff road | Lena | Nerve ring, brake marks, breath | 3 | 1:00 | Fear. Lena is kind to you |
 | 4 | **The Salt Road**, noon glare, 2.0 km, flat, long straights, level crossing | Dante (orders), Bruno, Cassian arrives | Blocking, rubs, team orders | 3 | 1:00 | Politics and the sponsor clause |
 | 5 | **The Terraces in rain**, 2.2 km, hairpins and puddles | Cassian, Lena | Wet grip, tyre choice pays or hurts | 4 | 1:10 | Cost: your jar choices show |
-| 6 | **The Coppa Marenna**, night, 4.0 km (two laps with a pit), the whole coast | Cassian, Bruno, Lena | Fuel and heat, pit stop, the Gull Bend again | 5 | 1:40 | The finale |
+| 6 | **The Coppa Calvessa**, night, 4.0 km (two laps with a pit), the whole coast | Cassian, Bruno, Lena | Fuel and heat, pit stop, the Gull Bend again | 5 | 1:40 | The finale |
 
 **Ramp.** One new idea per race, always taught in a calm moment before it matters. Each race adds one thing and keeps the previous ones.
 
