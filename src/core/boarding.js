@@ -13,6 +13,7 @@ const SCENES = {
   Astronaut: () => import('../scenes/AstronautScene.js'),
   Writer: () => import('../scenes/WriterScene.js'),
   Evening: () => import('../scenes/EveningScene.js'),
+  Race: () => import('../scenes/RaceScene.js'), // the racer's driving, started from a door in its garage
 };
 
 async function loadScene(game, key) {
@@ -27,6 +28,9 @@ async function loadScene(game, key) {
 export async function loadEverything(game) {
   await Promise.all([loadAllFrameworkDreams(), ...Object.keys(SCENES).map((k) => loadScene(game, k))]);
 }
+
+// a scene's chunk on its own, for a door inside a dream (a failure is the door's to tell)
+export const loadSceneChunk = (game, key) => loadScene(game, key);
 
 export function prepareDream(scene, place, sceneKey) {
   const ready = Promise.all([loadScene(scene.game, sceneKey), loadFrameworkDream(place), loadPacks(scene, place)]);

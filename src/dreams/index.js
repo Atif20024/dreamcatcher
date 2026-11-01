@@ -12,6 +12,8 @@ const LOADERS = {
   gambler: () => import('./gambler/dream.js'),
   // FIVE-STAR DREAM (chef, platform 1): Le Rêve, 1957, the ticket rail
   chef: () => import('./chef/dream.js'),
+  // THE LONG STRAIGHT (racer, platform 10): the garage; the driving is RaceScene
+  racer: () => import('./racer/dream.js'),
 };
 
 // the dreams loaded so far: id → the module (default: its definition)

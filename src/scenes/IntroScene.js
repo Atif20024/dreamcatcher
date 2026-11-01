@@ -128,6 +128,34 @@ const INTROS = {
       return { groundY: 470 };
     },
   },
+  racer: {
+    ground: 0x4a4648, // the arrival platform's stone
+    caption: 'THE LONG STRAIGHT',
+    sub: 'The Calvessa Coast, spring 1958. Pines, a shut road, and somebody tuning an engine.',
+    doorX: 700,
+    draw(scene) {
+      const g = scene.add.graphics();
+      g.fillGradientStyle(0x5a9ccc, 0x5a9ccc, 0xd8ecf0, 0xd8ecf0, 1);
+      g.fillRect(0, 0, 960, 540);
+      // the sea, the far cliff, the pines
+      scene.add.rectangle(480, 330, 960, 80, 0x4a86a8);
+      const rand = new Phaser.Math.RandomDataGenerator(['calvessa']);
+      for (let x = 0; x < 960; x += 40) scene.add.rectangle(x + 20, 370, 40, 60 + rand.between(0, 40), 0x8a7a68).setOrigin(0.5, 0.5);
+      for (let x = 10; x < 960; x += 74) {
+        const h = rand.between(90, 150);
+        scene.add.rectangle(x, 470 - h / 2, 8, h, 0x4a3428);
+        scene.add.triangle(x, 470 - h - 10, 0, 44, 30, 0, 60, 44, 0x2e6a44);
+        scene.add.triangle(x, 470 - h + 22, 0, 50, 36, 0, 72, 50, 0x28603e);
+      }
+      // the garage's wall and its roller door, down the line
+      scene.add.rectangle(760, 400, 300, 140, 0xc8b490);
+      scene.add.rectangle(760, 412, 120, 116, 0x4a4238);
+      for (let y = 360; y < 470; y += 10) scene.add.rectangle(760, y, 120, 2, 0x2e2a26);
+      scene.add.rectangle(480, 505, 960, 70, 0x4a4648);
+      scene.add.rectangle(480, 472, 960, 6, 0x5a5658);
+      return { groundY: 470 };
+    },
+  },
   writer: {
     ground: 0x1c1a24, // the arrival platform's stone (round 2 WP3)
     caption: 'THE SECOND DRAFT',
@@ -247,7 +275,7 @@ const INTROS = {
 };
 
 // the scene that plays each dream (framework dreams: 'Dream')
-const LEVEL_SCENES = { clockmaker: 'Dream', chef: 'Dream', musician: 'Dream', astronaut: 'Astronaut', writer: 'Writer', painter: 'Dream', gambler: 'Dream' };
+const LEVEL_SCENES = { racer: 'Dream', clockmaker: 'Dream', chef: 'Dream', musician: 'Dream', astronaut: 'Astronaut', writer: 'Writer', painter: 'Dream', gambler: 'Dream' };
 
 export default class IntroScene extends Phaser.Scene {
   constructor() {

@@ -2,6 +2,12 @@
 
 Design doc by a pro-gamer advisor. Read-only on code: nothing was built or run. All names, teams, cars, sponsors and places are invented. The general shape (small team, rich rival, a loss that changes the driver) is common to a hundred racing stories. No character, car, city or plot beat comes from any real game.
 
+**Owner's decisions (2026-11-01), which replace the text below where they differ:**
+- Driving is a separate scene, `RaceScene` (`src/scenes/RaceScene.js`, its own JS chunk), started from a door and handing back `{place, time, flags}`. It is not an encounter inside DreamScene, and there is no RaceDirector. The walk-in places stay on the DreamScene framework.
+- Every dream plays by touch: on-screen pedals and lane buttons through the same virtual keys. "Keyboard only" is gone.
+- Platform 10 is real: the station grew 7 tiles (W 174), bay at col 155.
+- Stage 1 is built: `docs/redesign/round2/RACER_STAGE1_REPORT.md`.
+
 ## 1. Premise
 - **Platform.** 10 (new). Platforms 2, 5, 7, 9 and G are taken, and 1, 3, 4, 6 and 8 already hold board lines in `src/data/dreams.js`. If the hub cannot hold a tenth, the fallback is 8: THE WHITE COAT is only a board line and has no scene.
 - **The dreamer.** **Ottavia Castellane**, 71, bus-garage fitter, with a ring of old black under her nails. For forty years she has listened to engines and said "that's a quarter-tone flat" to people who never asked.

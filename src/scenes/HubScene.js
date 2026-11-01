@@ -50,7 +50,7 @@ const DOORS_X = px(22);
 const BAY_PROP_X = 5.4 * T; // on the concourse, between the gate and the bay's lamp
 const LUGGAGE_COINS = 5; // what a tagged case holds, in that dream's coin
 const ROOF_HINT = "There's a bench at the far end. And one on the clock, if you can jump.";
-const SHED_END_X = px(156);
+const SHED_END_X = px(163);
 
 // --- the people of the station: what they say, per dreamsCaught -----------
 const LAST_WALK = {
@@ -1045,13 +1045,13 @@ export default class HubScene extends BaseLevel {
     [[19.2, ROOF - 62], [18.4, ROOF - 112], [17.2, towerTop - 34], [15.8, towerTop - 26]].forEach(([c, y], i) => lay(`t${i}`, c, y));
 
     // the far bench and its lamp
-    const eastX = px(155);
+    const eastX = px(162);
     this.add.image(eastX, ROOF - 10, 'hub-bench').setDepth(D.INTERACT - 2);
-    this.add.image(px(157.5), ROOF, stationTex(this, 'hub-platform-lamp')).setOrigin(0.5, 1).setDepth(D.INTERACT - 3);
+    this.add.image(px(164.5), ROOF, stationTex(this, 'hub-platform-lamp')).setOrigin(0.5, 1).setDepth(D.INTERACT - 3);
     // a skylight in the leads over the gate room: dark until he has sat up here
-    this.add.rectangle(px(160), ROOF + 3, 44, 6, 0x2a2a34).setDepth(D.TERRAIN + 1);
-    this.farWindow = this.add.rectangle(px(160), ROOF + 3, 40, 3, 0xffd890).setDepth(D.TERRAIN + 2).setVisible(!!fl.roofBench);
-    this.farGlow = this.add.image(px(160), ROOF - 14, glowTexture(this)).setBlendMode('ADD').setTint(0xf2c078).setAlpha(0.6).setScale(1.8, 1.1).setDepth(D.TERRAIN + 2).setVisible(!!fl.roofBench);
+    this.add.rectangle(px(167), ROOF + 3, 44, 6, 0x2a2a34).setDepth(D.TERRAIN + 1);
+    this.farWindow = this.add.rectangle(px(167), ROOF + 3, 40, 3, 0xffd890).setDepth(D.TERRAIN + 2).setVisible(!!fl.roofBench);
+    this.farGlow = this.add.image(px(167), ROOF - 14, glowTexture(this)).setBlendMode('ADD').setTint(0xf2c078).setAlpha(0.6).setScale(1.8, 1.1).setDepth(D.TERRAIN + 2).setVisible(!!fl.roofBench);
 
     // the clock's bench and the pigeon that keeps it
     const towerX = px(14.5);
@@ -1866,7 +1866,7 @@ export default class HubScene extends BaseLevel {
     const sw = this.sweeper;
     if (sw) {
       sw.x += sw.dir * 18 * dt;
-      if (sw.x > px(155)) sw.dir = -1;
+      if (sw.x > px(162)) sw.dir = -1;
       if (sw.x < px(28)) sw.dir = 1;
       if (!sw.stride) sw.setTexture(`hub-sweeper#${(Math.floor(sw.x / 6) % 8) + 1}`);
       sw.lamp.setPosition(sw.x, sw.y - 6);

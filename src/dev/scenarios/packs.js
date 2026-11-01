@@ -6,7 +6,7 @@
 import { artAsked } from '../../art/baked.js';
 import { ownerOf, PLACE_OWNERS } from '../../art/packOwners.js';
 
-const FRAMEWORK = ['chef', 'musician', 'painter', 'gambler', 'clockmaker'];
+const FRAMEWORK = ['chef', 'musician', 'painter', 'gambler', 'clockmaker', 'racer'];
 const PLACES = { astronaut: ['gym', 'moon'], writer: ['attic'], evening: ['arch', 'square', 'station'] };
 
 const wrongFor = (place) => {
@@ -43,7 +43,8 @@ export default [
         }
         out[place] = { asked: artAsked.size, wrong: wrongFor(place) };
       }
-      return { pass: Object.values(out).every((o) => !o.wrong.length && o.asked), detail: out };
+      // (the racer has no people of its own yet: Jo is the hub's)
+      return { pass: Object.entries(out).every(([k, o]) => !o.wrong.length && (o.asked || k === 'racer')), detail: out };
     },
   },
 ];

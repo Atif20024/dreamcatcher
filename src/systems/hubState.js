@@ -16,7 +16,7 @@ const TABLE = [
   { sat: 0.6, travelers: 0, fountain: 'dry', flowers: 0, skylightBars: 1, brassGray: 1, gateLight: 1, tally: 900, music: { bass: 0, brushes: 0, piano: 0, trumpet: 0, pad: 0.45, hum: 0.6 }, boardIdleMs: 20000, clockStutter: true },
 ];
 
-export const runningDreams = () => DREAMS.filter((d) => d.scene);
+export const runningDreams = () => DREAMS.filter((d) => d.scene && !d.unfinished); // (one that boards but cannot be finished yet does not count)
 export const runningCount = () => runningDreams().length;
 // caught dreams that still run: an old save's other ids count for nothing
 export const caughtRunning = (save) => runningDreams().filter((d) => save.dreams[d.id]).length;
@@ -62,7 +62,7 @@ const Cap = (s) => s[0].toUpperCase() + s.slice(1);
 
 // Newspaper headlines at the kiosk
 const HEADLINES = [
-  () => `${numberWord(DREAMS.length).toUpperCase()} PLATFORMS, ONE TIMETABLE — ALL ON TIME`,
+  () => `${numberWord(DREAMS.filter((d) => !d.unfinished).length).toUpperCase()} PLATFORMS, ONE TIMETABLE — ALL ON TIME`,
   () => 'LOCAL MAN CATCHES DREAM, SAYS "FINE"',
   () => 'SERVICE GATE HEARD KNOCKING, OFFICIALS SHRUG',
   () => 'FOUNTAIN "MOSTLY DECORATIVE", COUNCIL ADMITS',

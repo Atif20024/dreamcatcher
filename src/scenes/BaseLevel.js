@@ -906,7 +906,8 @@ export default class BaseLevel extends Phaser.Scene {
       this.setObjective(r.extra.objective);
       this._resumeObjective = r.extra.objective;
     }
-    this.showCheckpointLabel(r.checkpointLabel || 'the dream', 'continued from the last flag');
+    // (back from a race: it is the same morning, not a Continue)
+    if (!(this.sys.settings.data || {}).quietResume) this.showCheckpointLabel(r.checkpointLabel || 'the dream', 'continued from the last flag');
     if (this.player && this.player.locate) this.time.delayedCall(500, () => this.player.locate('continue'));
   }
 

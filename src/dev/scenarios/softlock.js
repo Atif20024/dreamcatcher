@@ -72,7 +72,7 @@ const roofDrops = {
     }
     // and the old trap itself: the cells behind the gate are wall now
     const g = s.reach;
-    const shaft = [165, 166].some((c) => g.node(c, HUB_ROWS.FLOOR + 1));
+    const shaft = [172, 173].some((c) => g.node(c, HUB_ROWS.FLOOR + 1));
     if (shaft) pass = false;
     lines.push(`shaft behind the gate: ${shaft ? 'OPEN (FAIL)' : 'walled'}`);
     return { pass: pass && edges.length >= 6, detail: `${edges.length} edges; ${lines.join('; ')}` };

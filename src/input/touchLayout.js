@@ -102,6 +102,36 @@ export function layoutTouch({ cssW = GAME_W, cssH = GAME_H, W = GAME_W, H = GAME
   };
 }
 
+// Driving (RaceScene, scene.touchProfile = 'race'): no d-pad. The right thumb has
+// the pedals, a tall GAS at the edge and BRAKE beside it, so it rolls from one to
+// the other without lifting; the left thumb has the two lane buttons and SLING.
+// The same keys as the keyboard: Right, Left, Up, Down, Space.
+export function layoutRace(opts = {}) {
+  const L = layoutTouch(opts);
+  const { W = GAME_W, H = GAME_H } = opts;
+  const { b, m, g } = L;
+  const r = Math.round(b / 2);
+  const pw = Math.round(b * 1.2);
+  const ph = Math.round(b * 2.2);
+  const py = H - m - ph / 2;
+  const gas = { id: 'right', shape: 'pedal', x: W - m - pw / 2, y: py, r: pw / 2, w: pw, h: ph, label: 'GAS' };
+  const brake = { id: 'left', shape: 'pedal', x: gas.x - pw - g, y: py + Math.round(ph * 0.1), r: pw / 2, w: pw, h: Math.round(ph * 0.8), label: 'BRAKE' };
+  const down = { id: 'down', x: m + r, y: H - m - r, r, label: '', arrow: 'down' };
+  const up = { id: 'up', x: m + r, y: down.y - 2 * r - g, r, label: '', arrow: 'up' };
+  const sling = { id: 'jump', x: up.x + 2.1 * r + g, y: (up.y + down.y) / 2, r: Math.round(r * 1.1), label: 'SLING' };
+  const pause = L.buttons.find((x) => x.id === 'pause');
+  const top = up.y - r;
+  return {
+    ...L,
+    pad: null,
+    buttons: [gas, brake, up, down, sling, pause],
+    clusters: {
+      left: { x: 0, y: top, w: sling.x + sling.r + m, h: H - top },
+      right: { x: brake.x - pw / 2 - m, y: gas.y - ph / 2, w: W - (brake.x - pw / 2 - m), h: H - (gas.y - ph / 2) },
+    },
+  };
+}
+
 // the pad by angle: right inside ±60° of east, up inside 40–140°, so a
 // thumb running east can drift a little without pressing up (Up is a jump
 // in most dreams), and the diagonals give both
@@ -124,7 +154,7 @@ export function padDirections(pad, x, y) {
 // A button's hit circle is 1.3× its plate; overlapping circles go to the
 // nearest centre.
 export function controlsAt(L, x, y, { play = true } = {}) {
-  if (play) {
+  if (play && L.pad) {
     const dirs = padDirections(L.pad, x, y);
     if (dirs.length) return dirs;
   }
@@ -132,6 +162,16 @@ export function controlsAt(L, x, y, { play = true } = {}) {
   let bestD = Infinity;
   for (const btn of [...L.buttons, ...(L.context || [])]) {
     if (!play && btn.id !== 'pause') continue;
+    // a pedal is a tall plate: its hit area is its own rectangle, a little large
+    if (btn.w && Math.abs(x - btn.x) <= btn.w * 0.56 && Math.abs(y - btn.y) <= btn.h * 0.56) {
+      const dp = Math.abs(x - btn.x);
+      if (dp < bestD) {
+        best = btn.id;
+        bestD = dp;
+      }
+      continue;
+    }
+    if (btn.w) continue;
     const dd = Math.hypot(x - btn.x, y - btn.y);
     if (dd <= btn.r * 1.3 && dd < bestD) {
       best = btn.id;

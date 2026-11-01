@@ -8,12 +8,11 @@ const FULL = buildHubMap();
 const slice = (x0, x1) => FULL.map((row) => row.slice(x0, x1 + 1));
 const L = (worldCol, x0) => worldCol - x0;
 
-// platform bays: [world col of the bay's first tile] per platform 1..9, G
-// (platform 9, THE STOPPED HOUR, and platform G, THE LAST STOP, share a
-// short shed past the luggage ramp)
-export const BAYS = [80, 87, 94, 101, 110, 117, 124, 131, 141, 148];
-// a platform number or letter → its index in BAYS
-export const bayIndex = (platform) => (platform === 'G' ? 9 : platform - 1);
+// platform bays: [world col of the bay's first tile] per platform 1..9, G, 10
+// (platforms 9, G and 10 share a short shed past the luggage ramp)
+export const BAYS = [80, 87, 94, 101, 110, 117, 124, 131, 141, 148, 155];
+// a platform number or letter → its index in BAYS (10 stands past G, whose index is 9)
+export const bayIndex = (platform) => (platform === 'G' ? 9 : platform === 10 ? 10 : platform - 1);
 
 const bay = (x0, p) => {
   const c = BAYS[bayIndex(p)];
@@ -108,7 +107,7 @@ const ROOMS = [
     section: 'platforms',
     allowNoFoes: true,
     horizon: 832, // the concourse floor: backdrops hang from it, not the undercroft
-    grid: slice(110, 156), // platforms 5-8, then 9 and G past the luggage ramp
+    grid: slice(110, 163), // platforms 5-8, then 9, G and 10 past the luggage ramp
     music: { section: 'hub', bpm: 104, state: 'hub' },
     bg: { far: 'hall_vault', mid: 'shed_ribs', near: 'shed_lamps', landmark: 'shed_clock' },
     objects: [
@@ -118,6 +117,7 @@ const ROOMS = [
       ...bay(110, 8),
       ...bay(110, 9),
       ...bay(110, 'G'),
+      ...bay(110, 10),
       { type: 'water_tower', x: L(122, 110), y: 5 },
       { type: 'signal_box', x: L(114, 110), y: 32 },
       { type: 'lost_dreams', x: L(126, 110), y: 32 },
@@ -128,14 +128,14 @@ const ROOMS = [
     section: 'gate',
     allowNoFoes: true,
     horizon: 832, // the concourse floor: backdrops hang from it, not the undercroft
-    grid: slice(157, 166),
+    grid: slice(164, 173),
     music: { section: 'hub', bpm: 104, state: 'hub' },
     bg: { far: 'gate_dark', mid: 'shed_ribs', near: 'railings', landmark: 'no_passengers' },
     objects: [
-      { type: 'turnstile', x: L(160, 157), y: 24 },
-      { type: 'gate', id: 'service_gate', x: L(163, 157), y: 12, h: 14, requires: [], alwaysOpen: true },
-      { type: 'sign', x: L(163, 157), y: 8, text: 'NO PASSENGERS' },
-      { type: 'gate_slot', x: L(163, 157), y: 30 },
+      { type: 'turnstile', x: L(167, 164), y: 24 },
+      { type: 'gate', id: 'service_gate', x: L(170, 164), y: 12, h: 14, requires: [], alwaysOpen: true },
+      { type: 'sign', x: L(170, 164), y: 8, text: 'NO PASSENGERS' },
+      { type: 'gate_slot', x: L(170, 164), y: 30 },
     ],
   },
 ];

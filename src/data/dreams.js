@@ -75,6 +75,16 @@ export const DREAMS = [
     conductor: "The Stopped Hour. A little town where every lamp went out at six, and the clock with them.\nKeep its time, sir, and nobody will ever know your name. Still boarding?",
     roLine: 'Brass dust on your cuffs. You fixed something nobody thanked you for.',
   },
+  {
+    // THE LONG STRAIGHT (src/dreams/racer/, DreamScene and RaceScene): the
+    // Calvessa Coast, 1958. `unfinished`: it boards, but it has no ending yet, so
+    // nothing counts it as a running dream (hubState.runningDreams, the web)
+    id: 'racer', platform: 10, title: 'THE LONG STRAIGHT', scene: 'Dream', unfinished: true, propsKind: 'tyres', ambientLoop: 'gm_office',
+    coin: { name: 'brass nut', worth: 3, budget: [60, 80], pal: { c: 0x8a6a2c, C: 0xc8a050, h: 0xf2e0a0 } },
+    livery: { body: 0x1f7a78, trim: 0xefe2c4, window: 0xf2d8a0, emblem: 'wheel' },
+    conductor: 'The Long Straight. A garage on the Calvessa Coast, spring of fifty-eight, and a car that wants a driver.\nThe road is shut for the morning, sir. Still boarding?',
+    roLine: 'Old black under your nails. Sit. What did it sound like?',
+  },
 ];
 
 // the last stop: THE LONG EVENING is a train like any other, open from the
@@ -88,7 +98,7 @@ export const LAST_STOP = {
 
 // the word on the board beside a running dream: how long, or what sort of night
 // (a dream with none just shows its status)
-export const BOARD_WORD = { chef: 'HOT, LONG', musician: 'LOUD', writer: 'LONG', painter: 'PATIENT', astronaut: 'VERY LONG', gambler: 'RISKY', clockmaker: 'GENTLE' };
+export const BOARD_WORD = { chef: 'HOT, LONG', musician: 'LOUD', writer: 'LONG', painter: 'PATIENT', astronaut: 'VERY LONG', gambler: 'RISKY', clockmaker: 'GENTLE', racer: 'FAST' };
 // the one the first visit points at
 export const GENTLE_DREAM = 'clockmaker';
 // the conductor, at a platform whose dream isn't running yet

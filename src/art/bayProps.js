@@ -21,6 +21,26 @@ const fruit = (ctx, x, y, c) => {
 };
 
 const PAINT = {
+  // the racer's corner: a stack of worn tyres and one leaning on it
+  tyres: [58, 44, (ctx, w, h) => {
+    cshadow(ctx, 26, h, 50, 0.3, 3);
+    for (const [x, y] of [[4, h - 10], [4, h - 20], [4, h - 30]]) {
+      ctx.fillStyle = hex(0x24222a);
+      ctx.fillRect(x, y, 30, 10);
+      ctx.fillStyle = hex(0x3a3842);
+      ctx.fillRect(x + 2, y + 1, 26, 2);
+      ctx.fillStyle = rgba(0x14141c, 0.8);
+      ctx.fillRect(x, y + 9, 30, 1);
+    }
+    ctx.fillStyle = hex(0x24222a);
+    ctx.beginPath();
+    ctx.arc(44, h - 13, 13, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = hex(0x6a6a72);
+    ctx.beginPath();
+    ctx.arc(44, h - 13, 6, 0, Math.PI * 2);
+    ctx.fill();
+  }],
   // the kitchen's delivery: crates of tomatoes and oranges
   produce: [70, 44, (ctx, w, h) => {
     cshadow(ctx, 30, h, 62, 0.3, 3);

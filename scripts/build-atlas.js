@@ -363,6 +363,9 @@ for (const f of [...castRig, ...foeRig]) {
   byOwner.get(o).push(f);
 }
 for (const [o, frames] of byOwner) writePacks(`people-${o}`, frames, 'rig-cast', o);
+// THE LONG STRAIGHT's cars and road props: painted in code, the racer's own pack
+const { carFrames } = await import(pathToFileURL(path.join(ROOT, 'src/art/carKit.js')).href);
+writePacks('cars', Object.entries(carFrames()).map(([name, img]) => ({ name, img })), 'props', 'racer');
 index.placeholders = { cast: castPlain.length, foes: foePlain.length, total: castPlain.length + foePlain.length, rigged: rigged.frames.length, runtimeOnly };
 index.castReport = rigged.report;
 index.gaits = rigged.gaits;

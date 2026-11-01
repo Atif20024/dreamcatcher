@@ -38,6 +38,12 @@ const PROPS = {
     rows: ['kkkkksy', 'kKKKKsy', 'kkkkksy'],
     pal: { k: 0x2a2a34, K: 0x4a4a58, s: 0xb0b0b8, y: 0xf0f6ff },
   },
+  inspection_lamp: {
+    hang: true,
+    at: [2, 6],
+    rows: ['..k..', '..k..', '.ccc.', 'c.y.c', 'cyfyc', 'cyfyc', 'c.y.c', '.ccc.', '..h..', '..h..'],
+    pal: { k: 0x2a2230, c: 0x8a8a92, y: 0xfff0d0, f: 0xffffff, h: 0x3a2a20 },
+  },
   bulb: {
     hang: true,
     at: [2, 7],
