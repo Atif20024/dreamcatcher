@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { craft } from '../src/engines/craft.js';
+import { MUSIC_KEYS } from '../src/dreams/painter/music.js';
 import speziale from '../src/dreams/painter/rooms/speziale.js';
-import { KITS, testStock, TEST_STEPS, trialLost, trialVerdict, loseLapis, streetFlags, studiesLine } from '../src/dreams/painter/logic.js';
+import { KITS, testStock, TEST_STEPS, trialLost, trialVerdict, loseLapis, streetFlags, studiesLine, rankKey } from '../src/dreams/painter/logic.js';
 
 const run = (e, ms) => {
   for (let t = 0; t < ms; t += 10) e.update(10);
@@ -182,5 +183,18 @@ describe('the book of studies', () => {
     expect(studiesLine({ study_hands: true })).toMatch(/^A pair of hands, kept/);
     expect(studiesLine({ study_torso: true, study_hands: true })).toBe('A torso and a pair of hands, kept in a book for sixty years.');
     expect(studiesLine({ study_torso: true, study_hands: true, study_dome: true })).toMatch(/^Three studies/);
+  });
+});
+
+describe('the city notices the rank in its music', () => {
+  it('each place changes key at its own flag, and the chase has a voice', () => {
+    expect(rankKey('via', {})).toBe(null);
+    expect(rankKey('via', { assistant: true })).toBe('street_known');
+    expect(rankKey('piazza', { assistant: true })).toBe(null);
+    expect(rankKey('piazza', { seal: true })).toBe('piazza_sealed');
+    expect(rankKey('palazzo', { commission: true })).toBe('palazzo_signed');
+    expect(rankKey('chapel', { seal: true })).toBe(null);
+    for (const k of ['street_known', 'piazza_sealed', 'palazzo_signed']) expect(MUSIC_KEYS[k].pad).toBeTruthy();
+    for (const k of ['street', 'piazza', 'palazzo']) expect(MUSIC_KEYS[k].voices.danger).toBe('drone');
   });
 });

@@ -60,6 +60,13 @@ export function streetFlags(F) {
   F.rivals_on_pentice = !F.seal;
 }
 
+// the music of a place that has noticed Jo's rank (music.js), or null
+const RANK_KEYS = { via: ['assistant', 'street_known'], piazza: ['seal', 'piazza_sealed'], palazzo: ['commission', 'palazzo_signed'] };
+export function rankKey(roomId, F) {
+  const r = RANK_KEYS[roomId];
+  return r && F[r[0]] ? r[1] : null;
+}
+
 // the ending's line for the book of studies: nobody is punished for two
 const STUDY = { study_torso: 'a torso', study_hands: 'a pair of hands', study_dome: "the dome's centering" };
 export function studiesLine(F) {

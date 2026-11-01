@@ -491,7 +491,7 @@ export default class DreamScene extends BaseLevel {
       case 'npc': {
         // pace / follow (room cols) walk a cast person within its span
         const span = (c) => (c ? [(room.r.tx + c[0]) * T + T / 2, (room.r.tx + c[1]) * T + T / 2] : null);
-        const npc = new Npc(this, { id: e.id, x: at.x + (e.dx || 0), y: at.y + (e.dy || 0), rig: e.rig, cast: e.cast, pose: e.pose, facing: e.facing || -1, task: e.task || 'idle_fidget', turns: e.turns !== false, pace: span(e.pace), follow: span(e.follow), walks: e.walks, ...(e.depth === 'behind' ? { depth: LAYER_DEPTH.mid - 0.5 } : {}) });
+        const npc = new Npc(this, { id: e.id, x: at.x + (e.dx || 0), y: at.y + (e.dy || 0), rig: e.rig, cast: e.cast, pose: e.pose, facing: e.facing || -1, task: e.task || 'idle_fidget', turns: e.turns !== false, pace: span(e.pace), follow: span(e.follow), walks: e.walks, eatsWhen: e.eatsWhen, ...(e.depth === 'behind' ? { depth: LAYER_DEPTH.mid - 0.5 } : {}) });
         this.npcs.set(e.id, npc);
         const reg = this.interaction.register({ id: `npc:${e.id}`, at: () => ({ x: npc.x, y: npc.y }), radius: 72, prompt: 'talk', enabled: () => !!this.pickConversation(e), onUse: () => this.talkTo(e, npc) });
         return {
