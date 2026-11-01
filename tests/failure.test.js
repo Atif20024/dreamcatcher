@@ -5,6 +5,7 @@ import { RunState, sanitizeFlags, convKey } from '../src/play/RunState.js';
 import {
   SaveStore,
   memoryAdapter,
+  localStorageAdapter,
   migrate,
   normalizeLegacy,
   slotFromLegacy,
@@ -219,6 +220,60 @@ describe('SaveStore', () => {
     const b = new SaveStore(memoryAdapter());
     b.importJSON(a.exportJSON());
     expect(b.legacy()).toEqual(a.legacy());
+  });
+});
+
+describe('SaveStore with blocked or full storage', () => {
+  const stubs = {
+    'setItem throws (full), getItem still reads the old file': () => ({
+      getItem: () => JSON.stringify(migrate({ dreamsCaught: 1 })),
+      setItem: () => {
+        throw new Error('QuotaExceededError');
+      },
+      removeItem: () => {},
+    }),
+    'everything throws (blocked)': () => ({
+      getItem: () => {
+        throw new Error('SecurityError');
+      },
+      setItem: () => {
+        throw new Error('SecurityError');
+      },
+      removeItem: () => {
+        throw new Error('SecurityError');
+      },
+    }),
+    'no storage at all': () => null,
+  };
+  for (const [name, stub] of Object.entries(stubs)) {
+    it(`a caught dream counts for the session: ${name}`, () => {
+      const st = new SaveStore(localStorageAdapter('k', stub()));
+      st.updateLegacy((s) => (s.dreamsCaught = 3));
+      st.updateLegacy((s) => (s.shards = 2));
+      expect(st.legacy().dreamsCaught).toBe(3);
+      expect(st.legacy().shards).toBe(2);
+    });
+  }
+
+  it('reads storage again once a write gets through', () => {
+    const file = new Map();
+    let full = true;
+    const ad = localStorageAdapter('k', {
+      getItem: (k) => file.get(k) ?? null,
+      setItem: (k, v) => {
+        if (full) throw new Error('QuotaExceededError');
+        file.set(k, v);
+      },
+      removeItem: (k) => file.delete(k),
+    });
+    ad.write('session');
+    expect(ad.read()).toBe('session');
+    full = false;
+    ad.write('saved');
+    file.set('k', 'another tab');
+    expect(ad.read()).toBe('another tab');
+    ad.remove();
+    expect(ad.read()).toBeNull();
   });
 });
 

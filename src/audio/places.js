@@ -26,7 +26,7 @@ export const BEDS = {
   arena: bed(['cheer', 6, 14], ['feedback', 50, 90, 0.8]),
   // THE MASTER'S LADDER: the piazza's bell for the hour (the rest is baked)
   piazza: bed(['church_bell', 50, 80, 0.8], ['swifts', 15, 30, 0.6]),
-  // the legacy dreams
+  // the scene-built dreams
   kitchen: bed(['pan_clatter', 5, 10], ['ticket_bell', 12, 20], ['chop', 9, 16], ['order_call', 14, 24], ['steam', 10, 18, 0.8]),
   chef_street: bed(['traffic', 10, 18, 0.7], ['horn', 25, 45, 0.6], ['bird', 8, 16, 0.6]),
   writer: bed(['carriage_bell', 15, 30], ['paper', 8, 15], ['crumple', 20, 40, 0.8], ['clock_hour', 60, 90, 0.7]),
@@ -34,7 +34,6 @@ export const BEDS = {
   orbit: bed(['console_beep', 4, 9], ['relay', 10, 20], ['airlock', 25, 45, 0.8], ['radio_chirp', 15, 30]),
   campus: bed(['bird', 6, 12, 0.7], ['console_beep', 10, 20, 0.6], ['door', 15, 30, 0.6]),
   casino: bed(['chips', 3, 7], ['slot_jingle', 8, 15], ['win_bell', 25, 45, 0.8], ['shuffle', 10, 20], ['dice', 12, 24], ['cheer', 30, 50, 0.5]),
-  carpark: bed(['traffic', 10, 20, 0.6], ['door', 20, 40, 0.5]),
   // the unlaunched dreams' loops have their beds ready too
   stadium: bed(['starter_pistol', 20, 40], ['cheer', 8, 16]),
   ward: bed(['pager', 15, 30], ['door', 20, 40, 0.6], ['trolley', 25, 50, 0.6]),
@@ -82,15 +81,6 @@ export const LEGACY_ROOMS = {
     p3_survival: R('open', 'green'),
     p4_pad: R('open', 'orbit'),
     p4_station: R('hull', 'orbit'),
-  },
-  gambler: {
-    arrival: R('open', 'carpark', true),
-    floor: R('room', 'casino'),
-    lounge: R('lounge', 'casino'),
-    backrooms: R('room', null, 900),
-    carpark: R('open', 'carpark', true),
-    lasthand: R('open', 'carpark', 700),
-    lostfound: R('room', null, 700),
   },
   // the station: the steps are outside, the rest is the great hall
   hub: {

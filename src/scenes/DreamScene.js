@@ -69,7 +69,7 @@ export default class DreamScene extends BaseLevel {
   init(data = {}) {
     let id = data.dreamId || data.levelKey || null;
     let warp = data.warp || null;
-    if (!id && typeof window !== 'undefined') {
+    if (!id && typeof window !== 'undefined' && import.meta.env && import.meta.env.DEV) {
       const w = new URLSearchParams(window.location.search).get('warp');
       if (w) {
         const [d, ...rest] = w.split(':');

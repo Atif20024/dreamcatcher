@@ -1,6 +1,5 @@
 // THE MASTER'S LADDER — the painter's dream (platform 5), rebuilt on the
-// phase-3 framework (it replaces THE YELLOW HOUSE, which stays behind
-// ?legacy=1 / ?warp=painter_legacy). The design: docs/dream_painter_renaissance.md.
+// phase-3 framework. The design: docs/dream_painter_renaissance.md.
 //
 // Bice's dream. An old woman with gold leaf under her nails rides the train:
 // in waking life she restored church walls for fifty years and never signed

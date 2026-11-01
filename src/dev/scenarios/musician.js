@@ -10,8 +10,6 @@
 //   musician-set-variants the set list follows the choice: Nia keeps the
 //                         rests, the bass blank and the held note; Tally's
 //                         list fills every rest and plays the blank blind
-//   musician-legacy       ?warp=musician_legacy (?legacy=1) still plays the
-//                         old MusicianScene, for comparison
 //   musician-playthrough  board → street (the horn) → alley (the neon, the
 //                         stage door) → the Cellar (sign up, the open mic,
 //                         Ray walks out) → the alley (Ray's lesson, the gate)
@@ -278,18 +276,6 @@ const variants = {
   },
 };
 
-const legacy = {
-  id: 'musician-legacy',
-  async run(dc) {
-    dc.warp('musician_legacy', null);
-    for (let i = 0; i < 100 && keyOf(dc) !== 'Musician'; i++) await dc.run(2);
-    await dc.run(30);
-    const k = keyOf(dc);
-    clearRun('musician');
-    return { pass: k === 'Musician', detail: { scene: k } };
-  },
-};
-
 const playthrough = {
   id: 'musician-playthrough',
   async run(dc) {
@@ -448,4 +434,4 @@ const playthrough = {
   },
 };
 
-export default [board, places, coins, variants, legacy, playthrough];
+export default [board, places, coins, variants, playthrough];

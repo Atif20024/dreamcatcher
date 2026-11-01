@@ -46,7 +46,7 @@ export const CLASSES = {
 
 // every person texture prefix and its default class; per-id body overrides
 // (sex/hair/age) live in CAST_BODIES below
-export const PERSON_PREFIXES = ['hub-', 'ev-p-', 'ev-x-', 'wr-p-', 'pt-p-', 'gm-p-', 'npc-', 'foe-'];
+export const PERSON_PREFIXES = ['hub-', 'ev-p-', 'ev-x-', 'wr-p-', 'npc-', 'foe-'];
 
 // body: adult (m/f), big, elderly, teen, child. hair: short, long, bun, bob,
 // bald, crop, tuft, grey. Anything not listed is an adult with short hair
@@ -103,30 +103,6 @@ export const CAST_BODIES = {
   'wr-p-reader2': { sex: 'm' },
   'wr-p-reader3': { sex: 'f', hair: 'long' },
   'wr-p-reader4': { sex: 'm', body: 'teen' },
-  // the painter
-  'pt-p-clerk': { sex: 'm' },
-  'pt-p-sleeper': { sex: 'm', body: 'elderly' },
-  'pt-p-roulin': { sex: 'm', body: 'big', beard: true },
-  'pt-p-paul': { sex: 'm', beard: true, hair: 'crop' },
-  'pt-p-rey': { sex: 'm', body: 'teen' },
-  'pt-p-ginoux': { sex: 'f', hair: 'bun', dress: true },
-  'pt-p-vautrin': { sex: 'm' },
-  'pt-p-visitor': { sex: 'f', dress: true },
-  'pt-p-isak': { sex: 'm', body: 'teen' },
-  'pt-p-gardener': { sex: 'm', body: 'elderly' },
-  // the gambler
-  'gm-p-favour': { sex: 'f', hair: 'long', dress: true },
-  'gm-p-lou': { sex: 'm', body: 'elderly', hair: 'grey' },
-  'gm-p-dede': { sex: 'f', hair: 'bun', dress: true },
-  'gm-p-sal': { sex: 'm', body: 'elderly', hair: 'bald' },
-  'gm-p-security': { sex: 'm', body: 'big', hair: 'crop' },
-  'gm-p-waiter': { sex: 'm' },
-  'gm-p-pianist': { sex: 'm' },
-  'gm-p-dealer': { sex: 'f', hair: 'bun' },
-  'gm-p-collector': { sex: 'm' },
-  'gm-p-widow': { sex: 'f', body: 'elderly', dress: true },
-  'gm-p-kid': { body: 'teen', sex: 'm' },
-  'gm-p-accountant': { sex: 'm', hair: 'bald' },
   // musician / astronaut NPCs (string-art keys; looks below)
   'npc-delphine': { sex: 'f', body: 'elderly', hair: 'bun', dress: true, hat: 'none' },
   'npc-nia': { sex: 'f', hair: 'crop', hat: 'none', held: 'bass' },
@@ -136,12 +112,10 @@ export const CAST_BODIES = {
   'npc-sol': { sex: 'm', body: 'elderly', hair: 'grey', hat: 'none' },
   'npc-scalper': { sex: 'm', hat: 'fedora', held: 'tickets' },
   'npc-roadie': { sex: 'm', body: 'big', hat: 'beanie', held: 'coil' },
-  'npc-kid': { body: 'child', hair: 'tuft', hat: 'cap' },
   'npc-priya': { sex: 'f', hair: 'long', hat: 'none' },
   'npc-adaeze': { sex: 'f', hair: 'grey', hat: 'none' },
   'npc-halvorsen': { sex: 'm', body: 'elderly', hair: 'grey', hat: 'none', beard: true },
   'npc-osei': { sex: 'm', hat: 'none', hair: 'crop' },
-  'mus-critic': { sex: 'm', body: 'elderly', hair: 'grey', hat: 'none', sit: true },
   // foes (human): one silhouette each, big bodies for the bouncers
   // (phase 2 motion: silhouettes — the bouncers shaved with an earpiece, the
   // gendarme in a kepi, station security in a helmet, the guard in a peaked cap)
@@ -207,21 +181,19 @@ export const PROP_CLASSES = {
 // texture key → class, for every prop the kit redraws (src/art/propKit.js)
 // and the creatures. The lint measures each against its class range.
 export const PROP_TABLE = {
-  'ev-bench': 'bench', 'wr-bench': 'bench', 'pt-bench': 'bench', 'hub-bench': 'bench',
+  'ev-bench': 'bench', 'wr-bench': 'bench', 'hub-bench': 'bench',
   'ev-postbox': 'postbox',
-  'ev-fountain': 'fountainTown', 'pt-fountain': 'fountainTown', 'gm-fountain': 'fountainTown',
+  'ev-fountain': 'fountainTown',
   'hub-fountain': 'fountainDrink',
-  'ev-chess': 'table', 'wr-table': 'table', 'pt-table': 'table',
-  'wr-desk': 'desk', 'wr-desk-big': 'desk', 'pt-desk': 'desk', 'astro-desk': 'desk', 'hub-desk': 'counter',
-  'ev-chair': 'chair', 'wr-chair': 'chair', 'pt-chair': 'chair', 'mus-chair': 'chair',
-  'wr-lamp-post': 'lampStreet', 'pt-lamp': 'lampStreet', 'gm-lamp-post': 'lampStreet',
-  'wr-shop-door': 'door', 'wr-fire-door': 'door', 'gm-staffdoor': 'door', 'gm-firedoor': 'door', 'gm-door': 'doubleDoor',
-  'wr-machine': 'furnitureTall', 'wr-cabinet': 'table', 'wr-piano': 'furnitureTall', 'gm-piano': 'furnitureTall', 'gm-videopoker': 'machine', 'wr-washer': 'appliance',
-  'wr-lectern': 'furnitureTall', 'gm-valet': 'furnitureTall',
-  'ev-cart': 'cart', 'pt-cart': 'cart', 'hub-cart': 'trolleyLuggage',
-  'ev-charpoy': 'bed', 'pt-bed': 'bed', 'pt-cot': 'bed',
-  'pt-easel': 'easel', 'pt-stove': 'stove', 'pt-stove_north': 'stove',
-  'gm-car': 'car',
+  'ev-chess': 'table', 'wr-table': 'table',
+  'wr-desk': 'desk', 'wr-desk-big': 'desk', 'astro-desk': 'desk', 'hub-desk': 'counter',
+  'ev-chair': 'chair', 'wr-chair': 'chair',
+  'wr-lamp-post': 'lampStreet',
+  'wr-shop-door': 'door', 'wr-fire-door': 'door',
+  'wr-machine': 'furnitureTall', 'wr-cabinet': 'table', 'wr-piano': 'furnitureTall', 'wr-washer': 'appliance',
+  'wr-lectern': 'furnitureTall',
+  'ev-cart': 'cart', 'hub-cart': 'trolleyLuggage',
+  'ev-charpoy': 'bed',
   'hub-suitcase': 'luggage',
 };
 Object.assign(PROP_CLASSES, {
@@ -245,14 +217,12 @@ export const CREATURE_TABLE = {
 // known out-of-scale things this pass does not own, with the package that
 // does: the lint lists them (WARN) instead of failing
 export const SCALE_EXCEPTIONS = {
-  'gm-van': 'WP2 room rebuild: a moving platform Jo rides (27 px); a 2 m van is out of jump reach until the carpark is rebuilt',
   'foe-cart': 'framework: the kitchen trolley foe becomes trolley + cook (a two-part foe)',
   'chef-crate': 'framework room rebuild: 1-tile crates are puzzle geometry (push/stack); 22 / 48 px crates need the chef rooms rebuilt',
   'hub-door': 'WP3 (hub presentation)', 'hub-booth': 'WP3', 'hub-kiosk': 'WP3', 'hub-lamp': 'WP3 (platform lamps with the head-on terminus)', 'hub-pigeon': 'WP3 (hub painter)',
-  'pt-plane_tree': 'WP4 (trees: cropped on the play plane or whole on a parallax layer)', 'pt-cypress': 'WP4', 'pt-tree_grey': 'WP4',
   'ev-tree': 'WP4', 'ev-tree-apple': 'WP4', 'ev-pine': 'WP4', 'ev-hilltree': 'WP4',
   'ev-door': 'WP4 (house rows: doors scale with their buildings)', 'ev-lamp': 'WP4 (house rows)', 'ev-bakery': 'WP4',
-  'pt-house_front': 'WP4', 'pt-cafe_front': 'WP4', 'pt-train': 'WP3', 'hub-train': 'WP3',
+  'hub-train': 'WP3',
 };
 
 // ---- round 2 WP3: the train kit and the station's big furniture -------------
@@ -270,7 +240,7 @@ Object.assign(PROP_CLASSES, {
 });
 // the hub's doors, booths, kiosk, lamps, pigeons and every train are drawn
 // at scale now (WP3): they are no longer exceptions
-for (const k of ['hub-door', 'hub-booth', 'hub-kiosk', 'hub-lamp', 'hub-pigeon', 'hub-train', 'pt-train']) delete SCALE_EXCEPTIONS[k];
+for (const k of ['hub-door', 'hub-booth', 'hub-kiosk', 'hub-lamp', 'hub-pigeon', 'hub-train']) delete SCALE_EXCEPTIONS[k];
 
 // ---- round 2 WP4: trees, building rows and backdrop depth (§7.1.2, §7.2) -----
 // Every backdrop generator takes metres and the layer's scroll factor s and
@@ -322,7 +292,6 @@ export const treePx = (kind, s = 1, m = null) => {
 };
 // play-plane tree textures → kind; the lint measures each against its class
 export const TREE_TABLE = {
-  'pt-plane_tree': 'plane', 'pt-cypress': 'cypress', 'pt-tree_grey': 'grey',
   'ev-tree': 'street', 'ev-tree-apple': 'apple', 'ev-pine': 'pine', 'ev-hilltree': 'hill',
 };
 Object.assign(PROP_CLASSES, {
@@ -336,8 +305,6 @@ export const TREE_CLASS = { plane: 'treeMature', pine: 'treeMature', cypress: 't
 
 // play-plane fronts painted by src/art/buildingKit.js
 export const FRONT_TABLE = {
-  'pt-house_front': { storeys: 1, ground: 'house', bays: 3, cls: 'frontHouse' },
-  'pt-cafe_front': { storeys: 1, ground: 'shop', bays: 4, cls: 'frontShop', roof: false },
   'ev-bakery': { storeys: 1, ground: 'shop', bays: 2, cls: 'frontShop', roof: false },
   'ev-door': { door: true, cls: 'doorHouse' },
 };
@@ -358,7 +325,7 @@ export const BACKDROP_ROWS = {
 // WP4 owns these now: measured by lint:scale (trees, fronts, the Evening's
 // doors and lamps), so they are no longer exceptions
 PROP_TABLE['ev-lamp'] = 'lampStreet';
-for (const k of ['pt-plane_tree', 'pt-cypress', 'pt-tree_grey', 'ev-tree', 'ev-tree-apple', 'ev-pine', 'ev-hilltree', 'ev-door', 'ev-lamp', 'ev-bakery', 'pt-house_front', 'pt-cafe_front']) delete SCALE_EXCEPTIONS[k];
+for (const k of ['ev-tree', 'ev-tree-apple', 'ev-pine', 'ev-hilltree', 'ev-door', 'ev-lamp', 'ev-bakery']) delete SCALE_EXCEPTIONS[k];
 
 // Phase 3b (the Musician on the framework): the city rows ported into
 // src/art/backdrops/painted.js, at the s their layers are placed at (ROW_S)

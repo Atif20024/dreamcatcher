@@ -126,17 +126,12 @@ function judge(sc, log, skip = 6) {
 // there, and an optional room (framework dreams: columns are room-local)
 const SITES = [
   { id: 'hub-steps', dream: 'hub', c0: 3, c1: 17, row: 22 },
-  { id: 'musician-d0', dream: 'musician_legacy', c0: 14, c1: 26, row: 30 },
   // THE BIG STAGE on the framework (phase 3b): the theatre's kerb ramp
   { id: 'musician-kerb', dream: 'musician', place: 'street', room: 'street', c0: 9, c1: 19, row: 14, row1: 15 },
   { id: 'chef-arrival', dream: 'chef', c0: 14, c1: 26, row: 28 },
   { id: 'chef-freezer-stairs', dream: 'chef', c0: 113, c1: 120, row: 30 },
   { id: 'writer-arrival', dream: 'writer', place: 'arrival', c0: 4, c1: 16, row: 28 },
   { id: 'writer-attic-stairs', dream: 'writer', place: 'attic', c0: 50, c1: 62, row: 23 },
-  { id: 'painter-fields', dream: 'painter_legacy', place: 'fields', c0: 237, c1: 250, row: 26 },
-  { id: 'painter-studio-stairs', dream: 'painter_legacy', place: 'studio', c0: 57, c1: 63, row: 31, row1: 28 },
-  { id: 'gambler-floor-stairs', dream: 'gambler_legacy', place: 'floor', c0: 38, c1: 52, row: 30, row1: 22 },
-  { id: 'gambler-carpark', dream: 'gambler_legacy', place: 'carpark', c0: 348, c1: 362, row: 22 },
   { id: 'evening-arch', dream: 'evening', place: 'arch', c0: 62, c1: 78, row: 27 },
   { id: 'evening-hill', dream: 'evening', place: 'hill', c0: 338, c1: 360, row: 26, row1: 13 },
   { id: 'clockmaker-yard', dream: 'clockmaker', place: 'yard', room: 'yard', c0: 4, c1: 22, row: 8 },
@@ -262,9 +257,9 @@ const shadowGap = {
 const shadowSlope = {
   id: 'shadow-slope',
   async run(dc) {
-    const sc = await arrive(dc, 'musician_legacy');
+    const sc = await arrive(dc, 'chef'); // the ramp on chef-arrival (SITES)
     const p = sc.player;
-    placeAt(sc, 14, 30);
+    placeAt(sc, 14, 28);
     p.speed = 120;
     dc.step(10);
     dc.hold('right');

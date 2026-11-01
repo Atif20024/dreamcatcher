@@ -1,24 +1,15 @@
 // Unified dev warp: ?warp=<dream>:<place> maps onto the existing per-scene
-// devWarp params (?at= ?wr= ?pt= ?gm= ?ev=). The old params keep working.
+// devWarp params (?at= ?wr= ?ev=). The old params keep working.
 // Pure function so it unit-tests in Node.
 
 export const DREAM_WARP = {
   hub: { scene: 'Hub', param: null },
   chef: { scene: 'Chef', param: null },
-  // THE BIG STAGE on the framework (phase 3b); the old scene stays reachable
-  // as musician_legacy (or ?warp=musician&legacy=1) for comparison
   musician: { scene: 'Dream', param: null, framework: true },
-  musician_legacy: { scene: 'Musician', param: null },
   astronaut: { scene: 'Astronaut', param: 'at', fallback: 'gym' },
   writer: { scene: 'Writer', param: 'wr', fallback: 'attic' },
-  // THE MASTER'S LADDER on the framework; the old Yellow House stays
-  // reachable as painter_legacy (or ?warp=painter&legacy=1)
   painter: { scene: 'Dream', param: null, framework: true },
-  painter_legacy: { scene: 'Painter', param: 'pt', fallback: 'arrival' },
-  // THE LAST HAND on the framework; the old neon casino stays reachable as
-  // gambler_legacy (or ?warp=gambler&legacy=1)
   gambler: { scene: 'Dream', param: null, framework: true },
-  gambler_legacy: { scene: 'Gambler', param: 'gm', fallback: 'arrival' },
   evening: { scene: 'Evening', param: 'ev', fallback: 'arch' },
   // framework dreams (DreamScene reads ?warp= itself: dream:room[:spawn])
   clockmaker: { scene: 'Dream', param: null, framework: true },
@@ -31,8 +22,7 @@ export function resolveWarp(search) {
   const w = sp.get('warp');
   if (!w) return null;
   const [dream, place] = w.split(':');
-  const legacy1 = sp.get('legacy') === '1';
-  const d = legacy1 && DREAM_WARP[`${dream}_legacy`] ? DREAM_WARP[`${dream}_legacy`] : DREAM_WARP[dream];
+  const d = DREAM_WARP[dream];
   if (!d) return null;
   const legacy = {};
   if (d.param && !sp.get(d.param)) legacy[d.param] = place || d.fallback;
@@ -44,8 +34,6 @@ export function firstSceneKey(search) {
   const w = resolveWarp(search);
   if (w) return w.scene; // ?warp=hub too: a dev warp never shows the title
   const sp = new URLSearchParams(search);
-  if (sp.get('pt')) return 'Painter';
-  if (sp.get('gm')) return 'Gambler';
   if (sp.get('wr')) return 'Writer';
   if (sp.get('ev')) return 'Evening';
   if (sp.get('at')) return 'Astronaut';

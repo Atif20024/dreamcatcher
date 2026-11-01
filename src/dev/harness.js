@@ -119,7 +119,7 @@ const dc = {
     if (!d) throw new Error(`__dc.warp: unknown dream "${dream}"`);
     dc.releaseAll();
     const url = new URL(window.location.href);
-    ['at', 'wr', 'pt', 'gm', 'ev', 'warp'].forEach((k) => url.searchParams.delete(k));
+    ['at', 'wr', 'ev', 'warp'].forEach((k) => url.searchParams.delete(k));
     if (d.param) url.searchParams.set(d.param, place || d.fallback);
     window.history.replaceState(null, '', url);
     const g = game();

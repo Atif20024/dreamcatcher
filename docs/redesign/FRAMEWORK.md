@@ -408,7 +408,7 @@ The Musician is the second framework dream and the reference for the roll-out. W
 - **Loops:** `rain_street`, `club_room`, `festival` in `synthLoops.js`.
 - **Coins** outside the view (or in rooms not live) are hidden (`cullCoins`): a dream that pays in small change places 120+ of them.
 - **Scene restarts:** `encounterActive` is reset in `create()` and `Encounters.abort()` finishes without its outro (a warp mid-encounter used to leave Jo frozen).
-- **Dev:** `?warp=musician:<room>` (`start street alley cellar backstage escape stage`); `?warp=musician_legacy` or `?warp=musician&legacy=1` plays the old `MusicianScene`.
+- **Dev:** `?warp=musician:<room>` (`start street alley cellar backstage escape stage`).
 
 ## 19. THE MASTER'S LADDER additions (`src/dreams/painter/`)
 
@@ -425,7 +425,7 @@ The Musician is the second framework dream and the reference for the roll-out. W
 - **Acoustics:** `room.acoustics: 'open' | 'room' | 'hall' | 'chapel'` (`AudioBus.ACOUSTICS`) sets a low-pass and a comb reverb on the music and ambience buses. It defaults to open (dry), and the scene resets it on teardown.
 - **Ambience recipes:** `src/audio/eraLoops.js`. `RECIPES.<loop> = { seconds, seed, rms, layers: [[sound, opts], …] }` over the `SOUNDS` kit, rendered pure and merged into `LOOPS`.
 - **Cast:** `src/dreams/painter/people.js` (`npc-rn-*`, baked with a foot pivot) and `FOE_LOOKS` (`foe-rn-*`).
-- **Dev:** `?warp=painter:<room>` (`start bottega via speziale piazza guild palazzo chapel`). `?warp=painter_legacy`, or `?warp=painter&legacy=1`, plays the old `PainterScene`.
+- **Dev:** `?warp=painter:<room>` (`start bottega via speziale piazza guild palazzo chapel`).
 
 ## 20. THE LAST HAND additions (`src/dreams/gambler/`)
 
@@ -438,4 +438,4 @@ The Musician is the second framework dream and the reference for the roll-out. W
 - **`verb.always: true`** runs a verb's `update` during encounters too (a HUD that must move while the cards are out).
 - **`orb.tint`** colours a dream's catch.
 - **Rooms:** `air: [c0, c1]` (open deck: TILT cools there), `vents` (timed steam), `corridor` (the marker's ceiling), read by the dream's own verbs.
-- **Dev:** `?warp=gambler:<room>` (`start quay saloon cards office deck pilot landing`); `?warp=gambler_legacy` or `?warp=gambler&legacy=1` plays the old casino.
+- **Dev:** `?warp=gambler:<room>` (`start quay saloon cards office deck pilot landing`).

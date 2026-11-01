@@ -8,7 +8,6 @@
 //                        room and its neighbours live; inside rooms set their
 //                        acoustics, every room its own music key and loop
 //   painter-coins        80–100 giglio coins placed, worth 3 each
-//   painter-legacy       ?warp=painter_legacy still plays THE YELLOW HOUSE
 //   painter-ladder       Jo climbs a scaffold ladder with real input (up held)
 //   painter-playthrough  board-less, real inputs where it matters: the master,
 //                        the slab, the street, the colour-seller (a real ladder
@@ -270,18 +269,6 @@ const coins = {
   },
 };
 
-const legacy = {
-  id: 'painter-legacy',
-  async run(dc) {
-    dc.warp('painter_legacy', 'arrival');
-    for (let i = 0; i < 100 && keyOf(dc) !== 'Painter'; i++) await dc.run(2);
-    await dc.run(30);
-    const k = keyOf(dc);
-    clearRun('painter');
-    return { pass: k === 'Painter', detail: { scene: k } };
-  },
-};
-
 const ladder = {
   id: 'painter-ladder',
   async run(dc) {
@@ -479,4 +466,4 @@ const playthrough = {
   },
 };
 
-export default [board, places, coins, legacy, ladder, playthrough];
+export default [board, places, coins, ladder, playthrough];

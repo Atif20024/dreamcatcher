@@ -43,9 +43,6 @@ import { ladderPass } from '../world/ladders.js';
 const T = 32;
 // scene key → dream id (Hub and the Evening have no in-dream run)
 const DREAM_OF_SCENE = Object.fromEntries(DREAMS.filter((d) => d.scene && d.scene !== 'Dream').map((d) => [d.scene, d.id]));
-// the legacy scenes of dreams rebuilt on the framework still save their runs
-// and their catch under the dream's id (?legacy=1 / ?warp=<dream>_legacy)
-Object.assign(DREAM_OF_SCENE, { Musician: 'musician', Painter: 'painter', Gambler: 'gambler' });
 
 const HEART = { rows: ['.hh.hh.', 'hhhhhhh', 'hhhhhhh', '.hhhhh.', '..hhh..', '...h...'], pal: { h: 0xe86a6a } };
 const ORB = {
@@ -693,7 +690,7 @@ export default class BaseLevel extends Phaser.Scene {
     // middle: the restart is from the dream's own start
     try {
       const u = new URL(window.location.href);
-      ['at', 'wr', 'pt', 'gm', 'ev'].forEach((k) => u.searchParams.delete(k));
+      ['at', 'wr', 'ev'].forEach((k) => u.searchParams.delete(k));
       if (u.searchParams.get('warp') && id) u.searchParams.set('warp', id);
       window.history.replaceState(null, '', u);
     } catch {

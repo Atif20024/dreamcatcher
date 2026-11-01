@@ -506,7 +506,7 @@ export default class EveningScene extends BaseLevel {
 
   // ---- dev: ?ev=<place> opens the evening there ------------------------------
   devWarp(at) {
-    if (!at) return false;
+    if (!at || !(import.meta.env && import.meta.env.DEV)) return false;
     const WARPS = {
       arch: 58, orchard: 92, laundry: 126, square: 160, canal: 200, steep: 226, roofs: 252, school: 296, gardens: 320, hill: 358, station: 390,
       road: 470, orchard_road: 500, fields: 530, lake: 556, stars: 584, foothills: 620, pines: 650, stream: 680, switchbacks: 712, treeline: 740, ridge: 770,

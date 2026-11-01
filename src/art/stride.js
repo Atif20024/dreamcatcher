@@ -7,7 +7,7 @@
 // means no foot ever slides — at any speed, under a tween, a velocity or a
 // scripted `x +=`.
 //
-//   const s = new Stride(scene, 'pt-p-paul');
+//   const s = new Stride(scene, 'npc-nia');
 //   img.setTexture(s.next(dx, dtMs) || s.idle(time));
 //
 //   attachStride(scene, img, 'npc-nia')   // the easy way: watches img.x

@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import { createJoTextures } from '../entities/jo.js';
 import { drawCityBackdrop } from '../utils/backdrop.js';
 import { toggleMusic, sfx } from '../systems/audio.js';
-import { dreamById, LEGACY_PAINTER, LEGACY_GAMBLER } from '../data/dreams.js';
 import { paintSky, paintBackdropLayer, paintLandmark } from '../art/backdrops/painted.js';
 import { FIORALBA } from '../dreams/painter/dream.js';
 import { VERRANE } from '../dreams/gambler/dream.js';
@@ -58,9 +57,8 @@ const INTROS = {
     },
   },
   // THE MASTER'S LADDER: Fioralba from the station road, the dome in its
-  // centering, the campanile, a workshop's arched door (the old Yellow House
-  // arrival stays behind ?legacy=1)
-  painter: LEGACY_PAINTER ? null : {
+  // centering, the campanile, a workshop's arched door
+  painter: {
     ground: 0x8a7a62,
     caption: "THE MASTER'S LADDER",
     sub: 'Fioralba, the spring of the contest. The workshop door is open.',
@@ -97,32 +95,9 @@ const INTROS = {
       return { groundY: 470 };
     },
   },
-  painter_legacy: {
-    ground: 0x6b4e2e, // the arrival platform's stone (round 2 WP3)
-    caption: 'THE YELLOW HOUSE',
-    sub: 'The south, at the first hour of light. A house with no curtains.',
-    doorX: 700,
-    draw(scene) {
-      const g = scene.add.graphics();
-      g.fillGradientStyle(0x4a5566, 0x4a5566, 0x6b4e2e, 0x6b4e2e, 1);
-      g.fillRect(0, 0, 960, 540);
-      // underpainting: a square of low houses blocked in umber, one of them yellow
-      for (let x = 20; x < 960; x += 150) {
-        const yellow = x === 620;
-        scene.add.rectangle(x + 65, 360, 130, 220, yellow ? 0xe8b830 : 0x5a4530);
-        scene.add.rectangle(x + 65, 240, 140, 24, yellow ? 0xc03a2a : 0x4a5566);
-        for (let wy = 300; wy < 440; wy += 60) scene.add.rectangle(x + 40, wy, 22, 30, yellow ? 0x2e6a4a : 0x3a4455);
-      }
-      scene.add.circle(140, 120, 50, 0xf2d060, 0.95);
-      scene.add.rectangle(480, 505, 960, 70, 0x6b4e2e);
-      scene.add.rectangle(480, 472, 960, 6, 0x5b3a7a);
-      scene.add.rectangle(700, 410, 60, 120, 0x1f3a5f);
-      return { groundY: 470 };
-    },
-  },
   // THE LAST HAND: Port Merrow's quay at dusk, the Lantern Queen alongside
-  // with every window lit (the old neon casino arrival stays behind ?legacy=1)
-  gambler: LEGACY_GAMBLER ? null : {
+  // with every window lit
+  gambler: {
     ground: 0x4a4a52,
     caption: 'THE LAST HAND',
     sub: 'Port Merrow, autumn 1884. The Lantern Queen sails at dusk.',
@@ -149,30 +124,6 @@ const INTROS = {
       scene.add.image(0, 0, 'intro-gambler-lq').setOrigin(0);
       scene.add.rectangle(480, 505, 960, 70, 0x4a4a52);
       scene.add.rectangle(480, 472, 960, 4, 0x7a7880);
-      return { groundY: 470 };
-    },
-  },
-  gambler_legacy: {
-    ground: 0x1a1820, // the arrival platform's stone (round 2 WP3)
-    caption: 'THE LAST HAND',
-    sub: 'Rain on a parking structure. The sign is bigger than the sky.',
-    doorX: 700,
-    draw(scene) {
-      const g = scene.add.graphics();
-      g.fillGradientStyle(0x08060c, 0x08060c, 0x1a0e1e, 0x1a0e1e, 1);
-      g.fillRect(0, 0, 960, 540);
-      scene.add.rectangle(480, 150, 760, 150, 0x14101c);
-      const t = uiText(scene, 480, 130, 'THE MERIDIAN', { decor: true, fontSize: '52px', color: '#ff3aa0' }).setOrigin(0.5);
-      uiText(scene, 480, 185, 'OPEN', { decor: true, fontSize: '28px', color: '#ff3aa0' }).setOrigin(0.5);
-      uiText(scene, 620, 188, '24 HRS', { decor: true, fontSize: '18px', color: '#3a2030' }).setOrigin(0.5);
-      scene.tweens.add({ targets: t, alpha: 0.7, duration: 90, yoyo: true, repeat: -1, repeatDelay: 2200 });
-      for (let i = 0; i < 4; i++) scene.add.rectangle(480, 290 + i * 45, 900, 8, 0x2a2430);
-      scene.add.rectangle(300, 430, 60, 80, 0x3a2a3a);
-      uiText(scene, 300, 400, 'VALET', { decor: true, fontSize: '10px', color: '#c8a0b0' }).setOrigin(0.5);
-      scene.add.rectangle(700, 400, 90, 150, 0x2a1a2a);
-      scene.add.rectangle(700, 400, 70, 138, 0xf2c078, 0.25);
-      scene.add.rectangle(480, 505, 960, 70, 0x1a1820);
-      scene.add.rectangle(480, 472, 960, 6, 0x2a2834);
       return { groundY: 470 };
     },
   },
@@ -294,9 +245,8 @@ const INTROS = {
   },
 };
 
-// the scene that plays each dream (framework dreams: 'Dream'; the Musician's
-// old scene only with ?legacy=1, data/dreams.js)
-const LEVEL_SCENES = { clockmaker: 'Dream', chef: 'Chef', musician: dreamById('musician').scene, astronaut: 'Astronaut', writer: 'Writer', painter: dreamById('painter').scene, gambler: dreamById('gambler').scene };
+// the scene that plays each dream (framework dreams: 'Dream')
+const LEVEL_SCENES = { clockmaker: 'Dream', chef: 'Chef', musician: 'Dream', astronaut: 'Astronaut', writer: 'Writer', painter: 'Dream', gambler: 'Dream' };
 
 export default class IntroScene extends Phaser.Scene {
   constructor() {
@@ -308,7 +258,7 @@ export default class IntroScene extends Phaser.Scene {
   }
 
   create() {
-    const intro = (this.levelKey === 'painter' && LEGACY_PAINTER && INTROS.painter_legacy) || (this.levelKey === 'gambler' && LEGACY_GAMBLER && INTROS.gambler_legacy) || INTROS[this.levelKey];
+    const intro = INTROS[this.levelKey];
     if (!intro) {
       this.scene.start('Level', { levelKey: this.levelKey });
       return;
@@ -448,7 +398,7 @@ export default class IntroScene extends Phaser.Scene {
     this.tweens.add({ targets: [this.jo, this.joHat].filter(Boolean), alpha: 0, duration: 350 });
     this.cameras.main.fadeOut(500);
     this.time.delayedCall(550, () =>
-      this.scene.start(LEVEL_SCENES[this.levelKey] || 'Musician', { levelKey: this.levelKey })
+      this.scene.start(LEVEL_SCENES[this.levelKey] || 'Dream', { levelKey: this.levelKey })
     );
   }
 

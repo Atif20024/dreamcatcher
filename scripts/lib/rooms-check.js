@@ -1,12 +1,9 @@
 // D2 — room geometry / placement checks (shared by lint-rooms.js and lint-content.js)
 import chefRooms from '../../src/data/chef/rooms.js';
-import musicianRooms from '../../src/data/musician/rooms.js';
 import hubRooms from '../../src/data/hub/rooms.js';
 import astronautRooms from '../../src/data/astronaut/rooms.js';
 import eveningRooms from '../../src/data/evening/rooms.js';
 import writerRooms from '../../src/data/writer/rooms.js';
-import painterRooms from '../../src/data/painter/rooms.js';
-import gamblerRooms from '../../src/data/gambler/rooms.js';
 import { roleOf, isSolidChar, isSlopeChar } from '../../src/builders/legend.js';
 import { maskAt, wearAt } from '../../src/builders/autotile.js';
 import { ladderHeads, HEAD_MIN_ROWS } from './ladder-heads.js';
@@ -22,9 +19,9 @@ export const JO_HEADROOM_TILES = 3;
 export const headroomReport = [];
 
 // collectibles budgets (references/dream-items.md); the hub keeps no coins
-const BUDGETS = { chef: [60, 80], musician: [120, 150], astronaut: [45, 55], writer: [100, 120], painter: [100, 120], gambler: [40, 50] };
+const BUDGETS = { chef: [60, 80], astronaut: [45, 55], writer: [100, 120] };
 
-export const DREAMS = { chef: chefRooms, musician: musicianRooms, astronaut: astronautRooms, hub: hubRooms, evening: eveningRooms, writer: writerRooms, painter: painterRooms, gambler: gamblerRooms };
+export const DREAMS = { chef: chefRooms, astronaut: astronautRooms, hub: hubRooms, evening: eveningRooms, writer: writerRooms };
 export function runRoomChecks() {
   let failures = 0;
   let warnings = 0;
