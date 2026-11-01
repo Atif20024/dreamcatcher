@@ -2,16 +2,18 @@
 // wanted to be the one who keeps a town's time: the work nobody sees until
 // the evening it stops. At six every lamp in the town went out with the
 // clock; the lamplighter Nell needs steady hands to seat its three gears.
+// The dreamer is Ansel Dunmarrow, the keeper, who took them off himself: if it
+// never strikes seven, he is not late (docs/dream_clockmaker_dreamer.md).
 // This is the dream a first-time player is pointed to: the gentlest. A place
 // per aim, inside opens outside:
-//   THE LANE         a window, a man with a watch; the arch to the green
+//   THE LANE         a window, a man with a watch, his house; the arch to the green
 //   THE GREEN        Nell, a woman with a cold pie; the door under the clock
-//   THE CLOCK HOUSE  gear 1, the dial
-//   THE WEIGHT SHAFT gear 2, up past loose pendulums (danger, softly)
-//   THE BELL CHAMBER gear 3, on the beat: the clock is going, the tick starts
+//   THE CLOCK HOUSE  Ansel at his bench, the wheels taught; gear 1, the dial
+//   THE WEIGHT SHAFT wheels carried up past loose pendulums (danger, softly); gear 2
+//   THE BELL CHAMBER his going train; why; the choice; gear 3 on the beat: the tick starts
 //   THE BELL YARD    out on the hill: strike seven, the lamps come up, the gate opens
-//   THE GREEN again  everyone answers; Nell lights the last lamp
-//   THE BELL YARD    up the hill to the dream
+//   THE GREEN again  everyone answers; Nell lights the last lamp; he walks on
+//   THE LANE again   his door, and the dream on the step
 // Built on the phase-3 framework (it began as the framework's proof dream).
 // Boarded from the hub (platform 9); dev: ?warp=clockmaker:start (alias
 // ?warp=proof:start).
@@ -27,10 +29,12 @@ import { CAST, CONVERSATIONS, BARKS } from './dialogue.js';
 import clockworkEnc, { escapement, strike } from './encounters/clockwork.js';
 import whistle from './verbs/whistle.js';
 import works from './verbs/works.js';
+import wheels from './verbs/wheels.js';
 import props from './props.js';
 import { hud } from '../../ui/hud.js';
 import { paintSky, paintBackdropLayer } from '../../art/backdrops/painted.js';
 import { escapementWorld } from './presenter.js';
+import { hillFloor } from './logic.js';
 
 const DUSK = { sky: 0xd88a78, hill: 0x4a3a5a, house: 0x3a3048, roof: 0x4a2e3e, window: 0xffc870, light: 0xf2c890, rim: 0xf2a878, deep: 0x1a1420, leaf: 0x3a5040, trunk: 0x2a2028, mist: 0xe8a088, mistA: 0.28 };
 const DUSK_SKY = { top: 0x2a2a58, mid: 0x8a5a7a, bottom: 0xf2a676, sun: { x: 360, y: 470, r: 16, color: 0xffc070 }, clouds: 8, stars: 24, cloud: 0x6a4a6a, cloudLit: 0xf2a070, seed: 4 };
@@ -62,7 +66,40 @@ const items = {
   },
 };
 
+const px = (scene, room, col) => (scene.graph.room(room).tx + col) * 32 + 16;
+
 const calls = {
+  // up off the chair and out by the little door, ahead of Jo
+  keeperToHill(scene) {
+    const n = scene.npcs.get('keeper_rise');
+    return n ? n.walkTo(px(scene, 'belfry', 26), 70) : null;
+  },
+  // the seventh stroke: the gate swings, and he goes through it
+  keeperThroughGate(scene) {
+    const n = scene.npcs.get('keeper_hill');
+    if (!n) return null;
+    const r = scene.graph.room('yard');
+    return n.walkTo(px(scene, 'yard', 0), 80, (x) => r.ty * 32 + hillFloor(x - r.tx * 32)).then(() => {
+      scene.F.keeper_left = true;
+    });
+  },
+  // across the green toward the lane, not waiting for anyone. Not awaited
+  keeperOnHome(scene) {
+    scene.F.keeper_left = true;
+    const n = scene.npcs.get('keeper_green');
+    if (n) n.walkTo(px(scene, 'green', 0), 80).then(() => (scene.F.keeper_passed = true));
+  },
+  // the last few steps to his door, and in
+  keeperIn(scene) {
+    const n = scene.npcs.get('keeper_door');
+    if (!n) return null;
+    return n.walkTo(px(scene, 'lane', 5) - 16, 50).then(
+      () =>
+        new Promise((res) => {
+          scene.tweens.add({ targets: n.img, alpha: 0, duration: 500, onComplete: res });
+        })
+    );
+  },
   // the lamplighter's last lamp (the green, column 21): the pole from her side, the
   // walk over (legs from the ground covered, like any stride), the hook up to the wick
   nellToLamp(scene) {
@@ -108,12 +145,13 @@ const calls = {
 export default {
   id: 'clockmaker',
   markMet: true, // the Evening's Nell
+  persist: { home: 'met.ansel' }, // the Evening's Ansel: only if Jo saw him home
   title: 'THE STOPPED HOUR',
   enabled: true,
   profile: { failure: 'default', hud: 'default', camera: { zoom: 1 } },
   rooms: [lane, green, clockhouse, shaft, belfry, yard],
   start: { room: 'lane', spawn: 'start' },
-  verbs: [whistle, works],
+  verbs: [whistle, works, wheels],
   beats,
   calls,
   onStart: 'start',
@@ -127,14 +165,20 @@ export default {
   objectives: {
     find_lamplighter: 'the lamps are out: find the lamplighter on the green',
     wind_clock: 'the clock house, up the steps: seat the first gear at the dial',
+    meet_keeper: 'somebody is at the bench: talk to him',
+    bench_train: 'hang the wheels: the ratchet must turn the way of its arrow',
     to_shaft: 'through the hatch: the second gear is up the weight shaft',
-    climb_shaft: 'climb the weight shaft: the second gear is at the top',
+    climb_shaft: "up the weight shaft: bring the wheels to the gear's cage",
+    take_gear: 'the cage is up: take the second gear',
     to_belfry: 'up to the bell chamber with the gear',
+    belfry_wheels: 'his going train is down: four wheels under the gallery',
+    hear_keeper: 'up on the gallery: he wants a word',
     seat_third: 'the third gear, under the bell: seat it on the beat',
     strike_seven: 'out on the hill, by the old bell: strike seven',
     back_up: 'back up through the clock house: the door out on the hill',
     to_green: 'the gate is open: down the hill to the green',
-    catch_dream: 'up the hill: catch the dream by the bell',
+    see_him_home: 'down the lane: see him home',
+    catch_dream: 'the dream is on his step: catch it',
   },
   materials: {},
   decorRules: {},
@@ -181,7 +225,12 @@ export default {
   ending: {
     orb: true,
     title: "SEVEN O'CLOCK",
-    lines: ['The clock struck seven, an hour late.', 'By morning nobody on the green could say it had ever stopped.', 'Nell knew. Nell lit the last lamp.'],
+    lines: (F) => [
+      'The clock struck seven, an hour late.',
+      F.keeper_stays ? 'Two men on the rope. He went in at his own door, and someone saw him do it.' : 'Ansel Dunmarrow went home ahead of the last stroke. Nobody saw him go in.',
+      'By morning nobody on the green could say it had ever stopped.',
+      'Nell knew. Nell lit the last lamp.',
+    ],
     vista: 0.8,
     paint(ctx, w, h) {
       // the town from the bell yard, every lamp lit

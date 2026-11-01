@@ -2,6 +2,26 @@
 // pillars in the foreground, a mezzanine reached by two shelves, and the
 // great clock on the wall: the first gear's encounter is staged in the room.
 // When it is seated the hatch at the end of the mezzanine opens on the shaft.
+// Under the mezzanine, Ansel Dunmarrow's bench and the train that teaches the
+// wheels: the dial's gear is in a drawer it runs. No hazard here, on purpose.
+// the bench train (room px): pegs on a triangle of big-wheel pitch. One wheel on
+// the top peg reaches, and turns the ratchet the wrong way; two on the lower pegs is right
+const ROW = 320;
+const LOW = ROW + 55.43;
+export const BENCH_TRAIN = {
+  id: 'bench',
+  flag: 'bench_done',
+  needs: 'met_keeper',
+  onRun: 'bench_open',
+  who: 'keeper',
+  wrongWay: 'Hear the pawl? A wheel turns its neighbour the other way. Count them.',
+  bound: 'Three that all touch can\'t turn at all. Lift one off.',
+  drive: { x: 608, y: ROW, r: 32 },
+  output: { x: 736, y: ROW, r: 32, turns: -1 },
+  arbors: [{ id: 'a', x: 672, y: ROW }, { id: 'b', x: 640, y: LOW }, { id: 'c', x: 704, y: LOW }],
+  wheels: [{ id: 'bench1', size: 'big', x: 480, y: 384 }, { id: 'bench2', size: 'big', x: 512, y: 320 }],
+};
+
 export default {
   id: 'clockhouse',
   origin: { tx: 0, ty: 30 },
@@ -38,7 +58,8 @@ export default {
     { prop: 'rug', x: 10, y: 13 },
     { prop: 'table_set', x: 10, y: 13 },
     { prop: 'chair', x: 13, y: 13, dx: 4 },
-    { prop: 'workbench', x: 24, y: 13 },
+    { prop: 'workbench', x: 26, y: 13 },
+    { prop: 'bench_drawer', x: 25, y: 13, when: 'bench_done', live: true },
     { prop: 'cupboard', x: 27, y: 8, dx: 8, scale: 0.85 },
     { prop: 'hanging_lamp', x: 9, y: 2 },
     { prop: 'hanging_lamp', x: 17, y: 2 },
@@ -53,8 +74,11 @@ export default {
   acoustics: 'room',
   events: 'clock_still',
   music: { state: 'quiet', key: 'clockhouse' },
+  trains: [BENCH_TRAIN],
   objective: [
-    { text: 'wind_clock' },
+    { text: 'meet_keeper' },
+    { text: 'bench_train', flag: 'met_keeper' },
+    { text: 'wind_clock', flag: 'bench_done' },
     { text: 'to_shaft', flag: 'gear1' },
     { text: 'back_up', flag: 'clock_wound' },
   ],
@@ -68,7 +92,8 @@ export default {
     { type: 'coins', id: 'c_table', x: 10, y: 9, n: 3 },
     { type: 'coin', id: 'c_mezz1', x: 21, y: 6 },
     { type: 'coin', id: 'c_mezz2', x: 28, y: 6 },
-    { type: 'encounter', id: 'clockwork', x: 24, y: 7, anchor: { x: 24, y: 4 }, prompt: 'seat the first gear', unless: 'gear1' },
+    { type: 'npc', id: 'keeper_bench', cast: 'npc-sh-keeper', x: 27, y: 12, pace: [25, 28], facing: -1, unless: 'gear2', talk: [{ conv: 'keeper_shaft_on', if: 'gear1' }, { conv: 'keeper_dial', if: 'bench_done' }, { conv: 'keeper_wait', if: 'met_keeper' }, { conv: 'keeper_first' }] },
+    { type: 'encounter', id: 'clockwork', x: 24, y: 7, anchor: { x: 24, y: 4 }, prompt: 'seat the first gear', when: 'bench_done', unless: 'gear1' },
     { type: 'portal', id: 'clock>shaft', kind: 'door', x: 21, y: 7, to: { room: 'shaft', portal: 'shaft>clock' }, door: { prompt: 'through the hatch', fade: 250, requires: ['gear1'], locked: 'the dial first', lockedLine: 'Shut. The dial first: it holds the latch.' } },
   ],
 };

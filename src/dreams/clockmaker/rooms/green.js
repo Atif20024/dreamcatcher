@@ -60,7 +60,7 @@ export default {
     { text: 'find_lamplighter' },
     { text: 'wind_clock', flag: 'met_nell' },
     { text: 'back_up', flag: 'clock_wound' },
-    { text: 'catch_dream', flag: 'green_lit' },
+    { text: 'see_him_home', flag: 'green_lit' },
   ],
   titleCard: 'THE GREEN',
   entities: [
@@ -69,6 +69,8 @@ export default {
     { type: 'portal', id: 'green>clock', kind: 'door', x: 33, y: 12, to: { room: 'clockhouse', portal: 'clock>green' }, door: { prompt: 'go in', fade: 250 } },
     { type: 'checkpoint', id: 'cp_green', label: 'THE GREEN', x: 8, y: 15 },
     { type: 'npc', id: 'nell', rig: 'nell', x: 18, y: 15, facing: -1, talk: [{ conv: 'nell_done', if: 'struck' }, { conv: 'nell_wound', if: 'clock_wound' }, { conv: 'nell_after', if: 'met_nell' }, { conv: 'nell_first' }] },
+    // back from the hill: he is by Nell, and on his way (beat green_lit)
+    { type: 'npc', id: 'keeper_green', cast: 'npc-sh-keeper', x: 22, y: 15, walks: true, facing: -1, when: 'struck', unless: 'keeper_passed' },
     { type: 'npc', id: 'pie', cast: 'npc-sh-pie', x: 11, y: 15, pose: 'sit', facing: 1, talk: [{ conv: 'pie_after', if: 'struck' }, { conv: 'pie' }] },
     // coins: the high stone ledge west of the tree (a full jump), the far
     // end of the terrace past the clock house, an arc over the well

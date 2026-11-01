@@ -74,5 +74,13 @@ export default {
       F.child_waved = true;
       s.beats.play('green_lit').catch((e) => console.warn('[dream] beat', e));
     }
+    // down the lane, near his door: the end of the dream, as the choice left it
+    if (s.roomId !== 'lane') return;
+    if (F.green_lit) F.keeper_passed = true;
+    const lane = s.graph.room('lane');
+    if (F.green_lit && !F.home && !ctx.state.doorPlayed && p.x < (lane.tx + 13) * T) {
+      ctx.state.doorPlayed = true;
+      s.beats.play('at_his_door').catch((e) => console.warn('[dream] beat', e));
+    }
   },
 };

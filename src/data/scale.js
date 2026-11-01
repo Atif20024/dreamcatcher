@@ -88,6 +88,7 @@ export const CAST_BODIES = {
   'ev-p-marguerite': { sex: 'f', body: 'elderly', hair: 'bun', apron: true },
   'ev-p-bastien': { sex: 'm', body: 'teen' },
   'ev-p-nell': { sex: 'f', hair: 'bun' },
+  'ev-p-ansel': { body: 'elderly', sex: 'm', hat: 'none', hair: 'grey', beard: 'moustache', apron: true },
   'ev-p-bice': { sex: 'f', dress: true },
   'ev-p-gualtiero': { sex: 'm', body: 'elderly', beard: true },
   'ev-p-lou': { sex: 'm', body: 'elderly' },
@@ -399,12 +400,16 @@ Object.assign(CAST_BODIES, {
 Object.assign(CAST_BODIES, {
   'npc-sh-watch': { sex: 'm', hat: 'bowler', beard: 'moustache' },
   'npc-sh-pie': { sex: 'f', hat: 'none', hair: 'bun', dress: true },
+  'npc-sh-keeper': { body: 'elderly', sex: 'm', hat: 'none', hair: 'grey', beard: 'moustache', apron: true },
 });
 Object.assign(PROP_CLASSES, {
   greatBell: { h: [100, 130], m: 2.5 },
   clockWeight: { h: [100, 150], m: 2.8 },
   towerFoot: { h: [150, 190], m: 3.8 },
   windowFigure: { h: [36, 44] },
+  doorway: { h: [70, 80] },
+  benchDrawer: { h: [10, 20] },
+  gearCage: { h: [60, 80], m: 1.8 },
 });
 export const CLOCK_PROP_SIZES = {
   great_bell: [110, 120, 'greatBell'],
@@ -412,6 +417,10 @@ export const CLOCK_PROP_SIZES = {
   tower_foot: [96, 176, 'towerFoot'],
   window_child: [30, 40, 'windowFigure'],
   window_child_wave: [30, 40, 'windowFigure'],
+  window_table: [30, 40, 'windowFigure'],
+  door_lit: [40, 74, 'doorway'],
+  bench_drawer: [34, 14, 'benchDrawer'],
+  gear_cage: [44, 72, 'gearCage'],
 };
 // FIVE-STAR DREAM (the chef's dream on the framework): Le Rêve's brigade, 1957
 // (looks in src/dreams/chef/people.js).
