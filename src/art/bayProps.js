@@ -173,11 +173,18 @@ export function bayPropTex(scene, kind) {
 
 // Jo's lapel: a flower from the seller, worn in the station and at the last stop
 export function lapelFlower(scene, p, depth) {
-  const key = paintTexture(scene, 'jo-lapel', 9, 9, (ctx) => {
+  // 12 px, a stem and a dark rim: smaller was lost against the coat and the lamps
+  const key = paintTexture(scene, 'jo-lapel', 12, 12, (ctx) => {
+    const petals = [[4, 1], [1, 4], [7, 4], [4, 6]]; // each 3 x 3
+    ctx.fillStyle = hex(0x1a1420);
+    for (const [x, y] of petals) ctx.fillRect(x - 1, y - 1, 5, 5);
+    ctx.fillRect(4, 9, 3, 3); // round the stem
+    ctx.fillStyle = hex(0x4a8a4a);
+    ctx.fillRect(5, 9, 1, 3);
     ctx.fillStyle = hex(0xe86a7a);
-    for (const [x, y] of [[4, 1], [1, 4], [7, 4], [4, 7]]) ctx.fillRect(x - 1, y - 1, 3, 3);
+    for (const [x, y] of petals) ctx.fillRect(x, y, 3, 3);
     ctx.fillStyle = hex(0xf2d580);
-    ctx.fillRect(3, 3, 3, 3);
+    ctx.fillRect(4, 4, 3, 2);
   });
   const img = scene.add.image(p.x, p.y, key).setDepth(depth);
   return () => img.setPosition(p.art.x + (p.flipX ? -5 : 5), p.art.y - 50).setVisible(p.shown && !p.climbing);

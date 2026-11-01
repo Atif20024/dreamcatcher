@@ -48,3 +48,29 @@ export function landImpact(drop, gravity = GRAVITY) {
 // Was that a landing at all? A seam between bodies or a step down is a frame
 // or two of air; touching down at the top of a hop is a long time in the air.
 export const isLanding = (drop, airMs) => drop >= 12 || airMs >= 150;
+
+// Corner help (feel review r1). A rising Jo who clips a ceiling tile's corner
+// slides past it instead of stopping dead. Pure: `box` is his body now (top
+// flush with what stopped him), `tiles` { solidAt, hazardAt } by tile. Returns
+// the x nudge, 0 for a real ceiling, a soft rise, or a blocker that is no tile.
+export const CORNER_MAX = 4;
+export const CORNER_RISE = 100;
+export function cornerNudge(box, prevVy, tiles, T = 32) {
+  if (!(prevVy <= -CORNER_RISE)) return 0; // (undefined: his first frame)
+  const hits = (dx, test) => {
+    const c1 = Math.floor((box.right + dx - 0.01) / T);
+    const r1 = Math.floor((box.bottom - 0.01) / T);
+    for (let c = Math.floor((box.left + dx) / T); c <= c1; c++) {
+      // (1 px up: the row that stopped him)
+      for (let r = Math.floor((box.top - 1) / T); r <= r1; r++) if (test(c, r)) return true;
+    }
+    return false;
+  };
+  if (!hits(0, tiles.solidAt)) return 0;
+  for (let n = 1; n <= CORNER_MAX; n++) {
+    for (const dx of [-n, n]) {
+      if (!hits(dx, tiles.solidAt) && !hits(dx, tiles.hazardAt)) return dx;
+    }
+  }
+  return 0;
+}

@@ -34,6 +34,7 @@ export async function joContrast(dc, sc) {
   const grain = sc.look && sc.look.grain;
   const grainWas = grain ? grain.visible : false;
   if (grain) grain.setVisible(false);
+  const cam0 = [cam.scrollX, cam.scrollY, cam.zoom];
   const A = await pixels(dc);
   const alphaWas = p.alpha;
   p.setAlpha(0);
@@ -50,6 +51,8 @@ export async function joContrast(dc, sc) {
   parts.forEach((o) => o.setTintFill(0xff00ff).setAlpha(1));
   p.probeMask = true;
   const M = await pixels(dc);
+  // the mask is only Jo if the camera held still across the snapshots
+  const drift = +Math.max(Math.abs(cam.scrollX - cam0[0]), Math.abs(cam.scrollY - cam0[1]), Math.abs(cam.zoom - cam0[2]) * 500).toFixed(2);
   p.probeMask = false;
   for (const w of was) {
     if (w.fill) w.o.setTintFill(w.tint);
@@ -119,5 +122,5 @@ export async function joContrast(dc, sc) {
   edge.sort((a, b) => a - b);
   local.sort((a, b) => a - b);
   const pct = (q, arr = edge) => (arr.length ? +arr[Math.floor((arr.length - 1) * q)].toFixed(2) : 0);
-  return { ratio: +ratio.toFixed(2), edgeMedian: pct(0.5), edgeP75: pct(0.75), localMedian: pct(0.5, local), jo: +lj.toFixed(3), bg: +lb.toFixed(3), joPx: joN, edgePx: edge.length };
+  return { ratio: +ratio.toFixed(2), edgeMedian: pct(0.5), edgeP75: pct(0.75), localMedian: pct(0.5, local), jo: +lj.toFixed(3), bg: +lb.toFixed(3), joPx: joN, edgePx: edge.length, drift, box: [x0, y0, x1, y1] };
 }
