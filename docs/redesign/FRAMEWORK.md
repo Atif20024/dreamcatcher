@@ -439,3 +439,15 @@ The Musician is the second framework dream and the reference for the roll-out. W
 - **`orb.tint`** colours a dream's catch.
 - **Rooms:** `air: [c0, c1]` (open deck: TILT cools there), `vents` (timed steam), `corridor` (the marker's ceiling), read by the dream's own verbs.
 - **Dev:** `?warp=gambler:<room>` (`start quay saloon cards office deck pilot landing`).
+
+## 21. FIVE-STAR DREAM additions (`src/dreams/chef/`)
+
+- **A verb can run a whole room's game.** `verbs/rail.js` reads `room.service`, runs `src/engines/tickets.js` and registers one `interaction` per station. No encounter: Jo keeps walking. The engine is pure and bot-tested (`tests/tickets.test.js`).
+- **`ending.variant(F)`** names the painted picture for this run, and `ending.paint(ctx, w, h, F)` now gets the run's flags.
+- **A silent NPC no longer offers [E] talk.** An npc's prompt is enabled only while `pickConversation` finds something to say.
+- **The `shove` card** (first notice) shows only in the legacy scenes: no framework dream has a shove key.
+- **A dynamic import for a Phaser-only widget.** `lint:content` loads every dream's verbs in Node, so a verb imports UI text lazily (`import('../railHud.js')`). A scenario that never yields a macrotask won't see it until it does.
+- **Beats that `talk` must not `lock`:** `inputs.suspend(true)` also blocks the scene box, and the run hangs.
+- **Rooms:** `service`, `flames`, `ovens`, `vents` (on the beat), `beef`, `cold`/`warm`, `wet`, `runners`, `life`, `lamps`/`lastLamp`, read by the dream's own verbs.
+- **Save:** `SaveStore.run()` drops a run whose `sceneKey` is a removed scene (`GONE_SCENES`).
+- **Dev:** `?warp=chef:<room>` (`start pit cold prep line pass dining`).

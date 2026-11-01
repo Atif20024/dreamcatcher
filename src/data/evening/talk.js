@@ -164,6 +164,7 @@ export const SIT_EVENT_LINES = {
 // --- the road: her ---------------------------------------------------------
 export const HER_LINES = {
   hedge_greet: ["Took your time.", 'Thought you might.', 'Finished being useful?'],
+  hedge_flower: "Nice flower. Where'd you find that?",
   hedge_alone: ['…suit yourself.'],
   // the long walk: about nothing, in fragments, with long silences between
   walk: [
@@ -185,6 +186,16 @@ export const HER_LINES = {
     chef: ['I heard about the soufflé. The whole square heard about the soufflé.'],
     musician: ['Nine people. I asked Delphine. She said nine, and one was her.'],
     astronaut: ['Twelve months, Priya said. She said it like it was twelve years.'],
+  },
+  // only once the dream is caught: she has heard how it ended
+  roast_caught: {
+    painter: "Gualtiero asks after you. He says you sweep like a boy who'd rather be painting.",
+    gambler: "Lou says you got up from his chair. He's still telling people.",
+    clockmaker: "Nobody thanked you for the clock on the green. Nell says that's how you know it's working.",
+  },
+  roast_page_three: {
+    kept: "Page three. You kept it. I read it. Don't look like that.",
+    cut: "Page three. You cut it. I read it anyway. Don't look like that.",
   },
   point: {
     first_star: 'There. First one. Make a wish or don\'t, I\'m not your mother.',
@@ -212,5 +223,6 @@ export const CARDS = {
   ridge_last: ['Nobody was watching.', 'It counted anyway.'],
   alone: 'You walked it alone. It still counted.',
   horn: "You left the horn on a bench. Somebody's playing it.",
+  posted: 'You carried ${W}. You posted it.',
   all_moments: 'You were paying attention the whole time.',
 };

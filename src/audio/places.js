@@ -15,6 +15,8 @@ export const BEDS = {
   // Crossroads: the PA, pigeons in the roof, a train somewhere, a trolley
   // (spaced out and softer: now and then, not all the time)
   hub: bed(['announce', 50, 100, 0.7], ['pigeon', 15, 40, 0.8], ['wings', 30, 70, 0.6], ['train_far', 40, 90, 0.8], ['trolley', 35, 80, 0.6], ['door', 25, 60, 0.5], ['turnstile', 25, 60, 0.45]),
+  // the service gate: no PA, no crowd, one counter clicking over
+  gate_hum: bed(['turnstile', 20, 40, 0.35]),
   // the clockmaker's green and lane: birds, swifts, a far dog, the church
   green: bed(['bird', 4, 9], ['swifts', 12, 25], ['dog_far', 25, 50, 0.7], ['church_bell', 40, 60, 0.8]),
   dusk: bed(['bird', 7, 14, 0.7], ['dog_far', 20, 40, 0.6], ['cat', 30, 60, 0.6]),
@@ -28,7 +30,7 @@ export const BEDS = {
   piazza: bed(['church_bell', 50, 80, 0.8], ['swifts', 15, 30, 0.6]),
   // the scene-built dreams
   kitchen: bed(['pan_clatter', 5, 10], ['ticket_bell', 12, 20], ['chop', 9, 16], ['order_call', 14, 24], ['steam', 10, 18, 0.8]),
-  chef_street: bed(['traffic', 10, 18, 0.7], ['horn', 25, 45, 0.6], ['bird', 8, 16, 0.6]),
+  chef_street: bed(['traffic', 10, 18, 0.7], ['drain', 8, 16, 0.7]),
   writer: bed(['carriage_bell', 15, 30], ['paper', 8, 15], ['crumple', 20, 40, 0.8], ['clock_hour', 60, 90, 0.7]),
   writer_street: bed(['traffic', 9, 16, 0.7], ['horn', 25, 50, 0.5], ['drain', 15, 30, 0.6]),
   orbit: bed(['console_beep', 4, 9], ['relay', 10, 20], ['airlock', 25, 45, 0.8], ['radio_chirp', 15, 30]),
@@ -46,16 +48,6 @@ export const BEDS = {
 // the legacy dreams, room by room: acoustics, wall, bed
 const R = (acoustics, events, wall = false) => ({ acoustics, events, wall });
 export const LEGACY_ROOMS = {
-  chef: {
-    // out on the kerb the wireless is inside; the walk-in hears nearly nothing
-    arrival: R('open', 'chef_street', true),
-    alley_dock: R('open', 'chef_street', 1200),
-    freezer: R('room', null, 400),
-    the_line: R('room', 'kitchen'),
-    loft: R('room', 'kitchen', 1400),
-    the_pass: R('room', 'kitchen'),
-    rooftop: R('open', 'chef_street', 700),
-  },
   writer: {
     arrival: R('open', 'writer_street'),
     attic: R('room', 'writer'),
@@ -92,7 +84,7 @@ export const LEGACY_ROOMS = {
     hall: R('hall', 'hub'),
     platforms_a: R('hall', 'hub'),
     platforms_b: R('hall', 'hub'),
-    gate: R('hall', 'hub'),
+    gate: R('hall', 'gate_hum'),
   },
 };
 

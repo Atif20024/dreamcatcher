@@ -27,7 +27,7 @@ import { Ensemble, Soundscape } from '../src/systems/soundscape.js';
 import { MUSIC_KEYS as PAINTER } from '../src/dreams/painter/music.js';
 import { MUSIC_KEYS as CLOCK } from '../src/dreams/clockmaker/music.js';
 import { MUSIC_KEYS as MUSICIAN } from '../src/dreams/musician/music.js';
-import { hubState } from '../src/systems/hubState.js';
+import { hubState, runningCount } from '../src/systems/hubState.js';
 
 const SR = 22050;
 const SECS = 10;
@@ -47,7 +47,7 @@ const frame = (def) => ({ bpm: 90, root: 98, motif: [0, 4, 7], ...def });
 // every place: its music, its loop, its bed, its acoustics, its wall
 const PLACES = {
   hub: { band: 'hub', mix: hubState(0).music, loops: { hub_hall: 1, hub_crowd: 1 }, bed: 'hub', acoustics: 'hall' },
-  hub_empty: { band: 'hub', mix: hubState(5).music, loops: { hub_hall: 1, hub_crowd: 0.15 }, bed: 'hub', acoustics: 'hall', tweak: { wet: 0.3 } },
+  hub_empty: { band: 'hub', mix: hubState(runningCount()).music, loops: { hub_hall: 1, hub_crowd: 0.15 }, bed: 'hub', acoustics: 'hall', tweak: { wet: 0.3 } },
   clock_green: { stems: frame({ keys: CLOCK }), key: 'green', state: 'explore', loops: { meadow_dusk: 1 }, bed: 'green', acoustics: 'open' },
   clock_house: { stems: frame({ keys: CLOCK }), key: 'clockhouse', state: 'quiet', loops: { clock_room: 1 }, bed: 'clockhouse', acoustics: 'room' },
   rain_street: { stems: frame({ keys: MUSICIAN }), key: 'street', state: 'quiet', loops: { rain_street: 1 }, bed: 'rain', acoustics: 'open' },

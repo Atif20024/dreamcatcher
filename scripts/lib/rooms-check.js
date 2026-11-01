@@ -1,5 +1,4 @@
 // D2 — room geometry / placement checks (shared by lint-rooms.js and lint-content.js)
-import chefRooms from '../../src/data/chef/rooms.js';
 import hubRooms from '../../src/data/hub/rooms.js';
 import astronautRooms from '../../src/data/astronaut/rooms.js';
 import eveningRooms from '../../src/data/evening/rooms.js';
@@ -19,9 +18,9 @@ export const JO_HEADROOM_TILES = 3;
 export const headroomReport = [];
 
 // collectibles budgets (references/dream-items.md); the hub keeps no coins
-const BUDGETS = { chef: [60, 80], astronaut: [45, 55], writer: [100, 120] };
+const BUDGETS = { astronaut: [45, 55], writer: [100, 120] };
 
-export const DREAMS = { chef: chefRooms, astronaut: astronautRooms, hub: hubRooms, evening: eveningRooms, writer: writerRooms };
+export const DREAMS = { astronaut: astronautRooms, hub: hubRooms, evening: eveningRooms, writer: writerRooms };
 export function runRoomChecks() {
   let failures = 0;
   let warnings = 0;

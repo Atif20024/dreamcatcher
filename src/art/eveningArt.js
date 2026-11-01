@@ -153,6 +153,15 @@ export function paintTrees(scene) {
   paintTreeTexture(scene, 'ev-pine-b', 'pine', { seed: 'ev-pine-b', m: 13 });
   paintTreeTexture(scene, 'ev-pine-snow', 'pine', { seed: 'ev-pine-snow', snow: true });
   paintTreeTexture(scene, 'ev-pine-snow-b', 'pine', { seed: 'ev-pine-snow-b', snow: true, m: 13 });
+  // the hedge's top edge: leaf clumps against the sky, two shades, a lit west side
+  paintTexture(scene, 'ev-hedge-top', 32, 32, (ctx, w, h, rand) => {
+    for (let i = 0; i < 16; i++) {
+      const x = (i * 37) % 32;
+      const y = 14 + ((i * 13) % 18);
+      const c = i % 3 === 0 ? 0x5a8a44 : i % 3 === 1 ? 0x3a6a34 : 0x2c5230;
+      for (const dx of [-w, 0, w]) clump(ctx, x + dx, y, 6 + (i % 3), c, 0.95, rand, 4);
+    }
+  });
   // hedge tile: dense clipped foliage that tiles
   paintTexture(scene, 'ev-hedge', 32, 32, (ctx, w, h, rand) => {
     ctx.fillStyle = hex(0x2c5230);

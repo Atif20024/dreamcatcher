@@ -42,6 +42,7 @@ const dc = {
     dc.pause();
     const g = game();
     stepDt = dtMs;
+    g.loop.delta = dtMs; // (the old follow reads it; 0 froze the camera)
     try {
       for (let i = 0; i < n; i++) {
         clock += dtMs;

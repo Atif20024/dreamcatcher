@@ -4,13 +4,7 @@
 // its own walk frames.
 export const FOES = {
   chef: {
-    rat: { texture: 'foe-rat', human: false, speed: 90, dustColors: [0x5a3a28, 0x3a2a20] },
-    crawler: { texture: 'foe-crawler', human: false, speed: 70, dustColors: [0x5a3a28, 0x3a2a20] },
-    grease_blob: { texture: 'foe-grease', human: false, speed: 40, splits: true, dustColors: [0x50525e, 0x2a2a30] },
-    pepper_mill: { texture: 'foe-mill', human: false, speed: 50, sprays: true, dustColors: [0x6a4a32, 0x4a3222] },
-    meringue: { texture: 'foe-meringue', human: false, speed: 40, floats: true, dustColors: [0xf0e8e0, 0xd8d0c8] },
-    runaway_cart: { texture: 'foe-cart', human: false, speed: 150, heavy: true, dustColors: [0x8a8e9a, 0x5a5e6a] },
-    dock_hand: { texture: 'foe-dock-hand', human: false, speed: 70 },
+    // Brann: walks the prep floor; his grab sends Jo back to the door
     sous_chef: { texture: 'foe-sous-chef', human: true, speed: 80, sight: 170 },
   },
   astronaut: {
@@ -64,7 +58,6 @@ export const FOES = {
 };
 
 export const NPCS = {
-  chef: { marguerite: 'portrait-marguerite', aurelio: 'portrait-aurelio' },
   musician: {
     delphine: 'npc-delphine',
     nia: 'npc-nia',

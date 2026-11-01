@@ -13,7 +13,10 @@ import readability from './readability.js';
 import scale from './scale.js';
 import wp3 from './wp3.js';
 
-export const SCENARIOS = [...backgroundSnap, evaTether, ...failure, hudScale, ...phase14, ...phase2, ...phase3, ...round2, ...round2flow, ...readability, ...scale, ...wp3];
+// FIVE-STAR DREAM: the ticket rail
+import chef from './chef.js';
+
+export const SCENARIOS = [...chef, ...backgroundSnap, evaTether, ...failure, hudScale, ...phase14, ...phase2, ...phase3, ...round2, ...round2flow, ...readability, ...scale, ...wp3];
 
 // round 2 WP4: backdrops at the depth rule, trees at real height, the Evening's budget
 import backdrops from './backdrops.js';
@@ -51,3 +54,6 @@ SCENARIOS.push(...touch);
 // every ladder climbs both ways and leads somewhere (the undercroft's grate)
 import ladders from './ladders.js';
 SCENARIOS.push(...ladders);
+// the station that counts every running dream, its rewards, and the Evening's way out
+import station from './station.js';
+SCENARIOS.push(...station);

@@ -44,8 +44,8 @@ describe("Jo's light, dream by dream", () => {
   });
 
   it('is carried only where it is dark: per room, room data first', () => {
-    expect(roomIsDark('chef', 'the_pass')).toBe(false); // the kitchen is bright
-    expect(roomIsDark('chef', 'freezer')).toBe(true); // the cold store is not
+    expect(roomIsDark('chef', 'pass')).toBe(false); // the kitchen is bright
+    expect(roomIsDark('chef', 'cold')).toBe(true); // the cold store is not
     expect(roomIsDark('musician', 'cellar')).toBe(false);
     expect(roomIsDark('musician', 'alley')).toBe(true);
     expect(roomIsDark('painter', 'bottega')).toBe(false); // Florence by day
