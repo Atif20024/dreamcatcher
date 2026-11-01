@@ -16,7 +16,7 @@ const shuffle = (rand, arr) => {
 };
 
 // ---------------------------------------------------------------------------
-// P1 "Systems" — the study flashcards. Ten cards, pick 1-4. Resolves the
+// P1 "Systems" — the study flashcards. Five cards, pick 1-4. Resolves the
 // number answered correctly first try.
 // ---------------------------------------------------------------------------
 export function systemsCards(scene) {
@@ -35,7 +35,7 @@ export function systemsCards(scene) {
     const show = () => {
       const [q, a, ...wrong] = FLASHCARDS[i];
       order = shuffle(rand, [a, ...wrong]);
-      qText.setText(`${i + 1}/10 — ${q}`);
+  qText.setText(`${i + 1}/${FLASHCARDS.length} — ${q}`);
       order.forEach((o, k) => opts[k].setText(`[${k + 1}]  ${o}`).setColor('#e8dcc8'));
       score.setText(`${right} right`);
     };
@@ -61,17 +61,18 @@ export function systemsCards(scene) {
 }
 
 // ---------------------------------------------------------------------------
-// P2 "Selection" — the Board. Seven questions, three strikes. The first
-// attempt also fails on stats < minStat (the letter). Resolves
-// { passed, strikes } — the stat gate is the scene's business.
+// P2 "Selection" — the Board. Six questions here, three strikes (four with
+// Priya's cards done); the seventh is the scene's, a choice with no strike.
+// Resolves { passed, strikes }, or false if Jo walked out ([Esc]). The verdict
+// is the scene's business.
 // ---------------------------------------------------------------------------
-export function selectionBoard(scene, { attempt = 1 } = {}) {
+export function selectionBoard(scene, { attempt = 1, spare = false } = {}) {
   return new Promise((resolve) => {
     const cam = scene.cameras.main;
     const m = new Modal(
       scene,
       'THE SELECTION BOARD',
-      attempt === 1 ? 'Three silhouettes. Seven questions. Three wrong and the light goes red.' : 'The same room. The same chairs. You know more now.'
+      (attempt === 1 ? 'Three silhouettes. Seven questions. Three wrong and the light goes red.' : 'The same room. The same chairs. You know more now.') + (spare ? "\nPriya's cards: one wrong answer on the house." : '')
     );
     const rand = new Phaser.Math.RandomDataGenerator(['board', String(attempt)]);
     const cx = cam.width / 2;
@@ -112,7 +113,7 @@ export function selectionBoard(scene, { attempt = 1 } = {}) {
         scene.time.delayedCall(250, () => light.setFillStyle(0x50c878));
         strikeText.setText('✕ '.repeat(strikes));
         qText.setText(`${i + 1}/7 — ${q.q}\n\n(it was ${q.src})`);
-        if (strikes >= 3) scene.time.delayedCall(900, () => m.close({ passed: false, strikes }, resolve));
+        if (strikes >= (spare ? 4 : 3)) scene.time.delayedCall(900, () => m.close({ passed: false, strikes }, resolve));
       }
     }, resolve);
   });
@@ -187,8 +188,9 @@ export function docking(scene, { label = 'DOCKING SIMULATOR', fuel = 30 } = {}) 
 }
 
 // ---------------------------------------------------------------------------
-// P4 "Hinge" — six bolts, one right order (printed on the code plate and in
-// the notebook). A wrong bolt floats off once and can be caught again.
+// P4 "Hinge" — six bolts, one right order, printed on the code plate on the
+// truss and nowhere here: page four of the notebook says to read it off the
+// plate. A wrong bolt floats off once and can be caught again.
 // Resolves true when all six are out.
 // ---------------------------------------------------------------------------
 export const BOLT_ORDER = [3, 1, 5, 2, 6, 4];
@@ -196,7 +198,7 @@ export const BOLT_ORDER = [3, 1, 5, 2, 6, 4];
 export function hinge(scene) {
   return new Promise((resolve) => {
     const cam = scene.cameras.main;
-    const m = new Modal(scene, 'THE HINGE', `six bolts, one order. the code plate reads ${BOLT_ORDER.join(' ')}.\n[1–6] torque a bolt — a wrong bolt floats away`);
+    const m = new Modal(scene, 'THE HINGE', 'six bolts, one order. the code plate has it. [Esc] to go and read it.\n[1–6] torque a bolt — a wrong bolt floats away');
     const cx = cam.width / 2;
     const cy = cam.height / 2 + 10;
     const bolts = BOLT_ORDER.map((_, i) => {

@@ -91,6 +91,7 @@ export const BANDS = {
       trumpet: { voice: 'plink', every: 2, motif: [12, 16, 18, 19, 18, 16, null, 11], oct: 4, vol: 0.045 },
       pad: { voice: 'synth_pad', every: 8, chord: [0, 4], oct: 2, vol: 0.06 },
       danger: { voice: 'heartbeat', every: 2, freqs: [55], vol: 0.06 },
+      hum: { voice: 'kick', every: 2, vol: 0.05 }, // the gym's pulse: AstronautScene raises it in the training rooms
     },
   },
   // the Evening composes its own music (systems/soundscape.js Ensemble):

@@ -24,6 +24,7 @@ export class PlaceAudio {
     this.fired = 0;
     this.log = [];
     this.off = false;
+    this.loudness = 1; // a scene can ride the bed's level (the café with its noise meter)
   }
 
   now() {
@@ -67,7 +68,7 @@ export class PlaceAudio {
     const t = ctx.currentTime + 0.03;
     const pan = ctx.createStereoPanner();
     const g = ctx.createGain();
-    g.gain.value = f.level;
+    g.gain.value = f.level * this.loudness;
     pan.connect(g).connect(out);
     const sweep = SHOT_META[f.shot] && SHOT_META[f.shot].sweep;
     if (sweep) {
