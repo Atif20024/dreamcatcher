@@ -49,8 +49,8 @@ function strip(p, n, dc, every = 1) {
 }
 const names = (s) => [...new Set(s.map((x) => x.split('/')[0]))];
 // a flat stretch of floor in the Chef street, away from the spawn's dialogue
-async function chefFloor(dc) {
-  await arrive(dc, 'chef');
+async function chefFloor(dc, dream = 'chef') {
+  await arrive(dc, dream);
   dc.step(150);
   settle(dc);
   dc.step(60);
@@ -166,7 +166,8 @@ const float = {
 const footSlide = {
   id: 'jo-foot-slide',
   async run(dc) {
-    const sc = await chefFloor(dc);
+    // not Chef: the rail owns p.speed there
+    const sc = await chefFloor(dc, 'musician');
     const p = sc.player;
     const data = p.anim.m.frameData;
     p.anim.plantLog = [];

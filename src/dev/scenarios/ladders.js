@@ -272,6 +272,8 @@ const dreamLadders = {
     for (const [dream, places] of Object.entries(PLACES)) {
       for (const place of places) {
         const sc = await arrive(dc, dream, place);
+        // the ladders are under test, not the chases: a catch sends Jo to the lamp mid-climb
+        for (const f of sc.foes || []) f.passive = true;
         const p = sc.player;
         const room = sc.graph.roomAt(p.x, p.y);
         const inRoom = (l) => l.tx * T >= room.x0 && l.tx * T < room.x1 && l.head * T >= room.y0 && l.foot * T < room.y1;
