@@ -41,6 +41,8 @@ Done: casino polish and phone keys; the ladder before the platforms; readable no
 
 Running: THE LAST STOP scale (`round2/LAST_STOP_SCALE_REPORT.md`); Jo and the cast (`advice/fresh_review_art.md`); cleanup, deleting the legacy dreams (`round2/CLEANUP_REPORT.md`); designs for the athlete and the doctor.
 
+Before athlete and doctor are built (owner's order): deep review of every existing dream and the station across characters and actions, level, obstacles, story, objectives, movement and music (`advice/deep_review_*.md`), then fix what it finds. "Nothing should feel like its not well thought out."
+
 Next, as slots free:
 1. Feel: `advice/fresh_review_feel.md`. Refresh-rate independence first (jump, run, ice, the camera), keeping how 60 Hz feels; landing weight and sound; SFX through their bus; the reduced-shake setting.
 2. The station counts every dream (owner's decision): the fade, crowd, shop and lines stretch across all running dreams, nothing closes early, THE LAST STOP stays open. Boards get a length or mood word, and the first visit points to a gentle dream. `advice/fresh_review_design.md` M1.
