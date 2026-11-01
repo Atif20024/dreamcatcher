@@ -3,6 +3,7 @@ import { castFrame } from '../art/baked.js';
 import { Stride } from '../art/stride.js';
 import Player from '../entities/Player.js';
 import BaseLevel from './BaseLevel.js';
+import { ladderPass } from '../world/ladders.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
 import Parallax from '../builders/parallax.js';
 import { D } from '../builders/depths.js';
@@ -126,7 +127,7 @@ export default class GamblerScene extends BaseLevel {
     this.buildHud();
 
     this.physics.add.collider(this.player, this.solids);
-    this.physics.add.collider(this.player, this.oneWays);
+    this.physics.add.collider(this.player, this.oneWays, null, ladderPass(this)); // a plank over a ladder lets a climber through
     this.physics.add.collider(this.player, this.bridgeGroup);
     this.physics.add.collider(this.player, this.cardGroup, (_p, c) => this.onCard(c));
     this.physics.add.collider(this.enemies, this.solids);

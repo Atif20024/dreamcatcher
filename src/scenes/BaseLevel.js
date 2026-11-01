@@ -179,7 +179,7 @@ export default class BaseLevel extends Phaser.Scene {
     this.levelCoins = 0;
     this.dream = dreamById(this.dreamCoinId || '');
     if (this.dream && this.dream.coin) {
-      createCoinTextures(this, this.dream.id, this.dream.coin.pal);
+      createCoinTextures(this, this.dream.id, this.dream.coin.pal, this.dream.coin.shape);
       createShardTexture(this);
       this.coinMgr = new CoinManager(this, this.dream.id);
       this.coinIcon = `coin-${this.dream.id}-0`;
@@ -407,7 +407,10 @@ export default class BaseLevel extends Phaser.Scene {
 
   updateCoinHud() {
     if (!this.coinHud) return;
-    this.coinHud.setText(`${this.levelCoins}   $${getWallet().total}`);
+    // a dream whose own money is on the HUD (THE LAST HAND's stack) names its
+    // coin instead, with no second "$" beside the stack (coin.hud)
+    const named = this.dream && this.dream.coin && this.dream.coin.hud;
+    this.coinHud.setText(named ? `${named} ${this.levelCoins}` : `${this.levelCoins}   $${getWallet().total}`);
   }
 
   updateShardHud() {

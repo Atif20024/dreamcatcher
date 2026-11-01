@@ -4,12 +4,13 @@
 // presenters are this dream's own (../table.js, registered in
 // src/play/encounterPresenters.js as lq_slate, lq_faro and lq_cards). The
 // purse lives in the run's flags (F.purse) and every table starts from it.
-//   t1  the Judge alone: one loud tell (he hums)
-//   t2  Madame Sorrel and Nico Tarn: a subtle tell and a decoy
+//   t1  the Judge alone: one loud tell (he hums); Lou names the verb
+//   t2  Madame Sorrel and Nico Tarn: a subtle tell and a decoy; from here
+//       Lou only says what he sees (Jo maps it to a verb)
 //   t3  all three, and Lou's first tip there is wrong
 //   lasthand  kings and nines for both; STAND UP is the only way out
 import { slate } from '../../../engines/slate.js';
-import { faro } from '../../../engines/faro.js';
+import { faro, FARO_TARGET } from '../../../engines/faro.js';
 import { showdown } from '../../../engines/showdown.js';
 import { newPurse } from '../../../engines/purse.js';
 
@@ -30,10 +31,11 @@ export const slateEnc = {
   camera: { zoom: 1.35 },
   keys: KEYS,
   pose: 'interact',
-  // the three numbers become the night's purse (a fresh $100 of Lou's)
+  // the three numbers become the night's purse (a fresh $100 of Lou's); the
+  // lines are chalked as a night at the tables (rebased at the card room door)
   onResult(scene, r) {
     const old = scene.F.purse || {};
-    scene.F.purse = { ...newPurse({ buyin: r.buyin, stop: r.stop, goal: r.goal }), comps: old.comps || 0 };
+    scene.F.purse = { ...newPurse({ buyin: r.buyin, down: r.down, up: r.up }), comps: old.comps || 0, debt: old.debt || 0, compDebt: old.compDebt || 0 };
     scene.F._t0 = scene.time.now;
   },
   onWin: 'slate_done',
@@ -44,7 +46,7 @@ export const faroEnc = {
   title: 'THE FARO BANK',
   engine: faro,
   // forty of the stack goes to the bank; a comp may stake the first bet
-  params: (F) => ({ bank: 40, target: 80, seed: seedOf(F, 3), freeFirst: !!F.faro_free && !F.faro_free_used }),
+  params: (F) => ({ bank: 40, target: FARO_TARGET, seed: seedOf(F, 3), freeFirst: !!F.faro_free && !F.faro_free_used }),
   view: 'lq_faro',
   camera: { zoom: 1.3 },
   keys: KEYS,
@@ -68,7 +70,7 @@ function table(id, seats, { params: more = {}, ...extra } = {}) {
     engine: showdown,
     params: (F) => {
       const p = purse(F);
-      return { seats, stack: p.stack, tilt: p.tilt, buyin: p.buyin, seed: seedOf(F, seats.length * 7 + 1), ...more };
+      return { seats, stack: p.stack, tilt: p.tilt, buyin: p.buyin, debt: p.debt || 0, seed: seedOf(F, seats.length * 7 + 1), ...more };
     },
     view: 'lq_cards',
     flag: `${id}_won`,
@@ -82,8 +84,8 @@ function table(id, seats, { params: more = {}, ...extra } = {}) {
 }
 
 export const t1 = table('t1', ['judge']);
-export const t2 = table('t2', ['sorrel', 'nico']);
-export const t3 = table('t3', ['judge', 'sorrel', 'nico'], { params: { lou: { wrongEvery: 4, firstWrong: true } } });
+export const t2 = table('t2', ['sorrel', 'nico'], { params: { lou: { wrongEvery: 4, describe: true } } });
+export const t3 = table('t3', ['judge', 'sorrel', 'nico'], { params: { lou: { wrongEvery: 4, firstWrong: true, describe: true } } });
 
 export const lasthand = {
   ...table('lasthand', ['judge'], { params: { mode: 'final', lou: null } }),

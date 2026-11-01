@@ -2,16 +2,21 @@
 // three numbers with Lou's stake in his pocket. A pro decides the exit before
 // the entrance.
 //   BUY-IN     what comes aboard of Lou's $100 (the rest stays in his pocket)
-//   STOP-LOSS  the line under which the night is over
-//   GOAL       the line at which it is won
+//   STOP-LOSS  down this much at the tables, the night is over
+//   GOAL       up this much at the tables, the night is won
+// The lines are chalked as a night at the card tables, not in dollars from
+// the quay: the faro bank's easy forty comes first, so a goal of "$140" was
+// met before the first card was dealt. purse.rebase() puts them on what Jo
+// walks into the card room with (src/engines/purse.js). The defaults are a
+// small night: down $30, up $20 (the spec's "+$18" is about that).
 // The slate stays on the HUD all night; nothing ever forces Jo to obey it.
 //
-//   const e = slate(); e.move('down'); e.move('right'); e.press(); e.result → { ok, buyin, stop, goal }
+//   const e = slate(); e.move('down'); e.move('right'); e.press(); e.result → { ok, buyin, down, up }
 
 export const SLATE_ROWS = Object.freeze([
-  { id: 'buyin', label: 'BUY-IN', values: [60, 80, 100], at: 2 },
-  { id: 'stop', label: 'STOP-LOSS', values: [30, 40, 50, 60, 70, 80], at: 3 },
-  { id: 'goal', label: 'GOAL', values: [120, 140, 160, 180, 200], at: 1 },
+  { id: 'buyin', label: 'BUY-IN', values: [60, 80, 100], at: 2, sign: '' },
+  { id: 'down', label: 'STOP-LOSS', values: [10, 20, 30, 40, 50], at: 2, sign: '-' },
+  { id: 'up', label: 'GOAL', values: [10, 20, 30, 40, 60], at: 1, sign: '+' },
 ]);
 
 export function slate({ rows = SLATE_ROWS } = {}) {
@@ -50,7 +55,7 @@ export function slate({ rows = SLATE_ROWS } = {}) {
         return 'move';
       }
       s.done = true;
-      s.result = { ok: true, buyin: val(0), stop: val(1), goal: val(2) };
+      s.result = { ok: true, buyin: val(0), down: val(1), up: val(2) };
       return 'done';
     },
     takeEvents() {
@@ -59,7 +64,11 @@ export function slate({ rows = SLATE_ROWS } = {}) {
       return e;
     },
     state() {
-      return { row: s.row, rows: rows.map((r, i) => ({ id: r.id, label: r.label, value: val(i), first: s.at[i] === 0, last: s.at[i] === r.values.length - 1 })), confirm: s.row === rows.length };
+      return {
+        row: s.row,
+        rows: rows.map((r, i) => ({ id: r.id, label: r.label, value: val(i), sign: r.sign || '', first: s.at[i] === 0, last: s.at[i] === r.values.length - 1 })),
+        confirm: s.row === rows.length,
+      };
     },
   };
   fix();

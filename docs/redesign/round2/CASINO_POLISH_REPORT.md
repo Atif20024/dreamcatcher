@@ -122,3 +122,86 @@ In the scratchpad:
 - `polish_office.jpg`: the office, the plaque, the clamped prompt and the HUD block.
 - `polish_hud.jpg`: the card room HUD block, with TILT showing.
 - `polish_touch_context.jpg`: the EVA room on a 667×375 phone. It shows the F context button (lit while held), the smaller pad and the "clipped" note.
+
+
+# Round 2: the designer and gamer reviews
+
+Sources: `docs/redesign/advice/casino_review_designer_r1.md` (D) and `casino_review_gamer_r1.md` (G). Every MUST and SHOULD is done; the cheap NICE items too. The owner's two calls are built in: the dealer's comp is a real $10 debt, and one lost pair-raise nudges TILT rather than tipping it.
+
+## MUST and SHOULD
+
+| Item | What was done |
+|---|---|
+| D-M1, G-S6 STAND UP taught at tables 1-3 | The engine marks the first pot won at a table (`last.beaten`), and the STAND UP item becomes `hot` from then on. The presenter draws it gold on a brass plate. The reveal line ends "TABLE BEATEN: STAND UP WHILE IT IS YOURS." and keeps saying it in gold while Jo stays seated. The goal line changes to the new `stand_up` objective at the moment of the win, not when he leaves. The room's own objective comes back once the table closes (`scene._objKey` reset). |
+| G-S6 key legend | Every panel ends with a dim row of keys. SHOWDOWN: `[LEFT][RIGHT] choose  [E] play  [BACKSPACE] step away`, or "no walking off this one" at the last table. Faro and the slate have rows too. The panel is now 236 high (it was 212) and starts at y 168, so it grows upward and does not cover the seated people. |
+| D-M2 slate rescale | The slate is now chalked as a night at the tables: BUY-IN, STOP-LOSS down $10–50 (default -$30), GOAL up $10–60 (default +$20). `purse.rebase()` places the lines at the card-room door, on what Jo walks in with net of debt. Before that, the lines are not live (`based: false`), so the faro win can never meet the goal by itself. A bust clears `based`, so the lines are placed again when he next walks in. The HUD reads `STOP -$30 · GOAL +$20` before the card room and dollar lines after it. A new test checks that a default slate plus the faro payout leaves the line 'between' with `reachedGoal` false. |
+| D-M3, G-S5 TILT shown when it bites | The first time TILTED is crossed (`F.tilt_told`), Lou says: "Kid. Your ears are ringing. Out on the guard, the east end. Walk it ten seconds." On an open deck he says the open-air version instead. The TILT row pulses red as TILTED / TILT for 2.4 s. If Jo leaves a table still tilted, the line plays once more (`F.tilt_told_up`). `lou_tilt` is kept for repeats. |
+| G-S5 tilt softened (owner's call) | `big_loss` drops from 0.15 to 0.10, so one lost pair-raise sits at 0.45: a nudge. A new `streak` event (+0.08 for any loss straight after a loss) is chasing, and it tips a player over. Simulated over 2000 seeded nights of three tables, standing up after each pot: a player who always picks the sharp's verb tilts at some point in about 23% of nights. A player who follows Lou's tips tilts in about 39%. The scripted card-room run reached 0.62 at table 3. |
+| D-S1, G-S4 Lou's tips | His misses now come from his own seeded coin (`rng(seed*31+7919)`), wrong about one hand in four with no countable phase. The deal is identical with or without him. At table 1 he names the verb. From table 2 (`lou.describe`) he only says what he sees (`LOU_SEES`, for example "Sorrel's little finger is off the glass."). When he is wrong, he reports the same true sight with the wrong meaning (`LOU_MISREADS`, for example "Nico's hands are flat. He's got nothing."). If Jo's own pair decides the hand, Lou says "Look at your own cards, kid. Then look at theirs." The weak tip is fixed too: `bestVerb` now says CALL for a pair against a pair-or-better tell (hum, flat) and RAISE with trips. Not done: weighting Lou's table-3 misses toward expensive hands. |
+| D-S3, G-N1 the finale | The objective is now "Judge Voe is dealing at the forward glass". Lou's cracked caption at the last table: "Take it. Just the one. I'd have taken it." The habit: if Jo moves the cursor off CALL, it drifts back to CALL once on its own (`creepMs`), calm or not. The Judge's hum now follows the "tells are true" rule: `PLAYERS.judge.tell(tier(voe))`, so he hums only when his third card pairs him. |
+| G-S1 negative stacks | A short stack offers `ALL IN $n`, and everyone matches only that much. RAISE and BLUFF are dark when Jo cannot cover them, with a reason given. With nothing left after the ante, CALL is dark. The stack never goes below 0. |
+| G-S2 "CALL $0" and wording | `lostNight` sets the stack back to at least the buy-in and clears TILT. `finalStake` is never more than the stack and is net of debt (`debt` param), and CALL is dark when the stake is $0. The line reads "CALL plays $N" whenever the profit is under $20. |
+| G-S3 comps (owner's call) | `purse.compStake` puts the dealer's free stake on Mr Pell's book as a real $10 (`debt`, `compDebt`). The dealer says so, and so does Jo's caption ("The house's money is still money."). The debt is settled at the landing like a marker. The ledger prints "Owed Mr Pell $10, paid $10." The whisky is unchanged: it buys nothing and is kept as the dream's joke. |
+| D-S6 debt-aware line | `line()`, the ledger marks (`mark`) and the table frame all read `stack - debt`. The HUD bar fills to the net amount, and the debt has its own row, `OWES MR PELL $N`. That row exists because the old `STACK $x OWES $y` label widened the plate into a two-line goal. Not done: a hatched debt segment on the bar. |
+| D-S4, G-N4 shorter way back | A lost last hand now puts Jo at `cp_deck` (the foot of the hurricane deck), not the quay. Lou says: "I always found my way back up. Every time." Busts at the tables still go to the quay. |
+| D-S5 two "$" counters | The coin counter in this dream reads `HALF DIMES n` with no wallet dollars (`coin.hud` in `data/dreams.js`, read by `BaseLevel.updateCoinHud`). |
+| D-S7 faro grind | The bank target drops from $80 to $70 (`FARO_TARGET`); a careful run is about 10 bets, down from 13. Draw and show are faster (700/1200 ms, down from 900/1500). The bet row says "10 AT A TIME: THE BOX IS KIND." The card row says "Any rank: the box does not care which", and Lou's saloon line says the same. Seeded results: flat $10 busts 9.7%, flat $20 busts 54%. |
+| D-S8 floating grey squares | These were the half-dime coins. The square silver spin read as glitches, not as coins. Half dimes now use a round 7×7 spin (`coin.shape: 'round'`) with a dark rim and a white glint. |
+| G-S7 touch bands | `optionRects` bands are now 60 UI units tall (20 above the label to 40 below), for both the faro and SHOWDOWN verbs. The plates are unchanged. A tap holds the tilt creep off for 500 ms (`engine.holdCreep`). Tapping a dim verb shows its reason. |
+| Legacy | `GamblerScene` passes `ladderPass(this)` to the oneWays collider. |
+
+## NICE done
+
+- **D-N1:** tapping a dim verb shows its `why` in the info line.
+- **D-N2:** `lou_quay` is down to five nodes.
+- **D-N3:** the deck objective is now "the pilot house, at the end of the texas roof".
+- **D-N4:** the goal and stop frames are a full-alpha 3 px stroke with a wash on the ground.
+- **G-N2:** Lou adds "Watch the card they show, too."
+- **G-N3:** "any rank" is said in the saloon.
+
+**Skipped:** the tell vignette inside the panel (D-S2/G-N5), Crake's early silhouette (D-N5), the deck coin loop (D-N6), fold accounting (G-N6) and the faro "kind box" ledger line (D-S7d).
+
+## Checks
+
+| Check | Result |
+|---|---|
+| `npx vitest run` | 264 passed (19 files) |
+| `npm run lint:content` | 0 failures |
+| `npm run lint:rooms` | 0 failures, 36 warnings (as before) |
+| `npm run lint:scale` | clean |
+| `npx vite build` | built |
+| Scenarios on 5181, all pass | `gambler-board`, `places`, `coins`, `legacy`, `quay`, `saloon`, `cards`, `tilt`, `office`, `deck`, `playthrough`; `touch-walk-jump-talk` |
+| `__dc.readability()` | clean in the office (with debt) and at a seated card table |
+
+**New and changed unit tests** (`showdown.test.js`, `faroBalance.test.js`):
+- the pair-versus-pair-tell verb;
+- tilt nudge, then streak;
+- Lou's misses are not periodic, replay the same, and leave the deal unchanged;
+- describe mode: a true sight, or the same sight misread;
+- hot STAND UP;
+- ALL IN and no CALL $0;
+- the last table's hum is true;
+- debt-aware profit, and the habit drift;
+- the relative slate with rebase;
+- debt-aware lines and comps as debt;
+- faro at $70 in about 10 bets.
+
+**New scenario checks:**
+- `hud-coins-named`;
+- `comp-stake-is-debt`;
+- `lines-live`;
+- `touch-bands`;
+- `t1/t2/t3-beaten-taught` (gold STAND UP plus the TABLE BEATEN goal line);
+- `first-tilt-told` (the caption and the pulse);
+- `lost-night-to-deck` (stack ≥ buy-in, TILT 0).
+
+**The playthrough ledger:** "Owed Mr Pell $10, paid $10. Home with $100: up $0." That run took the last hand once, lost it, came back up from the deck and stood up.
+
+## Screenshots (scratchpad)
+
+- `casino_r2_cards_table_won.jpg`: table 1 after a pot. STAND UP is gold, the line says TABLE BEATEN, the goal line says the same, and the key row shows.
+- `casino_r2_table_won_reveal.jpg`: the reveal of the pot that beat the table.
+- `casino_r2_tilt_caption.jpg`: Lou's first-tilt caption in the card room.
+- `casino_r2_slate.jpg`: the slate chalked as down / up at the tables.
+- `casino_r2_quay.jpg`: the quay with round half dimes and the `HALF DIMES 0` counter.
+- `casino_r2_office.jpg`: the office HUD block with the `OWES MR PELL $10` row and net lines.

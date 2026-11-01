@@ -11,7 +11,7 @@
 //
 // Places you walk into, each with one goal shown on arrival:
 //   PORT MERROW          quay (exterior, dusk)   chalk your line on the gangway slate
-//   THE MAIN SALOON      saloon (interior)       double $40 at the faro bank
+//   THE MAIN SALOON      saloon (interior)       take $40 to $70 at the faro bank
 //   THE CARD ROOM        cards (interior)        win a pot at each of three tables (SHOWDOWN)
 //   THE PURSER'S OFFICE  office (interior)       through the corridor (the marker narrows it)
 //   THE HURRICANE DECK   deck (exterior, dawn)   reach the pilot house with a clear head
@@ -37,7 +37,7 @@ import boat from './verbs/boat.js';
 import props from './props.js';
 import materials from './materials.js';
 import { MUSIC_KEYS } from './music.js';
-import { newPurse, tilt, signMarker, bust, ledgerLines } from '../../engines/purse.js';
+import { newPurse, tilt, signMarker, bust, ledgerLines, compStake } from '../../engines/purse.js';
 import { paintSky, paintBackdropLayer } from '../../art/backdrops/painted.js';
 
 // Port Merrow at dusk: river fog, warehouse roofs, a slate-blue sky with the
@@ -49,11 +49,13 @@ const DAWN = { sky: 0xb8b0c0, hill: 0x6a6a78, house: 0x8a8088, roof: 0x5a5260, w
 const DAWN_SKY = { top: 0x5a6a8a, mid: 0xb8a8b8, bottom: 0xf2c8a0, sun: { x: 420, y: 500, r: 18, color: 0xffd8a0 }, clouds: 6, cloud: 0x9a8aa0, cloudLit: 0xffd0a8, seed: 22 };
 export const VERRANE = { DUSK, DUSK_SKY, DAWN, DAWN_SKY };
 
-// the checkpoints a setback puts Jo at: the quay (a bust at the tables, the
-// lost last hand) or the saloon door (the faro bank took the forty)
+// the checkpoints a setback puts Jo at: the quay (a bust at the tables), the
+// saloon door (the faro bank took the forty) or the foot of the hurricane
+// deck (the last hand lost: the way back up is short, and that is the habit)
 const SPOTS = {
   quay: { room: 'quay', tx: 6, ty: 15, id: 'cp_quay', label: 'PORT MERROW' },
   saloon: { room: 'saloon', tx: 6, ty: 11, id: 'cp_saloon', label: 'THE MAIN SALOON' },
+  deck: { room: 'deck', tx: 5, ty: 25, id: 'cp_deck', label: 'THE HURRICANE DECK' },
 };
 function toQuay(scene, lines, spot = SPOTS.quay) {
   const r = scene.graph.room(spot.room);
@@ -88,8 +90,11 @@ const calls = {
     p.comps += 1;
     tilt(p, 'comp');
   },
+  // the house's stake is not free: ten dollars on Mr Pell's book, a real
+  // debt that comes off the top at the landing (and off the slate's lines)
   compStake(scene) {
-    scene.F.purse.comps += 1;
+    compStake(scene.F.purse, 10);
+    scene.caption.say('jo', "Ten on Mr Pell's book. The house's money is still money.", { ms: 2600 });
   },
   marker(scene) {
     const p = scene.F.purse;
@@ -135,10 +140,18 @@ const calls = {
     F.stood_up = true;
     F.night_min = Math.max(1, (scene.time.now - (F._t0 || 0)) / 60000);
   },
+  // the last hand taken and lost: the profit went across the table. Lou's
+  // bar is never under the buy-in (no $0 last hand), the head is cleared,
+  // and Jo wakes at the foot of the deck: the way back up is short
   lostNight(scene) {
     const F = scene.F;
+    const p = F.purse;
     F.lost_nights = (F.lost_nights || 0) + 1;
-    return toQuay(scene, ['THE NIGHT, ACROSS THE TABLE', "Back on the quay with the slate. The Judge is dealing another."]).then(() => scene.caption.say('lou', "That's the one I always took. Every time.", { ms: 3000 }));
+    if (p) {
+      p.stack = Math.max(p.stack, p.buyin);
+      p.tilt = 0;
+    }
+    return toQuay(scene, ['THE NIGHT, ACROSS THE TABLE', 'The profit went across the table. The Judge is dealing another.'], SPOTS.deck).then(() => scene.caption.say('lou', "I always found my way back up. Every time. That's the one I always took.", { ms: 3400 }));
   },
 };
 
@@ -166,14 +179,15 @@ export default {
     meet_lou: 'the man in the claret coat by the gangway is Lou: talk to him',
     slate: 'chalk your line on the gangway slate',
     board: 'go aboard: the saloon door on the main deck',
-    faro: 'double $40 at the faro bank: get it to $80',
+    faro: 'the faro bank: take your $40 to $70',
     to_cards: 'the card room, through the door aft',
     tables: 'win a pot at each table: the Judge, then Sorrel and Nico',
+    stand_up: 'TABLE BEATEN: stand up while the pot is yours',
     table3: 'the third table: all three of them. Win a pot there',
     to_office: "through the door past the guard: the purser's office",
     corridor: 'through the corridor to the hurricane deck stairs',
-    deck: 'reach the pilot house with a clear head',
-    last: 'stand up from a table you are winning',
+    deck: 'the pilot house, at the end of the texas roof',
+    last: 'Judge Voe is dealing at the forward glass',
     landing: 'down the outside stair to the gangway',
     gangway: 'Lou is at the rail on the quay',
     cash: 'count the night on the quay: the coin by the bales',

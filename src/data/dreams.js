@@ -64,7 +64,7 @@ export const DREAMS = [
     // the Verrane, 1884, Lou Verrick's dream. ?legacy=1 boards the old neon
     // casino (GamblerScene). The save flag (dreams.gambler) is the same id.
     id: 'gambler', platform: 7, title: 'THE LAST HAND', scene: LEGACY_GAMBLER ? 'Gambler' : 'Dream', propsKind: 'chips', ambientLoop: LEGACY_GAMBLER ? 'slots' : 'gm_quay',
-    coin: LEGACY_GAMBLER ? { name: 'chip', worth: 25, budget: [40, 50], pal: { c: 0xa8243a, C: 0xe84a5a, h: 0xf8d0c0 } } : { name: 'half dime', worth: 5, budget: [40, 55], pal: { c: 0x8a8a92, C: 0xd0d0d8, h: 0xf4f4f8 } },
+    coin: LEGACY_GAMBLER ? { name: 'chip', worth: 25, budget: [40, 50], pal: { c: 0xa8243a, C: 0xe84a5a, h: 0xf8d0c0 } } : { name: 'half dime', worth: 5, budget: [40, 55], hud: 'HALF DIMES', shape: 'round', pal: { c: 0x4e4e5c, C: 0xd8d8e2, h: 0xffffff } },
     livery: LEGACY_GAMBLER ? { body: 0x12101a, trim: 0xe03a8a, window: 0xf2c078, emblem: 'spade' } : { body: 0x5a1e26, trim: 0xd8c8a0, window: 0xf2c078, emblem: 'spade' },
     conductor: LEGACY_GAMBLER ? 'The Last Hand. A casino that never closes, and one chip in your pocket.\nTonight is the night, sir. It always is. Still boarding?' : "The Last Hand. A riverboat, a hundred dollars, and a night that ends at the landing.\nThe hard part, sir, is getting up from the table. Still boarding?",
     roLine: LEGACY_GAMBLER ? 'Cigar smoke and carpet. And your horn case is light. Sit.' : 'River fog on your coat, and lamp oil. Sit. Did you get up in time?',
