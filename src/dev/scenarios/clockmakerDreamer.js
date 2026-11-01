@@ -33,7 +33,7 @@ function bot(dc, s, { pick = 0, read = false } = {}) {
       b.last = now;
       window.__dcClock = b.log; // its progress can be read from outside
       // the first thing wrong ends the run (the rest would only wait out its timeouts)
-      if (!v) throw new Error(b.log.join(' '));
+      if (!v) throw new Error(`${b.log.join(' ')}${b.note || ''}`);
       return v;
     },
     wx: (room, col) => (s.graph.room(room).tx + col) * T + 16,
@@ -77,7 +77,16 @@ function bot(dc, s, { pick = 0, read = false } = {}) {
       if (!n) return false;
       // (he may have paced on while Jo was walking over)
       for (let i = 0; i < 4 && Math.abs(n.x - s.player.x) > 60; i++) await walkTo(dc, s, n.x - 36, { frames: 900, tol: 20 });
+      const why = () => `current ${s.interaction.current?.id}, transitions ${s.transitions.busy}, beats ${s.beats.busy}, respawning ${s.respawning}`;
       await b.use();
+      // (a dev-only retry: the first press missing is the thing to read in the log)
+      if (!s.sceneBox.active) {
+        const first = why();
+        await dc.run(30);
+        await b.use();
+        b.note = ` [chat ${id}: press 1 no box (${first}); press 2 ${s.sceneBox.active ? 'opened it' : `no box (${why()})`}]`;
+        console.warn(`[dc:clock]${b.note}`);
+      }
       await b.talk();
       await b.quiet();
       return true;
@@ -334,7 +343,9 @@ async function fullRun(dc, opts = {}) {
   if (opts.pick) {
     ok('he-stayed-at-the-rope', Math.abs(hill.x - hx0) < 2);
     // his count led every stroke, One to Seven, called again if a stroke was late
-    const said = s.caption.log.filter((l) => l.who === 'keeper' && /^(One|Two|Three|Four|Five|Six|Seven)\.$/.test(l.text)).map((l) => l.text).filter((t, i, a) => t !== a[i - 1]);
+    const heard = s.caption.log.filter((l) => l.who === 'keeper' && /^(One|Two|Three|Four|Five|Six|Seven)\.$/.test(l.text)).map((l) => l.text);
+    ok('one-called-once', heard.filter((t) => t === 'One.').length === 1);
+    const said = heard.filter((t, i, a) => t !== a[i - 1]);
     ok('he-counted', said.join(' ') === 'One. Two. Three. Four. Five. Six. Seven.');
   }
   else ok('he-went-down-the-hill', hill.x < hx0 - 16 * T && Math.abs(hill.y - (s.graph.room('yard').ty * T + 16 * T)) < 4);

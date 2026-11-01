@@ -55,7 +55,7 @@ export const CONVERSATIONS = {
   // ---- the town: everyone stopped at six ----
   watch: twice('watch', 'watch', 'Six o\'clock. It has been six o\'clock for an hour. I did not miss the train. The train missed me.', 'Mr Dunmarrow set this by the clock himself. It has never once been wrong. That is what worries me.'),
   watch_after: once('watch_after', 'watch', 'Seven! The train will come now. Thank you, whoever you are.'),
-  pie: twice('pie', 'pie', 'The oven bell never rang. The pie is perfect and cold.', 'Ida Dunmarrow sent me up with it at five, for him. He has not come down.'),
+  pie: twice('pie', 'pie', 'The oven bell never rang. The pie is perfect and cold.', 'Ida Dunmarrow sent me up with it at five, for him. He has not come down since.'),
   pie_after: once('pie_after', 'pie', 'Warm again. You do not know how that feels.'),
   // ---- the keeper: Ansel Dunmarrow, whose hour this is (docs/dream_clockmaker_dreamer.md) ----
   keeper_first: {
@@ -87,7 +87,7 @@ export const CONVERSATIONS = {
     nodes: {
       start: { who: 'keeper', text: 'All four. You hang a wheel like a man who was told. Nobody told you why they were down.', next: 'j1' },
       j1: { who: 'jo', text: 'Nell said they slipped.', next: 'k1' },
-      k1: { who: 'keeper', text: 'Forty-one years and not one tooth. Nell says slipped because that is what you say.', next: 'k2' },
+      k1: { who: 'keeper', text: 'They did not slip.', next: 'k2' },
       k2: { who: 'keeper', text: 'I took them off. After. I went back up the hill and took them off, one by one, and put the hands back to six. This one I kept.', set: { why_told: true }, end: true },
     },
   },
