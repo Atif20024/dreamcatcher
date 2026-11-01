@@ -11,7 +11,7 @@
 export const PEOPLE = {
   // Lou Verrick, the dreamer, thirty: a claret frock coat, a gold waistcoat,
   // a black planter's hat. He stands; his hands shake too much to sit
-  'npc-lq-lou': { hat: 'planter', held: null, pal: { H: 0x1e1a1e, h: 0x3a2a2a, S: 0xd8b090, T: 0x6a2430, t: 0xc8a050, P: 0x3e3a40, B: 0x1a1618 } },
+  'npc-lq-lou': { hat: 'planter', held: 'shake', pal: { H: 0x1e1a1e, h: 0x3a2a2a, S: 0xd8b090, T: 0x6a2430, t: 0xc8a050, P: 0x3e3a40, B: 0x1a1618 } },
   // Mr Pell, the purser: navy coat, brass buttons, a peaked cap, the marker book
   'npc-lq-pell': { hat: 'peaked', held: 'ledger', pal: { H: 0x1e2440, h: 0xc8a050, S: 0xd0a888, T: 0x22284a, t: 0xc8a050, P: 0x1e2440, B: 0x14121a, A: 0x5a2a22 } },
   // Judge Harlan Voe: big and kindly in cream linen and a white planter's hat
@@ -30,6 +30,8 @@ export const PEOPLE = {
   'npc-lq-casekeeper': { hat: 'none', held: null, pal: { H: 0x4a3424, S: 0xc89878, T: 0x3a3440, t: 0xe8e0d0, P: 0x2a2630, B: 0x14121a } },
   // the saloon steward: a white jacket, a tray of the house's whisky
   'npc-lq-steward': { hat: 'none', held: 'tray', pal: { H: 0x1e1a1e, S: 0x8a5a3b, T: 0xf2ead8, t: 0x2a2630, P: 0x2a2630, B: 0x14121a, A: 0xc8a050 } },
+  // the barman: shirtsleeves and a green waistcoat, behind his own counter, a glass
+  'npc-lq-barman': { hat: 'none', held: 'glass', pal: { H: 0x3a2a20, S: 0xc89878, T: 0x2e4a3a, t: 0xe8e0d0, P: 0x2a2630, B: 0x14121a, A: 0xc8e0e8 } },
   // the band: a parlour upright, a banjo, a snare with brushes, a clarinet
   'npc-lq-pianist': { hat: 'none', held: null, pal: { H: 0x3a2a20, S: 0xd0a888, T: 0x2a2630, t: 0xe8e0d0, P: 0x2a2630, B: 0x14121a } },
   'npc-lq-banjo': { hat: 'bowler', held: 'banjo', pal: { H: 0x3a3028, h: 0x1e1a1e, S: 0x8a5a3b, T: 0x5a3a2a, t: 0xe8e0d0, P: 0x3a3028, B: 0x14121a, A: 0xd8c8a0 } },

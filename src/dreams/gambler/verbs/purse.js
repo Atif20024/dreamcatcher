@@ -16,7 +16,7 @@
 // once more when Jo gets up from a table still steaming.
 import { hud } from '../../../ui/hud.js';
 import { newPurse, cool, isTilted, line, rebase, net } from '../../../engines/purse.js';
-import { LOU_TILT_FIRST, LOU_TILT_AIR } from '../dialogue.js';
+import { LOU_TILT_FIRST, LOU_TILT_AIR, LOU_RAIL } from '../dialogue.js';
 
 const T = 32;
 const COLORS = { below: '#d5443c', between: '#e9b84a', goal: '#f6d98a' };
@@ -91,6 +91,17 @@ export default {
       s.caption.say('lou', LOU_TILT_FIRST, { ms: 4200 });
     }
     st.wasEnc = !!s.encounterActive;
+    // the sound of it: the throb comes in while the head is hot (a room change
+    // sets the room's own state, so it is asserted, not only flipped)
+    if (s.music) {
+      if (tilted && s.music.state !== 'tense') s.music.setState('tense');
+      else if (!tilted && st.wasTilted) s.music.setState(s._roomMusicState || 'quiet');
+      // a comp in the hand: the band warms up until the bank is done
+      if (s.roomId === 'saloon') s.music.setKey(F.comp_warm && !F.faro_done ? 'saloon_warm' : 'saloon');
+    }
+    st.wasTilted = tilted;
+    // nobody owes anything: the purser's corridor has something for that player
+    F.clean_book = !p.comps && !p.debt && !p.markers;
     const pk = st.pulse ? s.time.now - st.pulse : Infinity;
     if (pk < 2400) st.tilt.setLabel(Math.floor(pk / 200) % 2 ? 'TILT' : 'TILTED').setColor(Math.floor(pk / 200) % 2 ? '#c86a8a' : '#ff5a4a');
     else st.tilt.setLabel('TILT').setColor('#c86a8a');
@@ -100,7 +111,13 @@ export default {
     if (air && !s.encounterActive && p.tilt > 0) {
       const col = Math.floor(pl.x / T) - room.tx;
       const walking = pl.body.blocked.down && Math.abs(pl.body.velocity.x) > 40;
-      if (col >= air[0] && col <= air[1]) cool(p, dt, walking);
+      if (col >= air[0] && col <= air[1]) {
+        cool(p, dt, walking);
+        if (tilted && room.id === 'cards' && !F.rail_told) {
+          F.rail_told = true;
+          s.caption.say('lou', LOU_RAIL, { ms: 3600 });
+        }
+      }
     }
     F.tilted = isTilted(p);
     // tilted, the world blurs at the edges and breathes

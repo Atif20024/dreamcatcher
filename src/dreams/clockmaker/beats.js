@@ -45,9 +45,15 @@ export default {
   ],
   // the seventh strike (each strike lit a lamp, gate end first: strike's onRender)
   seven_struck: [
+    // (gates only move outside an encounter: the shot holds on this one as it swings)
+    { lock: true },
+    { camera: { vista: 0.9, to: 'anchor:strike', ms: 400 } },
     { set: 'struck' },
     { music: 'setpiece' },
     { say: { who: 'jo', text: 'Seven, an hour late. Hear that? The whole town heard that.' } },
+    { wait: 2400 },
+    { camera: 'pop' },
+    { lock: false },
     { objective: 'to_green' },
     { sting: 'gate' },
   ],

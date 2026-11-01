@@ -53,7 +53,9 @@ export default {
     { type: 'portal', id: 'pilot>deck', kind: 'door', x: 3, y: 11, to: { room: 'deck', portal: 'deck>pilot' }, door: { prompt: 'out on the roof', fade: 220 } },
     { type: 'checkpoint', id: 'cp_pilot', label: 'THE PILOT HOUSE', x: 6, y: 11 },
     { type: 'npc', id: 'voe_last', cast: 'npc-lq-voe', x: LAST_TABLE_X + 2, y: 11, pose: 'sit', facing: -1, talk: [{ conv: 'voe_stood', if: 'stood_up' }, { conv: 'voe_last' }] },
-    { type: 'npc', id: 'pilot', cast: 'npc-lq-pilot', x: 24, y: 11, facing: 1, turns: false, talk: [{ conv: 'pilot' }] },
+    { type: 'npc', id: 'pilot', cast: 'npc-lq-pilot', x: 24, y: 11, facing: 1, turns: false, unless: 'stood_up', talk: [{ conv: 'pilot' }] },
+    // he looks round from the wheel, the once
+    { type: 'npc', id: 'pilot_turned', cast: 'npc-lq-pilot', x: 24, y: 11, facing: -1, turns: false, when: 'stood_up', talk: [{ conv: 'pilot_turned' }] },
     { type: 'npc', id: 'lou_pilot', cast: 'npc-lq-lou', x: 8, y: 11, facing: 1, follow: [5, 20], unless: 'stood_up', talk: [{ conv: 'lou_pilot' }] },
     { type: 'encounter', id: 'lasthand', x: LAST_TABLE_X - 2, y: 11, anchor: { x: LAST_TABLE_X + 1, y: 8 }, prompt: 'sit down with the Judge', unless: 'stood_up' },
     { type: 'portal', id: 'pilot>landing', kind: 'door', x: 28, y: 11, to: { room: 'landing', portal: 'landing<pilot' }, door: { prompt: 'down to the gangway', fade: 400, requires: ['stood_up'], locked: 'the Judge is dealing', lockedLine: 'Not with the cards still out on the table.' } },

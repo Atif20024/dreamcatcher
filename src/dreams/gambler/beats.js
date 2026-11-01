@@ -1,6 +1,19 @@
 // THE LAST HAND's beats (plan 2.1 BeatRunner): data, run on events. The
 // money itself is code: `{ call: 'name' }` runs src/dreams/gambler/dream.js
 // calls (the purse in the run's flags, F.purse).
+// Mr Pell's old book, left on its stand in the corridor
+const LOU_PAGE = {
+  title: "The purser's book",
+  name: 'purser-book',
+  ink: 0x2a1c14,
+  text: [
+    'The Lantern Queen. Purser. Autumn, 1884.',
+    'Mr L. Verrick. Fifty, on his word.\nMr L. Verrick. Fifty, on his word.\nMr L. Verrick. Fifty, on his word.',
+    'At the landing: not settled. Carried to the next book.',
+    'The next book is not on the stand. There is a shelf of them.',
+  ].join('\n\n'),
+};
+
 export default {
   // the quay at dusk: Lou is waiting by the slate
   start: [
@@ -46,6 +59,25 @@ export default {
     { say: { who: 'jo', text: 'The box gives up a seven and a two. The coin stays. She smiles at it like a grandchild.' } },
     { wait: 3200 },
     { camera: 'pop' },
+    { lock: false },
+  ],
+  // Small Moment "The wake": the guard, for anyone with ten seconds
+  moment_wake: [
+    { lock: true },
+    { camera: { push: 1.25, to: 'self', ms: 700 } },
+    { say: { who: 'jo', text: 'The wheel lays the wake out behind her, white, and the dark closes it up again.' } },
+    { wait: 3200 },
+    { say: { who: 'jo', text: 'A mile of river back there, and not a mark on it. Nobody is keeping count out here.' } },
+    { wait: 3000 },
+    { camera: 'pop' },
+    { lock: false },
+  ],
+  // the one thing a clean book lets Jo read: the corridor is lit, and nobody is behind him
+  moment_book: [
+    { lock: true },
+    { read: LOU_PAGE },
+    { say: { who: 'jo', text: 'Three times, in the same hand. On the night he nearly did it right.' } },
+    { wait: 2800 },
     { lock: false },
   ],
   // the last table: Jo stood up. The lamp dips; the door to the gangway

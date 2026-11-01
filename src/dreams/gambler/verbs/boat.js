@@ -42,6 +42,7 @@ export default {
     const tilted = F.purse && isTilted(F.purse);
     // the escape pipes
     for (const v of ctx.state.vents) {
+      if (v.when && !F[v.when]) continue; // a pipe that has not let go yet
       const period = v.period;
       const on = tilted ? v.on * 1.35 : v.on;
       const warn = tilted ? 0 : 450;
@@ -83,6 +84,8 @@ export default {
       const col = s.physics.add.collider(p, z);
       ctx.state.planks.push({ g, z, col });
       s.cameras.main.shake(160, 0.003);
+      // the first plank takes the brass up under the ceiling with it
+      for (const co of s.placedCoins || []) if (co.img.active && co.room === 'office' && co.img.x >= c.x0 && co.img.x <= c.x1 && co.img.y >= y && co.img.y < y + T) co.img.destroy();
     }
     // the lamp dims a notch a marker
     for (const gl of ctx.state.glows || []) gl.setAlpha(Math.max(0.08, 0.5 - n * 0.14) * (0.92 + 0.08 * Math.sin(now / 300)));

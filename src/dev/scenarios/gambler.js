@@ -654,6 +654,35 @@ async function deckPart(dc, s, ok, { timed = true } = {}) {
   ok('into-pilot', await door(dc, s, 'pilot'));
 }
 
+// the player who owes nothing: the book is open in the corridor, the brass up
+// under the ceiling; one marker takes both, and Pell knows the difference
+const cleanOffice = {
+  id: 'gambler-clean-office',
+  async run(dc) {
+    const log = [];
+    const ok = (k, v) => log.push(`${k}:${v ? 'ok' : 'FAIL'}`) && v;
+    const s = await boot(dc, 'office');
+    safe(s);
+    await dc.run(10);
+    ok('clean-book', !!s.F.clean_book);
+    const high = () => (s.placedCoins || []).filter((c) => c.img.active && c.room === 'office' && c.img.y < at(s, 'office', 0, 7).y - 20 && c.img.x > at(s, 'office', 18, 0).x);
+    ok('brass-placed', high().length === 5);
+    const pell = s.npcs.get('pell');
+    put(s, pell.x + 50, s.player.y);
+    await dc.run(10);
+    await talk(dc, s, 1);
+    ok('declined', !!s.F.met_pell && s.F.purse.markers === 0);
+    await talk(dc, s, 1);
+    ok('pell-noticed', s.F['_conv:pell_clean'] === true && s.F.purse.markers === 0);
+    await talk(dc, s, 0);
+    await dc.run(30);
+    ok('signed', s.F.purse.markers === 1 && !s.F.clean_book);
+    ok('plank-took-the-brass', high().length === 0);
+    clearRun('gambler');
+    return { pass: log.every((l) => l.endsWith(':ok')), detail: log.join(' ') };
+  },
+};
+
 const deckScenario = {
   id: 'gambler-deck',
   async run(dc) {
@@ -786,4 +815,4 @@ const playthrough = {
   },
 };
 
-export default [board, places, coins, quayScenario, saloonScenario, cardsScenario, tiltScenario, officeScenario, deckScenario, playthrough];
+export default [board, places, coins, quayScenario, saloonScenario, cardsScenario, tiltScenario, officeScenario, cleanOffice, deckScenario, playthrough];

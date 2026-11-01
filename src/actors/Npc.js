@@ -31,6 +31,7 @@ class CastBody {
     if (walk) return walk;
     if (this.pose === 'sit') return laughing && castFrame(this.scene, `${k}-sitlaugh`) ? `${k}-sitlaugh` : `${k}-sit`;
     if (talking && this.talkN) return `${k}-talk#${(Math.floor(time / 140) % this.talkN) + 1}`;
+    if (this.pose === 'still') return k; // standing quite still: no idle loop (Lou's hands, at last)
     const [n, fps] = this.g.idle || [1, 5];
     if (n > 1) {
       const f = `${k}-idle#${(Math.floor((time / 1000) * fps) % n) + 1}`;

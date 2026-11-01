@@ -240,6 +240,7 @@ export const COSTUMES = {
   'npc-lq-dealer': { face: 'thin', over: ['waistcoat'] },
   'npc-lq-casekeeper': { face: 'hook', over: ['waistcoat'] },
   'npc-lq-steward': { face: 'long', over: ['bib', 'tails'] },
+  'npc-lq-barman': { face: 'heavy', over: ['waistcoat', 'tie'] },
   'npc-lq-pianist': { face: 'long', over: ['lapel', 'tails'] },
   'npc-lq-banjo': { face: 'round', over: ['waistcoat'] },
   'npc-lq-drummer': { face: 'snub', over: ['waistcoat'] },

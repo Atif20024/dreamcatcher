@@ -88,6 +88,7 @@ const calls = {
     const p = scene.F.purse;
     p.comps += 1;
     tilt(p, 'comp');
+    scene.F.comp_warm = true;
   },
   // the house's stake is not free: ten dollars on Mr Pell's book, a real
   // debt that comes off the top at the landing (and off the slate's lines)

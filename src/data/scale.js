@@ -379,6 +379,7 @@ Object.assign(CAST_BODIES, {
   'npc-lq-dealer': { sex: 'm', beard: 'moustache', hat: 'peaked' },
   'npc-lq-casekeeper': { body: 'elderly', sex: 'm', hair: 'bald', hat: 'none' },
   'npc-lq-steward': { sex: 'm', hat: 'none', hair: 'crop' },
+  'npc-lq-barman': { body: 'big', sex: 'm', hat: 'none', hair: 'bald', beard: 'moustache' },
   'npc-lq-pianist': { sex: 'm', hat: 'none' },
   'npc-lq-banjo': { sex: 'm', hat: 'bowler' },
   'npc-lq-drummer': { body: 'teen', sex: 'm', hat: 'none' },

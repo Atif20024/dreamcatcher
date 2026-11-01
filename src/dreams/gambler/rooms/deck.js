@@ -22,6 +22,9 @@ g.ladder(45, 12, 25, [12]); // the ratlines up the jackstaff's stays
 export const VENTS = [
   { x: 21, y0: 13, y1: 18, period: 2600, on: 1100, phase: 0 },
   { x: 29, y0: 13, y1: 18, period: 2600, on: 1100, phase: 1300 },
+  // the way back up from a lost last hand: a third pipe has let go, on its own
+  // beat, so the three never line up. The habit's way back is short, not easy.
+  { x: 32, y0: 13, y1: 18, period: 2200, on: 1100, phase: 700, when: 'lost_nights' },
 ];
 
 export default {
@@ -42,6 +45,7 @@ export default {
     { prop: 'chimney', x: 33, y: 19, layer: 'back' },
     { prop: 'escape_pipe', x: 21, y: 19 },
     { prop: 'escape_pipe', x: 29, y: 19 },
+    { prop: 'escape_pipe', x: 32, y: 19, when: 'lost_nights' },
     { prop: 'pilot_house', x: 37, y: 19, layer: 'back' },
     { prop: 'texas_face', x: 15, y: 26, dx: 16, layer: 'fg' },
     { prop: 'ratline', x: 45, y: 26, layer: 'back' },
@@ -59,7 +63,7 @@ export default {
   entities: [
     { type: 'portal', id: 'deck>office', kind: 'door', x: 3, y: 25, to: { room: 'office', portal: 'office>deck' }, door: { prompt: 'down to the office', fade: 260 } },
     { type: 'checkpoint', id: 'cp_deck', label: 'THE HURRICANE DECK', x: 5, y: 25 },
-    { type: 'npc', id: 'dev_deck', cast: 'npc-lq-dev', x: 12, y: 25, facing: -1, pace: [10, 14], talk: [{ conv: 'dev_deck' }] },
+    { type: 'npc', id: 'dev_deck', cast: 'npc-lq-dev', x: 12, y: 25, facing: -1, pace: [10, 14], talk: [{ conv: 'dev_deck_tilted', if: 'tilted' }, { conv: 'dev_deck_back', if: 'lost_nights' }, { conv: 'dev_deck' }] },
     { type: 'checkpoint', id: 'cp_texas', label: 'THE TEXAS ROOF', x: 17, y: 18 },
     { type: 'sign', text: 'PILOT HOUSE', x: 35, y: 13, board: 0x5a1e26, scale: 2 },
     { type: 'portal', id: 'deck>pilot', kind: 'door', x: 35, y: 18, to: { room: 'pilot', portal: 'pilot>deck' }, door: { prompt: 'into the pilot house', fade: 220 } },
