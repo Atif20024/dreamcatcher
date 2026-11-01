@@ -10,6 +10,7 @@
 //                         stepped frame cost is logged
 import { BACKDROP_ROWS, TREE_TABLE, treePx } from '../../data/scale.js';
 import { ROW_LOG } from '../../art/buildingKit.js';
+import { BUDGET } from '../../core/PerfBudget.js';
 
 async function arrive(dc, dream, place, frames = 90) {
   dc.warp(dream, place);
@@ -71,4 +72,19 @@ const eveningBudget = {
   },
 };
 
-export default [backdropScale, eveningBudget];
+// SPEED_REPORT's budgets: atlas memory stays tight, and the renderer only sees
+// what the camera can: the moon holds about 4500 objects and draws about 280
+const speedBudget = {
+  id: 'speed-budget',
+  expect: 'pass',
+  async run(dc) {
+    const sc = await arrive(dc, 'astronaut', 'moon', 60);
+    const list = sc.sys.displayList.getChildren();
+    const drawn = sc.cameras.getVisibleChildren(list, sc.cameras.main).length;
+    let atlasMB = 0;
+    for (const t of Object.values(sc.textures.list)) for (const s of t.source) if (!s.isCanvas && s.source instanceof HTMLImageElement) atlasMB += (s.width * s.height * 4) / 1048576;
+    return { pass: atlasMB <= BUDGET.atlasMB && drawn <= BUDGET.renderList, detail: { atlasMB: Math.round(atlasMB), budgetMB: BUDGET.atlasMB, objects: list.length, drawn, budgetDrawn: BUDGET.renderList } };
+  },
+};
+
+export default [backdropScale, eveningBudget, speedBudget];

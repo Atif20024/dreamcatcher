@@ -14,6 +14,8 @@ export const BUDGET = Object.freeze({
   texture: 2048,
   backdropLayerW: 1920,
   particles: 300,
+  atlasMB: 80, // every pack, RGBA, all loaded at boot (65 MB in SPEED_REPORT)
+  renderList: 800, // objects the camera can see, after the off-screen cull
 });
 
 export function countObjects(list) {
