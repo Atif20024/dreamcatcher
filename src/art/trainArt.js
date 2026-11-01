@@ -998,6 +998,21 @@ export function bayTrainTex(scene, livery, o = {}) {
   if (!scene.textures.exists(key)) paintTexture(scene, key, BAY.w, BAY.h + TRAIN.pit, (ctx, w, h) => paintBayTrain(ctx, w, h - TRAIN.pit, livery, o), key);
   return key;
 }
+// what is lit on the station's furniture, in each picture's own pixels, for
+// the night grade's glow copies (look.js): a pane's rect is the pane; [x, y,
+// w, h, from] reads only pixels brighter than `from`
+const ww = 26;
+const LIT = [
+  [/^hub-platform-lamp(-on-.*)?$/, { rects: [[0, 0, 22, 26, 95]], as: 'hub-platform-lamp-on' }],
+  [/^hub-carriage-end-(?!dark)/, { rects: [[9, 40, ww, 36, 0], [TRAIN.width - 9 - ww, 40, ww, 36, 0], [4, TRAIN.height - TRAIN.floor - 6, 10, 10, 90], [TRAIN.width - 14, TRAIN.height - TRAIN.floor - 6, 10, 10, 90]] }],
+  [/^hub-gangway-door-(?!dark)/, { rects: [[5, 6, px(0.8) - 10, 30, 0]], as: 'hub-gangway-door' }],
+  [/^hub-bay-train-(?!dark)/, { rects: [[0, 0, BAY.w, BAY.h + TRAIN.pit, 150]] }],
+  [/^hub-bay-vista-lit/, { rects: [[0, 0, BAY.w, 225, 130]] }],
+  [/^hub-ticket-booth$/, { rects: [[7, 26, 49, 36, 0], [63, 26, 50, 36, 0]] }],
+  [/^hub-news-kiosk$/, { rects: [[10, 30, 90, 26, 0]] }],
+];
+export const stationLit = (key) => (LIT.find(([re]) => re.test(key)) || [])[1] || null;
+
 // station furniture, keyed by the names the lint measures (trainKit.js)
 const FURNITURE = {
   'hub-platform-lamp': [STATION.lampPlatform, (ctx, w, h) => paintPlatformLamp(ctx, w, h, { on: true })],
