@@ -3,7 +3,7 @@
 All dev-only code is behind `import.meta.env.DEV` and is absent from `vite build` output.
 
 ## Warp
-`?warp=<dream>:<place>` with dreams `hub chef musician astronaut writer painter gambler evening`. It is rewritten onto the old per-scene params, which still work: `?at=` (astronaut), `?wr=`, `?pt=`, `?gm=`, `?ev=`. `chef` and `musician` just start that scene; `hub` is the normal boot. In-session: `__dc.warp('gambler', 'pit')`.
+`?warp=<dream>:<place>` with dreams `hub chef musician astronaut writer painter gambler evening`. It is rewritten onto the old per-scene params, which still work: `?at=` (astronaut), `?wr=`, `?pt=`, `?gm=`, `?ev=`. `chef` and `musician` just start that scene; `hub` is the normal boot. In-session: `__dc.warp('gambler', 'pit')`. A dev page loads every JS chunk and atlas pack at boot so warps work; the public site loads them on boarding (`src/core/boarding.js`). `?lean` uses the public site's atlas loading on a dev page: board through the hub there, because a warp will not load a dream's packs.
 
 ## `window.__dc`
 `step(n, dtMs=16.67)` (synthetic clock; puts the rAF loop to sleep, works with the pane hidden; `resume()` wakes it), `press(action|code, frames)`, `hold(a)`, `release(a)`, `releaseAll()`, `state()`, `snap()` (Promise of a PNG data URL), `warp(dream, place)`, `runScenarios(id?)`. Actions: `left right up down jump interact action shove trumpet tether esc enter`, or any code such as `KeyF`, `Space`, `Digit1`. Keys are real KeyboardEvents on `window` with `keyCode` set. Always pass `tabId` to the browser tools; harness loads shortly after boot.
