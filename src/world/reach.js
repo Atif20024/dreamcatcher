@@ -15,8 +15,13 @@ import { roleOf, isSolidChar, isSlopeChar } from '../builders/legend.js';
 
 export const REACH = { rise: 4, across: 4, body: 3 };
 
+// opts.lids: the scene lets a climber through a one-tile solid over a
+// ladder (scene.ladderLids: the station, the Evening), as Player.js does.
+// Off by default, as in the Player: elsewhere a lid is a ceiling, and a
+// model that called it a hatch would promise the net a route that is not
+// there (ladder review r1, SHOULD 2). A caller passes its scene's flag.
 export function reachGrid(rows, opts = {}) {
-  const { rise, across, body } = { ...REACH, ...opts };
+  const { rise, across, body, lids = false } = { ...REACH, ...opts };
   const H = rows.length;
   const W = Math.max(...rows.map((r) => r.length));
   const ch = (c, r) => (r < 0 ? '.' : r >= H || c < 0 || c >= W ? '#' : rows[r][c] || '.');
@@ -30,7 +35,7 @@ export function reachGrid(rows, opts = {}) {
     return true;
   };
   // a one-tile lid over a ladder: solid, with a rung right under it
-  const lid = (c, r) => blocked(c, r) && !ladder(c, r) && ladder(c, r + 1);
+  const lid = (c, r) => lids && blocked(c, r) && !ladder(c, r) && ladder(c, r + 1);
   const node = (c, r) => c >= 0 && c < W && r >= 0 && r < H && clear(c, r - body + 1, r) && (ladder(c, r) || floor(c, r + 1));
   const key = (c, r) => r * W + c;
 

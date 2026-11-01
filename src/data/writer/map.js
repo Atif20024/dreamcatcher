@@ -83,8 +83,11 @@ export function buildWriterMap() {
   ramp(rows, FLOOR, 162, 3, 'r'); // the garden step
 
   // ---- CHAPTER 3 — the library (180-249) ---------------------------------
-  fill(rows, 12, 12, 200, 249, '#'); // the stacks' roof
-  fill(rows, 13, 33, 200, 200, '#'); // the wall between the reading room and the stacks
+  // the stacks' roof: three clear rows over the top shelf (row 14), so Jo
+  // can stand there off the col-210 ladder (it was at row 12: 22 px of room,
+  // and he fell back onto the ladder; lint:rooms ladder-head headroom)
+  fill(rows, 10, 10, 200, 249, '#');
+  fill(rows, 11, 33, 200, 200, '#'); // the wall between the reading room and the stacks
   fill(rows, 30, 33, 200, 200, '.'); // ...with a doorway
   ramp(rows, FLOOR, 186, 3, 'l');
   for (const [row, c0, c1] of [
@@ -100,7 +103,7 @@ export function buildWriterMap() {
   fill(rows, 19, 21, 244, 244, 'H');
   fill(rows, 15, 17, 210, 210, 'H');
   stairsUp(rows, FLOOR, 244, 4); // iron stairs at the far end (the word 'lit')
-  fill(rows, 13, 33, 249, 249, '#'); // the stacks' far wall
+  fill(rows, 11, 33, 249, 249, '#'); // the stacks' far wall
   put(rows, 13, 235, '===');
   fill(rows, 13, 33, 240, 240, '.'); // the dumbwaiter shaft is clear
 

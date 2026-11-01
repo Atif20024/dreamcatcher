@@ -178,7 +178,17 @@ function checkPanel(sc, label) {
   const st = ReadingPanel.last && ReadingPanel.last.scene === sc ? ReadingPanel.last.state() : null;
   if (!st || !st.open) return `${label}: not open`;
   const bad = [];
-  if (st.cap < READING.minCap) bad.push(`cap ${st.cap}`);
+  // feedback 4: the cap in CSS px on this screen, a whole-number pixel
+  // scale on the device grid, the line length, and the page beside the
+  // game's canvas (so a fullscreen game shows it)
+  const capMin = st.phone ? READING.capCss.phone : READING.capCss.desktop;
+  if (st.cap < capMin) bad.push(`cap ${st.cap} css px < ${capMin}`);
+  if (!st.onGrid) bad.push('off the device pixel grid');
+  if (st.lines > 1 && st.chars > 65) bad.push(`${st.chars} characters a line`);
+  if (!st.dom) bad.push('page not visible');
+  const L = ReadingPanel.last.layer;
+  const g = sc.game.canvas;
+  if (L && g && L.parentNode !== g.parentNode) bad.push('page not beside the game canvas');
   if (st.contrast < READING.minContrast) bad.push(`contrast ${st.contrast}`);
   if (st.angle) bad.push(`angle ${st.angle}`);
   if (!st.fits) bad.push('overflows');

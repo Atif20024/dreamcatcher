@@ -50,3 +50,26 @@ export function overLadder(lg, p, body) {
 export function ladderPass(scene) {
   return (p, o) => !(p.climbing && overLadder(scene.ladderGrid, p, o.body || o));
 }
+
+// room over a ladder's head: can a body `h` px tall stand with its feet on
+// `surface` (a world y) in column tx? Every tile it would occupy is clear.
+// (Player.js asks before stepping Jo out at the head: where it is not, he
+// stays on the top rung instead of being shoved back into the shaft and
+// re-grabbing it, the loop the roof rib had.)
+export function headroomClear(solidAt, tx, surface, h) {
+  if (!solidAt) return true;
+  const r0 = Math.floor((surface - h) / T);
+  const r1 = Math.floor((surface - 1) / T);
+  for (let r = r0; r <= r1; r++) if (solidAt(tx, r)) return false;
+  return true;
+}
+
+// DOWN on a hatch (a cap, a plank or a lid over a ladder) grabs it only on a
+// fresh press: one made on the hatch, or just before arriving on it (within
+// `grace` ms). Walking across a hatch with DOWN already held does not drop
+// Jo into the ladder (ladder review r1, NICE 5).
+export const HATCH_PRESS_GRACE_MS = 200;
+export function freshDown(pressedAt, overHatchSince, grace = HATCH_PRESS_GRACE_MS) {
+  if (pressedAt === null || pressedAt === undefined || overHatchSince === null || overHatchSince === undefined) return false;
+  return pressedAt >= overHatchSince - grace;
+}

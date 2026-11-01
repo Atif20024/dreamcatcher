@@ -12,6 +12,8 @@ import { getSave } from '../utils/save.js';
 import { hatById } from '../data/hats.js';
 import JoLocator from './JoLocator.js';
 import JoLight from './JoLight.js';
+import { headroomClear, freshDown } from '../world/ladders.js';
+import { uiText } from '../ui/text.js';
 
 // multiply two 0xrrggbb colours (a light on a colour)
 export function mulColor(a, b) {
@@ -483,6 +485,24 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   inUp() {
     return this.inputMap ? this.inputMap.isDown('up') : this.cursors.up.isDown || this.keys.W.isDown;
   }
+  // a small [↓] over Jo's head while he stands on a hatch (a ladder's cap,
+  // plank or lid): the roof hatch and the dreams' open-topped ladders read
+  // as floor otherwise (ladder review r1, NICE 4). The station's grate has
+  // its own prompt, so this one waits while that shows.
+  _hatchHint(on) {
+    const s = this.scene;
+    const show = on && !(s.hatchPrompt && s.hatchPrompt.visible);
+    if (!show) {
+      if (this.hatchHint) this.hatchHint.setVisible(false);
+      return;
+    }
+    if (!this.hatchHint || !this.hatchHint.scene) {
+      this.hatchHint = uiText(s, this.x, this.y, '[\u2193] down', { fontSize: '12px', color: '#88b8d8', backgroundColor: '#14101c' }).setOrigin(0.5, 1);
+      this.hatchHint.keepInWorld = true;
+    }
+    this.hatchHint.setPosition(Math.round(this.x), Math.round(this.body.bottom - 90)).setDepth((this.depth || 0) + 1).setVisible(true);
+  }
+
   inDown() {
     return this.inputMap ? this.inputMap.isDown('down') : this.cursors.down.isDown || this.keys.S.isDown;
   }
@@ -545,7 +565,17 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     const owg = this.scene.oneWayGrid || (this.scene.built && this.scene.built.oneWayGrid) || {};
     const plankAt = (r) => !!(owg[r] && owg[r][ftx] !== undefined);
     const downGrab = rungAt(fr) || (rungAt(fr + 1) && (!lidAt(fr) || this.scene.ladderLids)) || (rungAt(fr + 2) && plankAt(fr + 1) && !lidAt(fr + 1));
-    if (!this.climbing && wantsClimb && !locked && regrabOk && (onLadderTile(0) || onLadderTile(20) || (crouch && downGrab))) {
+    // a hatch: Jo stands on a ladder's cap, plank or lid (not in the shaft).
+    // DOWN grabs it only when pressed there, or just before arriving
+    // (world/ladders.js freshDown): crossing it with DOWN held walks on
+    if (crouch && !this._downWas) this.downPressedAt = time;
+    this._downWas = crouch;
+    const onHatch = !this.climbing && downGrab && !onLadderTile(0) && !onLadderTile(20);
+    if (onHatch) this.overHatchSince ??= time;
+    else this.overHatchSince = null;
+    this._hatchHint(onHatch && body.onFloor() && time - this.overHatchSince > 250 && !crouch);
+    const hatchGrab = crouch && onHatch && freshDown(this.downPressedAt, this.overHatchSince);
+    if (!this.climbing && wantsClimb && !locked && regrabOk && (onLadderTile(0) || onLadderTile(20) || hatchGrab)) {
       this.climbing = true;
       body.setAllowGravity(false);
       body.setVelocity(0, 0);
@@ -607,7 +637,13 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
             // (the body's own feet: the legacy body and the 82 px one sit
             // differently under the sprite's centre)
             const feetOff = body.bottom - this.y;
-            if (surface !== null && body.bottom <= surface + 1) {
+            // ... if he fits there: under a low ceiling he stays on the top
+            // rung (stepping out, the ceiling shoved him back into the shaft
+            // and he re-grabbed it: ladder review r1, SHOULD 1)
+            const room = surface === null || headroomClear(ss, htx, surface, body.height);
+            this.headBlocked = !room;
+            if (surface !== null && body.bottom <= surface + 1 && !room) body.setVelocityY(0);
+            else if (surface !== null && body.bottom <= surface + 1) {
               this.y = surface - feetOff;
               body.reset(this.x, this.y);
               this.climbing = false;
