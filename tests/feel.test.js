@@ -4,7 +4,7 @@
 // loop at 30/60/144 Hz, and against the old per-frame controller at 60 Hz:
 // 60 Hz must stay what the levels were built on.
 import { describe, it, expect, afterEach } from 'vitest';
-import { GRAVITY, SPEED, JUMP, JUMP_CUT_BELOW, TERMINAL_FALL, perFrame, cutSpeed, landImpact, isLanding, cornerNudge, CORNER_MAX, CORNER_RISE } from '../src/entities/motion.js';
+import { GRAVITY, SPEED, JUMP, JUMP_CUT_BELOW, TERMINAL_FALL, perFrame, cutSpeed, landImpact, isLanding, cornerNudge, CORNER_MAX, CORNER_RISE, vaultSpeed, VAULT_FEET_OVER } from '../src/entities/motion.js';
 import { REACH } from '../src/world/reach.js';
 import { easeFollow, shakeScale } from '../src/world/CameraDirector.js';
 import { InputMap, attachInput } from '../src/input/InputMap.js';
@@ -337,5 +337,56 @@ describe('corner help (motion.cornerNudge)', () => {
     expect(cornerNudge(box(127), 200, tiles(CEIL))).toBe(0);
     expect(cornerNudge(box(127), rising, tiles([]))).toBe(0); // a body, not a tile
     expect(CORNER_MAX).toBe(4);
+  });
+});
+
+// A10: the Astronaut's pool vault, through the scene's own order: Arcade's fixed
+// steps, then swimUpdate/update once per frame reading the sprite's y, which is
+// only written back at the end of the frame (so it trails the body).
+describe('the pool vault', () => {
+  const SURFACE = 1152;
+  const BODY_DY = 22; // sprite y over body top
+  const BODY_H = 44;
+  function vault(hz, startY, { fix = true } = {}) {
+    const frame = 1000 / hz;
+    let y = startY - 10; // p.y -= 10
+    let sprite = y;
+    let vy = -540;
+    let air = false;
+    let acc = 0;
+    let top = y;
+    for (let t = 0; t < 2000; t += frame) {
+      acc += frame;
+      while (acc >= STEP_MS - 1e-9) {
+        acc -= STEP_MS;
+        if (air) vy += STEP_DV;
+        y += vy / 60;
+        top = Math.min(top, y);
+      }
+      if (!air && sprite < SURFACE) {
+        air = true;
+        if (fix) vy = -vaultSpeed(y - BODY_DY + BODY_H, SURFACE);
+      }
+      sprite = y;
+    }
+    return { rise: startY - top, top };
+  }
+
+  it('reproduces the old fault without the fix', () => {
+    const rises = RATES.map((hz) => vault(hz, 1173, { fix: false }).rise);
+    expect(rises[0] - rises[2]).toBeGreaterThan(10);
+  });
+
+  it('rises 154 px from a swimmer\'s start, at every rate', () => {
+    for (const hz of RATES) expect(Math.abs(vault(hz, 1173).rise - 154)).toBeLessThanOrEqual(1);
+  });
+
+  it('reaches one height from anywhere a vault can start, feet over the lip', () => {
+    for (const hz of RATES) {
+      for (const start of [1164, 1173, 1182, 1198]) {
+        const feet = vault(hz, start).top - BODY_DY + BODY_H;
+        expect(Math.abs(SURFACE - VAULT_FEET_OVER - feet)).toBeLessThanOrEqual(1);
+      }
+    }
   });
 });

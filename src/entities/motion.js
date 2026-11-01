@@ -28,9 +28,22 @@ export function cutSpeed(speed, gravity = GRAVITY) {
   }
   // Arcade's step loses dv/2 of rise per step: h = v²/2g - v/120
   rise += (v * v) / (2 * gravity) - v / 120;
-  const half = gravity / 120;
-  return half + Math.sqrt(half * half + 2 * gravity * rise);
+  return riseSpeed(rise, gravity);
 }
+
+// The rising speed that goes up h px and stops, on Arcade's fixed step.
+export function riseSpeed(h, gravity = GRAVITY) {
+  const half = gravity / 120;
+  return half + Math.sqrt(half * half + 2 * gravity * h);
+}
+
+// The Astronaut's pool vault. He swims up weightless, and gravity comes back on
+// the first frame his head reads dry, which is later at a low rate: the apex
+// moved with the frame rate. So the first dry frame sets the speed that reaches
+// one height, whatever got him here: his feet this far over the water (the 154 px
+// rise from a swimmer's start, as it was at 60 Hz).
+export const VAULT_FEET_OVER = 111;
+export const vaultSpeed = (feetY, surfaceY, gravity = GRAVITY) => riseSpeed(feetY - (surfaceY - VAULT_FEET_OVER), gravity);
 
 // Terminal velocity. Arcade adds up to 3 steps of gravity (fps.min 20) before
 // Player.update clamps again: 660 + 3 x 20 = 720 px/s, 12 px a step at most,

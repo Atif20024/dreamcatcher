@@ -123,7 +123,7 @@ const O = {
     { type: 'puddle', at: 190, y: 31, w: 2 },
   ],
   steep: [
-    { type: 'bikestall', at: 220, y: 31 },
+    { type: 'bikestall', at: 219.25, y: 31 }, // (the east post clears the first step, col 222)
     { type: 'npc', who: 'bike_man', at: 220, y: 31 },
     { type: 'cart', at: 229, y: 26 },
     { type: 'npc', who: 'ray', at: 231, y: 26, sit: true },

@@ -23,7 +23,8 @@ import { BACKDROP_ROWS, facadeMetrics } from '../data/scale.js';
 
 const WRAP_PX = EV.E0 * 32;
 const T = 32;
-const hex = (c) => `#${c.toString(16).padStart(6, '0')}`;
+const TOWN_SINK = 300; // px: under the deck and past the arches, off the screen before it goes
+const hex =(c) => `#${c.toString(16).padStart(6, '0')}`;
 const mod = (a, n) => ((a % n) + n) % n;
 
 function canvasTex(scene, key, w, h) {
@@ -608,8 +609,11 @@ export default class Horizon {
     const target = onRoad ? Phaser.Math.Clamp((player.x - 396 * T) / ((470 - 396) * T), 0, 1) : 0;
     this.roadMix += (target - this.roadMix) * Math.min(1, dt * 1.5);
     // the town is gone a tenth of the way up the road, the road's land solid
-    // by halfway: both see-through at once read as a ghost row of houses
+    // by halfway. It sinks behind the deck, solid to the last: faded, its
+    // houses read as see-through, with the range showing through them
     const town = Phaser.Math.Clamp(1 - this.roadMix / 0.15, 0, 1);
+    const townOn = town > 0 ? 1 : 0;
+    const townSink = (1 - town) * TOWN_SINK;
 
     for (const [name, b] of Object.entries(this.bands)) {
       if (name === 'road') {
@@ -617,15 +621,15 @@ export default class Horizon {
       } else {
         b.ts.tilePositionX = sx * b.f;
       }
-      b.ts.y = (b.anchorTop ? b.base : b.base - b.H) + (this.refScroll - sy) * b.fy * 0.6;
+      b.ts.y = (b.anchorTop ? b.base : b.base - b.H) + (this.refScroll - sy) * b.fy * 0.6 + (name === 'town' || name === 'near' || name === 'under' ? townSink : 0);
       // aerial perspective: far bands wash toward the horizon colour
       const haze = name === 'sea' ? 0.35 : name === 'mtn' || name === 'mtnSnow' ? 0.5 : name === 'town' ? 0.25 : name === 'road' ? 0.2 : name === 'under' ? 0.15 : 0.16;
       b.ts.setTint(lerpC(ambient, horizonColour, haze));
     }
     this.bands.sea.ts.setAlpha((1 - this.roadMix) * (1 - rain * 0.3)); // behind the range and the road: no houses to ghost
-    this.bands.town.ts.setAlpha(town);
-    this.bands.near.ts.setAlpha(town);
-    this.bands.under.ts.setAlpha(town);
+    this.bands.town.ts.setAlpha(townOn);
+    this.bands.near.ts.setAlpha(townOn);
+    this.bands.under.ts.setAlpha(townOn);
     this.bands.road.ts.setAlpha(Phaser.Math.Clamp(this.roadMix / 0.5, 0, 1));
     // the mountains take the snow half a minute before the town does
     this.snowCap += ((snow > 0 ? 1 : 0) - this.snowCap) * Math.min(1, dt / (snow > 0 ? 25 : 40));
@@ -659,9 +663,9 @@ export default class Horizon {
     const tb = this.bands.town;
     for (const w of this.lit) {
       const x = this.screenX(tb, w.x);
-      w.img.setPosition(x, tb.ts.y + w.y).setAlpha(town * w.alpha);
+      w.img.setPosition(x, tb.ts.y + w.y).setAlpha(townOn * w.alpha);
       if (w.sil) {
-        w.sil.setPosition(x, tb.ts.y + w.y).setAlpha(town);
+        w.sil.setPosition(x, tb.ts.y + w.y).setAlpha(townOn);
         w.silT += delta;
         if (w.silT > 700) {
           w.silT = 0;
@@ -686,7 +690,7 @@ export default class Horizon {
       p.life += dt;
       p.lx += dt * 3 * (1 + rain);
       p.ly -= dt * 6;
-      p.setPosition(this.screenX(tb, p.lx), tb.ts.y + p.ly).setRadius(2 + p.life * 1.5).setAlpha(Math.max(0, 0.45 - p.life * 0.09) * town);
+      p.setPosition(this.screenX(tb, p.lx), tb.ts.y + p.ly).setRadius(2 + p.life * 1.5).setAlpha(Math.max(0, 0.45 - p.life * 0.09) * townOn);
       if (p.life > 5) {
         p.destroy();
         return false;
@@ -700,7 +704,7 @@ export default class Horizon {
     for (const f of this.balconyFolk) {
       const x = this.screenX(nb, f.x);
       const on = x > this.spanX - 20 && x < this.spanX + this.spanW + 20;
-      f.g.setVisible(on).setPosition(x, nb.ts.y + f.y).setAlpha(town);
+      f.g.setVisible(on).setPosition(x, nb.ts.y + f.y).setAlpha(townOn);
       f.t += delta;
       if (f.t > f.period) {
         f.t = 0;

@@ -71,6 +71,10 @@ const returnStaged = {
   run: (dc) =>
     withSave(
       async () => {
+        // Jo was away for a long dream: the Hub's clock did not run meanwhile
+        start(dc, 'Hub');
+        window.game.scene.stop('Hub');
+        dc.step(1, 120000);
         const s = await hub(dc, { returnedFrom: 'clockmaker' });
         const rounds0 = s.webRounds.length;
         let f = 0;
