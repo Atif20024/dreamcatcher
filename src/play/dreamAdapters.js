@@ -24,7 +24,8 @@ import Phaser from 'phaser';
 import { D } from '../builders/depths.js';
 import { Npc } from '../actors/Npc.js';
 import { castFrame } from '../art/baked.js';
-import { recordMoment } from '../utils/save.js';
+import { recordMoment, getSave } from '../utils/save.js';
+import { postcardMark } from '../scenes/BaseLevel.js';
 import { sfx } from '../systems/audio.js';
 import { hud } from '../ui/hud.js';
 import { uiText } from '../ui/text.js';
@@ -292,7 +293,8 @@ export function castPortrait(scene, key, face) {
 
 export function spawnMoment(scene, e, room) {
   const at = { x: (room.r.tx + e.x) * T + T / 2, y: (room.r.ty + e.y) * T + T };
-  return scene.interaction.register({
+  const mark = !scene.F[`moment:${e.id}`] && getSave().shop.postcards[scene.dreamId] ? postcardMark(scene, at.x, at.y - 96) : null;
+  const reg = scene.interaction.register({
     id: `moment:${e.id}`,
     x: at.x,
     y: at.y,
@@ -301,10 +303,17 @@ export function spawnMoment(scene, e, room) {
     enabled: () => !scene.F[`moment:${e.id}`] && !scene.beats.busy,
     onUse: async () => {
       scene.F[`moment:${e.id}`] = true;
+      if (mark) mark.destroy();
       if (e.beat && scene.beats.has(e.beat)) await scene.beats.play(e.beat);
       if (e.record !== false) recordMoment(scene.dreamId, e.id);
     },
   });
+  return {
+    destroy() {
+      if (mark && mark.active) mark.destroy();
+      reg.destroy();
+    },
+  };
 }
 
 // a sign: a board (its colour, a 2 px rim, a darker frame) and the words on

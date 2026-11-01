@@ -25,7 +25,7 @@ import Silhouettes from '../entities/Silhouette.js';
 import Phrases from '../systems/rhythm.js';
 import { hubState, headline, pembertonLine, teaLine, runningDreams, caughtRunning, progress } from '../systems/hubState.js';
 import { getSave, updateSave, getRun } from '../utils/save.js';
-import { getWallet, spend, addCoins } from '../systems/wallet.js';
+import { getWallet, spend, addCoins, PRICES } from '../systems/wallet.js';
 import { HATS, hatById } from '../data/hats.js';
 import { sfx, music, musicDirector, sting, accordion, chime, playFx } from '../systems/audio.js';
 import { ambience } from '../audio/Ambience.js';
@@ -1297,6 +1297,13 @@ export default class HubScene extends BaseLevel {
       const d = dreamById(this.returnedFrom);
       return this.say('ro', d ? d.roLine : 'You have been somewhere.');
     }
+    const hat = hatById(this.save.shop.hat);
+    const hub = this.save.flags.hub;
+    if (hat && hub.roHat !== hat.id) {
+      hub.roHat = hat.id;
+      updateSave((s) => (s.flags.hub.roHat = hat.id));
+      return this.say('ro', hat.ro);
+    }
     if (this.N === 0) return this.say('ro', first ? 'Shoes first. Dreams after.' : 'Sit a minute. The trains wait, whatever the board says.');
     return this.say('ro', 'Sit a minute. The trains wait, whatever the board says.');
   }
@@ -1543,25 +1550,25 @@ export default class HubScene extends BaseLevel {
     for (;;) {
       const sv = getSave();
       const w = getWallet().total;
-      const shardCost = [150, 300, 600][Math.min(2, sv.shop.shardsBought)];
+      const shardCost = PRICES.shards[Math.min(2, sv.shop.shardsBought)];
       const choices = [
-        { label: free ? 'tea' : `tea ·20`, value: 'tea' },
+        { label: free ? 'tea' : `tea ·${PRICES.tea}`, value: 'tea' },
         { label: free ? 'shard' : `shard ·${shardCost}`, value: 'shard' },
-        { label: free ? 'postcard' : `postcard ·100`, value: 'postcard' },
-        { label: free ? 'ticket' : `ticket ·250`, value: 'ticket' },
+        { label: free ? 'postcard' : `postcard ·${PRICES.postcard}`, value: 'postcard' },
+        { label: free ? 'ticket' : `ticket ·${PRICES.ticket}`, value: 'ticket' },
         { label: 'hats…', value: 'hats' },
         { label: 'done', value: 'done' },
       ];
       const pick = await this.dialog.show([
-        { name: 'Bilal', portrait: 'hub-bilal', text: free ? 'Everything left on the shelf is yours. I never found a price for it.' : `The Express. You're carrying $${w}. Tea steadies the first stretch of a dream; a shard is a piece of a heart; a postcard marks a dream's small moments; a ticket forgives one bad night.`, choices },
+        { name: 'Bilal', portrait: 'hub-bilal', text: free ? 'Everything left on the shelf is yours. I never found a price for it.' : `The Express. You're carrying $${w}. Tea is one heart over, next dream. Three shards make a heart, for good. A postcard marks a dream's small moments and its shard. A ticket: hearts gone, you stay where you fell.`, choices },
       ]);
       if (!pick || pick === 'done') return;
       if (pick === 'tea') {
         if (sv.shop.tea) await this.say('bilal', 'One is enough. Drink that one first.');
-        else if (pay(20)) {
+        else if (pay(PRICES.tea)) {
           updateSave((x) => (x.shop.tea = true));
           sfx('buy');
-          await this.say('bilal', 'On the counter when you board. Warm through the first section.');
+          await this.say('bilal', 'On the counter when you board. One heart to the good.');
         } else await this.say('bilal', 'Twenty. Come back with change in your coat.');
       } else if (pick === 'shard') {
         if (sv.shop.shardsBought >= 3) await this.say('bilal', 'Three is all I ever find.');
@@ -1578,18 +1585,18 @@ export default class HubScene extends BaseLevel {
         const target = await this.pickPostcard(sv);
         if (!target) continue;
         if (sv.shop.postcards[target]) await this.say('bilal', 'You have that one. Read the back again.');
-        else if (pay(100)) {
+        else if (pay(PRICES.postcard)) {
           updateSave((x) => (x.shop.postcards[target] = true));
           sfx('buy');
-          await this.say('bilal', 'Somebody mailed it and never came back for it. The X marks are theirs.');
+          await this.say('bilal', 'Somebody mailed it and never came back for it. The marks are theirs: wherever they stopped, you can.');
         } else await this.say('bilal', 'A hundred. The stamps alone, you understand.');
       } else if (pick === 'ticket') {
         if (sv.shop.ticket) await this.say('bilal', 'You still have one. Try not to need it.');
-        else if (pay(250)) {
+        else if (pay(PRICES.ticket)) {
           updateSave((x) => (x.shop.ticket = true));
           sfx('buy');
-          await this.say('bilal', 'A return ticket. One bad night, forgiven. Once.');
-        } else await this.say('bilal', 'Two hundred fifty. Hope is not cheap, friend.');
+          await this.say('bilal', 'A return ticket. The night your hearts run out, you get up where you fell, coins and all. Once.');
+        } else await this.say('bilal', 'A hundred fifty. Hope is not cheap, friend.');
       } else if (pick === 'hats') {
         const owned = sv.shop.hats;
         const hatChoices = HATS.map((h) => ({ label: owned.includes(h.id) ? `${h.name} ✓` : `${h.name} ·${h.cost}`, value: h.id })).slice(0, 3);
@@ -1632,7 +1639,7 @@ export default class HubScene extends BaseLevel {
       const choices = open.slice(page * PAGE, (page + 1) * PAGE).map((d) => ({ label: `${d.title}${sv.shop.postcards[d.id] ? ' ✓' : ''}`, value: d.id }));
       if (open.length > PAGE) choices.push({ label: 'more…', value: 'more' });
       choices.push({ label: 'never mind', value: 'none' });
-      const pick = await this.dialog.show([{ name: 'Bilal', portrait: 'hub-bilal', text: 'A postcard from which dream? It marks the small moments on your way.', choices }]);
+      const pick = await this.dialog.show([{ name: 'Bilal', portrait: 'hub-bilal', text: 'A postcard from which dream? It marks the small moments and the shard on your way.', choices }]);
       if (pick !== 'more') return pick === 'none' ? null : pick;
     }
   }

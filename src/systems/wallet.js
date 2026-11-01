@@ -4,6 +4,19 @@ import { dreamById } from '../data/dreams.js';
 // Collectibles §8 — the wallet. Coins are added the moment they are picked
 // up and deducted when death scatters them; both write the save, so quitting
 // mid-level never loses what was honestly collected (or dodges the scatter).
+// Hearts: caught dreams add up to six as they always did; every whole heart of
+// shards (found or bought) is one more on top of that, or a shard would be
+// worthless from the third catch on. (Coins are never required: this is the most
+// a full wallet and every shard can do.)
+export const HEARTS_CAP = 8;
+export function heartsMax(difficulty = 0, shards = 0) {
+  return Math.min(HEARTS_CAP, Math.min(6, 3 + difficulty) + Math.floor((shards || 0) / 3));
+}
+
+// Bilal's prices. A full run pays about 1,850 (every coin; a real one maybe 1,100)
+// against about 2,300 on the shelf: enough for what matters, not for everything.
+export const PRICES = { tea: 20, shards: [60, 120, 200], postcard: 100, ticket: 150 };
+
 export function getWallet() {
   return getSave().wallet;
 }
