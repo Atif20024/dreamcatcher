@@ -9,7 +9,7 @@ import { D } from '../builders/depths.js';
 import { lightThemeProps } from '../art/levelArt.js';
 import writerRooms, { PARAGRAPHS } from '../data/writer/rooms.js';
 import writerTiles from '../data/writer/tiles.js';
-import { DIALOGUES, MOMENTS, FIRST_PARAGRAPH, CARD_LINES } from '../data/writer/cast.js';
+import { DIALOGUES, MOMENTS, FIRST_PARAGRAPH, CARD_LINES, rentScene } from '../data/writer/cast.js';
 import { PAGE_GATES, deskTotal, deskWords, carryTypos, dropIndex, KEPT_WORDS, REQUIRED_EDITS } from '../data/writer/economy.js';
 import { createWriterTextures } from '../data/writer/sprites.js';
 import Labels from '../systems/labels.js';
@@ -427,6 +427,13 @@ export default class WriterScene extends BaseLevel {
           this.floatText(this.player.x, this.player.y - 60, 'last bus: gone. it says so now.', '#f2e0a0');
           if (this.coinMgr) for (let i = 0; i < 3; i++) this.coinMgr.spawn(this.player.x - 24 + i * 24, this.player.y - 40);
         }
+        // the lesson: the Editor undoes what it walks past. Said where it can be
+        // seen, as Jo may be up the fire escape by then
+        if (revert) {
+          const l = this.labels.get('timetable');
+          const here = onCamera(this, l.x, l.y);
+          this.floatText(here ? l.x : this.player.x, here ? l.y - 20 : this.player.y - 60, "lying, again. what it walks past, it takes back.", '#c8c0b0');
+        }
         break;
       default:
         break;
@@ -570,9 +577,9 @@ export default class WriterScene extends BaseLevel {
     if (landlady) {
       this.addInteract(landlady.x, landlady.y, 'the rent', async () => {
         if (this.machinesFixed >= 4) {
-          await this.dialog.show(DIALOGUES.rent_yes);
           // the pennies go to her, as far as he has kept them
           const paid = Math.min(RENT, this.levelCoins || 0);
+          await this.dialog.show(rentScene(paid, RENT));
           if (paid > 0) {
             this.levelCoins -= paid;
             deductWorth('writer', paid * coinWorth('writer'));

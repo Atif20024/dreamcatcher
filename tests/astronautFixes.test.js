@@ -61,6 +61,26 @@ describe('round 2', () => {
     expect(strike.indexOf('this.tether !== hook')).toBeGreaterThan(-1);
     expect(strike.indexOf('this.tether !== hook')).toBeLessThan(strike.indexOf('this.tether = null'));
   });
+  it('N3: the verdict locks Jo, and [E] cannot reopen the door behind it', () => {
+    const v = body('boardVerdict');
+    expect(v.indexOf('controlLockUntil = this.time.now')).toBeLessThan(v.indexOf('await wait'));
+    expect(v).toMatch(/p\.controlLockUntil = 0/);
+    expect(scene).toMatch(/!this\.F\.selected && !this\.boarding/);
+  });
+  it('N5: a resumed second year wears the grey, and only one overlay is ever made', () => {
+    const extra = scene.slice(scene.indexOf('  applyRunExtra(x) {'), scene.indexOf('  devWarp() {'));
+    expect(extra).toMatch(/this\.F\.rejected && !this\.F\.selected\) this\.greyOverlay\(\)/);
+    expect(scene).toMatch(/this\.greyYear \|\|= /);
+  });
+  it('N6: [Esc] from the cards does not float "false/5"', () => {
+    const at = scene.indexOf('await systemsCards(this)');
+    expect(scene.indexOf('right === false', at)).toBeLessThan(scene.indexOf('right >= CARDS_TO_PASS', at));
+  });
+  it('a catch ends the winch reel, so a respawn cannot play the rim scene alone', () => {
+    const drop = scene.slice(scene.indexOf('  dropCarry() {'), scene.indexOf('  // ------- update'));
+    expect(drop).toMatch(/this\.reeling = false/);
+    expect(drop).toMatch(/setAllowGravity\(true\)/);
+  });
   it('S2: after a failed quiz Halvorsen does not say the questions were fine', () => {
     const fn = body('faceTheBoard');
     const failed = fn.slice(fn.indexOf('if (!res.passed)'), fn.indexOf('SEAT_QUESTION'));

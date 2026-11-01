@@ -82,6 +82,7 @@ export default class AstronautScene extends BaseLevel {
     this.evaSnapUntil = 0;
     this.plateNudged = false;
     this.greyHold = false;
+    this.boarding = false;
     this.carryPix = null;
     this.tetherLine = null;
     this.priyaOnHatch = false;
@@ -236,6 +237,7 @@ export default class AstronautScene extends BaseLevel {
   applyRunExtra(x) {
     if (x.stats) this.stats = { ...this.stats, ...x.stats };
     if (x.power !== undefined) this.power = x.power;
+    if (this.F.rejected && !this.F.selected) this.greyOverlay(); // a run resumed in the second year
   }
 
   devWarp() {
@@ -614,6 +616,7 @@ export default class AstronautScene extends BaseLevel {
     const fc = this.obj('flashcards');
     this.addInteract(fc.wx + 20, fc.wy, 'flashcards, with Priya', async () => {
       const right = await systemsCards(this);
+      if (right === false) return; // [Esc]: he put the cards down
       const ready = right >= CARDS_TO_PASS;
       this.floatText(fc.wx, fc.wy - 50, ready ? `${right}/${FLASHCARDS.length}. "you can afford one wrong answer now."` : `${right}/${FLASHCARDS.length}. "again, before Thursday."`, ready ? '#7ec87e' : '#c8c0b0');
       if (ready) this.setFlag('cards_done');
@@ -816,7 +819,15 @@ export default class AstronautScene extends BaseLevel {
     const door = this.obj('board_door');
     for (let c = -4; c <= 3; c++) this.add.rectangle(door.wx + c * 60 - 220, px(35) - 8, 30, 26, 0x3c3c46).setDepth(D.INTERACT - 1);
     this.doorLight = this.add.circle(door.wx, door.wy - 60, 6, 0xf2d580).setDepth(D.INTERACT);
-    this.addInteract(door.wx, door.wy, 'the Board', () => this.faceTheBoard(), { once: false, when: () => this.F.physical && !this.F.selected });
+    // no modal is up during the verdict and the fade, so [E] must not reopen the door
+    this.addInteract(door.wx, door.wy, 'the Board', async () => {
+      this.boarding = true;
+      try {
+        await this.faceTheBoard();
+      } finally {
+        this.boarding = false;
+      }
+    }, { once: false, when: () => this.F.physical && !this.F.selected && !this.boarding });
   }
 
   async faceTheBoard() {
@@ -877,6 +888,9 @@ export default class AstronautScene extends BaseLevel {
   // the verdict, so it cannot be read as a lost quiz: the three silhouettes in
   // a still frame, three red blinks, and one of them stands up
   async boardVerdict() {
+    const p = this.player;
+    p.controlLockUntil = this.time.now + 99999;
+    p.body.setVelocity(0, 0);
     const cam = this.cameras.main;
     const cx = cam.width / 2;
     const cy = cam.height / 2;
@@ -899,6 +913,12 @@ export default class AstronautScene extends BaseLevel {
     this.tweens.add({ targets: standing, y: '-=22', duration: 500, ease: 'sine.out' });
     await wait(1000);
     frame.forEach((o) => o.destroy());
+    p.controlLockUntil = 0;
+  }
+
+  greyOverlay() {
+    const cam = this.cameras.main;
+    this.greyYear ||= this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x50525e, 0.4).setScrollFactor(0).setDepth(89);
   }
 
   async rejection(lead = [A_DIALOGUES.d_rejected[0]]) {
@@ -906,12 +926,13 @@ export default class AstronautScene extends BaseLevel {
     this.setFlag('rejected');
     const cam = this.cameras.main;
     // the grey year: palette drops, the posters fade, Priya is packing
-    this.greyYear = this.add.rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0x50525e, 0.4).setScrollFactor(0).setDepth(89);
+    this.greyOverlay();
     // real silence, held through the year: music.stop alone only drops the boosts
     music.stop();
     musicDirector.setMix({});
     this.greyHold = true;
     await this.dialog.show([...lead, A_DIALOGUES.d_rejected[1]]);
+    this.player.controlLockUntil = this.time.now + 1000;
     this.cameras.main.fadeOut(900, 20, 20, 24);
     await new Promise((res) => this.time.delayedCall(1000, res));
     this.player.setPosition(px(115), px(33));
@@ -2020,6 +2041,12 @@ export default class AstronautScene extends BaseLevel {
 
   dropCarry() {
     const lostHer = this.carryingPriya && this.F.rescue_on && !this.F.priya_safe;
+    // the reel ends with her: left set, a respawn above the rim line would play
+    // the rim scene with nobody on the line
+    if (this.reeling) {
+      this.reeling = false;
+      this.player.body.setAllowGravity(true);
+    }
     this.carry = null;
     this.carryingPriya = false;
     this.updateSatchel();

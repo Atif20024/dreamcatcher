@@ -44,17 +44,23 @@ export const DIALOGUES = {
   ],
   d6: [say('wren', 'Page three?'), { name: 'JO', portrait: 'portrait-jo', text: '{page_three}' }, say('wren', 'Good.')],
   rent_no: [say('landlady', 'The rent, Mr. Jo. Thursday was the rent.'), say('landlady', "I'm not asking about the book. I'm asking about the rent.")],
-  rent_yes: [
-    say('landlady', 'The rent, Mr. Jo.'),
-    { name: 'JO', portrait: 'portrait-jo', text: 'Tomasz paid me. Four machines, in pennies.' },
-    say('landlady', "(she counts it) Pennies. It's all here."),
-    say('landlady', "And the book? …No. I won't ask. Thursday, next time."),
-  ],
   tomasz: [say('tomasz', 'Six machines. Five jammed, one empty, one queue. Fix the four on the floor, kid. It pays in pennies.'), say('tomasz', 'Desk in the back is yours between shifts. Nobody goes back there.')],
-  tomasz2: [say('tomasz', "Rent's paid, then. Go write the thing.")],
+  tomasz2: [say('tomasz', "Rent's seen to, then. Go write the thing.")],
   guard: [{ name: 'A GUARD', portrait: 'portrait-guard', text: 'Quiet. This is a library.' }],
   isolde_late: [say('isolde', "Friday's Friday.")],
 };
+
+// the rent scene says what actually changed hands: the pennies are coins on the
+// shop floor, and Jo may not have picked them up. She takes it either way, since
+// she has heard the machines; the gate does not hang on his coin count.
+export function rentScene(paid, rent) {
+  const jo = (text) => ({ name: 'JO', portrait: 'portrait-jo', text });
+  const open = say('landlady', 'The rent, Mr. Jo.');
+  const book = "And the book? …No. I won't ask.";
+  if (paid >= rent) return [open, jo('Tomasz paid me. Four machines, in pennies.'), say('landlady', "(she counts it) Pennies. It's all here."), say('landlady', `${book} Thursday, next time.`)];
+  if (paid > 0) return [open, jo('Tomasz paid me. Four machines, in pennies. This is what I have.'), say('landlady', `(she counts it) ${paid === 1 ? 'One penny' : `${paid} pennies`}. I heard the machines. The rest by Thursday.`), say('landlady', book)];
+  return [open, jo('Tomasz paid me. In pennies. I seem to have left them on the floor.'), say('landlady', '(she looks at his hands) I heard the machines. Thursday, then, and all of it.'), say('landlady', book)];
+}
 
 export const MOMENTS = {
   m1: { sub: 'Behind the shop, Tomasz eats a sandwich and reads a page Jo left in the machine.', text: '"He\'d never told him it was funny."' },

@@ -87,7 +87,7 @@ And one real softlock risk on hard: the satchel cap (6) could drop "lit" before 
 
 ## Round 2
 
-Asked to work from `docs/redesign/advice/astro_writer_review_r1.md`. **That file does not exist** in the main checkout, this worktree or git history, so M1, S1, S2 and S3 were taken from the one-line descriptions in the request and verified against the code. **N1, N2, N3, N4, N5 and N6 are not done:** nothing says what they are, and I did not guess.
+Asked to work from `docs/redesign/advice/astro_writer_review_r1.md`. **That file does not exist** in the main checkout, this worktree or git history, so M1, S1, S2 and S3 were taken from the one-line descriptions in the request and verified against the code. The NICE items arrived afterwards in a message from the coordinator; they are in the second table below.
 
 | Item | Verified | What I did |
 |---|---|---|
@@ -96,4 +96,18 @@ Asked to work from `docs/redesign/advice/astro_writer_review_r1.md`. **That file
 | S2 | Real, mine. "The questions were never the problem." also played after a failed quiz. | Failed quiz: "The answers, and then the numbers." The old line now plays only after a passed quiz. |
 | S3 | Real, and listed under Not changed above. The room has six machines: five jammed, one empty; four take the pen. | Tomasz: "Six machines. Five jammed, one empty, one queue. Fix the four on the floor, kid. It pays in pennies." Test checks the line against the room data. |
 
-Rerun or play in a browser: `eva-tether-trap`; get caught carrying Priya in the crater, then go back for her; clip ahead during the EVA streak; fail the first Board with short stats. Not checked: being caught during the winch reel leaves gravity off until [F] is released (existing behaviour, by code reading), and the core is still lost on a catch.
+Rerun or play in a browser: `eva-tether-trap`; get caught carrying Priya in the crater, then go back for her; clip ahead during the EVA streak; fail the first Board with short stats. The core is still lost on a catch.
+
+### Round 2, the NICE list
+
+| Item | Verified | What I did |
+|---|---|---|
+| N1 | Real: the Editor reverted the timetable with no word said. | A float when it reverts: "lying, again. what it walks past, it takes back." It sits on the label, or over Jo if the label is off camera, since he may be up the fire escape by then. The edit itself costs almost nothing: the menu stops the clock (N2) and neither a right nor a wrong word locks Jo. Left where it is. |
+| N2 | **Already true, no code change.** `Labels.open` sets `puzzleActive`, `handleModalUpdate` then returns before `ed.update` runs, and `InnerEditor` also checks `puzzleActive`. | Pinned with a test. |
+| N3 | Real. **Also worse than listed:** no modal is up during the verdict or the fade after the letter, so [E] at the door could open a second Board. | Controls locked for the verdict and the fade. The door's prompt is off while a Board visit is running (`boarding`). |
+| N4 | Real: the pennies are coins on the floor, so Jo could say "all here" with none. | `rentScene(paid, rent)` has three versions: all of it, some ("5 pennies. I heard the machines. The rest by Thursday."), none ("I seem to have left them on the floor."). She still accepts in all three, so the gate does not hang on coins. Tomasz: "Rent's seen to, then." |
+| N5 | Real. A one-liner plus a small helper. | `applyRunExtra` calls `greyOverlay()` when `rejected` and not `selected`. |
+| N6 | Real: Esc resolves `false`, which floated "false/5". | Returns early, with no float. |
+| Winch | **My finding was wrong as stated.** The crater is `phys: 'moon'`, and `moonPrep` turns gravity back on every frame, so gravity was never stuck. **The real bug:** `reeling` stayed set after a catch, and with [F] held, a respawn above the rim line (the crevasse checkpoint, if the crater's is unlit) would play the rim scene and mark Priya safe with nobody on the line. | `dropCarry` ends the reel (and restores gravity). |
+
+Play in a browser: the timetable revert, seen from the ladder; Esc from the cards; all three rent versions; [E] mashed during the verdict; a resumed second-year run; a catch during the reel. None of this has been played.

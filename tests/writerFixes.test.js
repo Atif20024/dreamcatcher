@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import rooms from '../src/data/writer/rooms.js';
-import { DIALOGUES, FIRST_PARAGRAPH, NAMES, NAPKIN, PAGE_THREE, wrongWordLine } from '../src/data/writer/cast.js';
+import { DIALOGUES, FIRST_PARAGRAPH, NAMES, NAPKIN, PAGE_THREE, rentScene, wrongWordLine } from '../src/data/writer/cast.js';
 import { CARDS } from '../src/data/teach.js';
 import { BEDS, LEGACY_ROOMS } from '../src/audio/places.js';
 import { SHOTS } from '../src/audio/events.js';
@@ -184,9 +184,31 @@ describe('the rest of the review', () => {
     const talkers = rooms[idx('cafe')].objects.filter((o) => o.kind === 'talker');
     expect(talkers.find((t) => t.word === 'fixed').y).toBe(33);
   });
-  it('W-S1: the rent scene says who paid', () => {
-    expect(DIALOGUES.rent_yes.some((d) => /Tomasz paid me/.test(d.text))).toBe(true);
+  it('W-S1 / N4: the rent scene says who paid, and what really changed hands', () => {
+    const says = (paid) => rentScene(paid, 12).map((d) => d.text).join(' ');
+    expect(says(12)).toMatch(/Tomasz paid me/);
+    expect(says(12)).toMatch(/It's all here/);
+    for (const paid of [0, 1, 5, 11]) expect(says(paid)).not.toMatch(/all here/);
+    expect(says(5)).toMatch(/5 pennies/);
+    expect(says(1)).toMatch(/One penny/);
+    expect(says(0)).toMatch(/left them on the floor/);
     expect(scene).toMatch(/const RENT = 12/);
+    // the price is worked out before she speaks, and the flag does not hang on it
+    expect(scene.indexOf('const paid = Math.min(RENT')).toBeLessThan(scene.indexOf('rentScene(paid, RENT)'));
+  });
+  it('N1: the Editor undoing the timetable is said, where it can be seen', () => {
+    expect(scene).toMatch(/if \(revert\) \{\s+const l = this\.labels\.get\('timetable'\)/);
+    expect(scene).toMatch(/onCamera\(this, l\.x, l\.y\)/);
+  });
+  it('N1 / N2: the pen costs no time: the menu halts the Editor, and an edit locks nothing', () => {
+    const labels = readFileSync(new URL('../src/systems/labels.js', import.meta.url), 'utf8');
+    const base = readFileSync(new URL('../src/scenes/BaseLevel.js', import.meta.url), 'utf8');
+    const editor = readFileSync(new URL('../src/entities/InnerEditor.js', import.meta.url), 'utf8');
+    expect(labels).toMatch(/s\.puzzleActive = true;/);
+    expect(base).toMatch(/this\.dialogActive \|\| this\.puzzleActive \|\| this\.tutorialActive\) return true/);
+    expect(scene.indexOf('if (this.handleModalUpdate()) return;')).toBeLessThan(scene.indexOf('for (const ed of this.editors) ed.update'));
+    expect(editor).toMatch(/this\.scene\.puzzleActive/);
+    expect(labels).not.toMatch(/controlLockUntil/);
   });
   it('S3: what Tomasz says about his machines matches the room', () => {
     const machines = rooms[idx('copyshop')].objects.filter((o) => o.kind === 'machine');
