@@ -356,6 +356,8 @@ Object.assign(CAST_BODIES, {
   'foe-rn-rival': { body: 'teen', hat: 'berretta' },
   'foe-rn-inspector': { hat: 'toque', held: 'ledger', dress: true },
   'foe-rn-foreman': { body: 'big', hat: 'bandana' },
+  'foe-rn-porter': { sex: 'm', hat: 'cap' },
+  'npc-rn-inspector': { hat: 'toque', held: 'ledger', dress: true },
 });
 Object.assign(BACKDROP_ROWS, {
   'painted.rn_skyline': { s: 0.12, groundLine: false },

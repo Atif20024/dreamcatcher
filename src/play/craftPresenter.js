@@ -37,12 +37,24 @@ export function drawCraft(g, cx, cy, st, flash) {
     g.fillStyle(LAPIS, 0.85).fillRect(x0, by - 7, w * Math.min(1, st.autoK), 14);
     return;
   }
-  const zx = x0 + (st.at - st.zone / 2) * w;
-  const zw = st.zone * w;
-  g.fillStyle(st.inZone ? 0xfff0b0 : GOLD, 1).fillRect(zx, by - 7, zw, 14);
-  g.lineStyle(1, 0x8a6a2a, 1).strokeRect(zx, by - 7, zw, 14);
+  for (const m of st.marks) {
+    const zx = x0 + (m.at - m.zone / 2) * w;
+    const zw = m.zone * w;
+    const cur = m.at === st.at;
+    g.fillStyle(m.done ? HIT : cur && st.inZone ? 0xfff0b0 : cur ? GOLD : 0xa8904a, 1).fillRect(zx, by - 7, zw, 14);
+    g.lineStyle(1, 0x8a6a2a, 1).strokeRect(zx, by - 7, zw, 14);
+  }
+  // the crushing: how many blows are in (a symbol as well as the bar)
+  if (st.mode === 'mash') {
+    for (let i = 0; i < st.need; i++) {
+      const mx = x0 + w - (st.need - i) * 12;
+      g.fillStyle(i < st.mash ? HIT : 0x5a5060, 1).fillRect(mx, by + 9, 8, 5);
+    }
+  }
   if (st.phase === 'dried') return;
   const bx = x0 + st.p * w;
+  // the muller under the hand: the bar fills behind it while it is held
+  if (st.holding) g.fillStyle(LAPIS, 0.25).fillRect(x0, by - 7, st.p * w, 14);
   g.lineStyle(3, flash === 'miss' ? BAD : 0x2a1e1a, 1).lineBetween(bx, by - 14, bx, by + 12);
   g.fillStyle(flash === 'miss' ? BAD : 0x6a4a2a, 1).fillRect(bx - 2, by - 24, 4, 10);
   g.fillStyle(flash === 'hit' ? HIT : LAPIS, 1).fillTriangle(bx - 4, by - 14, bx + 4, by - 14, bx, by - 6);
@@ -85,6 +97,10 @@ export function craftWorld(scene, def, engine, ctx) {
   const hint = (st) => {
     if (st.phase === 'dried') return 'the plaster dried. chip it off, lay it fresh…';
     if (st.auto) return `${st.label}: hold the ladder steady`;
+    if (st.hint) return `${st.label}: ${st.hint}`;
+    if (st.mode === 'mash') return `${st.label}: tap [E] while the brush is on the gold`;
+    if (st.mode === 'hold') return `${st.label}: hold [E], let go on the gold`;
+    if (st.mode === 'double') return `${st.label}: [E] on one mark, [E] on the next`;
     return `${st.label}: [E] when the brush is on the gold`;
   };
   const marks = (st) => `${def.title || 'THE WORK'}  ${Math.min(st.idx + 1, st.n)}/${st.n}`;
@@ -98,6 +114,7 @@ export function craftWorld(scene, def, engine, ctx) {
     if (def.onRender) def.onRender(scene, st);
   };
   let dried = 0;
+  let misses = 0;
   return {
     enter(st) {
       drawCraft(g, a.x, a.y, st, null);
@@ -107,7 +124,10 @@ export function craftWorld(scene, def, engine, ctx) {
       if (scene.player.pose) scene.player.pose('brush_hold');
       sync(st);
     },
-    render(st, outcome) {
+    render(st, pressed) {
+      // a miss can come with no key at all (run off the end, a slack fold)
+      const outcome = pressed === 'hit' ? 'hit' : st.misses > misses ? 'miss' : null;
+      misses = st.misses;
       if (outcome === 'hit' || outcome === 'miss') {
         flash = outcome;
         flashT = scene.time.now;

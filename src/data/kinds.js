@@ -40,7 +40,7 @@ export const FOES = {
     rival: { texture: 'foe-rn-rival', human: true, speed: 85, sight: 150 },
     inspector: { texture: 'foe-rn-inspector', human: true, speed: 55, sight: 190, cone: true },
     foreman: { texture: 'foe-rn-foreman', human: true, speed: 50, big: true, sight: 130 },
-    porter: { texture: 'foe-rn-foreman', human: true, speed: 45, big: true, sight: 110 },
+    porter: { texture: 'foe-rn-porter', human: true, speed: 45, big: true, sight: 110 },
     pigeon: { texture: 'foe-pigeon', human: false, speed: 40, silenced: false, dustColors: [0x8a8a98, 0xd8d8e0] },
   },
   gambler: {

@@ -44,6 +44,8 @@ export default {
   master_done: [
     { set: 'guild_master' },
     { camera: { push: 1.2, to: 'npc:folco', ms: 500 } },
+    { call: 'verdict' },
+    { wait: 3800 },
     { say: { who: 'jo', text: 'Folco writes my name in the book. In ink. It will be there tomorrow.' } },
     { wait: 2400 },
     { camera: 'pop' },
@@ -66,6 +68,8 @@ export default {
   // judging as a coda: the two bays, the crowd, the consuls)
   contest_done: [
     { music: 'quiet' },
+    // he did not finish first: across the scaffold his brush stops for a breath
+    { if: { flag: 'dori_done', not: true }, then: [{ say: { who: 'jo', text: "Across the scaffold, Dori's brush stops. One breath. Then it goes on." } }, { wait: 2400 }] },
     { camera: { vista: 0.8, to: 'self', ms: 600 } },
     { sfx: 'bell' },
     { say: { who: 'jo', text: 'Vespers. The bell. Below us the whole city has come in to look up.' } },
@@ -78,6 +82,8 @@ export default {
     { wait: 3000 },
     { if: 'choice_bice', then: [{ say: { who: 'jo', text: '"Whose drawing?" Messer Corso says it out loud: hers.' } }], else: [{ say: { who: 'jo', text: '"The Gualtiero workshop," they say. Bice says nothing at all.' } }] },
     { wait: 3000 },
+    { call: 'named' },
+    { talk: 'gualtiero_bell' },
     { camera: 'pop' },
     { objective: 'after' },
   ],

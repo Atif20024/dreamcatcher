@@ -64,10 +64,15 @@ export default {
     { type: 'portal', id: 'via>bottega', kind: 'door', x: 9, y: 15, to: { room: 'bottega', portal: 'bottega>via' }, door: { prompt: 'into the bottega', fade: 260 } },
     { type: 'checkpoint', id: 'cp_via', label: 'VIA DEI PITTORI', x: 13, y: 15 },
     { type: 'portal', id: 'via>speziale', kind: 'door', x: 47, y: 15, to: { room: 'speziale', portal: 'speziale>via' }, door: { prompt: 'into the colour-seller', fade: 260 } },
-    { type: 'npc', id: 'woman_via', cast: 'npc-rn-woman', x: 54, y: 15, facing: -1, talk: [{ conv: 'woman' }] },
+    { type: 'npc', id: 'woman_via', cast: 'npc-rn-woman', x: 54, y: 15, facing: -1, talk: [{ conv: 'woman_known', if: 'assistant' }, { conv: 'woman' }] },
     // the Dori workshop's apprentices: green caps, they throw strangers out
-    { type: 'foe', kind: 'rival', x: 24, y: 15, patrol: [19, 35] },
-    { type: 'foe', kind: 'rival', x: 33, y: 10, patrol: [27, 32] },
+    { type: 'foe', kind: 'rival', x: 24, y: 15, patrol: [19, 35], when: 'rivals_out' },
+    { type: 'foe', kind: 'rival', x: 33, y: 10, patrol: [27, 32], when: 'rivals_on_pentice' },
+    // the way home with the stone is not the way out: they have come down the
+    // street to meet it, one by the colour-seller's barrels, one wide across
+    // the middle. A grab takes the lapis. The pentices are the high road home
+    { type: 'foe', kind: 'rival', x: 40, y: 15, patrol: [34, 44], when: 'lapis_carry' },
+    { type: 'foe', kind: 'rival', x: 18, y: 15, patrol: [13, 33], when: 'lapis_carry' },
     // the guild's chain across the gate to the square
     { type: 'gate', id: 'g_chain', x: 62, y: 10, h: 6, requires: ['assistant'], hint: "THE GUILD'S CHAIN: MASTERS' MEN ONLY" },
     { type: 'portal', id: 'via>piazza', kind: 'seam', x: 69, y: 15, to: { room: 'piazza', portal: 'piazza<via' }, seam: { prop: 'city_arch' } },

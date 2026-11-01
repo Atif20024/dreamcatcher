@@ -64,6 +64,7 @@ export default {
     {
       type: 'npc', id: 'gualtiero', cast: 'npc-rn-gualtiero', x: 14, y: 11, facing: 1,
       talk: [
+        { conv: 'gualtiero_sealed', if: 'seal' },
         { conv: 'gualtiero_after', if: 'assistant' },
         { conv: 'gualtiero_drapery', if: 'lapis' },
         { conv: 'gualtiero_lapis_wait', if: 'apprentice' },
@@ -71,7 +72,7 @@ export default {
         { conv: 'gualtiero_first' },
       ],
     },
-    { type: 'npc', id: 'tonio', cast: 'npc-rn-tonio', x: 32, y: 11, dx: 10, facing: -1, talk: [{ conv: 'tonio' }] },
+    { type: 'npc', id: 'tonio', cast: 'npc-rn-tonio', x: 32, y: 11, dx: 10, facing: -1, talk: [{ conv: 'tonio_sealed', if: 'seal' }, { conv: 'tonio' }] },
     { type: 'npc', id: 'bice', cast: 'npc-rn-bice', x: 45, y: 7, facing: -1, talk: [{ conv: 'bice_after', if: 'drapery_done' }, { conv: 'bice_wait', if: 'met_bice' }, { conv: 'bice_first' }] },
     // the jobs: the slab by the window, then the altarpiece (once there is lapis)
     { type: 'encounter', id: 'grind', x: 25, y: 11, anchor: { x: 26, y: 5 }, prompt: 'grind the colours', when: 'met_master', unless: 'ground' },

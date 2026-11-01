@@ -27,7 +27,9 @@ export const PEOPLE = {
   'npc-rn-woman': { hat: 'veil', held: 'basket', pal: { H: 0xe8dcc0, S: 0xd8b090, T: 0x8a4a3a, t: 0xe8dcc0, P: 0x5a3a2a, B: 0x3a2a1e, A: 0xc8a060 } },
   'npc-rn-friar': { hat: 'veil', held: 'book', pal: { H: 0x5a4632, S: 0xc89878, T: 0x5a4632, t: 0x4a3a28, P: 0x4a3a28, B: 0x2a1e1a, A: 0x6a3a2a } },
   'npc-rn-beggar': { hat: 'none', held: null, pal: { H: 0x8a8478, S: 0xb08868, T: 0x6a5a48, t: 0x8a7a62, P: 0x5a4a3a, B: 0x3a2e24 } },
-  // the guild's men at the dais and the palazzo's steward
+  // the guild's men at the dais and the palazzo's steward; an inspector who
+  // has seen your seal stands like the one who has not (FOE_LOOKS below)
+  'npc-rn-inspector': { hat: 'toque', held: 'ledger', pal: { H: 0x8a1e22, S: 0xd8b498, T: 0x9a2a2a, t: 0x6a1a1e, P: 0x3a1a1a, B: 0x1e1a1a, A: 0x6a4a32 } },
   'npc-rn-steward': { hat: 'berretta', held: 'ledger', pal: { H: 0x1e1a2a, S: 0xd8b498, T: 0x3a3a4a, t: 0xd8d0c0, P: 0x8a6a2a, B: 0x1a1618, A: 0x8a5a3a } },
 };
 
@@ -38,6 +40,9 @@ export const FOE_LOOKS = {
   'foe-rn-rival': { hat: 'cap', held: null, pal: [0x2e6a3a, 0xd0a080, 0x3a6a3a, 0x2a4a2a, 0xb8a050, 0x2a1e1a, 0xd8d0c0] },
   // the guild's inspectors: scarlet robes, tall hats, the ledger of fines
   'foe-rn-inspector': { hat: 'cap', held: 'clipboard', pal: [0x8a1e22, 0xd8b498, 0x9a2a2a, 0x6a1a1e, 0x3a1a1a, 0x1e1a1a, 0x6a4a32] },
-  // Bruno, the jealous foreman: big, a rope coil, a work scarf
-  'foe-rn-foreman': { hat: 'bandana', held: 'coil', pal: [0x6a3a22, 0xb08060, 0x6a5a42, 0x4a3e2e, 0x4a3a2a, 0x2a1e1a, 0xc8b080] },
+  // Bruno, the jealous foreman: big, a rope coil, a red work scarf and coat
+  // with a white strap, the one red thing on the scaffold
+  'foe-rn-foreman': { hat: 'bandana', held: 'coil', pal: [0xb02a22, 0xb08060, 0x8a2e26, 0x5a1e1a, 0x4a3a2a, 0x2a1e1a, 0xc8b080] },
+  // his porters: earth-coloured, ordinary, carrying the chapel's gold
+  'foe-rn-porter': { hat: 'cap', held: 'crate', pal: [0x6a5a42, 0xb08060, 0x6a5a42, 0x4a3e2e, 0x4a3a2a, 0x2a1e1a, 0x8a6a42] },
 };

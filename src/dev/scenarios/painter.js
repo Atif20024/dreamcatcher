@@ -147,6 +147,16 @@ export async function playCraft(dc, s, limit = 20000, until = null) {
   for (let i = 0; i < limit && s.encounters.busy && !(until && until()); i++) {
     const a = s.encounters.active;
     const d = a && !a.ending && a.t > 300 ? a.engine.due() : null;
+    // a held step: down to start the brush, up on the gold
+    if (d && d.mode === 'hold') {
+      if (!d.holding) dc.hold('interact');
+      else if (Math.abs(d.p - d.at) < d.half * 0.6) {
+        dc.release('interact');
+        presses += 1;
+      }
+      await dc.run(1);
+      continue;
+    }
     if (d && Math.abs(d.p - d.at) < d.half * 0.6) {
       dc.press('interact', 1);
       presses += 1;

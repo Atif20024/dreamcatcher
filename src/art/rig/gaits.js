@@ -130,6 +130,7 @@ export const FOE_GAITS = {
   'foe-rn-rival': 'skulk',
   'foe-rn-inspector': 'measured',
   'foe-rn-foreman': 'heavy',
+  'foe-rn-porter': 'plod',
   // THE LAST HAND: Crake, the debt man, walks with his hands behind him; he never runs
   'foe-lq-crake': 'measured',
 };

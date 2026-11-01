@@ -186,7 +186,8 @@ export const COSTUMES = {
   'foe-shopkeeper': { face: 'round', over: ['bib', 'apron'] },
   'foe-cleaner': { face: 'snub', over: ['keys'] },
   'foe-pit': { face: 'long', over: ['chain'], prop: 'cane' },
-  'foe-rn-foreman': { face: 'heavy', over: ['leather'] },
+  'foe-rn-foreman': { face: 'heavy', over: ['leather', 'crossbelt'] },
+  'foe-rn-porter': { face: 'round', over: ['leather'] },
   'foe-rn-inspector': { face: 'long', over: ['chain'] },
   'foe-rn-rival': { face: 'thin', over: ['lapel'] },
   'foe-lq-crake': { face: 'long', over: ['cravat'] },
@@ -225,6 +226,7 @@ export const COSTUMES = {
   'npc-rn-friar': { face: 'round', over: ['crossbelt'] },
   'npc-rn-beggar': { face: 'thin', prop: 'cane' },
   'npc-rn-steward': { face: 'long', over: ['lapel', 'tails'] },
+  'npc-rn-inspector': { face: 'long', over: ['chain'] },
   // the last hand
   'npc-lq-lou': { face: 'thin', over: ['waistcoat', 'cravat'] },
   'npc-lq-pell': { face: 'long', over: ['badge', 'epaulette'] },
