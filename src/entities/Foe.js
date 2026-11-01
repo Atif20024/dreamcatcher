@@ -334,7 +334,7 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
     if (this.state === 'grabbing') {
       const reach = Math.abs(player.x - this.x) < 42 && Math.abs(player.y - this.y) < 50;
       const ducking = player.crouching; // slipping under the grab
-      if (reach && !ducking) {
+      if (reach && !ducking && !player.busy) {
         this.throwUntil = time + 700;
         this.scene.throwOut(this);
         this.enter('staggered', 900);
@@ -344,7 +344,8 @@ export default class Foe extends Phaser.Physics.Arcade.Sprite {
       return;
     }
 
-    if (this.canSee(player)) {
+    // (a rail's Jo, held at a station: nobody grabs a man with a knife in his hand)
+    if (!player.busy && this.canSee(player)) {
       this.seenPlayerAt = time;
       const dx = player.x - this.x;
       if (Math.abs(dx) < 70) {

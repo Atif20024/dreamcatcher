@@ -129,13 +129,13 @@ export class Service {
 
   // a table changes its mind: the stops already done stand, the rest change
   amend(k) {
-    k.amended = true;
     if (this.hands === k) return; // it's already plated: too late to change it
     const doneStops = k.stops.slice(0, k.idx);
     const stops = [...doneStops, ...k.amendStops.filter((s) => !doneStops.includes(s))];
     // every stop it still wants is done: the plate is up, if Jo's hands are free
     const up = k.idx >= stops.length && !k.firing;
-    if (up && this.hands) return;
+    if (up && this.hands) return; // his hands are full: it waits, the next update asks again
+    k.amended = true;
     k.stops = stops;
     k.note = k.amendNote;
     this.emit('amend', { ticket: k });
@@ -376,17 +376,26 @@ export function readHands(F = {}) {
     soap: !!F.pit_done,
   };
   const lines = [];
-  if (marks.burn) lines.push(marks.burns > 2 ? 'Three burns. You keep going back to the same fire.' : 'A burn on the left thumb.');
-  if (marks.frost) lines.push('Frost still on the cuff.');
-  if (marks.flour) lines.push('Flour in the nails.');
-  if (marks.onion) lines.push('Onion. That is not from my station.');
-  if (!marks.burn) lines.push('No burns. You went round the fire all night.');
-  if ((F.bails || 0) > 0) lines.push('And Marguerite\'s on half your plates. I can smell her butter.');
-  return { marks, lines };
+  const keys = []; // lines[i] is about this mark (the thumb, the cuffs...), or null
+  const read = (key, text) => {
+    lines.push(text);
+    keys.push(key);
+  };
+  if (marks.burn) read('burn', marks.burns > 2 ? 'Three burns. You keep going back to the same fire.' : 'A burn on the left thumb.');
+  if (marks.frost) read('frost', 'Frost still on the cuff.');
+  if (marks.flour) read('flour', 'Flour in the nails.');
+  if (marks.onion) read('onion', 'Onion. That is not from my station.');
+  if (!marks.burn) read('burn', 'No burns. You went round the fire all night.');
+  const bails = F.bails || 0;
+  if (bails > 4) read(null, "And Marguerite's on half your plates. I can smell her butter.");
+  else if (bails > 1) read(null, 'And Marguerite has put her hands on a few of them.');
+  else if (bails === 1) read(null, 'And one plate has her butter on it. I can smell it.');
+  return { marks, lines, keys };
 }
 
-// the night's plates, for the ending's lines
+// the night's plates, for the ending's lines (the room shows one plate a table)
 export function nightLine(F = {}) {
   const sent = F.plates || 0;
-  return `${sent} plate${sent === 1 ? '' : 's'} sent. Nobody sent one back.`;
+  const tables = Object.keys(F).filter((k) => /^sent\d+$/.test(k) && F[k]).length;
+  return `${sent} plate${sent === 1 ? '' : 's'}, ${tables} table${tables === 1 ? '' : 's'}. Nobody sent one back.`;
 }

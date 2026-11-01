@@ -58,9 +58,15 @@ export default {
     { music: 'silent' },
     { call: 'hands' },
     { set: 'hands_done' },
-    { call: 'kitchenBack' },
     { music: 'quiet' },
     { wait: 1200 },
+    { talk: 'take_it' },
+    { call: 'kitchenAway' },
+    { objective: 'carry' },
+  ],
+  // (a Continue that quit before she had said it)
+  hands_after: [
+    { music: 'quiet' },
     { talk: 'take_it' },
     { call: 'kitchenAway' },
     { objective: 'carry' },

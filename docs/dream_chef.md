@@ -1,6 +1,6 @@
 # FIVE-STAR DREAM: builder's list
 
-One night at **Le Rêve**, the restaurant of the Hôtel Vauclerc, Saint-Orvain, October 1957. A brigade kitchen: gas range, copper, white tile, a steel ticket rail, a brass speaking tube, a wireless on the shelf. Jo is the new *stage* (trainee). 7 to 9 minutes. Platform 1. Save id stays `chef`.
+One night at **Le Rêve**, the restaurant of the Hôtel Vauclerc, Saint-Orvain, October 1957. A brigade kitchen: gas range, copper, white tile, a steel ticket rail, a brass speaking tube, a wireless on the shelf. Jo is the new *stage* (trainee). 9 to 12 minutes on a first run (estimate), about 6 once known. Platform 1. Save id stays `chef`.
 
 Standard, the owner's words: "so that its very engaging and interesting. nothing should feel like its not well thought out".
 
@@ -17,7 +17,7 @@ Tickets come in. You read them. You walk the kitchen and do them with Jo's body.
 - **The pocket** (the apron has one) holds what is for Chef: saffron, onions, gold. It can't be dropped, knocked out or blocked by anything. This is the fix for the gold leaf bug by design.
 - A hit spills the plate. The plate goes back to its last stop and the ticket keeps the rest of its progress (the old "item returns to its pedestal" rule).
 - **Late is never fatal.** A ticket that runs out is called back ("REFIRE") with its progress and fresh time. Two refires and Marguerite takes it herself, with a look. The service always ends. Being bad makes it longer and changes what is said at the end.
-- **Aurelio answers every plate the same way: "Next."** He tastes, he spikes the ticket, "Next." Twenty plates teach the word, so the last one lands.
+- **Aurelio answers every plate the same way: "Next."** He tastes, he spikes the ticket, "Next." A dozen plates teach the word, so the last one lands.
 
 ## The six places (one goal, shown on arrival, before you commit)
 
@@ -25,7 +25,7 @@ Tickets come in. You read them. You walk the kitchen and do them with Jo's body.
 |---|---|---|---|---|---|
 | 1 | SERVICE YARD, then THE PIT | CLEAR BASTIEN'S RAIL, EARN AN APRON | 3 tickets, first two no clock. Plates to the rack, coppers scoured and hung, tureen to the hatch against a soft clock | Wet floor slides, the hooks are a climb, steam on the beat, the porter's trolley on a pattern | Marguerite smoking at the back door, gives the speech, later the apron. Bastien at the sink with a hose, singing |
 | 2 | THE COLD STORE | SAFFRON, TOP SHELF. YOUR HANDS WON'T HOLD LONG | 1 ticket. From the speaking tube, no clock but the cold | Ladders and racks, COLD meter (zero: the hands let go), sides of beef sliding on the overhead rail with a rattle first. Warm pipe halfway: the only warm place | The cat is on the warm pipe, and Jo shares it. Lit pedestal at the top |
-| 3 | THE PREP KITCHEN | STOCK THE LINE BEFORE THE DOORS (a real wall clock) | 3 mise tickets, 80 s, more than a first-timer finishes. Each done gives +3 portions to that station at the rush. **Choose** which | Sacks on a mezzanine, window box jump, oven door on a cycle; Brann walks the floor, his grab sends you to the door (duck under it, go over him) | Tomé chopping onions, crying, laughing at the wireless. Tomé says what the room will order (a hint worth reading). Brann checking |
+| 3 | THE PREP KITCHEN | STOCK THE LINE BEFORE THE DOORS (a real wall clock) | 3 mise tickets, 60 s, more than a first-timer finishes. Each done gives +3 portions to that station at the rush. **Choose** which | Sacks on a mezzanine, window box jump, oven door on a cycle; Brann walks the floor, his grab sends you to the door (duck under it, go over him) | Tomé chopping onions, crying, laughing at the wireless. Tomé says what the room will order (a hint worth reading). Brann checking |
 | 4 | THE LINE | THREE SITTINGS, FOUR STATIONS. PLATE WHAT THE RAIL SAYS | Authored, teaching order: sauce, then grill, then grill+sauce, then overlaps, then a table that changes its mind, then TABLE 1 | Beat-synced burners between the larder and the pass, a plate rail above them (slower, safe, tips in the flames). Luc the runner: "BEHIND!" then he comes, hop him or lose the plate. Run out of stock and the reserve shelf is at the far end | Aurelio behind the hot window, tasting, spiking, "Next." Marguerite at the sauce, taking your strays. Brann calling tickets |
 | 5 | THE PASS | HIS SIDE OF THE WINDOW. FINISH TABLE ONE | One ticket, no clock: finish it, wipe the rim, show your hands | No hazard. The tension room | Aurelio, facing you for the first time. **"Stage. Hands."** Plays out with Jo's actual hands |
 | 6 | THE DINING ROOM | CARRY IT TO TABLE ONE. WALK. | One plate, in hands the whole way, walk only | The walk. Lamps click off behind him | Nobody. Every plate you sent tonight sits at its table, untouched |
