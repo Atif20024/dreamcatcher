@@ -9,8 +9,9 @@
 //   line under them: Lou's whisper, what just happened, or the rule book.
 // TILT is drawn here too: tilted, the tells blur and Lou is drowned out.
 // The purse (F.purse) is written back on every hand; the HUD reads it.
-// A pot won at tables 1-3 lights STAND UP gold and says so (the dream's
-// verb, practised before the last table); a dim row of keys sits at the foot.
+// A pot won at tables 1-3 lights STAND UP gold and the reveal says so (the
+// dream's verb, practised before the last table; the gold and the goal line
+// stay, Lou's tips come back); a dim row of keys sits at the foot.
 // Touch: each verb's hit band is 60 UI units tall (the plates stay small).
 import { drawPanel } from '../../ui/Panel.js';
 import { uiText } from '../../ui/text.js';
@@ -310,7 +311,12 @@ export function faroPresenter(scene, def, engine) {
       if (scene.F.purse) scene.F.purse.atBank = st.now - at0;
     },
     outro(result) {
-      if (def.onResult) def.onResult(scene, result || { ok: false, left: true, ...engine.state() });
+      // the back key hands us a bare { ok: false, left: true }: the engine knows
+      // what the bank came to (Encounters' exit reads this same object)
+      Object.assign(result, engine.done ? engine.result : engine.leave());
+      if (def.onResult) def.onResult(scene, result);
+      // it is in the stack now: the HUD must not count it twice during the outro
+      if (scene.F.purse) delete scene.F.purse.atBank;
       return new Promise((res) => scene.time.delayedCall(result && result.ok ? 700 : 200, res));
     },
     destroy() {
@@ -361,9 +367,10 @@ export function infoLine(st) {
   if (m && !m.enabled && m.why) return { text: `${m.label}: ${m.why}.`, color: DIM };
   if (st.mode === 'final') {
     const call = st.profit >= 20 ? 'CALL plays the profit' : `CALL plays $${st.stake}`;
-    return { text: `${call}. RAISE plays it all. STAND UP takes it home.`, color: INK };
+    // RAISE's number is gross, the HUD's STACK net; one row of text fits about 70 characters
+    const raise = st.debt ? 'RAISE all, debt too' : 'RAISE plays it all';
+    return { text: `${call}. ${raise}. STAND UP takes it home.`, color: INK };
   }
-  if (st.won) return { text: BEATEN_LINE, color: '#f6d98a' };
   if (st.tip) {
     if (st.tilted) return { text: "LOU: …   (you can't hear him: you're steaming)", color: DIM };
     return { text: `LOU: ${louLine(st.tip)}`, color: INK };
@@ -445,7 +452,7 @@ export function showdownPresenter(scene, def, engine, ctx) {
     options(ui, st.menu, st.cursor, PY + 138, { active: st.phase === 'decide' });
     const info = showWhy >= 0 && st.phase === 'decide' ? { text: `${st.menu[showWhy].label}: ${st.menu[showWhy].why || 'not now'}.`, color: DIM } : infoLine(st);
     ui.text(PX + 22, PY + 174, info.text, { color: info.color, wrap: PW - 44 });
-    keysRow(ui, st.mode === 'final' ? '[LEFT][RIGHT] choose  [E] play  (no walking off this one)' : '[LEFT][RIGHT] choose  [E] play  [BACKSPACE] step away');
+    keysRow(ui, st.mode === 'final' ? '[LEFT][RIGHT] choose  [E] play  (no walking off this one)' : '[LEFT][RIGHT] choose  [E] play');
   };
   // the tells, on the people (true, never random); a hum's notes, the
   // little finger off the glass, the hand at the collar or flat on the baize
@@ -542,6 +549,7 @@ export function showdownPresenter(scene, def, engine, ctx) {
         P.rake += L.rake - led0.rake;
         P.won += L.won - led0.won;
         P.lost += L.lost - led0.lost;
+        P.across = (P.across || 0) + L.across - led0.across;
       }
       // the room's own goal line comes back on the next frame
       if (told) scene._objKey = null;

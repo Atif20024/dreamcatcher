@@ -10,7 +10,8 @@
 // It also keeps the run's derived flags: the third table opens when the
 // first two are beaten, the card room is done when the third is.
 // The slate's lines go live at the card room door (rebase: on what Jo walks
-// in with, net of debt); the bar shows the stack less what is owed.
+// in with, net of debt); the bar and the STACK label show the stack less what
+// is owed (the OWES row says how much).
 // The first time TILT bites, Lou says so (a caption, the meter pulses), and
 // once more when Jo gets up from a table still steaming.
 import { hud } from '../../../ui/hud.js';
@@ -67,7 +68,7 @@ export default {
     const own = net({ ...p, stack });
     const top = Math.max(p.goal * 1.25, own, 1);
     const ln = line({ ...p, stack });
-    st.stack.set(Math.max(0, own) / top).setLabel(`STACK $${stack}`).setColor(COLORS[ln]).setTicks([
+    st.stack.set(Math.max(0, own) / top).setLabel(`STACK $${Math.max(0, own)}`).setColor(COLORS[ln]).setTicks([
       { at: p.stop / top, color: '#d5443c' },
       { at: p.goal / top, color: '#f6d98a' },
     ]);

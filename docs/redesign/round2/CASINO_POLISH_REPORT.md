@@ -205,3 +205,44 @@ Sources: `docs/redesign/advice/casino_review_designer_r1.md` (D) and `casino_rev
 - `casino_r2_slate.jpg`: the slate chalked as down / up at the tables.
 - `casino_r2_quay.jpg`: the quay with round half dimes and the `HALF DIMES 0` counter.
 - `casino_r2_office.jpg`: the office HUD block with the `OWES MR PELL $10` row and net lines.
+
+# Round 3: the last fixes from `casino_review_r2.md`
+
+| Item | Verified in code | What changed |
+|---|---|---|
+| Faro Backspace (S2b) | Confirmed: a bare `{ok:false,left:true}` made `st.bank ?? 40` discard the bank. Spreading `engine.state()` would not have fixed it, because `state().bank` is the opening $40 and the live figure is `now`. | New `faro.leave()` settles from the live bank; `faroPresenter.outro` copies that onto the same result object, so `onFail`/`onWin` see it too. Turns, rake and `faro_free_used` now count as well. |
+| A bet in play | `bet()` moves the bank when it is placed, so draw and show add nothing. | Leaving neither undoes nor repeats it. A bust or a win the cards already dealt stands: leaving under $10 still plays `faro_bust`, at the target still plays `faro_done`. |
+| `atBank` | The HUD double-counted the bank during the outro (up to 700 ms): `onResult` had added it to the stack and `destroy` had not yet cleared it. | Cleared in `outro` too. |
+| Habit drift (S1) | Confirmed. | Drifts only from RAISE, once a sitting (`s.habit = false` removed from `deal`). |
+| Backspace in the legend (S2) | Confirmed. | Gone from the key row; the key still works. |
+| HUD STACK (S3) | Confirmed gross. | `STACK $${max(0, own)}`, which agrees with the bar and the lines. The table panel has no stack figure, but the last table's `RAISE $136` is gross, so with debt its line says "RAISE all, debt too". |
+| Lost last hand (S4) | Confirmed. | `ledger.across` in the engine, summed to `purse.across`, shown on the ledger's last line. Still 4 array entries. |
+| RAISE $0 | Confirmed. | `enabled: live && s.stack > 0`. |
+| TABLE BEATEN (N2) | Confirmed. | The `st.won` branch is gone from `infoLine`: the line is on the reveal of the hand that beat the table only, then Lou. STAND UP stays gold and the goal line stays. |
+| Stale lines after a lost night (N4) | Confirmed. | `rebase(p)` in `lostNight`. |
+| Comp's free bet (N3) | Confirmed. | BET $20 is dark while the house's stake is up. |
+
+**Found on the way, fixed:**
+- **The ledger's last line was off the screen.** At 960 x 540 the picture left room for four rows, so the "Home with" row was below the foot and the [E] hint sat over the row above it. This predates Round 3. `ending.imageH` (default 300, the gambler's 190) gives the picture's height to the text; other dreams are unchanged.
+- **The `bust-to-saloon-door` check** assumed a bust leaves $0. A bust is under $10 at the bank, so a win before it can leave $9. It now reads the bank from the result.
+- **`playFaro` in the scenarios** re-picks its stake each bet, since BET $20 is dark on the house's bet. `virtualKeys` gained `Backspace`.
+
+**Left alone, for the owner:**
+- Escape at a table opens the pause menu, not "step away" (only Backspace leaves).
+- Tilted at the last table, the tilt creep can still walk the cursor off STAND UP. Only the calm habit was changed.
+- Jo can sit at the faro bank with under $40 in the stack, after leaving low several times: it stakes the full $40 and the stack can go negative until a bust resets it. It was already reachable by STAND UP. It takes deliberate play.
+- With debt and a short stack, the HUD can read `STACK $0` next to `ALL IN $8` (money in hand, all of it owed).
+- A lost last hand is still a free roll in money; it now has a number on the ledger.
+
+## Checks
+
+| Check | Result |
+|---|---|
+| `npx vitest run` | 304 passed. `audioMix.test.js` hit its 10 s hook timeout in some runs while the browser was running scenarios (23 skipped); passes when idle, file untouched. |
+| `lint:content`, `lint:rooms`, `lint:scale` | 0 failures (38 room warnings, none in files changed here) |
+| `vite build` | built |
+| Scenarios on 5181, all pass | `gambler-saloon`, `cards`, `playthrough`, `touch-walk-jump-talk` on the final code; `quay`, `tilt`, `office`, `deck`, `places`, `coins`, `legacy`, `board` on the code before the last edits (line wording, ledger height, one scenario check) |
+
+New scenario checks: `faro-backspace-keeps-bank`, `lost-night-in-ledger`, `lost-night-lines-rebased`.
+
+Screenshots (scratchpad): `casino_r3_table_beaten_reveal.jpg`, `casino_r3_table_after_beaten.jpg`, `casino_r3_last_table.jpg`, `casino_r3_hud_debt.jpg`, `casino_r3_ending_ledger.jpg`. The stills were staged by setting the purse and playing the engine directly; the Jo caption in some is a leftover of warping in.
