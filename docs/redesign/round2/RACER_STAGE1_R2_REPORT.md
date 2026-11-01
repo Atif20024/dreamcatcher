@@ -174,3 +174,63 @@ Dev server, this Mac, frames stepped by hand, with the wait on a 1-pixel read in
 6. **The ear.** Decision B answered the question. New from this round: should the slot do anything beyond telling you (a faster fill, a stronger sling), or stay information only?
 7. **What nuts buy,** and what second place is worth. It now pays 6, into a tin with no shop.
 8. **Music in races.** `musicDirector.stop()` at race start. Any music will sit on top of the beat.
+
+## Round 3: last tuning (from `racer_stage1_review_r2.md`)
+
+**Still nobody has driven it.** All numbers are bots with made-up error (`sd` is brake-point noise in metres, `m` its margin). Same bots before and after.
+
+| Item | Change |
+|---|---|
+| M1 | `wearStraw` 0.10, on bend straw only; bales keep `wearBale`. |
+| S1 | `keepGoing`: Drive on (or Esc on the question) sticks for the race. `reset` carries `now`, so Restart from the lamp never asks. |
+| S2 | Corsa at d 13, lane 2; Jo stays in lane 1. On screen on the grid, with about a third of the nose past the edge (d 11.5 would show all of it). |
+| S3 | A lift is 0.3 s off both pedals, above 25 m/s, clear of `from - 120` to `to`. A clean bot logs 0. |
+| S4 | Wall bend `lineSpeed` 3. Track lint in `tests/race.test.js`. |
+| S5 | `costliest()` in `result.js`: one card line (lamp, straw, rub, missed green, or slowest bend in km/h). Silent under 0.15 s. Weights in `COST`. |
+| NICE | Restart hidden in a spin; lamp line once; `toLamp` clears sling and draft. |
+
+| Bot, alone unless stated | Before | After |
+|---|---|---|
+| Inside / middle / outside / change, uniform | 45.21 / 45.12 / 45.21 / 44.87 | 45.57 / 45.08 / 44.87 / 44.98 |
+| Best mix | out, in, change 44.47 | out, in, out 44.52 |
+| Wall bend, others best: in / mid / out / change | 44.49 / 44.68 / 44.85 / 44.47 | 44.85 / 44.65 / 44.52 / 44.58 |
+| Wall bend, sd 4, m 4: time and spin, outside | 45.24, 15 % | 44.90, 8 % |
+| Wall bend, sd 4, m 4: inside / middle | 44.89 / 45.07 | 45.37 / 45.04 |
+| Skip brake at both straw bends, best mix / mid | +0.74 / +0.69 | +2.04 / +1.49 |
+| Skip the sweeper only / the kink only, best mix | +0.46 / +0.26 | +1.06 / +0.52 |
+| Middle lane at 1.15, 1.25, 1.5 × the limit; never brakes | no finish | no finish |
+| Rival alone (top 0.94 → 0.96) | 46.47 | 46.45 |
+| Launch held straight | bumper at 5.67 s | no contact, past him at 5.41 s |
+| Launch, pulling into his lane | armed 2.19 s | armed 1.21 s, bumper at 3.62 s |
+
+P1 with the rival on the road, mid lane, 200 runs:
+
+| Driver | Before | After |
+|---|---|---|
+| sd 3, m 4, launch | 99 % | 100 % |
+| sd 3, m 4, no launch | 31 % | 90 % |
+| sd 5, m 8, launch: brakes / skips both straws | 76 % / 90 % | 76 % / 31 % |
+| sd 5, m 8, no launch: brakes / skips both straws | 36 % / 67 % | 64 % / 0 % |
+| Brakes to 95 % / 90 % of the limit | 31 % / 0 % | 21 % / 0 % |
+| sd 8, m 12, launch | 31 % | 36 % |
+
+**The rival needed more than the grid.** Moving him cost him pace (he now takes the wall bend's slow inside), so top went from 0.94 to 0.96. The slack is 1.93 s (was 2.0).
+
+**Target stays 44.5.** The best bot is 44.52, not the 44.2 the review expected. That bot has no launch; a launch is worth 0.42 s more.
+
+**Review claims that did not hold:**
+
+- **"Move the 700 m lamp to 790-800 changes nothing."** It breaks the pinned rule of no lamp more than 250 m back (500 to 800 is 300 m). With four lamps no spot fits: the next lamp after 500 must be at or before 750, which is the kink. It also hands the car back 50 m from the wall. **Not moved: owner's call.** The caption has gone (lamp line once), so only the chime still lands on the braking point.
+- **"`vIn` and `launchTried` are in the engine."** There is no `vIn`, and `launchTried` is also true on a jump start. Added `launched` and a per-bend undershoot.
+- **The "1 % is 0.2 s" rule** is for holding under the limit through all the bends. Arriving under and driving back up costs about 0.07 s per m/s (bot), which is the weight the card uses.
+
+**Bug found on the way:** Restart from the lamp left a stale listener on `camerafadeoutcomplete`, so the next spin's dark lifted early and "Again?" appeared over a bright road. Fixed: only a running fade to dark is waited for.
+
+**Consequences to watch:**
+
+- **The draft is now opt-in.** Held straight, Jo never gets it; he has to press a lane to sit behind the Corsa. This answers the review's "the draft arms itself every race", but a player who never tries it won't meet it.
+- **The launch carries less.** No launch is no longer stuck behind him: sd 3 goes from 31 % to 90 %.
+- **The lint reads "skipping the straw bends" as all of them.** One bend alone costs less than the slack (+1.06 and +0.52 s). Skipping only the sweeper is nearly free at P1 for a sloppy driver: 70 % against 76 %. Braking still pays, but not at every bend for that driver.
+- **Uniform outside is now the best uniform plan.** The spread pin went from 0.5 s to 0.8 s, and "each bend a different winner" became "more than one winner", as the review expected.
+
+Checks: vitest 39 files, 684 tests; `lint:content`, `lint:rooms`, `lint:scale` clean with the same 7 warnings; `vite build` passes; all 20 `racer-*` scenarios pass.

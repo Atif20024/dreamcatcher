@@ -1,7 +1,7 @@
 // The race's hand-off, its pedals and its engine note.
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('phaser', () => ({ default: { Math: { RandomDataGenerator: class {} }, Display: { Color: {} }, GameObjects: { BitmapText: class {} } } }));
-import { applyResult, restarted, prizeOwed, softAid, flagOf, clock, SOFT_AID_AFTER } from '../src/dreams/racer/race/result.js';
+import { applyResult, restarted, prizeOwed, softAid, flagOf, clock, costliest, SOFT_AID_AFTER } from '../src/dreams/racer/race/result.js';
 import { sanitizeFlags } from '../src/play/RunState.js';
 import { TRACKS, RACE_PAD } from '../src/dreams/racer/race/tracks.js';
 import { InputMap } from '../src/input/InputMap.js';
@@ -68,6 +68,23 @@ describe('the result in the run', () => {
   it('reads the clock', () => {
     expect(clock(43.21)).toBe('0:43.2');
     expect(clock(61.04)).toBe('1:01.0');
+  });
+});
+
+describe('what cost the most, on the card', () => {
+  it('names the biggest single thing', () => {
+    expect(costliest({ launched: false })).toMatch(/green/);
+    expect(costliest({ launched: false, offroads: 1 })).toMatch(/straw/);
+    expect(costliest({ resets: 1, offroads: 2, rubs: 3 })).toMatch(/lamp/);
+    expect(costliest({ slowest: { name: 'kink', under: 2.5 } })).toBe('Slowest into the kink: 9 km/h under. That cost you the most.');
+  });
+  it('a big undershoot outweighs a missed green, a small one does not', () => {
+    expect(costliest({ launched: false, slowest: { name: 'kink', under: 7 } })).toMatch(/kink/);
+    expect(costliest({ launched: false, slowest: { name: 'kink', under: 3 } })).toMatch(/green/);
+  });
+  it('says nothing about a clean run', () => {
+    expect(costliest({ slowest: { name: 'kink', under: 1 } })).toBe('');
+    expect(costliest({ slowest: null })).toBe('');
   });
 });
 

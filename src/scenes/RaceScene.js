@@ -12,7 +12,7 @@ import { Race, TUNE, chalkAt, raceLost } from '../engines/race.js';
 import { TRACKS, RACE_PAD } from '../dreams/racer/race/tracks.js';
 import { RaceRoad, M, laneY, laneScale, ROAD_BOT, ROAD_TOP, ROAD_SLIDE } from '../dreams/racer/race/RaceRoad.js';
 import { RaceHud } from '../dreams/racer/race/RaceHud.js';
-import { applyResult, restarted, softAid, prizeOwed, clock, flagOf } from '../dreams/racer/race/result.js';
+import { applyResult, restarted, softAid, prizeOwed, clock, flagOf, costliest } from '../dreams/racer/race/result.js';
 import { WHEEL_STEPS, WHEEL_DEG, CAR_SIZE } from '../art/carKit.js';
 import { EngineSynth } from '../audio/engineSynth.js';
 import { InputMap, attachInput } from '../input/InputMap.js';
@@ -66,6 +66,8 @@ function cardLines(track, { place, time, gap, flags: run }, pass, flags, owed) {
   const manners = run.clean ? 'Clean.' : run.spins ? `${run.spins} ${run.spins === 1 ? 'spin' : 'spins'}.` : run.rubs ? `${run.rubs} ${run.rubs === 1 ? 'rub' : 'rubs'}.` : 'Not clean.';
   const slings = run.slings ? ` ${run.slings} ${run.slings === 1 ? 'sling' : 'slings'}.` : '';
   const lines = [`Ottavia: "${say}"`, `${gapLine}${manners}${slings}`];
+  const lesson = costliest(run);
+  if (lesson) lines.push(lesson);
   if (track.target) lines.push(time <= track.target ? `Ottavia's time: ${clock(track.target)}. You have it.` : `Ottavia's time: ${clock(track.target)}.`);
   if (owed) lines.push(`The prize tin is waiting at the garage: ${owed} brass nuts.`);
   else if (pass) lines.push('Nothing more in the tin for that.');
@@ -98,6 +100,8 @@ export default class RaceScene extends Phaser.Scene {
     this.ended = false;
     this.saidGo = false; // (scene.restart reuses this object)
     this.saidLights = false;
+    this.saidLamp = false;
+    this.keepGoing = false; // he chose to drive on: she does not ask again this race
     this.spinDark = false;
     this.lean = 0;
     this.beatPhase = 0;
@@ -308,7 +312,8 @@ export default class RaceScene extends Phaser.Scene {
         break;
       case 'lamp': {
         chime('lamp', DREAM);
-        this.radio(RADIO.lamp);
+        if (!this.saidLamp) this.radio(RADIO.lamp); // (once: after that the chime says it)
+        this.saidLamp = true;
         const img = this.lampImgs.get(e.d);
         if (img) img.setTexture('flag-lit');
         break;
@@ -324,17 +329,19 @@ export default class RaceScene extends Phaser.Scene {
         this.camX = CAR_X[0];
         this.spinDark = false;
         const lift = () => cam.fadeIn(300, ...NIGHT);
-        // past saving: Ottavia asks on the dark frame, one key, no Esc (the road comes back if he drives on)
-        if (raceLost(this.race)) {
+        // past saving: Ottavia asks on the dark frame, one key (the road comes back if he drives on)
+        // (not on his own Restart from the lamp, or once he has said no)
+        if (!e.now && !this.keepGoing && raceLost(this.race)) {
           this.askAgain(lift);
           break;
         }
-        if (cam.fadeEffect.isRunning) cam.once('camerafadeoutcomplete', lift);
+        // (only a fade to dark is worth waiting for: no other ends in that event)
+        if (cam.fadeEffect.isRunning && cam.fadeEffect.direction) cam.once('camerafadeoutcomplete', lift);
         else lift();
         break;
       }
       case 'rival_home':
-        if (raceLost(this.race) && this.track.length - this.race.jo.d > 100) this.askAgain();
+        if (!this.keepGoing && raceLost(this.race) && this.track.length - this.race.jo.d > 100) this.askAgain();
         break;
       case 'finish':
         this.onFinish(e);
@@ -518,7 +525,8 @@ export default class RaceScene extends Phaser.Scene {
     const info = () => [this.race.jo.lampD ? `Last lamp: ${this.race.jo.lampD} m` : 'No lamp yet: you would start on the grid.', 'The dream is saved at the garage.'];
     const main = () => [
       { id: 'resume', label: 'Resume', action: () => this.pauseMenu.destroy() },
-      { id: 'restart', label: 'Restart from the lamp', action: () => this.restartFromLamp() },
+      // (not in a spin: the lamp is already coming, the 3 s are not for sale)
+      ...(this.race.jo.state === 'run' ? [{ id: 'restart', label: 'Restart from the lamp', action: () => this.restartFromLamp() }] : []),
       { id: 'restartRace', label: 'Restart this race', action: () => this.restartRace(true) },
       { id: 'garage', label: 'Back to the garage', action: () => this.leaveToGarage() },
       { id: 'station', label: 'Back to station', action: () => this.leaveToStation() },
@@ -536,20 +544,22 @@ export default class RaceScene extends Phaser.Scene {
       { id: 'on', label: 'Drive on', action: (m) => m.close() },
       { id: 'garage', label: 'Back to the garage', action: () => this.leaveToGarage() },
     ];
-    this.pauseMenu.open({ title: 'Again?', lines, items, canClose: true, onClose: andThen, guardMs: 350 });
+    const drivingOn = () => {
+      this.keepGoing = true;
+      if (andThen) andThen();
+    };
+    this.pauseMenu.open({ title: 'Again?', lines, items, canClose: true, onClose: drivingOn, guardMs: 350 });
   }
 
   restartFromLamp() {
     this.pauseMenu.destroy();
     const c = this.race.jo;
-    if (c.state !== 'run') return; // a spin: the lamp is already coming, the 3 s are not for sale
     // no lamp yet: the grid is the lamp, and the lights come with it
     if (!c.lampD) {
       if (c.d >= 1) this.restartRace(true);
       return;
     }
-    this.race.toLamp(c, true);
-    this.cameras.main.fadeIn(300, ...NIGHT);
+    this.race.toLamp(c, true); // (its 'reset' lifts the picture)
   }
 
   restartRace(countIt) {

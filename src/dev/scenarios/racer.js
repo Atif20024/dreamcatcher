@@ -674,6 +674,13 @@ const again = {
     const rows = {};
     Object.assign(race.jo, { lampD: 700, d: b.from - 2, v: 36, lane: 1, y: 1 });
     race.lampRivals = [{ r: race.rivals[0], d: 790, v: 30, y: 1, lane: 1, finished: null, state: 'run' }];
+    // his own Restart from the lamp is his choice: no question on top of it, lost or not
+    dc.press('esc', 3);
+    await dc.run(3);
+    r.pauseMenu.choose('restart');
+    await dc.run(3);
+    rows.restartQuiet = !r.pauseMenu.isOpen && race.jo.state === 'run' && race.jo.d < 710;
+    Object.assign(race.jo, { lampD: 700, d: b.from - 2, v: 36, lane: 1, y: 1, ghost: 0 });
     dc.hold('right');
     await until(dc, () => r.pauseMenu.isOpen, 400);
     dc.releaseAll();
@@ -686,18 +693,23 @@ const again = {
     await dc.run(90);
     rows.drivenOn = !r.pauseMenu.isOpen && race.jo.state === 'run';
     rows.lit = r.cameras.main.fadeEffect.alpha === 0;
-    // the next spin asks again, and one choice is a new race
+    // Drive on sticks: the next spin does not ask
     Object.assign(race.jo, { d: b.from - 2, v: 36, lane: 1, y: 1, ghost: 0 });
+    const spins0 = race.jo.spins;
     dc.hold('right');
-    await until(dc, () => r.pauseMenu.isOpen, 400);
+    await until(dc, () => race.jo.spins > spins0, 200);
     dc.releaseAll();
+    await until(dc, () => race.jo.state === 'run', 500);
+    rows.noNag = !r.pauseMenu.isOpen;
+    // and one choice is a new race
+    r.askAgain();
     await dc.run(30);
     const tries0 = (getRun('racer').flags || {})[flagOf('test', 'tries')] || 0;
     r.pauseMenu.choose('again');
     await until(dc, () => dc.scene() && dc.scene().race && dc.scene().race !== race && dc.scene().race.t < 0, 200);
     rows.fresh = dc.scene().race.jo.d === 0 && dc.scene().race.jo.spins === 0;
     rows.tried = (getRun('racer').flags || {})[flagOf('test', 'tries')] - tries0;
-    return { pass: rows.state.title === 'Again?' && rows.state.items[0] === 'again' && rows.joState === 'reset' && rows.dark && rows.rivalBack < 800 && rows.drivenOn && rows.lit && rows.fresh && rows.tried === 1, detail: rows };
+    return { pass: rows.restartQuiet && rows.state.title === 'Again?' && rows.state.items[0] === 'again' && rows.joState === 'reset' && rows.dark && rows.rivalBack < 800 && rows.drivenOn && rows.lit && rows.noNag && rows.fresh && rows.tried === 1, detail: rows };
   },
 };
 
@@ -722,7 +734,8 @@ const spinPause = {
     await dc.run(180); // long past when the old timer would have faded
     rows.notFadedInPause = r.cameras.main.fadeEffect.alpha === 0;
     rows.held = race.jo.stateT === t0;
-    r.pauseMenu.choose('restart');
+    rows.noRestart = !r.pauseMenu.state().items.includes('restart');
+    r.pauseMenu.choose('resume');
     await dc.run(2);
     rows.stillSpinning = race.jo.state === 'spin' && race.jo.d > 800;
     const backAt = await until(dc, () => race.jo.state === 'run', 500);
@@ -730,7 +743,7 @@ const spinPause = {
     rows.back = { frames: backAt, d: Math.round(race.jo.d) };
     await dc.run(40);
     rows.seeing = r.cameras.main.fadeEffect.alpha === 0;
-    return { pass: rows.open && rows.notFadedInPause && rows.held && rows.stillSpinning && rows.back.d >= 700 && rows.back.d < 720 && rows.seeing, detail: rows };
+    return { pass: rows.open && rows.notFadedInPause && rows.held && rows.noRestart && rows.stillSpinning && rows.back.d >= 700 && rows.back.d < 720 && rows.seeing, detail: rows };
   },
 };
 
@@ -812,12 +825,13 @@ const card = {
     const r = await toRace(dc);
     nearLine(r, true);
     Object.assign(r.race.jo, { lifts: 5, rubs: 2, spins: 0, slings: 1, offroads: 0 });
+    r.race.launched = true;
     dc.hold('right');
     await until(dc, () => r.pauseMenu.isOpen, 400);
     dc.releaseAll();
     const lines = r.pauseMenu.lines.join(' | ');
     const rows = { win: lines };
-    return { pass: /5 times/.test(lines) && /2 rubs/.test(lines) && /1 sling/.test(lines) && /behind you/.test(lines) && /Ottavia's time: 0:44\.5/.test(lines) && !/only twice/.test(lines), detail: rows };
+    return { pass: /5 times/.test(lines) && /Rubbing the Corsa cost you the most/.test(lines) && /2 rubs/.test(lines) && /1 sling/.test(lines) && /behind you/.test(lines) && /Ottavia's time: 0:44\.5/.test(lines) && !/only twice/.test(lines), detail: rows };
   },
 };
 
