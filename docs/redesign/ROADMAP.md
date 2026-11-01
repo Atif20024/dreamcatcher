@@ -39,17 +39,21 @@ Jobs run in parallel: at most 2 with a browser, 1 without, reviewers alongside. 
 
 Done: casino polish and phone keys; the ladder before the platforms; readable notes; the audit's repo fixes.
 
-Running: THE LAST STOP scale (`round2/LAST_STOP_SCALE_REPORT.md`); Jo and the cast (`advice/fresh_review_art.md`); cleanup, deleting the legacy dreams (`round2/CLEANUP_REPORT.md`); designs for the athlete and the doctor.
+Also done: THE LAST STOP at scale; Jo and the cast; legacy dreams deleted.
 
-Before athlete and doctor are built (owner's order): deep review of every existing dream and the station across characters and actions, level, obstacles, story, objectives, movement and music (`advice/deep_review_*.md`), then fix what it finds. "Nothing should feel like its not well thought out."
+Owner's decisions after the deep review (`advice/deep_review_*.md`), to do before the racer, athlete and doctor:
+1. Chef: full rebuild on the framework around the ticket rail. Running.
+2. Astronaut and Writer: every MUST and SHOULD fix, no rebuild; the owner decides after playing. Writer keeps its length.
+3. Painter: a way to play per craft job, plus the review's fixes.
+4. Clockmaker: each gear its own place, people in the town, a staged payoff, plus the review's fixes.
+5. Musician: real pitch and timing in the rhythm engine, results that change things, plus the review's fixes.
+6. Station: counts every running dream (nothing closes at 5), staged return under the dreamcatcher, prompts with verbs, flower seller, shop, postcards for every dream, rewards on the roof and undercroft; boards get a length or mood word; the first visit points to a gentle dream.
+7. Evening: teach sit and horn, gate the bench ending, `advice/laststop_review_r1.md`. Stays open from the start; the station reacts to it.
+8. Casino: the deep review's small items (`deep_review_painter_clockmaker_gambler.md`).
+9. Feel fixes (`advice/fresh_review_feel.md`), running. Extra fall gravity and corner correction wait for the owner.
+10. Rest of `advice/fresh_review_design.md`; speed job: measure, fix the biggest cost.
 
-Next, as slots free:
-1. Feel: `advice/fresh_review_feel.md`. Refresh-rate independence first (jump, run, ice, the camera), keeping how 60 Hz feels; landing weight and sound; SFX through their bus; the reduced-shake setting.
-2. The station counts every dream (owner's decision): the fade, crowd, shop and lines stretch across all running dreams, nothing closes early, THE LAST STOP stays open. Boards get a length or mood word, and the first visit points to a gentle dream. `advice/fresh_review_design.md` M1.
-3. Build the racer (`docs/dream_racer.md`), with a tenth platform: BAYS in `src/data/hub/rooms.js` is full.
-4. Build the athlete (`docs/dream_athlete.md`) on platform 3 and the doctor (`docs/dream_doctor.md`) on platform 8 (owner's decision).
-5. The fresh design review's fixes: variety of verbs, difficulty scaling in framework dreams, economy, dialogue, the Evening's cast including every dream.
-6. Speed: measure, fix the biggest cost. Also the failing `readability-chef` check, the flaky `dream-ladders-both-ways` first run, the `audioMix` test's slow startup, and a look at the notes' larger hints on a phone.
+Then build: racer (`docs/dream_racer.md`, a tenth platform: BAYS in `src/data/hub/rooms.js` is full), athlete (`docs/dream_athlete.md`, platform 3), doctor (`docs/dream_doctor.md`, platform 8).
 
 ## Next, in order
 The build order follows `advice/lead_design_review.md` §5. One agent at a time.

@@ -2,8 +2,7 @@
 // each character's costume layers (the rig's parts.over), a face that is not
 // everybody's face, and a signature prop, keyed by the bake's texture key.
 // Shape carries the era and the job, colour only helps. Pure data and small
-// pure helpers: cast.js applies it. The legacy dreams' people (pt-p-, gm-p-) are
-// not dressed: they are on their way out.
+// pure helpers: cast.js applies it.
 
 // a face: patches on the 9×9 cast head. [row, col, letters]. Hat and hair stay.
 const FACES = {
