@@ -1878,6 +1878,7 @@ export default class WriterScene extends BaseLevel {
   }
 
   devWarp() {
+    if (!(import.meta.env && import.meta.env.DEV)) return false; // dev only, never on the public site
     let at = null;
     try {
       at = new URLSearchParams(window.location.search).get('wr');

@@ -22,7 +22,8 @@ initFlags(window.location.search);
 initTouch(window);
 // screen-space objects at UI depths move onto UIScene (src/ui/ui.js)
 installAdoption();
-const firstKey = firstSceneKey(window.location.search) || 'Title';
+// a dev warp boots its own scene; the public site always opens on the title
+const firstKey = (import.meta.env.DEV && firstSceneKey(window.location.search)) || 'Title';
 
 window.game = new Phaser.Game({
   type: Phaser.AUTO,
