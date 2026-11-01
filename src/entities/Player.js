@@ -4,6 +4,7 @@ import { AnimationController } from '../art/AnimationController.js';
 import { characterManifest, bakeFromAtlas } from '../art/baked.js';
 import { sfx } from '../systems/audio.js';
 import { solveGround } from './ground.js';
+import { SPEED, JUMP, JUMP_CUT_BELOW, TERMINAL_FALL, perFrame, cutSpeed, landImpact, isLanding } from './motion.js';
 import PlayerShadow from './PlayerShadow.js';
 import { showTutorial } from '../play/Teach.js';
 import { JO_DUST } from './jo.js';
@@ -24,12 +25,10 @@ export function mulColor(a, b) {
 // D1: px figures from the other docs are doubled for the 32px scale
 // (run 140 -> 280, jump 300 -> 600, look-ahead 48 -> 96).
 const T = 32;
-const SPEED = 280;
 // Phase 2 motion: hold Shift (gamepad LB) to walk. 80 px/s is 1.8 m/s at
 // 44 px/m, a brisk human walk; the default 280 (6.4 m/s) is, honestly, a
 // run, and every dream's jumps are tuned to it, so it stays the default.
 export const WALK_SPEED = 80;
-const JUMP = 600;
 // Jo's anchor (feedback 3). The owner saw the WP6 glow ("unnatural") and
 // then the outline that replaced it ("looks worse"), and chose: Jo is drawn
 // plain (no light pool, rim or outline) and carries a real light of the
@@ -141,7 +140,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.rimStyle = { color: 0xffd890, alpha: 0.35, dx: -1, on: true, ink: 1, inkColor: 0x14122a };
     this.lightTint = 0xffffff;
     this.hatBase = 0xffffff;
-    this.rim = scene.add.image(x, y, this.art.texture.key, this.art.frame.name).setDepth(11.95).setTintFill(0xffd890).setAlpha(0.35);
+    this.rim = scene.add.image(x, y, this.art.texture.key, this.art.frame.name).setDepth(11.95).setTintFill(0xffd890).setAlpha(0.35).setVisible(JO_ANCHOR.rim);
     this.rim.dcRimColor = 0xffd890;
     this.ink = [
       [1, 0],
@@ -149,7 +148,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       [0, 1],
       [0, -1],
     ].map(([dx, dy]) => {
-      const o = scene.add.image(x, y, this.art.texture.key, this.art.frame.name).setDepth(11.94).setTintFill(0x14122a);
+      const o = scene.add.image(x, y, this.art.texture.key, this.art.frame.name).setDepth(11.94).setTintFill(0x14122a).setVisible(JO_ANCHOR.outline);
       o.inkOff = { dx, dy };
       return o;
     });
@@ -199,15 +198,17 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   // D5 — land squash, on the drawing only. Feet stay planted (see below).
-  landSquash() {
+  // f: the landing's weight, 0..1 (a full jump, about 0.76, is the old 1.2/0.8)
+  landSquash(f = 0.76) {
     if (this._squashTween) this._squashTween.remove();
-    this.squashScale.x = 1.2;
-    this.squashScale.y = 0.8;
+    const s = 0.08 + 0.17 * f;
+    this.squashScale.x = 1 + s;
+    this.squashScale.y = 1 - s;
     this._squashTween = this.scene.tweens.add({
       targets: this.squashScale,
       x: 1,
       y: 1,
-      duration: 140,
+      duration: 110 + 80 * f,
       ease: 'quad.out',
     });
   }
@@ -263,6 +264,11 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   syncRim() {
+    if (!JO_ANCHOR.rim && !JO_ANCHOR.outline) {
+      if (this.locator) this.locator.sync();
+      if (this.light) this.light.sync();
+      return;
+    }
     const r = this.rim;
     if (!r || !r.scene) return;
     const st = this.rimStyle;
@@ -443,7 +449,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   driveAnim(time, delta, o) {
     const body = this.body;
     const duck = o.grounded && !o.climbing && this.lowCeiling();
-    this.anim.update(delta, {
+    this.anim.update(this.scene._hitStopping ? 0 : delta, {
       x: this.x,
       y: this.y,
       facing: this.flipX ? -1 : 1,
@@ -509,6 +515,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
   update(time, delta) {
     const body = this.body;
+    const dt = Math.min(delta, 50);
     const rev = time < this.reversedUntil;
     const I = this.inputMap;
     let left = this.inLeft();
@@ -600,6 +607,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         this.noLadderUntil = time + LADDER_REGRAB_MS;
         this.lastJumpPressed = -9999;
         this.lastGrounded = -9999;
+        this.jumpRising = true;
         this.ladderJumps = (this.ladderJumps || 0) + 1;
         sfx('jump');
         this.driveAnim(time, delta, { grounded: false, inputX: dir, ev: { jumped: true } });
@@ -613,7 +621,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         body.setVelocityX(0);
         // snap to the rung column so Jo doesn't drift off the rib
         const cx = Math.floor(this.x / T) * T + T / 2;
-        this.x += (cx - this.x) * 0.3;
+        this.x += (cx - this.x) * perFrame(0.3, dt);
         // up at the ladder's head: he steps off onto what is there -- the
         // plank or lid over it, or the cap on its top rung (world/ladders.js)
         // -- and stands. (He used to pop off the top in mid-air: where the
@@ -684,14 +692,21 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       if (this.wasAirborne) {
         // a long drop (more than five tiles; a full jump is about 4.7) lands hard: knees, hands, hat
         const drop = this.y - (this.airTopY ?? this.y);
-        ev.landed = { hard: drop > 5 * T || this.fallSpeed > 900 };
-        this.dust(ev.landed.hard ? 7 : 4);
-        this.landSquash();
+        if (isLanding(drop, time - this.airSince)) {
+          ev.landed = { hard: drop > 5 * T || this.fallSpeed > 900 };
+          const f = landImpact(drop);
+          this.dust(ev.landed.hard ? 7 : 1 + Math.round(6 * f * f));
+          this.landSquash(f);
+          sfx('land', f);
+          if (f >= 0.8) this.scene.cameras.main.shake(60, 0.002);
+        }
         this.wasAirborne = false;
       }
       this.airTopY = null;
+      this.airSince = null;
     } else {
       this.wasAirborne = true;
+      this.airSince ??= time;
       this.airTopY = Math.min(this.airTopY ?? this.y, this.y);
       this.fallSpeed = body.velocity.y;
     }
@@ -702,10 +717,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       const v = this.walking ? Math.min(this.speed, WALK_SPEED) : this.speed;
       const target = left ? -v : right ? v : 0;
       if (this.slippery && grounded) {
-        body.setVelocityX(Phaser.Math.Linear(body.velocity.x, target, this.slipFactor));
+        body.setVelocityX(Phaser.Math.Linear(body.velocity.x, target, perFrame(this.slipFactor, dt)));
       } else {
         const airFactor = grounded ? 1 : 0.7;
-        body.setVelocityX(Phaser.Math.Linear(body.velocity.x, target, 0.5 * airFactor));
+        body.setVelocityX(Phaser.Math.Linear(body.velocity.x, target, perFrame(0.5 * airFactor, dt)));
       }
     }
     if (left && !locked) this.setFlipX(true);
@@ -745,6 +760,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         this.controlLockUntil = time + 160;
         this.dust(3);
         sfx('jump');
+        this.jumpRising = true;
         ev.wallJumped = true;
       }
     }
@@ -756,16 +772,26 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       ev.jumped = true;
       this.lastJumpPressed = -9999;
       this.lastGrounded = -9999;
+      this.jumpRising = true;
+      this.dust(2);
       sfx('jump');
     }
-    // variable height: release early → cut the rise
-    if (!jumpDown && body.velocity.y < -160) {
-      body.setVelocityY(body.velocity.y * 0.82);
+    // variable height: release early → cut the rise, once. Only a jump of his
+    // own: a stomp bounce or a launcher never sets jumpRising, and the window
+    // shuts as soon as he slows (a landing, a ceiling and the apex all do it).
+    if (this.jumpRising) {
+      if (body.velocity.y >= -JUMP_CUT_BELOW) this.jumpRising = false;
+      else if (!jumpDown && this.scene.physics.world.stepsLastFrame > 0) {
+        // (on a frame that stepped: at 144 Hz a tap still rises its first step)
+        body.setVelocityY(-cutSpeed(-body.velocity.y, this.scene.physics.world.gravity.y + body.gravity.y));
+        this.jumpRising = false;
+      }
     }
     // fast-fall
     if (crouch && !grounded && body.velocity.y > -50) {
       body.setVelocityY(Math.max(body.velocity.y, 420));
     }
+    if (body.velocity.y > TERMINAL_FALL) body.setVelocityY(TERMINAL_FALL);
 
     // E reaches for whatever is there (edge-detected by hand: JustDown here
     // would eat the press the scene's own interaction reads)

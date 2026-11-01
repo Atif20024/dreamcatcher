@@ -131,14 +131,20 @@ export class InputMap {
 
 // ---- the browser adapter -------------------------------------------------------
 // One listener set per page; every InputMap attached reads the same raw state.
-const RAW = { keys: new Set(), installed: false };
+const RAW = { keys: new Set(), taps: new Set(), installed: false };
 
 function install(target) {
   if (RAW.installed || !target) return;
   RAW.installed = true;
-  target.addEventListener('keydown', (e) => RAW.keys.add(e.code));
+  target.addEventListener('keydown', (e) => {
+    RAW.keys.add(e.code);
+    RAW.taps.add(e.code);
+  });
   target.addEventListener('keyup', (e) => RAW.keys.delete(e.code));
-  target.addEventListener('blur', () => RAW.keys.clear());
+  target.addEventListener('blur', () => {
+    RAW.keys.clear();
+    RAW.taps.clear();
+  });
 }
 
 export function rawInput() {
@@ -149,12 +155,21 @@ export function rawInput() {
   } catch {
     pad = null;
   }
-  return { keys: RAW.keys, pad };
+  // a press since the last poll counts for this one, even if its key is up
+  // again: a 12 ms tap falls between frames.
+  // shortcut: one polling map per page (DreamScene's); a second would need its own taps
+  let keys = RAW.keys;
+  if (RAW.taps.size) {
+    keys = new Set([...RAW.keys, ...RAW.taps]);
+    RAW.taps.clear();
+  }
+  return { keys, pad };
 }
 
 // a map that polls the page's keyboard + first gamepad: call map.poll() each frame
 export function attachInput(map, target = typeof window !== 'undefined' ? window : null) {
   install(target);
+  RAW.taps.clear();
   map.poll = () => map.update(rawInput());
   return map;
 }

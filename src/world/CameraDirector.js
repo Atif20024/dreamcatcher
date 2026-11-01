@@ -12,6 +12,37 @@
 //   cam.snap()      after a teleport (door, respawn)
 // Zoom = base zoom (dream profile) × room zoom × shots.
 
+import { perFrame } from '../entities/motion.js';
+import { getSettings } from '../utils/save.js';
+
+// the Reduced shake setting, as a multiplier every shake goes through
+export function shakeScale() {
+  try {
+    return getSettings().reducedShake ? 0.4 : 1;
+  } catch {
+    return 1;
+  }
+}
+
+// a jump (145 px) stays inside this: the view holds still while Jo is in the air
+const AIR_BAND = 120;
+
+// The older scenes' follow (Phaser's own, per render frame), made dt-correct.
+// Call once a frame after startFollow(target, true, 0.1, 0.1): at 60 Hz the
+// lerp is that 0.1. The look-ahead eases, and flips on where he is moving; the
+// deadzone opens while he is in the air, and closing it on landing eases the
+// view back to him. (cam.setDeadzone would snap the camera: set the height.)
+export function easeFollow(cam, p, delta) {
+  const dt = Math.min(delta, 50);
+  const l = perFrame(0.1, dt);
+  cam.setLerp(l, l);
+  const vx = p.body.velocity.x;
+  const want = Math.abs(vx) > 40 ? (vx > 0 ? -48 : 48) : p.flipX ? 48 : -48;
+  cam.followOffset.x += (want - cam.followOffset.x) * perFrame(0.06, dt);
+  const air = !p.body.onFloor() && !p.onSlope && !p.climbing && !p.floating;
+  if (cam.deadzone) cam.deadzone.height = air ? AIR_BAND * 2 : 60;
+}
+
 const ease = (u) => (u < 0.5 ? 2 * u * u : 1 - (-2 * u + 2) ** 2 / 2);
 const lerp = (a, b, t) => a + (b - a) * t;
 
@@ -29,7 +60,11 @@ export class CameraDirector {
     this.look = 0;
     this.pos = null;
     this.zoom = zoom;
-    this.shake = 1; // settings: reduced shake → 0.4
+  }
+
+  // settings: reduced shake → 0.4 (main.js applies it to every camera shake)
+  get shake() {
+    return shakeScale();
   }
 
   push({ zoom = 1, focus = null, ms = 600, weight = 1, hold = false } = {}) {
@@ -54,6 +89,7 @@ export class CameraDirector {
   // the look-ahead carries on instead of easing back out after the dip)
   snap({ keepLook = false } = {}) {
     this.pos = null;
+    this.footY = null;
     if (!keepLook) this.look = 0;
   }
 
@@ -83,9 +119,13 @@ export class CameraDirector {
     // base follow: feet low in frame, a look-ahead that eases toward where he faces/moves
     const vx = p.body ? p.body.velocity.x : 0;
     const want = Math.abs(vx) > 40 ? Math.sign(vx) * this.lookAhead : (p.flipX ? -1 : 1) * this.lookAhead * 0.5;
-    if (!frozen) this.look += (want - this.look) * Math.min(1, dt / 600);
+    if (!frozen) this.look += (want - this.look) * perFrame(16.667 / 600, dt);
+    // the feet line follows him on the ground; in the air only past the band,
+    // so the screen does not bob on every jump
+    const air = p.body && !p.body.onFloor() && !p.onSlope && !p.climbing && !p.floating;
+    this.footY = !air || this.footY == null ? p.y : Math.max(p.y - AIR_BAND, Math.min(p.y + AIR_BAND, this.footY));
     let fx = p.x + this.look;
-    let fy = p.y + 22 - this.cam.height * (this.bias - 0.5);
+    let fy = this.footY + 22 - this.cam.height * (this.bias - 0.5);
     let zoom = this.baseZoom * roomZoom;
     for (const h of this.shots) {
       const f = this.focusOf(h);
@@ -98,9 +138,8 @@ export class CameraDirector {
     // ease position (a teleport snaps)
     if (!this.pos || Math.hypot(fx - this.pos.x, fy - this.pos.y) > this.cam.width * 1.2) this.pos = { x: fx, y: fy };
     else {
-      const k = Math.min(1, dt / 110);
-      this.pos.x += (fx - this.pos.x) * k;
-      this.pos.y += (fy - this.pos.y) * Math.min(1, dt / 160);
+      this.pos.x += (fx - this.pos.x) * perFrame(16.667 / 110, dt);
+      this.pos.y += (fy - this.pos.y) * perFrame(16.667 / 160, dt);
     }
     // clamp the view inside the room
     const b = this.bounds(roomId);

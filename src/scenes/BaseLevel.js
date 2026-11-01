@@ -23,6 +23,7 @@ import CheckpointService from '../play/Checkpoints.js';
 import { RunState } from '../play/RunState.js';
 import PauseMenu from '../ui/PauseMenu.js';
 import { settingsItems } from '../ui/settingsItems.js';
+import { easeFollow } from '../world/CameraDirector.js';
 import ModalManager from '../ui/ModalManager.js';
 import { hud } from '../ui/hud.js';
 import { uiText, PLATE } from '../ui/text.js';
@@ -548,6 +549,7 @@ export default class BaseLevel extends Phaser.Scene {
     }
     const v = this.health.knockback(p.x, sourceX, p.flipX);
     p.body.setVelocity(v.x, v.y);
+    p.jumpRising = false;
     p.controlLockUntil = Math.max(p.controlLockUntil || 0, this.time.now + 240);
   }
 
@@ -1106,7 +1108,7 @@ export default class BaseLevel extends Phaser.Scene {
       return true;
     }
     // camera look-ahead in facing direction
-    this.cameras.main.followOffset.x = this.player.flipX ? 48 : -48;
+    easeFollow(this.cameras.main, this.player, this.game.loop.delta);
     return false;
   }
 }

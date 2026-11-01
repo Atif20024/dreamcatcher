@@ -134,16 +134,24 @@ export function masterChain() {
   return chain;
 }
 
+// one-shots run on the sfx bus (slider, room, duck), at the level they were
+// written for straight into the master
+const sfxLevel = (bus) => (bus && audioHooks.flat ? audioHooks.flat('sfx') : 1);
+// no two the same: a repeated sound within +/-4 %
+const vary = (f) => f * (0.96 + Math.random() * 0.08);
+
 function tone(freq, dur, type = 'sine', vol = 0.5, when = 0, glideTo = null, extra = null) {
   const c = ac();
   if (!c) return;
-  voice(c, master, { freq, dur, type, vol, when, glide: glideTo, prio: PRIO.sfx, ...(extra || {}) });
+  const bus = busNode('sfx');
+  voice(c, bus || master, { freq, dur, type, vol: vol * sfxLevel(bus), when, glide: glideTo, prio: PRIO.sfx, ...(extra || {}) });
 }
 
 function noise(dur, vol = 0.3, freq = 1000, when = 0) {
   const c = ac();
   if (!c) return;
-  noiseVoice(c, master, { dur, vol, f: freq, when, env: 'exp', prio: PRIO.sfx });
+  const bus = busNode('sfx');
+  noiseVoice(c, bus || master, { dur, vol: vol * sfxLevel(bus), f: freq, when, env: 'exp', prio: PRIO.sfx });
 }
 
 // a stinger ducks the music (-6 dB, 50 ms in, 800 ms out) — AudioBus
@@ -173,12 +181,23 @@ const SFX = {
   squish: () => tone(160, 0.2, 'sine', 0.4, 0, 60),
   buzz: () => tone(90, 0.25, 'sawtooth', 0.2),
   hurt: () => tone(200, 0.25, 'square', 0.35, 0, 80),
-  jump: () => tone(300, 0.12, 'square', 0.12, 0, 420),
-  pickup: () => [660, 880].forEach((f, i) => tone(f, 0.15, 'square', 0.2, i * 0.07)),
+  jump: () => {
+    const f = vary(300);
+    tone(f, 0.12, 'square', 0.12, 0, f * 1.4);
+  },
+  // f: the landing's weight, 0..1 (a soft pat to a thump)
+  land: (f = 0.5) => {
+    noise(0.05 + 0.07 * f, 0.05 + 0.13 * f, vary(260));
+    tone(vary(90), 0.08 + 0.1 * f, 'sine', 0.05 + 0.12 * f, 0, 55);
+  },
+  pickup: () => {
+    const k = vary(1);
+    [660, 880].forEach((f, i) => tone(f * k, 0.15, 'square', 0.2, i * 0.07));
+  },
   deliver: () => [523, 784].forEach((f, i) => tone(f, 0.2, 'triangle', 0.3, i * 0.1)),
   next: () => tone(180, 0.3, 'square', 0.4, 0, 150),
   crack: () => noise(0.2, 0.4, 500),
-  swing: () => noise(0.15, 0.15, 900),
+  swing: () => noise(0.15, 0.15, vary(900)),
   purr: () => tone(70, 0.8, 'sine', 0.15),
   pop: () => tone(500, 0.1, 'sine', 0.3, 0, 900),
   fail: () => [300, 240, 180].forEach((f, i) => tone(f, 0.25, 'square', 0.25, i * 0.15)),
@@ -398,9 +417,9 @@ export function chime(event = 'chime', place = 'hub') {
   }
 }
 
-export function sfx(name) {
+export function sfx(name, arg) {
   try {
-    if (SFX[name]) SFX[name]();
+    if (SFX[name]) SFX[name](arg);
   } catch {
     /* audio unavailable — stay silent */
   }

@@ -111,7 +111,7 @@ export function legacyFromSlot(slot) {
 export function defaultSettings() {
   // volumes: the player's Music and Ambience sliders, a fraction of each
   // bus's default level (feedback 3)
-  return { musicOff: false, savedHereShown: false, volumes: { music: 1, ambience: 1 } };
+  return { musicOff: false, savedHereShown: false, volumes: { music: 1, ambience: 1 }, reducedShake: false };
 }
 
 export function emptySave() {

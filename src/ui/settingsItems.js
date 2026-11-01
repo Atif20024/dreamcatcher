@@ -7,7 +7,7 @@ import { getSettings, updateSettings } from '../utils/save.js';
 import { isMusicOff, toggleMusic } from '../systems/audio.js';
 import { buses, VOLUME_KEYS, VOLUME_STEP } from '../audio/AudioBus.js';
 
-const NAMES = { music: 'Music volume', ambience: 'Ambience volume' };
+const NAMES = { music: 'Music volume', ambience: 'Ambience volume', sfx: 'Effects volume' };
 
 export function getVolume(key) {
   try {
@@ -56,7 +56,7 @@ export function settingsItems({ back, onMusic = null } = {}) {
         refresh(m);
       },
     },
-    ...VOLUME_KEYS.map((key) => ({
+    ...[...VOLUME_KEYS, 'sfx'].map((key) => ({
       id: `vol:${key}`,
       label: volumeLabel(key),
       action: (m) => {
@@ -68,6 +68,16 @@ export function settingsItems({ back, onMusic = null } = {}) {
         refresh(m);
       },
     })),
+    {
+      id: 'shake',
+      label: `Reduced shake: ${getSettings().reducedShake ? 'on' : 'off'}`,
+      action: (m) => {
+        updateSettings((st) => {
+          st.reducedShake = !st.reducedShake;
+        });
+        refresh(m);
+      },
+    },
   ];
   if (back) items.push(back);
   return items;
