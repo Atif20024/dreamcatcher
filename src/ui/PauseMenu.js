@@ -207,6 +207,7 @@ export default class PauseMenu {
 
   _drawFrame(g, x, y, w, h) {
     drawPanel(g, x, y, w, h);
+    g.isDCPanel = true;
   }
 
   _renderItems() {
