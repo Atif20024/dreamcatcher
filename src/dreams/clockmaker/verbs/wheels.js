@@ -6,11 +6,15 @@
 // A train's state is a JSON string in the run's flags (F.train_<id>): RunState
 // keeps only primitives, and a saved run must come back with its wheels on the wall.
 import { newTrain, take, hang, lift, lay, goHome, trainState, teeth, WHEEL_R } from '../../../engines/geartrain.js';
-import { floorUnder } from '../logic.js';
+import { floorUnder, strainAt } from '../logic.js';
 import { sfx } from '../../../systems/audio.js';
 
 const T = 32;
 const SPEED = 0.9; // the drive, radians a second
+const PEG_SLOW = 60; // px either side of a peg where a carrying Jo walks (a d-pad tap can then pick one)
+
+// is Jo in reach of a peg on this wall (the same reach as the peg's own prompt)?
+const nearPeg = (t, p) => t.def.arbors.some((a) => Math.abs(p.x - (t.ox + a.x)) < PEG_SLOW && Math.abs(t.oy + a.y - (p.y + 22)) <= 104 && p.y + 22 >= t.oy + a.y - 8);
 
 // a wheel at real scale (a big one is 1.45 m across: a tower clock's wheel)
 function wheelTexture(scene, r, kind) {
@@ -73,9 +77,9 @@ export default {
   create(ctx) {
     const s = ctx.scene;
     const trains = (ctx.state.trains = []);
-    ctx.state.angle = 0;
     ctx.state.hits = ctx.flags.pendulum_hits || 0;
     ctx.state.ring = s.add.graphics().setDepth(-4);
+    ctx.state.ghost = s.add.image(0, 0, wheelTexture(s, WHEEL_R.big, 'brass')).setDepth(-4.5).setAlpha(0.55).setVisible(false);
     for (const r of s.graph.rooms.values()) {
       for (const def of r.data.trains || []) {
         const ox = r.tx * T;
@@ -260,9 +264,12 @@ export default {
       goHome(carrying.def, carrying.st);
       this.save(ctx, carrying);
       ctx.state.carrying = null;
+      s.caption.say('jo', 'I left the wheel where I found it. It belongs to that wall.', { ms: 3000 });
     }
-    ctx.state.angle += (SPEED * dt) / 1000;
+    // (Shift still inverts this, as it does at the station)
+    p.walkByDefault = !!ctx.state.carrying && nearPeg(ctx.state.carrying, p);
     const ring = ctx.state.ring.clear();
+    ctx.state.ghost.setVisible(false);
     for (const t of ctx.state.trains) {
       this.sync(ctx, t);
       const on = t.r.id === s.roomId;
@@ -277,11 +284,12 @@ export default {
     const { def, st, ox, oy, imgs, g } = t;
     const p = s.player;
     const ts = trainState(def, st);
-    // held, the train does not move, and in its first moments it shakes
-    if (!ts.held) t.angle = ctx.state.angle;
+    // held, the train only strains against the pawl (wheels that touch still go
+    // opposite ways: the reason it is held), and in its first moments it shakes
+    if (!ts.held) t.angle = (t.angle || 0) + (SPEED * dt) / 1000;
     t.judder = Math.max(0, (t.judder || 0) - dt);
     const shake = t.judder ? Math.sin(t.judder / 28) * 0.05 : 0;
-    const base = t.angle ?? ctx.state.angle;
+    const base = (t.angle || 0) + (ts.held ? strainAt(s.time.now) : 0);
     const rot = (id) => {
       const q = ts.turning[id];
       return q ? q.ratio * base + q.phase + shake * Math.sign(q.ratio) : null;
@@ -328,8 +336,10 @@ export default {
         e.img.setPosition(ox + l.x + e.dx, oy + l.y + e.dy).setRotation(0.4).setDepth(-5);
       }
     }
-    // the peg or wheel [E] is on
+    // the peg [E] is on: a ring, and the carried wheel faint on it, so a wrong peg shows before the press
     const cur = s.interaction.current;
-    if (cur && cur.id.startsWith(`peg:${def.id}:`)) ring.lineStyle(2, 0xf6d98a, 0.9).strokeCircle(cur.x, cur.y, 10);
+    if (!cur || !cur.id.startsWith(`peg:${def.id}:`)) return;
+    ring.lineStyle(2, 0xf6d98a, 0.9).strokeCircle(cur.x, cur.y, 10);
+    if (hot) ctx.state.ghost.setTexture(wheelTexture(s, WHEEL_R[def.wheels.find((w) => w.id === st.carried).size], 'brass')).setPosition(cur.x, cur.y).setRotation(0.4).setVisible(true);
   },
 };

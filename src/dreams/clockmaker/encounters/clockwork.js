@@ -11,6 +11,52 @@
 import { clockwork } from '../../../engines/clockwork.js';
 import { escapement as escapementEngine } from '../../../engines/escapement.js';
 import { lampFlags, keeperAtStrike, hillFloor } from '../logic.js';
+import { uiText } from '../../../ui/text.js';
+import { hud } from '../../../ui/hud.js';
+import { sfx } from '../../../systems/audio.js';
+
+const WORDS = ['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven'];
+
+// "Strike it with me": his count is the beat. At the top of each swing he calls the
+// next stroke; a ring closes on the number as the bob comes down to the middle, and
+// the strike follows his word. The windows are the same as alone (tuning.js): this
+// only says when. A number he has called is called again until it is struck.
+function keeperCount(scene, st, n) {
+  const a = scene.encounters.active;
+  let c = a.count;
+  if (!c) {
+    c = a.count = { ring: scene.add.graphics().setDepth(40), num: uiText(scene, 0, 0, '', { size: 'display', scale: 2, color: 'accent' }).setOrigin(0.5).setDepth(41), called: 0, top: true, struck: 0 };
+    hud.set('context', '[E] on his count: strike the hour');
+  }
+  if (c.over) return;
+  const call = () => {
+    c.called = st.count + 1;
+    c.num.setText(String(c.called));
+    scene.caption.say('keeper', `${WORDS[st.count]}.`, { ms: 900 });
+    sfx('tick');
+    n.setTalking(true);
+    scene.time.delayedCall(350, () => n.setTalking(false));
+  };
+  if (st.count > c.struck) {
+    c.struck = st.count;
+    // his weight on the rope too
+    scene.tweens.add({ targets: n, y: n.y + 4, duration: 110, yoyo: true, ease: 'Sine.easeOut' });
+  }
+  if (st.count >= 7) {
+    c.over = true;
+    c.ring.destroy();
+    scene.tweens.add({ targets: c.num, alpha: 0, delay: 500, duration: 500, onComplete: () => c.num.destroy() });
+    return;
+  }
+  const top = Math.abs(st.x) > 0.98;
+  if (!c.called || (top && !c.top)) call();
+  c.top = top;
+  const x = n.x - 104;
+  const y = scene.player.y - 112;
+  c.num.setPosition(x, y);
+  c.ring.clear();
+  if (c.called > st.count) c.ring.lineStyle(3, st.inWindow ? 0xf6d98a : 0xc8963a, 1).strokeCircle(x, y, 26 + 26 * Math.abs(st.x));
+}
 
 export default {
   id: 'clockwork',
@@ -64,17 +110,15 @@ export const strike = {
   onRender(scene, st) {
     if (scene.music) scene.music.setState('silent'); // nothing but the bell
     lampFlags(scene.F, st.count);
-    // the keeper, as Jo asked him under the bell: on his way down the hill, or counting
+    // the keeper, as Jo asked him under the bell: counting, or on his way down the hill
     const F = scene.F;
+    const n = scene.npcs.get('keeper_hill');
+    if (n && F.keeper_stays) return keeperCount(scene, st, n);
     if ((F.strikes_seen || 0) === st.count) return;
     F.strikes_seen = st.count;
-    const n = scene.npcs.get('keeper_hill');
     if (!n || !st.count) return;
-    if (F.keeper_stays) scene.caption.say('keeper', `${['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven'][st.count - 1]}.`, { ms: 1000 });
-    else {
-      const r = scene.graph.room('yard');
-      n.walkTo((r.tx + keeperAtStrike(st.count)) * 32, 130, (x) => r.ty * 32 + hillFloor(x - r.tx * 32));
-    }
+    const r = scene.graph.room('yard');
+    n.walkTo((r.tx + keeperAtStrike(st.count)) * 32, 130, (x) => r.ty * 32 + hillFloor(x - r.tx * 32));
   },
   onWin: 'seven_struck',
 };

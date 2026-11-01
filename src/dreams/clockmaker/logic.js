@@ -19,9 +19,11 @@ export function bobHits(bob, { left, right, top, bottom }, r = BOB_R) {
   return (bob.x - cx) ** 2 + (bob.y - cy) ** 2 <= r * r;
 }
 
-// the gentlest dream: the first knock is free, and it never takes the last heart
-export function pendulumToll(hitsBefore, hearts) {
-  return hitsBefore === 0 || hearts <= 1 ? 0 : 1;
+// a held train strains against its pawl: the drive's extra angle at a time (ms), wound
+// up slowly and snapped back, so each wheel shows the way it wants to go
+export function strainAt(ms) {
+  const f = (ms % 1100) / 1100;
+  return 0.24 * (f < 0.85 ? f / 0.85 : (1 - f) / 0.15);
 }
 
 // the seven lamps up the hill, from the gate to Jo, one a strike

@@ -10,6 +10,7 @@
 //                       a bot's number, with no looking around or thinking in it
 import { clearRun, getSave } from '../../utils/save.js';
 import { boot, put, walkTo as walk, jumpTo, playEncounter, uncatch } from './phase3.js';
+import { bobAt } from '../../dreams/clockmaker/logic.js';
 
 const T = 32;
 // a long scripted run must let the page breathe (microtasks alone never do)
@@ -167,7 +168,22 @@ async function fullRun(dc, opts = {}) {
   const { ok } = b;
   const p = s.player;
   const t0 = s.time.now;
-  s.invulnUntil = 0; // the knocks are part of it (none takes the last heart)
+  s.invulnUntil = 0; // the knocks are part of it
+  const hearts0 = s.health.hearts;
+  // every knock: where, which bob and how far through its swing, what Jo was doing
+  const knocks = [];
+  const knockback = s.knockback.bind(s);
+  s.events.once('shutdown', () => delete s.knockback); // (Phaser keeps the scene object for the next start)
+  s.knockback = (sourceX) => {
+    const r = s.graph.room(s.roomId);
+    const [px, py] = [p.x - r.tx * T, p.y - r.ty * T];
+    const dist = (d) => Math.hypot(bobAt(d, s.time.now).x - px, bobAt(d, s.time.now).y - py);
+    const d = [...r.data.pendulums].sort((x, y) => dist(x) - dist(y))[0];
+    const v = s.verbs.find((m) => m.mod.id === 'wheels').ctx.state;
+    knocks.push({ room: s.roomId, x: Math.round(px), y: Math.round(py), bob: r.data.pendulums.indexOf(d), bobX: Math.round(sourceX - r.tx * T), phase: +((s.time.now % d.period) / d.period).toFixed(2), shove: p.x < sourceX ? -1 : 1, climbing: !!p.climbing, moving: Math.round(p.body.velocity.x), carrying: v.carrying ? v.carrying.st.carried : null, step: b.log.at(-1) });
+    knockback(sourceX);
+  };
+  window.__dcKnocks = knocks;
   // 1. the lane; for the long run, what is there to do in it
   if (opts.read) {
     await b.at(b.wx('lane', 4), 'moment:m_table', 20);
@@ -315,7 +331,12 @@ async function fullRun(dc, opts = {}) {
   await dc.run(20);
   ok('strike', s.encounters.busy);
   await playEncounter(dc, s);
-  if (opts.pick) ok('he-stayed-at-the-rope', Math.abs(hill.x - hx0) < 2);
+  if (opts.pick) {
+    ok('he-stayed-at-the-rope', Math.abs(hill.x - hx0) < 2);
+    // his count led every stroke, One to Seven, called again if a stroke was late
+    const said = s.caption.log.filter((l) => l.who === 'keeper' && /^(One|Two|Three|Four|Five|Six|Seven)\.$/.test(l.text)).map((l) => l.text).filter((t, i, a) => t !== a[i - 1]);
+    ok('he-counted', said.join(' ') === 'One. Two. Three. Four. Five. Six. Seven.');
+  }
   else ok('he-went-down-the-hill', hill.x < hx0 - 16 * T && Math.abs(hill.y - (s.graph.room('yard').ty * T + 16 * T)) < 4);
   await dc.run(10);
   await b.quiet();
@@ -344,13 +365,14 @@ async function fullRun(dc, opts = {}) {
   ok('ending', s.ending.active);
   for (let i = 0; i < 1200 && !s.ending.waitingForReturn; i++) await dc.run(1);
   ok('ending-card', !!s.ending.waitingForReturn && s.ending.caught);
-  return { s, b, ms: s.time.now - t0, hits: s.F.pendulum_hits || 0, hearts: s.health.hearts };
+  ok('knocks-cost-no-heart', s.health.hearts === hearts0);
+  return { s, b, ms: s.time.now - t0, hits: s.F.pendulum_hits || 0, hearts: s.health.hearts, knocks };
 }
 
 const playthrough = {
   id: 'clockmaker-playthrough',
   async run(dc) {
-    const { s, b, ms, hits, hearts } = await fullRun(dc, { pick: 0 });
+    const { s, b, ms, hits, hearts, knocks } = await fullRun(dc, { pick: 0 });
     b.ok('ending-line', /Nobody saw him go in/.test(s.def.ending.lines(s.F).join(' ')));
     dc.press('action', 3);
     for (let i = 0; i < 90 && !(dc.scene() && dc.scene().sys.settings.key === 'Hub'); i++) await dc.run(1);
@@ -365,7 +387,7 @@ const playthrough = {
     b.ok('board-caught', !!row && /CAUGHT/.test(row.status));
     uncatch('clockmaker');
     clearRun('clockmaker');
-    return { pass: b.log.every((l) => l.endsWith(':ok')), detail: `${b.log.join(' ')}; ${(ms / 60000).toFixed(1)} min of game time, no reading; ${hits} knocks, ${hearts} hearts left; ${Object.entries(b.rooms).map(([k, v]) => `${k} ${(v / 1000).toFixed(0)}s`).join(', ')}` };
+    return { pass: b.log.every((l) => l.endsWith(':ok')), detail: `${b.log.join(' ')}; ${(ms / 60000).toFixed(1)} min of game time, no reading; ${hits} knocks, ${hearts} hearts left; ${Object.entries(b.rooms).map(([k, v]) => `${k} ${(v / 1000).toFixed(0)}s`).join(', ')}; knocks ${JSON.stringify(knocks)}` };
   },
 };
 
@@ -400,11 +422,23 @@ const wheels = {
     const verb = s.verbs.find((v) => v.mod.id === 'wheels').ctx.state;
     const bench = b.train('bench');
     ok('no-wheel-before-he-speaks', !s.interaction.items.get('wheel:bench1').enabled());
+    // the lesson names the button the player has
+    const lesson = (device) => {
+      s.inputs.lastDevice = device;
+      s.sceneBox.run({ id: 'test_label', cast: [], nodes: { start: { who: 'keeper', text: s.def.conversations.keeper_first.nodes.k4.text, end: true } } });
+      const line = s.sceneBox.full;
+      s.sceneBox.close();
+      return line;
+    };
+    ok('lesson-keyboard', lesson('keyboard').includes('[E] both ways'));
+    ok('lesson-pad', lesson('gamepad').includes('[X] both ways'));
+    s.inputs.lastDevice = 'keyboard';
     s.F.met_keeper = true;
     // on his back; set down with nothing else in reach, it lies on the floor under him
     ok('take', await b.at(bench.ox + 480, 'wheel:bench1', 16));
     await walkTo(dc, s, 8 * T, { frames: 400, tol: 20 });
     await dc.run(2);
+    ok('runs-away-from-the-pegs', !s.player.walking);
     ok('down-offered', s.interaction.current && s.interaction.current.id === 'wheel:down');
     await b.use();
     ok('down', !bench.st.carried && bench.st.lying.bench1.y === 13 * T - 32);
@@ -414,12 +448,29 @@ const wheels = {
     ok('hang', await b.peg(bench, 'a'));
     ok('pawl-holds', !s.F.bench_done && bench.judder > 0);
     await dc.run(40);
-    const a0 = bench.imgs.bench1.img.rotation;
-    await dc.run(40);
-    ok('held-means-still', Math.abs(bench.imgs.bench1.img.rotation - a0) < 0.001);
+    // held, it strains a little and stays where it is, each wheel against its neighbour
+    const rot = () => [bench.imgs.drive.img.rotation, bench.imgs.bench1.img.rotation];
+    const turned = (a, b_) => Math.atan2(Math.sin(a - b_), Math.cos(a - b_));
+    const r0 = rot();
+    let most = 0;
+    let against = true;
+    for (let i = 0; i < 12; i++) {
+      const was = rot();
+      await dc.run(6);
+      const now = rot();
+      const [d, w] = [turned(now[0], was[0]), turned(now[1], was[1])];
+      if (Math.abs(d) > 0.005 && Math.sign(d) === Math.sign(w)) against = false;
+      most = Math.max(most, Math.abs(turned(now[0], r0[0])));
+    }
+    ok('held-strains', most > 0.05 && most < 0.5);
+    ok('neighbours-go-opposite-ways', against);
     await walkTo(dc, s, 15.5 * T, { frames: 600 });
     await jumpTo(dc, s, null, 16);
     await b.at(bench.ox + 512, 'wheel:bench2', 16);
+    await walkTo(dc, s, bench.ox + 640, { frames: 600, tol: 12 });
+    await dc.run(4);
+    ok('walks-at-the-pegs', s.player.walking);
+    ok('ghost-on-the-peg', verb.ghost.visible && verb.ghost.x === s.interaction.current.x);
     ok('hang-second', await b.peg(bench, 'b'));
     ok('locked', bench.judder > 0 && !s.F.bench_done);
     await b.peg(bench, 'b');
@@ -456,6 +507,7 @@ const wheels = {
     await dc.run(2);
     s.roomId = 'clockhouse';
     ok('home-through-a-door', !bench.st.carried && bench.st.lying.bench1.x === 480);
+    ok('door-says-so', s.caption.log.some((l) => /where I found it/.test(l.text)));
     // the shaft: a wheel that fouls stays on his back; a knock drops it
     const s2 = await boot(dc, 'shaft');
     const b2 = bot(dc, s2);
@@ -475,6 +527,14 @@ const wheels = {
     s2.F.pendulum_hits = (s2.F.pendulum_hits || 0) + 1;
     await dc.run(30);
     ok('knock-drops-it', !sh.st.carried && sh.st.lying.shaft_big.y === 25 * T - 32 && !!v2);
+    // the chain: shoved either way, he comes down on plank B, not back on plank A
+    s2.F.clock_wound = true;
+    for (const [side, name] of [[-30, 'right'], [30, 'left']]) {
+      put(s2, r.tx * T + 464, (r.ty + 14) * T);
+      s2.knockback(s2.player.x + side);
+      await dc.run(90);
+      ok(`chain-shove-${name}`, Math.abs(s2.player.body.bottom - (r.ty + 18) * T) < 2);
+    }
   },
 };
 

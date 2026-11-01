@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 
 // the proof dream imports painters that import phaser (browser-only)
-vi.mock('phaser', () => ({ default: { Math: { RandomDataGenerator: class {} }, Display: { Color: {} } } }));
+vi.mock('phaser', () => ({ default: { Math: { RandomDataGenerator: class {} }, Display: { Color: {} }, GameObjects: { BitmapText: class {} } } }));
 
 const { dreamIssues, reachableTiles } = await import('../scripts/lib/dream-checks.js');
 const { SHARED_MATERIALS, SHARED_DECOR_RULES } = await import('../src/world/MaterialLibrary.js');

@@ -65,7 +65,8 @@ export class SceneBox {
     const n = this.runner.node;
     if (!n) return this.close();
     const sp = this.speaker(n.who);
-    this.full = n.text || '';
+    // {act1} in a line: the label the device in use has for it, as Interaction's prompts show it
+    this.full = (n.text || '').replace('{act1}', `[${this.input ? this.input.label('act1') : 'E'}]`);
     this.shown = 0;
     this.wait = 0;
     this.choosing = false;

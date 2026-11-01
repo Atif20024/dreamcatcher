@@ -26,7 +26,7 @@ export const BELFRY_TRAIN = {
   onRun: 'going_train',
   who: 'keeper',
   wrongWay: 'That pawl is older than you are. Count again.',
-  bound: 'Three that all touch. You know that one.',
+  bound: 'Three that all touch cannot turn. Lift one off.',
   drive: { x: 560, y: TOP, r: 32 },
   output: { x: 816, y: TOP, r: 32, turns: -1 },
   arbors: [[624, TOP], [688, TOP], [752, TOP], [592, LOW], [656, LOW], [720, LOW], [784, LOW]].map(([x, y], i) => ({ id: `s${i}`, x, y })),
@@ -34,7 +34,7 @@ export const BELFRY_TRAIN = {
     { id: 'bell1', size: 'big', x: 9 * 32, y: 352 }, // in the bob's swing
     { id: 'bell2', size: 'big', x: 14 * 32 + 16, y: 288 }, // on the joists
     { id: 'bell3', size: 'big', x: 18 * 32, y: 192 }, // up on the gallery
-    { id: 'bell4', size: 'big', x: 27 * 32, y: 192 },
+    { id: 'bell4', size: 'big', x: 20 * 32, y: 192 }, // (clear of the door at 26: [E] takes the nearest)
   ],
 };
 

@@ -171,7 +171,7 @@ export default {
     climb_shaft: "up the weight shaft: bring the wheels to the gear's cage",
     take_gear: 'the cage is up: take the second gear',
     to_belfry: 'up to the bell chamber with the gear',
-    belfry_wheels: 'his going train is down: four wheels under the gallery',
+    belfry_wheels: 'his going train is down: four wheels, about the room',
     hear_keeper: 'up on the gallery: he wants a word',
     seat_third: 'the third gear, under the bell: seat it on the beat',
     strike_seven: 'out on the hill, by the old bell: strike seven',
