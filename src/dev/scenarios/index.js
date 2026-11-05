@@ -71,6 +71,9 @@ import roomEntry from './roomEntry.js';
 SCENARIOS.push(...roomEntry);
 import packs from './packs.js';
 SCENARIOS.push(...packs);
+// the night grade gives lit shapes their light back
+import nightGlow from './nightGlow.js';
+SCENARIOS.push(...nightGlow);
 // THE LONG STRAIGHT: the race scene, its hand-off, the pedals, the platform
 import racer from './racer.js';
 SCENARIOS.push(...racer);

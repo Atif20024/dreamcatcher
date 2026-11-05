@@ -5,6 +5,7 @@ import Player from '../entities/Player.js';
 import BaseLevel from './BaseLevel.js';
 import { THEMES } from '../themes/index.js';
 import { lightThemeProps } from '../art/levelArt.js';
+import { followGlows } from '../art/look.js';
 import RoomBuilder from '../builders/RoomBuilder.js';
 import Parallax from '../builders/parallax.js';
 import { D } from '../builders/depths.js';
@@ -209,6 +210,7 @@ export default class AstronautScene extends BaseLevel {
     this.keyF = this.input.keyboard.addKey('F');
 
     this.promptText = hud.prompt(); // the HUD's interact prompt, pinned over the world point
+    followGlows(this, (k) => (k === 'astro-beacon' || k === 'astro-comms' ? { rects: [[0, 0, 999, 999, 110]] } : null)); // their lamps and screen, over the night grade
     // the controls caption (HudGrid, bottom centre): shown when the physics
     // model changes, then it fades
     this.hintText = { setText: (t) => this.hud && this.hud.set('caption', t) };

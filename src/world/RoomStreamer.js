@@ -109,9 +109,8 @@ export class RoomStreamer {
       for (const l of meta.lit) images.push(s.add.image(r.x0 + l.x, r.y0 + l.y, l.key).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.ADD).setTint(gt).setDepth(GLOW_DEPTH));
       for (const img of room.props) {
         const p = img.propDef;
-        const rects = litRects(p.def, { lit: p.lit }, { w: p.canvas.width, h: p.canvas.height });
-        if (!rects) continue;
-        const g = s.add.image(img.x, img.y, litTexture(s, `lit:prop:${p.prop}`, p.canvas, rects, [0, 0, p.canvas.width, p.canvas.height])).setOrigin(0, 0).setDisplaySize(p.rect.w, p.rect.h).setFlipX(!!p.flip).setBlendMode(Phaser.BlendModes.ADD).setTint(gt).setDepth(GLOW_DEPTH);
+        if (!p.litKey) continue;
+        const g = s.add.image(img.x, img.y, p.litKey).setOrigin(0, 0).setDisplaySize(p.rect.w, p.rect.h).setFlipX(!!p.flip).setBlendMode(Phaser.BlendModes.ADD).setTint(gt).setDepth(GLOW_DEPTH);
         g.src = img;
         room.glows.push(g);
       }
@@ -144,10 +143,17 @@ export class RoomStreamer {
       yield;
       const k = `lit:${key}#${i}`;
       if (this.scene.textures.exists(k)) this.scene.textures.remove(k);
-      litTexture(this.scene, k, own, rects, [0, 0, own.width, own.height]);
+      litTexture(this.scene, k, own, rects);
       cutOut(this.scene, k, painted.mid, -x, -y); // the terrain stands in front
       this.baker.keys.add(k);
       lit.push({ key: k, x, y });
+    }
+    // a live prop's copy too: nothing of this waits for the doorway
+    for (const p of painted.live) {
+      const rects = litRects(p.def, { lit: p.lit }, { w: p.canvas.width, h: p.canvas.height });
+      if (!rects) continue;
+      yield;
+      p.litKey = litTexture(this.scene, `lit:prop:${p.prop}`, p.canvas, rects);
     }
     this._paintCache.set(id, { live: painted.live, lights: painted.lights, lit });
   }

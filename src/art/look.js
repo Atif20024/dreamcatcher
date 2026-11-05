@@ -58,6 +58,12 @@ export function setupLook(scene, opts = {}) {
   return look;
 }
 
+// The grade dims the lamps along with the walls. A glow copy gives a light
+// back: the same pixels, tinted (1 - grade), added just over the grade, so
+//   pixel × grade + pixel × (1 - grade) = pixel
+// and the lit shape shows as painted while the wall beside it stays night.
+// Grade and copies sit just under 11, the depth of the NPCs, who drew over the
+// grade already and so never get a light showing through them.
 export const GLOW_DEPTH = 10.999;
 
 // Round 2 WP6 (critique §9 "Light"): the place's night grade. Every place is
@@ -93,13 +99,6 @@ export function setupGrade(scene, color, { depth = GLOW_DEPTH - 0.001 } = {}) {
   return img;
 }
 
-// The grade dims the lamps along with the walls. A glow copy gives a light
-// back: the same pixels, tinted (1 - grade), added just over the grade, so
-//   pixel × grade + pixel × (1 - grade) = pixel
-// and the lit shape shows as painted while the wall beside it stays night.
-// Grade and copies sit just under 11, the depth of the NPCs, who drew over the
-// grade already and so never get a light showing through them.
-
 // the tint that makes up what the grade took (times the room's own tint)
 export function glowTint(color, tint = 0xffffff) {
   const ch = (s) => Math.round((255 - ((color >> s) & 255)) * (((tint >> s) & 255) / 255));
@@ -113,11 +112,12 @@ export function litAlpha(r, g, b, from) {
   return Math.min(1, Math.max(0, (Math.max(r, g, b) - from) / 40));
 }
 
-// Draws the lit pixels of `src` (a canvas or image) into a new canvas texture.
-// `rects` are [x, y, w, h, from?] in the picture's own pixels; `box` crops it.
-export function litTexture(scene, key, src, rects, box, from = 170) {
+// Draws the lit pixels of a canvas into a new canvas texture. `rects` are
+// [x, y, w, h, from = 170] in its pixels.
+export function litTexture(scene, key, src, rects) {
   if (scene.textures.exists(key)) return key;
-  const [bx, by, bw, bh] = box;
+  const bw = src.width;
+  const bh = src.height;
   const ct = scene.textures.createCanvas(key, bw, bh);
   const ctx = ct.getContext();
   const out = ctx.createImageData(bw, bh);
@@ -125,13 +125,13 @@ export function litTexture(scene, key, src, rects, box, from = 170) {
   read.width = bw;
   read.height = bh;
   const rc = read.getContext('2d', { willReadFrequently: true });
-  rc.drawImage(src, -bx, -by);
+  rc.drawImage(src, 0, 0);
   const px = rc.getImageData(0, 0, bw, bh).data;
-  for (const [x, y, w, h, f = from] of rects) {
-    const x1 = Math.min(bw, Math.round(x + w) - bx);
-    const y1 = Math.min(bh, Math.round(y + h) - by);
-    for (let v = Math.max(0, Math.round(y) - by); v < y1; v++) {
-      for (let u = Math.max(0, Math.round(x) - bx); u < x1; u++) {
+  for (const [x, y, w, h, f = 170] of rects) {
+    const x1 = Math.min(bw, Math.round(x + w));
+    const y1 = Math.min(bh, Math.round(y + h));
+    for (let v = Math.max(0, Math.round(y)); v < y1; v++) {
+      for (let u = Math.max(0, Math.round(x)); u < x1; u++) {
         const i = (v * bw + u) * 4;
         out.data[i] = px[i];
         out.data[i + 1] = px[i + 1];
@@ -172,7 +172,7 @@ const solidFront = (o, depth) => o.type === 'Image' && o.depth > depth && o.dept
 
 // Copies for loose images (the station): every image whose texture `shapesOf`
 // knows gets a copy that follows it, through containers, crops and a texture
-// change (a lamp going out). shapesOf(key) → { rects, from, as? } or null.
+// change (a lamp going out). shapesOf(key) → { rects, as? } or null.
 // shortcut: what stands in front is cut out of the copy once, here; a thing
 // that moves off later leaves its hole. Fine for gates; people use aboveGlows.
 export function followGlows(scene, shapesOf) {
@@ -193,7 +193,7 @@ export function followGlows(scene, shapesOf) {
     });
     const key = `lit:${hit.length ? `${src.texture.key}@${Math.round(b.x)}` : shape.as || src.texture.key}`;
     if (scene.textures.exists(key)) return key;
-    litTexture(scene, key, from, shape.rects, [0, 0, f.cutWidth, f.cutHeight], shape.from);
+    litTexture(scene, key, from, shape.rects);
     for (const o of hit) {
       const r = o.getBounds();
       const fr = o.frame;
