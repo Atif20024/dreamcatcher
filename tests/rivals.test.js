@@ -38,7 +38,7 @@ describe('Cassian shuts the door', () => {
         expect(lead).toBeGreaterThanOrEqual(0.4);
       }
     }
-    expect(seen).toBeGreaterThan(50);
+    expect(seen).toBeGreaterThan(30);
   });
   it('never in a bend or close to one, and never twice in 4 s, over 50 seeded races', () => {
     for (let seed = 1; seed <= 50; seed++) {

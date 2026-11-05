@@ -169,10 +169,11 @@ describe('the wheel and the pedals', () => {
 describe('the sheet', () => {
   const pace = sheetPace(TRACKS.pinewood);
   it('Aldo is on the line exactly at his time, and never goes backwards', () => {
-    expect(Math.abs(pace.dAt(34) - TRACKS.pinewood.length)).toBeLessThan(5); // (sampled every quarter second)
-    expect(pace.at(TRACKS.pinewood.length)).toBeCloseTo(34, 0);
+    const sheet = TRACKS.pinewood.gate.time;
+    expect(Math.abs(pace.dAt(sheet) - TRACKS.pinewood.length)).toBeLessThan(5); // (sampled every quarter second)
+    expect(pace.at(TRACKS.pinewood.length)).toBeCloseTo(sheet, 0);
     let last = -1;
-    for (let t = 0; t <= 34; t += 0.5) {
+    for (let t = 0; t <= sheet; t += 0.5) {
       expect(pace.dAt(t)).toBeGreaterThanOrEqual(last);
       last = pace.dAt(t);
     }
@@ -186,17 +187,18 @@ describe('the sheet', () => {
 describe('what a time gate pays and says', () => {
   const T = TRACKS.pinewood;
   it('over the time pays nothing; under it pays the prize', () => {
-    expect(prizeOwed(applyResult({}, T, { place: 1, time: 35 }), T.id)).toBe(0);
-    expect(prizeOwed(applyResult({}, T, { place: 1, time: 33.5 }), T.id)).toBe(T.prize[1]);
-    expect(prizeOwed(applyResult(applyResult({}, T, { place: 1, time: 35 }), T, { place: 1, time: 33.5 }), T.id)).toBe(T.prize[1]);
+    const [over, under] = [T.gate.time + 1, T.gate.time - 0.5];
+    expect(prizeOwed(applyResult({}, T, { place: 1, time: over }), T.id)).toBe(0);
+    expect(prizeOwed(applyResult({}, T, { place: 1, time: under }), T.id)).toBe(T.prize[1]);
+    expect(prizeOwed(applyResult(applyResult({}, T, { place: 1, time: over }), T, { place: 1, time: under }), T.id)).toBe(T.prize[1]);
   });
   it('the timekeeper says it; a miss never reads as the time on the sheet', () => {
     expect(spoken(33.8)).toBe('Thirty-three eight');
     expect(spoken(35.1)).toBe('Thirty-five one');
     expect(spoken(30.04)).toBe('Thirty nought');
-    expect(shownTime(34.04, T.gate, false)).toBeCloseTo(34.1);
-    expect(shownTime(33.9, T.gate, true)).toBe(33.9);
-    expect(shownTime(35, T.gate, false)).toBe(35);
+    expect(shownTime(T.gate.time + 0.04, T.gate, false)).toBeCloseTo(T.gate.time + 0.1);
+    expect(shownTime(T.gate.time - 0.1, T.gate, true)).toBe(T.gate.time - 0.1);
+    expect(shownTime(T.gate.time + 1, T.gate, false)).toBe(T.gate.time + 1);
   });
 });
 
