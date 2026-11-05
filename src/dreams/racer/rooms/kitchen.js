@@ -35,7 +35,7 @@ export default {
     { prop: 'chair', x: 11, y: 12, layer: 'back' },
     { prop: 'chair', x: 21, y: 12, layer: 'back' },
     { prop: 'iron_stove', x: 26, y: 12, layer: 'back' },
-    ...JAR_COLS.map((x) => ({ prop: 'jar', x, y: 10, dy: -3, layer: 'back' })),
+    ...JAR_COLS.map((x) => ({ prop: 'jar', x, y: 10, dy: 8, layer: 'back' })),
     { prop: 'hanging_lamp', x: 16, y: 2 },
   ],
   lights: [{ x: 16, y: 4, r: 170, color: 0xffb060 }, { x: 26, y: 9, r: 90, color: 0xff7a3a }],
@@ -51,6 +51,7 @@ export default {
   goal: 'carry the prize tin to the table',
   entities: [
     { type: 'portal', id: 'kitchen>quay', kind: 'door', x: 3, y: 11, to: { room: 'quay', portal: 'quay>kitchen' }, door: { prompt: 'out to the quay', fade: 240 } },
+    { type: 'spawn', id: 'start', x: 11, y: 11 },
     { type: 'checkpoint', id: 'cp_kitchen', label: 'THE CASTELLANE KITCHEN', x: 5, y: 11 },
     { type: 'npc', id: 'signora', cast: 'npc-pv-signora', x: 25, y: 11, facing: 1, turns: false, talk: [{ conv: 'signora_after', if: 'jars_done' }, { conv: 'signora' }] },
     { type: 'moment', id: 'm_letter', x: 21, y: 11, prompt: 'read the letter by the clock', beat: 'moment_letter' },

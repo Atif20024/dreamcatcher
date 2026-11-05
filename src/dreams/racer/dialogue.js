@@ -162,9 +162,9 @@ export function rackConversation(F, nuts) {
 
 // the bench, once she is in tune: Ottavia's chalk
 export function benchConversation(F, nuts) {
-  if (F.buy_chalk) return once('bench', 'ottavia', 'Your chalk is on the road, every braking point, every lane. It stays. Now leave my bench alone.');
+  if (F.buy_chalk) return once('bench', 'ottavia', 'Your chalk is on the road, at every braking point. It stays. Now leave my bench alone.');
   return conv('bench', ['ottavia', 'jo'], {
-    start: { who: 'ottavia', text: `My chalk, ${PRICES.chalk} brass nuts. A mark at every braking point, on every line, for good. It will not stop the car for you.`, next: 'pick' },
+    start: { who: 'ottavia', text: `My chalk, ${PRICES.chalk} brass nuts. A mark at every braking point, for good. It will not stop the car for you.`, next: 'pick' },
     pick: {
       who: 'jo',
       text: `I have ${nuts} nuts.`,

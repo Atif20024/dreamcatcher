@@ -159,11 +159,13 @@ function setupSponsor(ctx) {
       y: floor - 20,
       radius: 44,
       prompt: 'read the paper',
-      enabled: () => !!F.met_sable && !F[`paper_done_${i}`],
+      enabled: () => !!F.met_sable && !F[`paper_done_${i}`] && !ctx.state.reading,
       onUse: async () => {
+        ctx.state.reading = true; // (the panel is not modal for [E]: the key that pages it must not open it again)
         await readDocument(s, { title: p.title, text: `One: ${p.a.text}\n\nTwo: ${p.b.text}\n\nStrike one, or put your initials to both.` });
         await s.runConversation(`paper_${p.id}`, null);
         F[`paper_done_${i}`] = true;
+        ctx.state.reading = false;
         sfx('click');
         if (PAPERS.every((_, k) => F[`paper_done_${k}`])) settlePapers(s);
       },

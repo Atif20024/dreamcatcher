@@ -12,6 +12,7 @@ import { prizeOwed, flagOf } from '../race/result.js';
 import { paintSteps, freeTheme } from '../race/RaceRoad.js';
 import { TRACKS } from '../race/tracks.js';
 import { atTheDoor, STAND_IN } from '../season.js';
+import { BOX_COL } from '../rooms/pitlane.js';
 import { rackConversation, benchConversation } from '../dialogue.js';
 
 const T = 32;
@@ -82,6 +83,11 @@ export function buy(scene, { item, price }) {
 
 // a conversation built from the run (what is on the shelf, what Jo can pay)
 function shop(scene, make) {
+  // (from the Cup until she is back from the corridor, there is nobody here to sell anything)
+  if (scene.F.done_race2 && !scene.F.jars_done) {
+    scene.caption.say('jo', 'Nobody at the bench. Nobody is going to be, today.', { ms: 2400 });
+    return null;
+  }
   const c = make(scene.F, scene.levelCoins || 0);
   scene.def.conversations[c.id] = c;
   return scene.runConversation(c.id, null);
@@ -96,14 +102,17 @@ export default {
     const x = (r.tx + CAR_COL) * T + T / 2;
     const floor = (r.ty + 12) * T;
     const depth = LAYER_DEPTH.mid - 0.25;
-    const car = (cx, livery) => {
-      const parts = [scene.add.image(cx, floor + 2, 'cars', `car-${livery}`).setOrigin(0.5, 1).setDepth(depth)];
-      for (const wx of CAR_SIZE.wheelX) parts.push(scene.add.image(cx + wx - CAR_SIZE.frameW / 2, floor - 14 + 2, 'cars', 'wheel-0').setDepth(depth + 0.01));
+    const car = (cx, livery, foot = floor) => {
+      const parts = [scene.add.image(cx, foot + 2, 'cars', `car-${livery}`).setOrigin(0.5, 1).setDepth(depth)];
+      for (const wx of CAR_SIZE.wheelX) parts.push(scene.add.image(cx + wx - CAR_SIZE.frameW / 2, foot - 14 + 2, 'cars', 'wheel-0').setDepth(depth + 0.01));
       return parts;
     };
     car(x, 'heron');
     // Aldo's car: gone the morning after the Cup (a sheeted shape stands there then, room props)
     ctx.state.aldoCar = car((r.tx + ALDO_COL) * T + T / 2, 'dante');
+    // and the Heron in her box in the pit lane, for the drill
+    const pit = scene.graph.room('pitlane');
+    car((pit.tx + BOX_COL) * T + T / 2, 'heron', (pit.ty + 12) * T);
     ctx.state.going = false;
     ctx.state.door = scene.interaction.register({ id: 'race:test', x, y: floor - 20, radius: 110, prompt: 'drive', enabled: () => !ctx.state.going, onUse: () => goRace(scene, ctx) });
     // the rack and the bench do something: nuts buy tyres and chalk, never speed
@@ -118,7 +127,7 @@ export default {
       enabled: () => !scene.encounters.busy,
       onUse: () => (scene.F.tuned ? shop(scene, benchConversation) : scene.startEncounter('tune', { x: at(BENCH_COL), y: floor - 90 })),
     });
-    if (!scene.resuming) scene.caption.say('ottavia', "You're the one who plays by ear. Come to the bench. She's flat.", { ms: 4200 });
+    if (!scene.resuming && scene.roomId === 'garage') scene.caption.say('ottavia', "You're the one who plays by ear. Come to the bench. She's flat.", { ms: 4200 });
     // leaving the dream without driving: the road's textures go too (the race frees them otherwise)
     scene.events.once('shutdown', () => {
       if (!ctx.state.going) freeTheme(scene, TRACKS[STAND_IN].theme);

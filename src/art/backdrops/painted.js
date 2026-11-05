@@ -224,8 +224,8 @@ const LAYERS = {
       for (let y = H - 60; y > H - 165; y -= 18) {
         ctx.fillStyle = rgba(P.deep, 0.16);
         ctx.fillRect(-2, y, W + 4, 2);
-        ctx.fillStyle = rgba(P.leaf, 0.5);
-        for (let x = (y * 3) % 14; x < W; x += 14) ctx.fillRect(x, y - 7, 8, 6);
+        ctx.fillStyle = rgba(P.leaf, 0.3);
+        for (let x = (y * 3) % 14; x < W; x += 10 + r.between(0, 16)) ctx.fillRect(x, y - 7, 6 + r.between(0, 6), 6);
       }
       const tower = 120 + r.between(0, 400);
       for (let x = 0; x < W; ) {

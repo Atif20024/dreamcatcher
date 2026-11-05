@@ -5,7 +5,7 @@ import { hex, rgba } from '../../art/paint.js';
 const prop = (w, h, paint) => ({ w, h, anchor: [0.5, 1], paint });
 
 // dressed stone, courses picked out
-function stoneFront(ctx, x, y, w, h, c = 0xb8a88a) {
+function stoneFront(ctx, x, y, w, h, c = 0xdccfb2) {
   ctx.fillStyle = hex(c);
   ctx.fillRect(x, y, w, h);
   for (let row = 0, yy = y + 6; yy < y + h; row++, yy += 14) {
@@ -181,7 +181,7 @@ export default {
   }),
   // the Castellane house: narrow, two floors, a pot of basil
   castellane_front: prop(264, 320, (ctx, w, h) => {
-    stoneFront(ctx, 0, 0, w, h, 0xc8b89a);
+    stoneFront(ctx, 0, 0, w, h, 0xe4d8be);
     roofLine(ctx, 0, 0, w);
     door(ctx, 92, h, 0x7a4a2c);
     shuttered(ctx, 40, 60);
@@ -195,7 +195,7 @@ export default {
   }),
   // the cafe with Sable Oil's office over it: an awning, a stair door, a green-blinded window
   cafe_front: prop(352, 340, (ctx, w, h) => {
-    stoneFront(ctx, 0, 0, w, h, 0xbcaa8c);
+    stoneFront(ctx, 0, 0, w, h, 0xdccfb0);
     roofLine(ctx, 0, 0, w);
     door(ctx, 26, h, 0x2e4a3a);
     // the cafe window
@@ -222,7 +222,7 @@ export default {
   }),
   // the hospital's gate: pale, tall, one lamp, the only plaster on the quay
   hospital_front: prop(400, 400, (ctx, w, h) => {
-    stoneFront(ctx, 0, 0, w, h, 0xd8d4c0);
+    stoneFront(ctx, 0, 0, w, h, 0xece8d8);
     roofLine(ctx, 0, 0, w);
     door(ctx, 154, h, 0x4a5a58, 92);
     ctx.fillStyle = hex(0x8a9a8a);
@@ -237,20 +237,20 @@ export default {
   }),
   // an arch in a dry wall, the pit road or the Gull road past it
   road_arch: prop(200, 200, (ctx, w, h) => {
-    stoneFront(ctx, 0, 0, w, h, 0xa89a80);
-    ctx.fillStyle = hex(0x2a3430);
+    stoneFront(ctx, 0, 0, w, h, 0xd0c4a8);
+    ctx.fillStyle = hex(0xc8d8d4);
     ctx.fillRect(50, 70, 100, h - 70);
     ctx.beginPath();
     ctx.arc(100, 70, 50, 0, Math.PI * 2);
     ctx.fill();
   }),
   // a wall along the water, and the water
-  sea_wall: prop(320, 40, (ctx, w, h) => {
-    ctx.fillStyle = hex(0x8a8070);
+  sea_wall: prop(320, 66, (ctx, w, h) => {
+    ctx.fillStyle = hex(0xd4c8ae);
     ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = hex(0xa89c86);
+    ctx.fillStyle = hex(0xece2cc);
     ctx.fillRect(0, 0, w, 5);
-    ctx.fillStyle = hex(0x5a5448);
+    ctx.fillStyle = hex(0x8a8070);
     for (let x = 8; x < w; x += 30) ctx.fillRect(x, 10 + (x % 3) * 8, 18, 2);
   }),
   // an umbrella pine, 14 m: the camera crops it, as it should
@@ -307,14 +307,14 @@ export default {
     }
   }),
   fishing_boat: prop(280, 110, (ctx, w, h) => {
-    ctx.fillStyle = hex(0x2e5a6a);
+    ctx.fillStyle = hex(0xdcd8c8);
     ctx.beginPath();
     ctx.moveTo(0, 40);
     ctx.lineTo(w, 30);
     ctx.lineTo(w - 30, h);
     ctx.lineTo(24, h);
     ctx.fill();
-    ctx.fillStyle = hex(0xe8dcc0);
+    ctx.fillStyle = hex(0x2e5a6a);
     ctx.fillRect(10, 44, w - 30, 5);
     ctx.fillStyle = hex(0x5a4030);
     ctx.fillRect(130, 0, 5, 40);
@@ -421,11 +421,11 @@ export default {
   }),
   // his gloves, on the seat: back of the hand up, the fingers together
   gloves_on_chair: prop(40, 12, (ctx, w, h) => {
-    ctx.fillStyle = hex(0x7a5a38);
+    ctx.fillStyle = hex(0xc0945c);
     ctx.fillRect(8, 2, 22, h - 2);
-    ctx.fillStyle = hex(0x5a4228);
+    ctx.fillStyle = hex(0x7a5a38);
     for (let x = 12; x < 30; x += 4) ctx.fillRect(x, 2, 1, h - 2);
-    ctx.fillStyle = hex(0xa8805a);
+    ctx.fillStyle = hex(0xe0b880);
     ctx.fillRect(8, 2, 22, 2);
   }),
   // iron stair treads, under the planks that carry Jo
@@ -451,11 +451,11 @@ export default {
     ctx.fillRect(38, 0, 40, 12); // the pot
   }),
   kitchen_table: prop(310, 70, (ctx, w, h) => {
-    ctx.fillStyle = hex(0x8a6a44);
+    ctx.fillStyle = hex(0x4e321c);
     ctx.fillRect(0, 12, w, 10);
-    ctx.fillStyle = hex(0xa8865a);
+    ctx.fillStyle = hex(0x8a6238);
     ctx.fillRect(0, 12, w, 3);
-    ctx.fillStyle = hex(0x5a4228);
+    ctx.fillStyle = hex(0x3a2614);
     ctx.fillRect(12, 22, 12, h - 22);
     ctx.fillRect(w - 24, 22, 12, h - 22);
   }),
@@ -482,9 +482,9 @@ export default {
   }),
   // a stoneware jar: its coins are drawn over it, its label over them (verbs/places.js)
   jar: prop(44, 56, (ctx, w, h) => {
-    ctx.fillStyle = hex(0xd8c8a4);
+    ctx.fillStyle = hex(0x7a5a38);
     ctx.fillRect(4, 8, w - 8, h - 8);
-    ctx.fillStyle = hex(0xf2e6cc);
+    ctx.fillStyle = hex(0xa8805a);
     ctx.fillRect(6, 10, 7, h - 12);
     ctx.fillStyle = hex(0x8a7a5c);
     ctx.fillRect(8, 0, w - 16, 9);
@@ -537,9 +537,9 @@ export default {
     ctx.fillRect(6, h - 4, w - 14, 2);
   }),
   cliff_wall: prop(320, 70, (ctx, w, h) => {
-    ctx.fillStyle = hex(0x4a4a50);
+    ctx.fillStyle = hex(0x7a7a86);
     ctx.fillRect(0, 12, w, h - 12);
-    ctx.fillStyle = hex(0x6a6a70);
+    ctx.fillStyle = hex(0x9a9aa6);
     for (let x = 0; x < w; x += 26) ctx.fillRect(x, 8 + (x % 3) * 2, 24, 10);
     ctx.fillStyle = hex(0x2a2a30);
     for (let x = 12; x < w; x += 30) ctx.fillRect(x, 30 + (x % 4) * 6, 18, 2);

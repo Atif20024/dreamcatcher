@@ -27,9 +27,7 @@ export default {
   material: 'road_dust',
   decor: [],
   props: [
-    { prop: 'cliff_wall', x: 10, y: 14, layer: 'back' },
-    { prop: 'cliff_wall', x: 34, y: 14, layer: 'back' },
-    { prop: 'cliff_wall', x: 62, y: 14, layer: 'back' },
+    ...[8, 18, 28, 38, 48, 58, 68].map((x) => ({ prop: 'cliff_wall', x, y: 14, layer: 'back' })),
     { prop: 'telegraph_pole', x: 24, y: 14, layer: 'back' },
     { prop: 'telegraph_pole', x: 48, y: 14, layer: 'back' },
     { prop: 'brake_board', x: 16, y: 14, layer: 'back' },

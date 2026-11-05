@@ -33,8 +33,8 @@ import { tune } from '../../engines/tune.js';
 import { escapement } from '../../engines/escapement.js';
 import { escapementWorld } from '../clockmaker/presenter.js';
 
-const NIGHT_SKY = { top: 0x0e1030, mid: 0x1e2248, bottom: 0x3e3e62, stars: 90, clouds: 3, cloud: 0x2a2a50, cloudLit: 0x4a4a70, seed: 41 };
-const NIGHT_LAND = { ...COAST.land, sky: 0x2a2c50, hill: 0x2c2e4c, house: 0x2e2e48, roof: 0x24243a, window: 0xffc870, light: 0x8a8ab0, rim: 0x8a8ab0, deep: 0x0e0e1c, leaf: 0x1c2a30, trunk: 0x161422, sea: 0x20305a, mist: 0x3a3e68, mistA: 0.24 };
+const NIGHT_SKY = { top: 0x1a1c44, mid: 0x34386a, bottom: 0x5e5e88, stars: 90, clouds: 3, cloud: 0x2a2a50, cloudLit: 0x4a4a70, seed: 41 };
+const NIGHT_LAND = { ...COAST.land, sky: 0x3e4068, hill: 0x4a4c70, house: 0x4e4e6c, roof: 0x24243a, window: 0xffc870, light: 0x9a9ac0, rim: 0x9a9ac0, deep: 0x1e1e30, leaf: 0x1c2a30, trunk: 0x161422, sea: 0x20305a, mist: 0x3a3e68, mistA: 0.24 };
 
 const CALLS = ['Wheel!', 'Wheel!', 'Fuel!', 'Flag!'];
 

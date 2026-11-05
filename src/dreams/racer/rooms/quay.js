@@ -22,7 +22,7 @@ export default {
   material: 'quay_setts',
   decor: [],
   props: [
-    { prop: 'sea_wall', x: 8, y: 16, dy: -2, layer: 'back' },
+    ...[5, 15, 25, 35, 45, 55, 65, 75, 85, 95, 105].map((x) => ({ prop: 'sea_wall', x, y: 16, layer: 'back' })),
     { prop: 'umbrella_pine', x: 16, y: 16, layer: 'back' },
     { prop: 'pereval_front', x: 7, y: 16, layer: 'back' },
     { prop: 'castellane_front', x: 26, y: 16, layer: 'back' },

@@ -7,7 +7,8 @@
 //   racer-shop          the rack and the bench: nuts buy tyres and chalk, into the car's tune, never its speed
 //   racer-season        the door counts for each stand-in, in order; doors open behind them
 //   racer-choice        keep or give the tyres: the corridor says different lines, the Heron differs
-//   racer-corridor      a drop off the iron stairs sends Jo back; the gloves go on the chair
+//   racer-cup-morning   after the stand-in for the Cup: Nino's word, Aldo gone, his gloves to take
+//   racer-corridor      a real climb; a drop off the iron stairs sends Jo back; the gloves go on the chair
 //   racer-kitchen       the tin, the jars, the fail: short the rent and she says nothing; the rack's price moves
 //   racer-sponsor       three papers: struck or whole, what it pays and what it binds
 //   racer-chalk         the marks in order; the washout is back to the lamp
@@ -319,6 +320,40 @@ const choice = {
   },
 };
 
+const cupMorning = {
+  id: 'racer-cup-morning',
+  expect: 'pass',
+  async run(dc) {
+    const s = await at(dc, 'garage', { tuned: true, done_race1: true, tyres_settled: true });
+    const rows = { aldoBefore: !!s.npcs.get('aldo') };
+    Object.assign(s.F, { done_race2: true });
+    await until(dc, () => s.sceneBox.active, 60);
+    rows.said = await talkThrough(dc, s);
+    await dc.run(10);
+    rows.aldoAfter = !!s.npcs.get('aldo');
+    rows.ottaviaAfter = !!s.npcs.get('ottavia');
+    rows.goal = hud.s.objective;
+    // nobody is at the bench to sell anything until she is back
+    const it = s.interaction.items.get('race:bench');
+    const say = s.caption.say;
+    let line = null;
+    s.caption.say = (w, t) => (line = t);
+    it.onUse();
+    s.caption.say = say;
+    rows.benchShut = line;
+    // the gloves are there now: walk onto them
+    const r = s.graph.room('garage');
+    const x = (r.tx + 10) * T + T / 2;
+    s.player.setPosition(x, s.player.y);
+    s.player.body.reset(x, s.player.y);
+    await until(dc, () => s.F['item:gloves'], 40);
+    await dc.run(4);
+    rows.got = !!s.F['item:gloves'];
+    rows.goalAfter = hud.s.objective;
+    return { pass: rows.aldoBefore && !rows.aldoAfter && !rows.ottaviaAfter && rows.said.some((t) => /no tail lights/.test(t)) && rows.got && /gloves/.test(rows.goal) && /hospital/.test(rows.goalAfter) && !!rows.benchShut, detail: rows };
+  },
+};
+
 const corridor = {
   id: 'racer-corridor',
   expect: 'pass',
@@ -351,6 +386,26 @@ const corridor = {
     put(33, 19);
     await dc.run(20);
     rows.quietDrop = s.F.ward_noise === n0;
+    // the climb, on the real keys and at a walk: bottom corridor to the landing, no noise
+    put(35, 19);
+    await dc.run(8);
+    const n1 = s.F.ward_noise;
+    const hop = async (dir, want) => {
+      dc.hold('jump');
+      if (dir) dc.hold(dir);
+      await until(dc, () => Math.floor((s.player.y + 22) / T) - r.ty <= want && s.player.body.blocked.down, 90);
+      dc.releaseAll();
+      await dc.run(8);
+      return Math.floor((s.player.y + 22) / T) - r.ty;
+    };
+    rows.climb = [await hop(null, 17)];
+    put(32, 16);
+    await dc.run(6);
+    rows.climb.push(await hop('left', 14));
+    put(29, 13);
+    await dc.run(6);
+    rows.climb.push(await hop(null, 10));
+    rows.climbQuiet = s.F.ward_noise === n1;
     // the chair: the conversation, then the gloves
     put(9, 9);
     await dc.run(10);
@@ -362,7 +417,7 @@ const corridor = {
     rows.left = !!s.F.gloves_left;
     rows.why = !!s.F.ott_why;
     rows.goalAfter = hud.s.objective;
-    const ok = rows.walks && rows.noise === 1 && rows.backAt === 34 && rows.quietDrop && /gloves/.test(rows.prompt) && rows.left && rows.why && rows.said.some((t) => /tide/.test(t));
+    const ok = rows.walks && rows.noise === 1 && rows.backAt === 34 && rows.quietDrop && rows.climb.join() === '17,14,10' && rows.climbQuiet && /gloves/.test(rows.prompt) && rows.left && rows.why && rows.said.some((t) => /tide/.test(t));
     return { pass: ok, detail: rows };
   },
 };
@@ -499,8 +554,18 @@ const places = {
       const s = await at(dc, room);
       const d = s.graph.room(room).data;
       await dc.run(20);
+      // walk the room's length, with every flag that shows more text: nothing breaks a text rule
+      const y = s.player.y;
+      const w = d.grid[0].length;
+      const found = [];
+      for (let col = 4; col < w; col += 12) {
+        const x = (s.graph.room(room).tx + col) * T + T / 2;
+        s.player.setPosition(x, y);
+        s.player.body.reset(x, y);
+        await dc.run(12);
+        found.push(...auditText(s));
+      }
       const perf = s.perf.sample();
-      const found = auditText(s).filter((v) => !/arrival/.test(v.name || ''));
       const good = s.roomId === room && !!hud.s.objective && !!d.titleCard && perf.objects < BUDGET.objects && (d.music || {}).key && !found.length && (room === 'quay' || !!d.goal);
       ok = ok && good;
       out[room] = { goal: hud.s.objective, objects: perf.objects, card: d.goal || null, text: found.slice(0, 4) };
@@ -509,18 +574,31 @@ const places = {
   },
 };
 
+// where a player arrives in each room, as jo-contrast samples a place: 3:1 or better. Three more
+// spots are reported, not enforced: in front of a dresser or a desk, a dark coat on dark wood is lower
 const contrast = {
   id: 'racer-contrast',
   expect: 'pass',
   async run(dc) {
-    const rows = {};
+    const arrive = {};
+    const spots = {};
     for (const room of ROOMS) {
       const s = await at(dc, room);
-      await dc.run(20);
-      const r = await joContrast(dc, s);
-      rows[room] = r.edgeMedian;
+      const r = s.graph.room(room);
+      const y = s.player.y;
+      await dc.run(280); // (the bark on arrival sits on the caption bar, over his feet)
+      arrive[room] = (await joContrast(dc, s)).edgeMedian;
+      const w = r.data.grid[0].length;
+      spots[room] = [];
+      for (const col of [Math.round(w * 0.25), Math.round(w * 0.5), Math.round(w * 0.75)]) {
+        const x = (r.tx + col) * T + T / 2;
+        s.player.setPosition(x, y);
+        s.player.body.reset(x, y);
+        await dc.run(30);
+        spots[room].push((await joContrast(dc, s)).edgeMedian);
+      }
     }
-    return { pass: Object.values(rows).every((v) => v >= 3), detail: rows };
+    return { pass: Object.values(arrive).every((v) => v >= 3), detail: { arrive, spots } };
   },
 };
 
@@ -570,4 +648,4 @@ const coins = {
   },
 };
 
-export default [theme, coastProps, tuneVerb, shop, season, choice, corridor, kitchen, sponsor, chalk, pit, places, contrast, touchVerbs, coins];
+export default [theme, coastProps, tuneVerb, shop, season, choice, cupMorning, corridor, kitchen, sponsor, chalk, pit, places, contrast, touchVerbs, coins];
