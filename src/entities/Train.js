@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { sfx } from '../systems/audio.js';
 import { D } from '../builders/depths.js';
 import { hubTex } from '../art/hubArt.js';
+import { aboveGlows } from '../art/look.js';
 import { uiText } from '../ui/text.js';
 import { characterManifest } from '../art/baked.js';
 import { TRAIN } from '../art/trainKit.js';
@@ -246,6 +247,9 @@ export default class Train {
     this.box.bringToTop(this.blind);
     s.tweens.add({ targets: darkSide, alpha: 1, duration: 1400, delay: 400 });
     s.tweens.add({ targets: darkEnd, alpha: 1, duration: 700, delay: 1200 });
+    // (the lit pictures go too: their glow copies follow their alpha)
+    s.tweens.add({ targets: this.side, alpha: 0, duration: 1400, delay: 400 });
+    s.tweens.add({ targets: this.end, alpha: 0, duration: 700, delay: 1200 });
     [0, 1].forEach((i) =>
       s.time.delayedCall(900 + i * 400, () => {
         this.glows[i].setAlpha(0);
@@ -256,7 +260,10 @@ export default class Train {
       this.blind.setText('NOT IN SERVICE');
       sfx('click');
     });
-    s.time.delayedCall(2100, () => sfx('snap')); // doors
+    s.time.delayedCall(2100, () => {
+      sfx('snap'); // doors
+      this.door.setTexture(gangwayDoorTex(s, this.livery, { dead: true }));
+    });
     s.tweens.add({
       targets: this.box,
       scale: 0.16,
@@ -323,8 +330,9 @@ function standIn(scene, player) {
     art.setPosition(x, y).setScale(k);
     hat.setPosition(x, y).setScale(k);
     const c = Phaser.Display.Color.GetColor(Math.round(255 * tint), Math.round(255 * tint), Math.round(255 * (tint * 0.96 + 0.04)));
-    art.setTint(c);
-    if (!player.hat || player.hat.tintTopLeft === 0xffffff) hat.setTint(c);
+    // (he walks past the lit windows, in front of their glow copies)
+    aboveGlows(scene, art.setTint(c));
+    aboveGlows(scene, hat.setTint(!player.hat || player.hat.tintTopLeft === 0xffffff ? c : player.hat.tintTopLeft));
   };
   // walk a straight line from a to b, scale ka → kb; the feet step 6 px of
   // ground per frame at full size (the rig's stride), less as he recedes

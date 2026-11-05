@@ -33,6 +33,17 @@ export function propRect(p, def) {
   return { x: px - def.w * sc * ax, y: py - def.h * sc * ay, w: def.w * sc, h: def.h * sc, cx: px, cy: py };
 }
 
+// A prop's lit shape in its drawn pixels (w × h), for its glow copy
+// (art/look.js): a def's `lit` rects ([x, y, w, h, from?] in its own px), else
+// the bright pixels of the whole of anything that throws a `light`. lit: false
+// on the def or the placement opts out.
+export function litRects(def, p, { w: W, h: H }) {
+  if (p.lit === false || def.lit === false || !(def.lit || def.light)) return null;
+  const kx = W / def.w;
+  const ky = H / def.h;
+  return (def.lit || [[0, 0, def.w, def.h]]).map(([x, y, w, h, from]) => [p.flip ? W - (x + w) * kx : x * kx, y * ky, w * kx, h * ky, from]);
+}
+
 function drawSpecial(ctx, role, x, y, sheet) {
   const P = sheet.P;
   const px = x * T;
@@ -283,6 +294,7 @@ export const Terrain = {
     const b = back.getContext('2d');
     const live = [];
     const lights = [];
+    const lit = [];
     for (const p of room.props || []) {
       yield;
       const art = yield* paintPropSteps(p.prop, { ...palette, ...(p.palette || {}) }, propsExtra);
@@ -302,17 +314,36 @@ export const Terrain = {
         continue;
       }
       const layer = p.layer || 'mid';
+      const draw = (ctx, ox = 0, oy = 0) => {
+        ctx.save();
+        if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
+        if (p.flip) {
+          ctx.translate(r.x - ox + r.w, r.y - oy);
+          ctx.scale(-1, 1);
+          ctx.drawImage(art.c, 0, 0, r.w, r.h);
+        } else ctx.drawImage(art.c, r.x - ox, r.y - oy, r.w, r.h);
+        ctx.restore();
+      };
+      // a prop drawn over a lit one hides that much of its light
+      for (const l of lit) {
+        if (layer === 'fg' || r.x >= l.x + l.w || r.x + r.w <= l.x || r.y >= l.y + l.h || r.y + r.h <= l.y) continue;
+        const lc = l.own.getContext('2d');
+        lc.globalCompositeOperation = 'destination-out';
+        draw(lc, l.x, l.y);
+        lc.globalCompositeOperation = 'source-over';
+      }
+      // what comes back over the night grade (the fg layer is over it already)
+      if (layer !== 'fg') {
+        const rects = litRects(art.def, p, r);
+        if (rects) {
+          const own = mkCanvas(Math.ceil(r.w), Math.ceil(r.h));
+          draw(own.getContext('2d'), r.x, r.y);
+          lit.push({ own, rects, x: r.x, y: r.y, w: r.w, h: r.h });
+        }
+      }
       // 'mid' props stand on the ground but behind the terrain's fringe:
       // painted into the back canvas when the room has no back wall to hide
-      const ctx = layer === 'fg' ? f : layer === 'back' ? b : b;
-      ctx.save();
-      if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
-      if (p.flip) {
-        ctx.translate(r.x + r.w, r.y);
-        ctx.scale(-1, 1);
-        ctx.drawImage(art.c, 0, 0, r.w, r.h);
-      } else ctx.drawImage(art.c, r.x, r.y, r.w, r.h);
-      ctx.restore();
+      draw(layer === 'fg' ? f : b);
       // a soft contact shadow under floor props
       if ((art.def.anchor || [0.5, 1])[1] === 1 && layer !== 'fg') {
         const sh = b.createRadialGradient(r.cx, r.cy, 2, r.cx, r.cy, r.w * 0.5);
@@ -325,7 +356,7 @@ export const Terrain = {
     yield;
     if (room.enclosure) paintFgFrame(f, room, { ...P, ...(room.enclosure.palette || {}) });
     void stamp;
-    return { W, H, back, mid, fg, live, lights, decorCount: placed.length };
+    return { W, H, back, mid, fg, live, lights, lit, decorCount: placed.length };
   },
 
   // collision: merged runs of solid tiles → static bodies (invisible zones)

@@ -7,6 +7,7 @@ import RoomBuilder from '../builders/RoomBuilder.js';
 import Parallax from '../builders/parallax.js';
 import { D } from '../builders/depths.js';
 import { lightThemeProps } from '../art/levelArt.js';
+import { followGlows } from '../art/look.js';
 import writerRooms, { PARAGRAPHS } from '../data/writer/rooms.js';
 import writerTiles from '../data/writer/tiles.js';
 import { DIALOGUES, MOMENTS, FIRST_PARAGRAPH, CARD_LINES, rentScene } from '../data/writer/cast.js';
@@ -173,6 +174,7 @@ export default class WriterScene extends BaseLevel {
     this.physics.add.overlap(this.player, this.orbs, (_p, o) => this.catchOrb(o));
 
     this.promptText = hud.prompt(); // the HUD's interact prompt, pinned over the world point
+    followGlows(this, (k) => (k === 'wr-lamp-post' ? { rects: [[0, 0, 22, 30, 110]] } : null)); // the street's lamps, over the night grade
 
     // rain, for the rooms that have it
     this.rain = this.add

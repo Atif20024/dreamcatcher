@@ -8,8 +8,9 @@
 //   rs.focus('green')     // build green + neighbours, drop the rest
 //   rs.live               // Map id → LiveRoom
 import Phaser from 'phaser';
-import { Terrain } from './Terrain.js';
+import { Terrain, litRects } from './Terrain.js';
 import { D } from '../builders/depths.js';
+import { GLOW_DEPTH, glowTint, litTexture, cutOut } from '../art/look.js';
 
 export const LAYER_DEPTH = { back: -16, mid: D.TERRAIN, fg: 30 };
 const LIVE_DEPTH = { back: -15, mid: -11.5, fg: 31 };
@@ -83,7 +84,7 @@ export class RoomStreamer {
       }
     }
     const colliders = Terrain.colliders(s, r);
-    const room = { id, r, images, colliders, props: [], lights: [], entities: [], handles: [], surfaceAt: Terrain.surfaceAt(r, this.lib) };
+    const room = { id, r, images, colliders, props: [], lights: [], glows: [], entities: [], handles: [], surfaceAt: Terrain.surfaceAt(r, this.lib) };
     // live props (lamps that come on, the clock face an encounter animates)
     for (const p of meta.live) {
       const tk = `prop:${p.prop}`;
@@ -101,6 +102,18 @@ export class RoomStreamer {
       g.unless = l.prop && l.prop.unless;
       g.phase = Math.random() * 10;
       room.lights.push(g);
+    }
+    // what the night grade took from the lit props (art/look.js)
+    if (s.grade) {
+      const gt = glowTint(s.grade.color, tint);
+      for (const l of meta.lit) images.push(s.add.image(r.x0 + l.x, r.y0 + l.y, l.key).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.ADD).setTint(gt).setDepth(GLOW_DEPTH));
+      for (const img of room.props) {
+        const p = img.propDef;
+        if (!p.litKey) continue;
+        const g = s.add.image(img.x, img.y, p.litKey).setOrigin(0, 0).setDisplaySize(p.rect.w, p.rect.h).setFlipX(!!p.flip).setBlendMode(Phaser.BlendModes.ADD).setTint(gt).setDepth(GLOW_DEPTH);
+        g.src = img;
+        room.glows.push(g);
+      }
     }
     this.live.set(id, room);
     for (const e of r.data.entities || []) {
@@ -125,7 +138,24 @@ export class RoomStreamer {
       yield;
       yield* this.baker.bakeSteps(`${key}:${layer}`, painted[layer]);
     }
-    this._paintCache.set(id, { live: painted.live, lights: painted.lights });
+    const lit = [];
+    for (const [i, { own, rects, x, y }] of painted.lit.entries()) {
+      yield;
+      const k = `lit:${key}#${i}`;
+      if (this.scene.textures.exists(k)) this.scene.textures.remove(k);
+      litTexture(this.scene, k, own, rects);
+      cutOut(this.scene, k, painted.mid, -x, -y); // the terrain stands in front
+      this.baker.keys.add(k);
+      lit.push({ key: k, x, y });
+    }
+    // a live prop's copy too: nothing of this waits for the doorway
+    for (const p of painted.live) {
+      const rects = litRects(p.def, { lit: p.lit }, { w: p.canvas.width, h: p.canvas.height });
+      if (!rects) continue;
+      yield;
+      p.litKey = litTexture(this.scene, `lit:prop:${p.prop}`, p.canvas, rects);
+    }
+    this._paintCache.set(id, { live: painted.live, lights: painted.lights, lit });
   }
 
   // one job per room, shared by the frames ahead and a build that beats them
@@ -166,7 +196,7 @@ export class RoomStreamer {
     if (this.onDrop) this.onDrop(room);
     for (const h of room.handles) if (h && h.destroy) h.destroy();
     for (const e of room.entities) if (e && e.destroy) e.destroy();
-    for (const o of [...room.images, ...room.props, ...room.lights]) o.destroy();
+    for (const o of [...room.images, ...room.props, ...room.lights, ...room.glows]) o.destroy();
     room.colliders.destroy();
     this.live.delete(id);
   }
@@ -204,6 +234,7 @@ export class RoomStreamer {
         const d = p.propDef;
         p.setVisible(on(d));
       }
+      for (const g of room.glows) g.setVisible(g.src.visible).setPosition(g.src.x, g.src.y).setAlpha(g.src.alpha);
       for (const g of room.lights) {
         const vis = on(g);
         g.setVisible(vis);

@@ -840,7 +840,7 @@ const pigment_table = {
 
 const hearth = {
   // the hearth with the glue pot on its trivet: warm light, a little smoke
-  w: 2.6 * K, h: 2.6 * K, anchor: [0.5, 1], light: { x: 57, y: 92, r: 170, color: 0xffa860 },
+  lit: [[22, 36, 71, 79, 60]], w: 2.6 * K, h: 2.6 * K, anchor: [0.5, 1], light: { x: 57, y: 92, r: 170, color: 0xffa860 },
   paint(ctx, w, h) {
     box(ctx, 0, 0, w, 18, mix(STONE, NIGHT, 0.1), 0.3, 0.3);
     box(ctx, 6, 18, w - 12, h - 18, 0x8a7a68, 0.2, 0.35);
@@ -942,7 +942,7 @@ const counter = {
 
 const alembic = {
   // a copper still on its brazier, glowing (the shard is up above it)
-  w: 1.6 * K, h: 2.4 * K, anchor: [0.5, 1], light: { x: 35, y: 90, r: 110, color: 0xffa860 },
+  lit: [[15, 80, 41, 26]], w: 1.6 * K, h: 2.4 * K, anchor: [0.5, 1], light: { x: 35, y: 90, r: 110, color: 0xffa860 },
   paint(ctx, w, h) {
     box(ctx, 8, h - 26, w - 16, 26, 0x4a3a32, 0.3, 0.35);
     glow(ctx, w / 2, h - 18, 22, 0xff9040, 0.8);
@@ -1222,7 +1222,7 @@ const vault_done = {
 
 const altar = {
   // the chapel's altar, a cloth, two candles (the room's warm light)
-  w: 3 * K, h: 2.2 * K, anchor: [0.5, 1], light: { x: 66, y: 30, r: 160, color: WARM },
+  lit: [[8, 0, 40, 30], [84, 0, 40, 30]], w: 3 * K, h: 2.2 * K, anchor: [0.5, 1], light: { x: 66, y: 30, r: 160, color: WARM },
   paint(ctx, w, h) {
     box(ctx, 10, h - 1.0 * K, w - 20, 1.0 * K, 0xe8e0cc, 0.3, 0.35);
     box(ctx, 6, h - 1.0 * K, w - 12, 10, 0xf2ece0);

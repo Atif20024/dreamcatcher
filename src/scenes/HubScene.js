@@ -16,7 +16,8 @@ import { DREAMS, LAST_STOP, dreamById, BOARD_WORD, GENTLE_DREAM, WAITING_LINE } 
 import { FINDS } from '../data/evening/rooms.js';
 import { bayPropTex, lapelFlower } from '../art/bayProps.js';
 import { createHubTextures, HUB_PROP_KEYS } from '../entities/hubArt.js';
-import { stationTex, pigeonTex, doorWingTex } from '../art/trainArt.js';
+import { stationTex, pigeonTex, doorWingTex, stationLit } from '../art/trainArt.js';
+import { followGlows, aboveGlows } from '../art/look.js';
 import { hubTex } from '../art/hubArt.js';
 import { attachStride } from '../art/stride.js';
 import SplitFlapBoard from '../systems/SplitFlapBoard.js';
@@ -145,6 +146,8 @@ export default class HubScene extends BaseLevel {
     this.buildTravelers();
     this.buildDayCycle();
     this.applyState();
+    followGlows(this, stationLit); // the lamps and windows, back over the night grade
+    aboveGlows(this, this.sweeper); // his rounds pass the ticket booth's windows
 
     // while Jo is on a ladder the floor tile over it stops being a floor, so
     // he can climb down through the concourse into the undercroft and back

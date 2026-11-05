@@ -104,7 +104,7 @@ const theatre_front = {
 
 const horn_shop = {
   // a music shop: a trumpet under a spot in the window (Jo's first note)
-  w: 340, h: 470, anchor: [0.5, 1],
+  lit: [[0, 0, 340, 356], [26, 360, 106, 88, 0]], w: 340, h: 470, anchor: [0.5, 1],
   paint(ctx, w, h, P) {
     building(ctx, w, h, { storeys: 2, ground: 'plain', bays: 3, wall: 0x7a5a48, roof: 'pitched', roofCol: 0x3a2a34, lit: 0.4 }, 5);
     // the shop window 2.4 × 2.2 m on a 0.5 m stall riser
@@ -359,7 +359,7 @@ const escape_landing = {
 
 const roller_door = {
   // a 3 × 3 m loading-dock shutter, its stencil, a hazard kerb
-  w: 3.4 * K, h: 3.4 * K, anchor: [0.5, 1], light: { x: 75, y: 6, r: 90, color: 0xf2e6cc },
+  lit: [[68, 0, 14, 14]], w: 3.4 * K, h: 3.4 * K, anchor: [0.5, 1], light: { x: 75, y: 6, r: 90, color: 0xf2e6cc },
   paint(ctx, w, h) {
     box(ctx, 0, 0, w, h, 0x3a3a44);
     for (let y = 14; y < h - 4; y += 7) {

@@ -124,7 +124,7 @@ export default {
   } },
 
   // ---- the yard --------------------------------------------------------------
-  hotel_wall: { w: 960, h: 500, anchor: FLOOR, paint(c, w, h) {
+  hotel_wall: { lit: [80, 240, 400, 640, 800].map((x) => [x + 4, 154, 84, 142, 0]), w: 960, h: 500, anchor: FLOOR, paint(c, w, h) {
     gradientV(c, 0, 0, w, h, [[0, hex(0x2a2636)], [0.7, hex(0x3a3442)], [1, hex(0x2a2632)]]);
     // rendered brick, courses and stains
     for (let y = 0; y < h; y += 11) for (let x = (y / 11) % 2 ? -13 : 0; x < w; x += 26) {
@@ -452,7 +452,7 @@ export default {
     c.fillStyle = hex(0x1a1e24);
     c.fillRect(34, 1, 2, 2);
   } },
-  wall_oven: { w: 78, h: 92, anchor: FLOOR, paint(c, w, h) {
+  wall_oven: { lit: [[12, 34, 54, 18, 0]], w: 78, h: 92, anchor: FLOOR, paint(c, w, h) {
     box(c, 0, 0, w, h, IRON, 0.25, 0.4);
     box(c, 8, 12, w - 16, 44, IRON_LT, 0.3, 0.4);
     box(c, 16, 20, w - 32, 6, BRASS, 0.5, 0.3);
@@ -515,7 +515,7 @@ export default {
     for (let i = 0; i < 8; i++) stamp(c, 20 + i * 15, 0, 6, 0xfff4e0, 0.09);
     for (const x of [14, 60, 110]) box(c, x, 38, 26, 18, IRON_LT, 0.2, 0.3);
   } },
-  range: { w: 400, h: 96, anchor: FLOOR, paint(c, w, h) {
+  range: { lit: [8, 80, 152, 224, 296].map((x) => [x + 8, 48, 44, 18, 0]), w: 400, h: 96, anchor: FLOOR, paint(c, w, h) {
     box(c, 0, 8, w, h - 8, IRON, 0.2, 0.4);
     box(c, -1, 6, w, 8, IRON_LT, 0.3, 0.3);
     for (let x = 8; x < w - 40; x += 72) {
@@ -536,7 +536,7 @@ export default {
     box(c, 0, h - 5, w, 5, ZINC, 0.4, 0.3);
     for (let x = 30; x < w; x += 54) box(c, x, 8, 2, h - 14, 0x24242c, 0.1, 0.1);
   } },
-  grill_top: { w: 110, h: 54, anchor: FLOOR, paint(c, w, h) {
+  grill_top: { lit: [[8, 26, 94, 20, 0]], w: 110, h: 54, anchor: FLOOR, paint(c, w, h) {
     box(c, 0, 18, w, h - 18, IRON, 0.25, 0.4);
     box(c, -1, 12, w, 8, 0x3a3a44, 0.35, 0.3);
     for (let x = 4; x < w - 4; x += 7) {
@@ -546,7 +546,7 @@ export default {
     gradientV(c, 8, 26, w - 16, 20, [[0, '#3a1a10'], [1, '#e8701e']]);
     for (let i = 0; i < 12; i++) ell(c, 12 + i * 8, 44 - (i % 3) * 4, 3, 3, 0xffb860);
   } },
-  stock_burner: { w: 44, h: 22, anchor: FLOOR, paint(c, w, h) {
+  stock_burner: { lit: [[4, 3, 38, 4, 100]], w: 44, h: 22, anchor: FLOOR, paint(c, w, h) {
     box(c, 6, 8, w - 12, h - 8, IRON, 0.25, 0.4);
     box(c, 0, 4, w, 5, IRON_LT, 0.4, 0.35);
     for (let i = 0; i < 5; i++) ell(c, 6 + i * 8, 5, 2, 1, 0x4a7ac8);
@@ -560,7 +560,7 @@ export default {
     for (let i = 0; i < 4; i++) stamp(c, 34 + i * 8, -2, 5, 0xfff4d0, 0.15);
     gradientV(c, 10, 40, w - 20, 16, [[0, '#2a1a10'], [1, '#d8601e']]);
   } },
-  pass_window: { w: 170, h: 170, anchor: FLOOR, light: { x: 85, y: 36, r: 110, color: 0xffb060 }, paint(c, w, h) {
+  pass_window: { lit: [[10, 8, 150, 88]], w: 170, h: 170, anchor: FLOOR, light: { x: 85, y: 36, r: 110, color: 0xffb060 }, paint(c, w, h) {
     // the wall with a hole in it, tile below
     tiles(c, 0, h - 70, w, 70);
     box(c, 0, 0, w, 8, IRON, 0.2, 0.3);
@@ -577,7 +577,7 @@ export default {
   } },
 
   // ---- the pass ---------------------------------------------------------------
-  hot_glass: { w: 150, h: 170, anchor: FLOOR, paint(c, w, h) {
+  hot_glass: { lit: [[6, 6, 138, 92, 0]], w: 150, h: 170, anchor: FLOOR, paint(c, w, h) {
     box(c, 0, 0, w, h - 66, 0x2a2622, 0.2, 0.3);
     gradientV(c, 6, 6, w - 12, h - 78, [[0, '#7a4a2a'], [1, '#c8783a']]);
     for (let i = 0; i < 20; i++) stamp(c, 12 + (i * 29) % (w - 24), 12 + (i * 17) % (h - 90), 7, 0xfff0c0, 0.08);
@@ -647,7 +647,7 @@ export default {
     }
     box(c, -4, 0, w + 8, 8, BRASS_DK, 0.3, 0.3);
   } },
-  chandelier_salle: { w: 92, h: 66, anchor: TOP, paint(c, w) {
+  chandelier_salle: { lit: [[16, 16, 62, 16]], w: 92, h: 66, anchor: TOP, paint(c, w) {
     c.fillStyle = hex(BRASS_DK);
     c.fillRect(w / 2 - 1, 0, 2, 30);
     ell(c, w / 2, 34, 34, 7, BRASS_DK);
@@ -697,7 +697,7 @@ export default {
     c.fillStyle = hex(0x5a4a34);
     c.fillRect(w / 2 - 4, h - 5, 8, 1);
   } },
-  table_one: { w: 170, h: 100, anchor: FLOOR, light: { x: 85, y: 32, r: 100, color: 0xffd890 }, paint(c, w, h) {
+  table_one: { lit: [[70, 0, 30, 40]], w: 170, h: 100, anchor: FLOOR, light: { x: 85, y: 32, r: 100, color: 0xffd890 }, paint(c, w, h) {
     // one chair, drawn back, nobody
     box(c, w - 18, h - 72, 6, 30, WALNUT, 0.25, 0.3);
     box(c, w - 40, h - 26, 26, 5, 0x5a1e24, 0.3, 0.3);

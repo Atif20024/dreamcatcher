@@ -95,7 +95,7 @@ function tinyCard(ctx, x, y, back = false) {
 // arched cabin windows lit, the texas, the pilot house and two tall chimneys
 // with feathered crowns; the paddlebox with its fan of rays. 30 m of her.
 const lq_boat = {
-  w: Math.round(30 * K),
+  lit: Array.from({ length: 43 }, (_, i) => 18 + i * 30).flatMap((x) => [[x + 5, 479, 6, 2, 0], [x + 2, 481, 12, 3, 0], [x, 484, 16, 3, 0], [x, 487, 16, 40, 0]]), w: Math.round(30 * K),
   h: Math.round(17 * K),
   anchor: [0, 1],
   paint(ctx, w, h) {
@@ -330,7 +330,7 @@ const crates = {
 
 // the wharf office: a clapboard shed on the quay, its window lit, a bench
 const wharf_office = {
-  w: Math.round(6 * K),
+  lit: [[44, 94, 52, 42, 0]], w: Math.round(6 * K),
   h: Math.round(4.6 * K),
   anchor: [0.5, 1],
   light: { x: 70, y: 120, r: 120, color: WARM },
@@ -707,7 +707,7 @@ const guard_view = {
 // ---- the purser's office -------------------------------------------------------
 // the cage: an iron and brass grille over a walnut counter, the window cut in it
 const purser_cage = {
-  w: Math.round(4.6 * K),
+  lit: [[118, 18, 46, 46]], w: Math.round(4.6 * K),
   h: Math.round(2.9 * K),
   anchor: [0.5, 1],
   light: { x: 100, y: 40, r: 130, color: WARM },
@@ -950,7 +950,7 @@ const ratline = {
 
 // the pilot house from outside: glass on three sides, a carved crest on the roof
 const pilot_house = {
-  w: Math.round(5 * K),
+  lit: [10, 42, 74, 106, 138, 170].map((x) => [x, 42, 24, 46, 0]), w: Math.round(5 * K),
   h: Math.round(3.4 * K),
   anchor: [0.5, 1],
   light: { x: 110, y: 70, r: 120, color: LAMP },
@@ -1024,7 +1024,7 @@ const dawn_windows = {
 
 // a private card table (the last table): the same baize, a brass lamp on it
 const last_table = {
-  w: Math.round(1.8 * K),
+  lit: [[40, 0, 30, 26]], w: Math.round(1.8 * K),
   h: Math.round(0.78 * K) + 26,
   anchor: [0.5, 1],
   light: { x: 40, y: 8, r: 110, color: LAMP },
@@ -1050,7 +1050,7 @@ const last_table = {
 // far side, and the lit saloon a long way down through the hole. The deck's top
 // is 44 px down, the hole x 42 to 138.
 const skylight_hatch = {
-  w: 180,
+  lit: [[42, 44, 96, 128, 0]], w: 180,
   h: 172,
   anchor: [0.5, 1],
   paint(ctx) {
