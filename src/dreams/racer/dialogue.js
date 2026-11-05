@@ -47,7 +47,7 @@ export const CONVERSATIONS = {
     },
     keep: { who: 'aldo', text: "Good. Don't thank me, thank the bank. They don't know yet.", next: 'flat' },
     give: { who: 'aldo', text: 'You are a fool. Tullio! Put them on mine, before he thinks about it.', next: 'flat' },
-    flat: { who: 'ottavia', text: 'His is a hair flat tonight, your car, Aldo. It will keep till the morning.', next: 'end' },
+    flat: { who: 'ottavia', text: 'Your car is a hair flat tonight, Aldo. It will keep till the morning.', next: 'end' },
     end: { who: 'aldo', text: 'Everything keeps till the morning.', set: { tyres_settled: true }, end: true },
   }),
   aldo_settled: once('aldo_settled', 'aldo', 'Saturday. Follow me for the first lap. Then do as you like.'),
@@ -86,7 +86,7 @@ export const CONVERSATIONS = {
     why: { who: 'ottavia', text: 'He was tired. It was a hair. He has been kind to me.', next: 'chair' },
     nothing: { who: 'ottavia', text: 'Thank you.', next: 'chair' },
     chair: { who: 'ottavia', text: 'Put them on the chair. He will see them or he won\'t.', next: 'home' },
-    home: { who: 'ottavia', text: 'Go down to my mother. The Cup money is on her dresser and she won\'t touch it.', set: { gloves_left: true }, end: true },
+    home: { who: 'ottavia', text: 'Go to my mother. The Cup money is on her dresser and she won\'t touch it.', set: { gloves_left: true }, end: true },
   }),
   corridor_after: once('corridor_after', 'ottavia', 'Go on. I will sit a while.'),
   // the kitchen

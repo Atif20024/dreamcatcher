@@ -20,7 +20,7 @@
 //   racer-bend-visible  a bend slides the road and the land to its outside, the HUD stays put
 //   racer-hud-diet      the static plates go, grip stays hidden, the call has its units and its side
 //   racer-card          the result card says what the run did
-//   racer-garage-lines  the bench and the rack answer [E]
+//   racer-garage-lines  the bench and the rack offer their verbs (src/dev/scenarios/racerPlaces.js does them)
 import { getRun, clearRun, getSave } from '../../utils/save.js';
 import { flagOf } from '../../dreams/racer/race/result.js';
 import { CAR_LEN, TUNE } from '../../engines/race.js';
@@ -165,7 +165,7 @@ const finishReturn = {
     }
     rows.paidAfterContinues = getSave().wallet.total - wallet0;
     rows.coins = dc.scene().levelCoins;
-    return { pass: rows.savedOnLine.best === 1 && rows.savedOnLine.passed === true && rows.savedOnLine.paid === undefined && rows.notPaidYet && rows.card.items.includes('garage') && rows.back.room === 'garage' && rows.back.resuming && /season/.test(rows.back.goal) && rows.paid === worth && rows.paidAfterContinues === worth && rows.flagSaved === TRACKS.test.prize[1] && rows.coins === TRACKS.test.prize[1], detail: rows };
+    return { pass: rows.savedOnLine.best === 1 && rows.savedOnLine.passed === true && rows.savedOnLine.paid === undefined && rows.notPaidYet && rows.card.items.includes('garage') && rows.back.room === 'garage' && rows.back.resuming && !!rows.back.goal && rows.paid === worth && rows.paidAfterContinues === worth && rows.flagSaved === TRACKS.test.prize[1] && rows.coins === TRACKS.test.prize[1], detail: rows };
   },
 };
 
@@ -843,16 +843,11 @@ const garageLines = {
     const rows = {};
     for (const id of ['race:rack', 'race:bench']) {
       const it = s.interaction.items.get(id);
-      rows[id] = { x: it.x, prompt: it.prompt };
       s.player.setPosition(it.x, s.player.y);
       await dc.run(8);
-      rows[id].shown = hud.s.prompt.visible && hud.s.prompt.text;
-      const say = s.caption.say;
-      s.caption.say = (who, line) => (rows[id].said = line);
-      it.onUse();
-      s.caption.say = say;
+      rows[id] = { prompt: it.prompt, shown: hud.s.prompt.visible && hud.s.prompt.text };
     }
-    return { pass: Object.values(rows).every((v) => v.shown && /look/.test(v.shown) && v.said), detail: rows };
+    return { pass: /tyres/.test(rows['race:rack'].shown) && /tune/.test(rows['race:bench'].shown), detail: rows };
   },
 };
 

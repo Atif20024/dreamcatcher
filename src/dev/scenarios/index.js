@@ -74,3 +74,5 @@ SCENARIOS.push(...packs);
 // THE LONG STRAIGHT: the race scene, its hand-off, the pedals, the platform
 import racer from './racer.js';
 SCENARIOS.push(...racer);
+import racerPlaces from './racerPlaces.js';
+SCENARIOS.push(...racerPlaces);
