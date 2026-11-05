@@ -141,7 +141,7 @@ HOOKS = [
   { id: 'race1', story: 'Pinewood hill-climb', track: 'pinewood', needs: [] },
   { id: 'race2', story: 'Harbour Night Cup',   track: 'harbour',  needs: ['tyres_settled'] },
   { id: 'race3', story: 'The Salt Road Cup',   track: 'salt',     needs: ['gloves_left', 'jars_done', 'signed'] },
-  { id: 'race4', story: 'The Coppa Calvessa',  track: 'coppa',    needs: ['garage_again', 'chalked', 'pit_drilled'] },
+  { id: 'coppa', story: 'The Coppa Calvessa',  track: 'coppa',    needs: ['garage_again', 'chalked', 'pit_drilled'] }, // (built: not 'race4', or an old run's done_race4 reads as the Coppa won)
 ]
 SEASON_GOALS: tune → drive(tuned) → aldo(done_race1) → drive(tyres_settled) → take_gloves(done_race2)
   → to_hospital(item:gloves) → to_kitchen(gloves_left) → to_sable(jars_done) → drive(signed)

@@ -21,7 +21,7 @@ describe('the station counts every running dream', () => {
     expect(lines[running - 1]).toMatch(/That's the board/);
     expect(lines.slice(0, -1).join()).not.toMatch(/That's the board/);
     expect(new Set(Array.from({ length: running + 1 }, (_, i) => headline(i))).size).toBe(running + 1);
-    expect(headline(0)).toBe(`NINE PLATFORMS, ONE TIMETABLE — ALL ON TIME`);
+    expect(headline(0)).toBe(`TEN PLATFORMS, ONE TIMETABLE — ALL ON TIME`);
     expect(headline(running)).toBe('NO PASSENGERS');
     expect(teaLine(running)).toBe(null);
     expect(teaLine(running - 1)).toBeTruthy();

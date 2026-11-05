@@ -3,6 +3,7 @@
 // Something goes short, and the Signora notices which (verbs/places.js, season.js).
 // (Fail state: short the rent and she says nothing about it, ever.) The roof pays.
 import { grid } from '../../painter/rooms/grid.js';
+import { goalsFrom } from '../season.js';
 
 const g = grid(32, 14);
 g.fill(0, 0, 31, 1);
@@ -47,7 +48,7 @@ export default {
   acoustics: 'room',
   events: null,
   music: { state: 'quiet', key: 'kitchen' },
-  objective: [{ text: 'carry_tin' }, { text: 'split', flag: 'tin_taken' }, { text: 'close_tin', flag: 'tin_empty' }, { text: 'drive', flag: 'jars_done' }],
+  objective: [{ text: 'carry_tin' }, { text: 'split', flag: 'tin_taken' }, { text: 'close_tin', flag: 'tin_empty' }, ...goalsFrom('to_sable')],
   titleCard: 'THE CASTELLANE KITCHEN',
   goal: 'carry the prize tin to the table',
   entities: [

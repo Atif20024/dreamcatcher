@@ -1,9 +1,10 @@
 // THE NIGHT BEFORE: the Gull Bend on foot, a lamp and a chalk stick. Stand at the
 // braking board, the turn-in and the apex, and press [E] at each, in that order: the
-// marks are for the finale (flags mark_brake, mark_turn, mark_apex; race 6 reads them
-// when it exists). The road is washed out before the apex: miss the jump in the dark
-// and it is back to the lamp. Leave without the marks if you like; the finale knows.
+// marks are for the Coppa (flags mark_brake, mark_turn, mark_apex; race 4 reads them).
+// The road is washed out before the apex: miss the jump in the dark and it is back to
+// the lamp. The Coppa waits for the marks.
 import { grid } from '../../painter/rooms/grid.js';
+import { goalsFrom } from '../season.js';
 
 const g = grid(76, 18);
 g.fill(0, 14, 76, 17);
@@ -42,7 +43,7 @@ export default {
   acoustics: 'open',
   events: null,
   music: { state: 'silent', key: 'gull' },
-  objective: [{ text: 'chalk' }, { text: 'to_pit', flag: 'chalked' }],
+  objective: [{ text: 'chalk' }, ...goalsFrom('to_pit')],
   titleCard: 'THE NIGHT BEFORE',
   goal: 'walk the corner: chalk your marks',
   light: { tint: 0xa0a8d0 },
@@ -50,6 +51,7 @@ export default {
     { type: 'portal', id: 'gull>quay', kind: 'door', x: 3, y: 13, to: { room: 'quay', portal: 'quay>gull' }, door: { prompt: 'back to the quay', fade: 300 } },
     { type: 'checkpoint', id: 'cp_gull', label: 'THE NIGHT BEFORE', x: 6, y: 13 },
     { type: 'checkpoint', id: 'cp_gull2', label: 'THE GULL BEND', x: 44, y: 13 },
+    { type: 'moment', id: 'm_gull', x: 47, y: 13, prompt: 'look at the straw', beat: 'moment_gull' },
     { type: 'sign', text: 'GULL BEND', x: 44, y: 9, board: 0x2a2420, ink: 0xf2e6cc, scale: 1 },
     { type: 'coins', id: 'c_n1', x: 30, y: 10, n: 6, dx: 1 },
     { type: 'coins', id: 'c_n2', x: 60, y: 10, n: 6, dx: 1 },

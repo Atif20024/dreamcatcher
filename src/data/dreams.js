@@ -77,9 +77,8 @@ export const DREAMS = [
   },
   {
     // THE LONG STRAIGHT (src/dreams/racer/, DreamScene and RaceScene): the
-    // Calvessa Coast, 1958. `unfinished`: it boards, but it has no ending yet, so
-    // nothing counts it as a running dream (hubState.runningDreams, the web)
-    id: 'racer', platform: 10, title: 'THE LONG STRAIGHT', scene: 'Dream', unfinished: true, propsKind: 'tyres', ambientLoop: 'gm_office',
+    // Calvessa Coast, 1958. Four races, a life between them, and he wins
+    id: 'racer', platform: 10, title: 'THE LONG STRAIGHT', scene: 'Dream', propsKind: 'tyres', ambientLoop: 'gm_office',
     coin: { name: 'brass nut', worth: 3, budget: [60, 80], pal: { c: 0x8a6a2c, C: 0xc8a050, h: 0xf2e0a0 } },
     livery: { body: 0x1f7a78, trim: 0xefe2c4, window: 0xf2d8a0, emblem: 'wheel' },
     conductor: 'The Long Straight. A garage on the Calvessa Coast, spring of fifty-eight, and a car that wants a driver.\nThe road is shut for the morning, sir. Still boarding?',

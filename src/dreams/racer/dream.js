@@ -9,9 +9,9 @@
 //   THE SPONSOR'S TABLE     READ the papers, strike a clause
 //   THE NIGHT BEFORE        CHALK the Gull Bend on foot
 //   THE PIT LANE            the crew drills the stop
-// The six races wait for the owner's first drive: season.js HOOKS are their places
-// in the story, every one a stand-in on the test road. No ending yet, so data/dreams.js
-// marks it `unfinished` and the station does not count it.
+// Four races (season.js HOOKS), each with its own objective from where Jo is in his
+// life: earn the seat, follow Aldo, get on the sheet, win. Back from the Coppa the crew
+// says what it cost, and the orb over the Heron is the note: docs/redesign/RACER_REBUILD_PLAN.md
 // Dev: ?warp=racer:garage | :quay | :hospital | :kitchen | :sponsor | :nightbefore | :pitlane
 import garage from './rooms/garage.js';
 import quay from './rooms/quay.js';
@@ -27,6 +27,7 @@ import props from './props.js';
 import materials from './materials.js';
 import beats from './beats.js';
 import { CAST, CONVERSATIONS, BARKS } from './dialogue.js';
+import { endingLines } from './season.js';
 import { MUSIC_KEYS } from './music.js';
 import { COAST } from './race/themes.js';
 import { tune } from '../../engines/tune.js';
@@ -37,6 +38,38 @@ const NIGHT_SKY = { top: 0x1a1c44, mid: 0x34386a, bottom: 0x5e5e88, stars: 90, c
 const NIGHT_LAND = { ...COAST.land, sky: 0x3e4068, hill: 0x4a4c70, house: 0x4e4e6c, roof: 0x24243a, window: 0xffc870, light: 0x9a9ac0, rim: 0x9a9ac0, deep: 0x1e1e30, leaf: 0x1c2a30, trunk: 0x161422, sea: 0x20305a, mist: 0x3a3e68, mistA: 0.24 };
 
 const CALLS = ['Wheel!', 'Wheel!', 'Fuel!', 'Flag!'];
+
+// first light on the quay's end, the Heron stopped under the flag
+function paintDawn(ctx, w, h) {
+  const sky = ctx.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, '#34386a');
+  sky.addColorStop(0.6, '#c88a7a');
+  sky.addColorStop(1, '#f2c078');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#20305a';
+  ctx.fillRect(0, h - 34, w, 14); // the sea
+  ctx.fillStyle = '#1a1420';
+  ctx.fillRect(0, h - 20, w, 20); // the road
+  ctx.fillRect(w * 0.84, h - 74, 4, 54); // the flag's pole
+  for (let i = 0; i < 12; i++) {
+    ctx.fillStyle = (i + (i > 5 ? 1 : 0)) % 2 ? '#f2e6cc' : '#1a1420';
+    ctx.fillRect(w * 0.84 + 4 + (i % 6) * 6, h - 74 + (i > 5 ? 6 : 0), 6, 6);
+  }
+  ctx.fillStyle = '#e8dcc0'; // her, side on
+  ctx.fillRect(w * 0.1, h - 32, 92, 12);
+  ctx.fillRect(w * 0.1 + 26, h - 40, 30, 8);
+  ctx.fillStyle = '#1f7a78';
+  ctx.beginPath();
+  ctx.arc(w * 0.1 + 70, h - 26, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#14121e';
+  for (const x of [14, 76]) {
+    ctx.beginPath();
+    ctx.arc(w * 0.1 + x, h - 20, 7, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
 
 export default {
   id: 'racer',
@@ -72,7 +105,7 @@ export default {
       onWin: 'tuned',
       onFail: 'tune_left',
     },
-    // the drill: the clockmaker's bob, Ottavia's call, three seconds a miss
+    // the drill: the clockmaker's bob, Ottavia's call
     pitstop: {
       id: 'pitstop',
       title: 'THE STOP',
@@ -91,7 +124,8 @@ export default {
       },
       onFlags(result, F) {
         F.pit_misses = result.misses;
-        F.pit_clean = result.misses <= 1;
+        F.pit_ok = result.misses <= 1;
+        F.pit_clean = result.misses === 0; // (the stop on the night: 2 s, not 3)
       },
       // (the engine always finishes: the slate says if it was good enough)
       onWin: 'pit_done',
@@ -116,8 +150,9 @@ export default {
   },
   objectives: {
     tune: 'get her singing: tune the carburettor by ear, at the bench',
-    drive: 'the Heron is at the shutter: take her out on the road',
-    aldo: 'Aldo is at his car: he wants a word',
+    drive_pinewood: 'Pinewood: the second car is at the shutter. Beat Aldo\'s time',
+    aldo: 'the seat is yours: Aldo is at his car',
+    drive_harbour: 'the Harbour Cup: the Heron is at the shutter. Stay in his air',
     take_gloves: 'his gloves are on the end of the bench: take them',
     to_hospital: 'bring Aldo his gloves: the hospital, up the quay',
     gloves_goal: 'up the iron stairs at the far end: Ottavia is at his door',
@@ -126,14 +161,17 @@ export default {
     carry_tin: 'the tin is on the dresser: carry it to the table',
     split: 'twelve coins, three jars: put them where they must go',
     close_tin: 'the tin is empty: close it by the chair, or take one back',
-    to_sable: 'Sable Oil wants to see the driver: over the cafe',
+    to_sable: 'the tin is short, and Sable Oil left a card: over the cafe',
     sign: 'sign the sponsor: three papers on the desk, read them',
+    drive_salt: 'the Salt Road: the top three get paid. She is at the shutter',
     ottavia_again: 'Ottavia is at the bench: she has a question',
-    to_gull: 'the night before: walk the Gull road, and see the pit lane',
+    to_gull: 'nine days to the Coppa: walk the Gull road, past the pit lane',
     chalk: 'walk the corner: the board, the turn-in, the apex',
     to_pit: 'the crew is in the pit lane, along the quay',
     pit_goal: 'in the box: stop, change, go, on her call',
-    written: 'the Coppa is still being written: back to the station',
+    coppa: 'the Coppa: the Heron is at the shutter. Win',
+    coppa_again: 'the Coppa is not second: the Heron is at the shutter',
+    the_note: 'she is still ringing: go and stand by her',
   },
   materials,
   decorRules: {},
@@ -156,4 +194,13 @@ export default {
   },
   music: { bpm: 66, root: 110, motif: [7, null, 10, 12, null, 10, 7, null], mode: 'aeolian', voices: { base: null, lead: 'felt_piano', pulse: null, danger: null }, keys: MUSIC_KEYS },
   ambientLoop: 'pv_garage',
+  ending: {
+    orb: true,
+    title: 'THE COPPA CALVESSA: WON',
+    // (a run's Cassian line is from the road, RaceScene's save of the script's flags)
+    lines: endingLines,
+    vista: 0.85,
+    imageH: 96, // its lines must clear the foot of the screen and the [E] hint
+    paint: paintDawn,
+  },
 };

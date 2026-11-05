@@ -23,9 +23,9 @@ const T = 32;
 const WARP_FLAGS = {
   hospital: { done_race1: true, done_race2: true, cup_told: true, tyres_settled: true, kept_tyres: true, tuned: true, 'item:gloves': true, gloves: true },
   kitchen: { done_race2: true, gloves_left: true, tuned: true, cup_told: true, 'item:gloves': true },
-  sponsor: { done_race3: true, jars_done: true, gloves_left: true, tuned: true, cup_told: true, 'item:gloves': true },
-  nightbefore: { done_race5: true, signed: true, garage_again: true, jars_done: true, gloves_left: true, tuned: true, cup_told: true, 'item:gloves': true },
-  pitlane: { done_race5: true, signed: true, garage_again: true, jars_done: true, gloves_left: true, tuned: true, cup_told: true, 'item:gloves': true },
+  sponsor: { done_race2: true, jars_done: true, gloves_left: true, tuned: true, cup_told: true, 'item:gloves': true },
+  nightbefore: { done_race3: true, signed: true, garage_again: true, jars_done: true, gloves_left: true, tuned: true, cup_told: true, 'item:gloves': true },
+  pitlane: { done_race3: true, signed: true, garage_again: true, jars_done: true, gloves_left: true, tuned: true, cup_told: true, 'item:gloves': true },
 };
 
 // the arrival card: the board has the place's name; this plate says the one job
@@ -240,7 +240,7 @@ function setupGull(ctx) {
         sfx('click');
         s.saveRun();
         if (i === MARKS.length - 1) s.beats.play('chalk_done').catch((e) => console.warn('[dream] beat', e));
-        else s.caption.say('jo', i ? 'Turn in here. It looks too soon. It is not.' : 'Brake here. The board is a long way from the bend, in the dark.', { ms: 2600 });
+        else s.caption.say('jo', i ? 'Turn in here. He turned in here. It looks too soon. It is not.' : 'Brake here. The board is a long way from the bend, in the dark.', { ms: 2600 });
       },
     });
   });
