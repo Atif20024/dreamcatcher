@@ -56,8 +56,8 @@ export const clock = (t) => {
   return `${m}:${(s - m * 60).toFixed(1).padStart(4, '0')}`;
 };
 
-// about what each costs on the clock, from the bots (RACER_STAGE1_R2_REPORT.md, Round 3)
-const COST = { lamp: 2.3, straw: 0.8, rub: 0.3, launch: 0.4, underPerMs: 0.07 };
+// about what each costs on the clock, from the bots (RACER_STAGE1_R2_REPORT.md, Round 3; the lamp and the straw re-measured on the four tracks)
+const COST = { lamp: 4.5, straw: 1.2, rub: 0.3, launch: 0.4, underPerMs: 0.07 };
 const WORTH_SAYING = 0.15;
 
 // the card's one lesson: what this run gave away the most of ('' when it gave little)

@@ -4,6 +4,8 @@ import { describe, it, expect } from 'vitest';
 import { Race, TUNE, STEP, CAR_LEN, gripFactor, gripBand, brakeDistance, revs, bendSafe, outward, chalkAt, turnSide, draftBeat, raceLost, gatePassed } from '../src/engines/race.js';
 import { STYLES, steerTo, dodge } from '../src/engines/rivals.js';
 import { compile } from '../src/engines/road.js';
+import { raceFor } from '../src/dreams/racer/race/script.js';
+import { tidy, coppaBot, runRace } from './raceBots.js';
 import { carTune } from '../src/dreams/racer/race/car.js';
 import { TRACKS } from '../src/dreams/racer/race/tracks.js';
 
@@ -693,7 +695,7 @@ describe('the rivals', () => {
 });
 
 describe('a mistake costs seconds, not the road', () => {
-  for (const id of ['test', 'pinewood']) {
+  for (const id of ['test', 'pinewood', 'harbour', 'salt', 'coppa']) {
     const T = TRACKS[id];
     it(`${id}: a lamp within reach of every hard thing, and of every bend's way in`, () => {
       const stops = [0, ...T.lamps, T.length];
@@ -1006,5 +1008,132 @@ describe('the test road, bot against the placeholder rival', () => {
     Object.assign(r.jo, { v: 30, d: 0 });
     while (r.jo.v > 20) r.step({ brake: true });
     expect(r.jo.d).toBeCloseTo(brakeDistance(30, 20), 0);
+  });
+});
+
+describe('the three other tracks, by bot', () => {
+  const F = { tuned: true };
+  const of = { harbour: tidy({ air: 'aldo' }), salt: tidy(), coppa: coppaBot() };
+  it('are the length and the shape the plan asks for', () => {
+    expect(TRACKS.harbour.length).toBe(1200);
+    expect(TRACKS.harbour.gate).toEqual({ scripted: true });
+    expect(TRACKS.harbour.bends.find((b) => b.name === 'Gull Bend')).toMatchObject({ outside: 'wall' });
+    expect(TRACKS.salt.length).toBe(1500);
+    expect(TRACKS.salt.gate).toEqual({ place: 3 });
+    expect(TRACKS.salt.prize).toEqual({ 1: 18, 2: 12, 3: 8 });
+    expect(TRACKS.coppa.length).toBe(2000);
+    expect(TRACKS.coppa.lapLen).toBe(1000);
+    expect(TRACKS.coppa.gate).toEqual({ place: 1 });
+    expect(TRACKS.coppa.bends.filter((b) => b.name === 'Gull Bend')).toHaveLength(2);
+    expect(TRACKS.coppa.hills.at(-1).y1).toBe(0); // (back up the terraces each lap)
+  });
+  it('harbour: a tidy bot in his air, no rub, spin or straw, and held_aldo', () => {
+    const { r } = runRace(TRACKS.harbour, F, of.harbour);
+    expect(r.jo).toMatchObject({ rubs: 0, spins: 0, offroads: 0 });
+    expect(r.script.flags.held_aldo).toBe(true);
+  });
+  it('salt: a tidy bot is clean and on the sheet, on any tyres, held or not', () => {
+    for (const flags of [F, { ...F, tyres_short: true }, { ...F, sable_orders: true }, { ...F, tyre_soft: true }]) {
+      const { r } = runRace(TRACKS.salt, flags, tidy());
+      expect(r.result.flags).toMatchObject({ rubs: 0, spins: 0, offroads: 0, clean: true });
+      expect(r.result.place).toBeLessThanOrEqual(3);
+      expect(r.result.passed).toBe(true);
+    }
+  });
+  it('coppa: a tidy bot is clean and first', () => {
+    const { r } = runRace(TRACKS.coppa, F, of.coppa);
+    expect(r.result.flags).toMatchObject({ rubs: 0, spins: 0, offroads: 0, clean: true });
+    expect(r.result).toMatchObject({ place: 1, passed: true });
+  });
+  for (const id of ['salt', 'coppa']) {
+    it(`${id}: flat out with no brakes pays on the bends, and finishes 3 s behind the tidy bot or worse`, () => {
+      const T = TRACKS[id];
+      const flat = tidy({ brakes: false });
+      const { r, log } = runRace(T, F, id === 'coppa' ? coppaBot({ box: 'through', drive: flat }) : flat);
+      const paid = log.filter((e) => e.id === 'jo' && (e.type === 'straw' || e.type === 'spin')).length;
+      expect(paid).toBeGreaterThanOrEqual(T.bends.filter((b) => b.outside === 'wall').length);
+      expect(paid).toBeGreaterThanOrEqual(T.bends.length / 2);
+      // (a wall bend never lets a car with no brakes by, and that is the plan's point too)
+      if (r.result) expect(r.result.time - runRace(T, F, of[id]).r.result.time).toBeGreaterThan(3);
+      else expect(r.jo.spins).toBeGreaterThan(1);
+    });
+  }
+  it('the Salt Road is not settled by one corner: Teo comes back to a car that holds behind Dante, late', () => {
+    const r = raceFor(TRACKS.salt, { ...F, sable_orders: true });
+    const bot = tidy({ behind: 'dante' });
+    const teo = r.rivals.find((c) => c.id === 'teo');
+    let wasAhead = false;
+    let backAt = null;
+    while (!r.result && r.t < 100) {
+      r.step(bot(r));
+      r.drain();
+      if (teo.d > r.jo.d) wasAhead = true;
+      if (wasAhead && teo.d < r.jo.d && backAt === null) backAt = r.jo.d;
+    }
+    expect(wasAhead).toBe(true);
+    expect(backAt).toBeGreaterThan(TRACKS.salt.length / 2);
+  });
+});
+
+describe('oil', () => {
+  const road = () => new Race({ pieces: [{ straight: 3000 }], countdown: 0 });
+  const hit = () => {
+    const r = road();
+    Object.assign(r.jo, { d: 100, v: 30 });
+    r.oil.push({ d: 110, x: 0, len: TUNE.oilLen, wide: TUNE.oilWide, by: 'teo', gone: false });
+    return r;
+  };
+  it('is a wobble, 0.6 s long, once a patch, and a held wheel gets it back', () => {
+    const r = hit();
+    const log = run(r, (x) => ({ throttle: true, steer: steerTo(x.jo, 0) }), 3);
+    expect(log.filter((e) => e.type === 'oil')).toEqual([{ type: 'oil', id: 'jo', d: 110 }]);
+    expect(r.jo.spins).toBe(0);
+    expect(Math.abs(r.jo.x)).toBeLessThan(0.05);
+    expect(r.jo.wobbleT).toBe(0);
+    const held = hit();
+    let longest = 0;
+    let t = 0;
+    while (held.t < 3) {
+      held.step({ throttle: true });
+      if (held.jo.wobbleT > 0) t += STEP;
+      longest = Math.max(longest, t);
+    }
+    expect(longest).toBeCloseTo(TUNE.oilWobble, 1);
+  });
+  it('costs a few tenths, not the race', () => {
+    const clean = road();
+    Object.assign(clean.jo, { d: 100, v: 30 });
+    const r = hit();
+    run(clean, gas, 2);
+    run(r, gas, 2);
+    expect(clean.jo.d - r.jo.d).toBeGreaterThan(0.2);
+    expect(clean.jo.d - r.jo.d).toBeLessThan(5);
+  });
+  it('misses a car that steered round it, and the car that dropped it', () => {
+    const r = hit();
+    r.jo.x = 0.5;
+    expect(types(run(r, gas, 1))).not.toContain('oil');
+    const own = hit();
+    own.oil[0].by = 'jo';
+    expect(types(run(own, gas, 1))).not.toContain('oil');
+  });
+  it('a dropped patch says where it lies', () => {
+    const r = road();
+    Object.assign(r.jo, { d: 77, x: 0.3 });
+    r.dropOil(r.jo);
+    expect(r.drain()).toEqual([{ type: 'oil_drop', id: 'jo', d: 77, x: 0.3, len: TUNE.oilLen, wide: TUNE.oilWide }]);
+    expect(r.oil).toHaveLength(1);
+  });
+});
+
+describe('a cue on a lap', () => {
+  it('fires on that lap, at d + lapLen, and says both', () => {
+    const r = new Race({ pieces: [{ straight: 3000 }], countdown: 0, lapLen: 1000, cues: [{ d: 50, lap: 2, id: 'late' }, { d: 60, id: 'early' }] });
+    Object.assign(r.jo, { d: 40, v: 30 });
+    const early = run(r, gas, 2).filter((e) => e.type === 'cue');
+    expect(early).toEqual([{ type: 'cue', id: 'early', d: 60 }]);
+    r.jo.d = 1040;
+    const late = run(r, gas, 2).filter((e) => e.type === 'cue');
+    expect(late).toEqual([{ type: 'cue', id: 'late', d: 1050, lap: 2 }]);
   });
 });
