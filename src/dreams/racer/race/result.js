@@ -12,6 +12,8 @@
 //          race_<id>_paid     coins already paid for this race
 //          race_<id>_tries    runs that ended short of the gate, or were restarted
 //          done_<hook>        the season's stand-in for that race has been driven (season.js)
+import { gatePassed } from '../../../engines/race.js';
+
 export const flagOf = (trackId, what) => `race_${trackId}_${what}`;
 
 // the run's flags → the run's flags with this finish in them (a worse run never
@@ -23,9 +25,10 @@ export function applyResult(flags, track, { place, time }) {
   if (best === undefined || place < best || (place === best && time < out[f('time')])) {
     out[f('best')] = place;
     out[f('time')] = Math.round(time * 100) / 100;
-    out[f('prize')] = (track.prize && track.prize[place]) || 0;
+    // (a time gate has no second place to pay: the tin opens under the time)
+    out[f('prize')] = (track.gate?.time === undefined || time <= track.gate.time) && track.prize ? track.prize[place] || 0 : 0;
   }
-  if (place <= track.passPlace) out[f('passed')] = true;
+  if (gatePassed(track.gate, { place, time })) out[f('passed')] = true;
   else out[f('tries')] = (out[f('tries')] || 0) + 1;
   // shortcut: a STAND-IN opens the story on any finish; a real race will bring its own gate
   if (out.season_pending) {
@@ -48,14 +51,28 @@ export function prizeOwed(flags, trackId) {
 export const SOFT_AID_AFTER = 3;
 export const softAid = (flags, trackId) => (flags[flagOf(trackId, 'tries')] || 0) >= SOFT_AID_AFTER;
 
+// the seconds, said aloud as a timekeeper says them: 33.8 is "Thirty-three eight"
+const TENS = { 2: 'Twenty', 3: 'Thirty', 4: 'Forty', 5: 'Fifty' };
+const UNITS = ['', '-one', '-two', '-three', '-four', '-five', '-six', '-seven', '-eight', '-nine'];
+const WORDS = ['nought', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+export function spoken(t) {
+  const tenths = Math.round(t * 10);
+  const s = Math.floor(tenths / 10);
+  const tens = TENS[Math.floor(s / 10)];
+  return `${tens ? `${tens}${UNITS[s % 10]}` : s} ${WORDS[tenths % 10]}`;
+}
+
+// a miss by less than the clock's tenth must not read as the time on the sheet
+export const shownTime = (time, gate, passed) => (!passed && gate?.time !== undefined && Math.round(time * 10) <= Math.round(gate.time * 10) ? gate.time + 0.1 : time);
+
 export const clock = (t) => {
   const s = Math.max(0, t);
   const m = Math.floor(s / 60);
   return `${m}:${(s - m * 60).toFixed(1).padStart(4, '0')}`;
 };
 
-// about what each costs on the clock, from the bots (RACER_STAGE1_R2_REPORT.md, Round 3)
-const COST = { lamp: 2.3, straw: 0.8, rub: 0.3, launch: 0.4, underPerMs: 0.07 };
+// about what each costs on the clock, from the bots (RACER_STAGE1_R2_REPORT.md, Round 3; the lamp and the straw re-measured on the four tracks)
+const COST = { lamp: 4.5, straw: 1.2, rub: 0.3, launch: 0.4, underPerMs: 0.07 };
 const WORTH_SAYING = 0.15;
 
 // the card's one lesson: what this run gave away the most of ('' when it gave little)

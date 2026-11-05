@@ -9,8 +9,6 @@ import { sfx } from '../../../systems/audio.js';
 import { LAYER_DEPTH } from '../../../world/RoomStreamer.js';
 import { CAR_SIZE } from '../../../art/carKit.js';
 import { prizeOwed, flagOf } from '../race/result.js';
-import { paintSteps, freeTheme } from '../race/RaceRoad.js';
-import { TRACKS } from '../race/tracks.js';
 import { atTheDoor, STAND_IN } from '../season.js';
 import { BOX_COL } from '../rooms/pitlane.js';
 import { rackConversation, benchConversation } from '../dialogue.js';
@@ -21,7 +19,6 @@ const ALDO_COL = 19; // his car, beside her, until the Cup
 const RACK_COL = 6; // (the props' middles, room tiles)
 const BENCH_COL = 12;
 const NIGHT = [0x14, 0x12, 0x2a];
-const ROAD_STEPS = paintSteps(TRACKS[STAND_IN].theme);
 
 function goRace(scene, ctx) {
   if (ctx.state.going) return;
@@ -51,15 +48,20 @@ function goRace(scene, ctx) {
   cam.fadeOut(340, ...NIGHT);
 }
 
+// shortcut: Pinewood is the one real race so far; stage E pays per track from the season's list
 function payPrize(scene) {
+  for (const id of ['pinewood', STAND_IN]) payFor(scene, id);
+}
+
+function payFor(scene, trackId) {
   const F = scene.F;
-  const owed = prizeOwed(F, STAND_IN);
+  const owed = prizeOwed(F, trackId);
   if (owed <= 0) return;
   // a fifth to Sable Oil, if that clause was left standing: it comes out of what reaches the wallet
   const paid = F.sable_cut ? owed - Math.ceil(owed / 5) : owed;
   addCoins(scene.dreamId, paid);
   scene.levelCoins += paid;
-  F[flagOf(STAND_IN, 'paid')] = (F[flagOf(STAND_IN, 'paid')] || 0) + owed;
+  F[flagOf(trackId, 'paid')] = (F[flagOf(trackId, 'paid')] || 0) + owed;
   scene.updateCoinHud();
   // (the flag, the coin count and the wallet's figure are saved together: a save
   // from before this has neither, and BaseLevel takes the coins back on a Continue)
@@ -128,10 +130,6 @@ export default {
       onUse: () => (scene.F.tuned ? shop(scene, benchConversation) : scene.startEncounter('tune', { x: at(BENCH_COL), y: floor - 90 })),
     });
     if (!scene.resuming && scene.roomId === 'garage') scene.caption.say('ottavia', "You're the one who plays by ear. Come to the bench. She's flat.", { ms: 4200 });
-    // leaving the dream without driving: the road's textures go too (the race frees them otherwise)
-    scene.events.once('shutdown', () => {
-      if (!ctx.state.going) freeTheme(scene, TRACKS[STAND_IN].theme);
-    });
   },
   update(ctx) {
     const { scene } = ctx;
@@ -139,8 +137,6 @@ export default {
     ctx.state.bench.item.prompt = F.tuned ? (F.buy_chalk ? 'the bench' : "Ottavia's chalk") : 'tune by ear';
     for (const p of ctx.state.aldoCar) p.setVisible(!F.done_race2);
     if (scene.roomId !== 'garage') return;
-    // the road's textures, one a frame while the place fades up: the door has none to paint
-    if ((ctx.state.painted ||= 0) < ROAD_STEPS.length) ROAD_STEPS[ctx.state.painted++](scene);
     if (!ctx.state.checked) {
       ctx.state.checked = true; // (the first live frame: a resumed run's flags are in by now)
       payPrize(scene);

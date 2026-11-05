@@ -104,32 +104,46 @@ export function layoutTouch({ cssW = GAME_W, cssH = GAME_H, W = GAME_W, H = GAME
 
 // Driving (RaceScene, scene.touchProfile = 'race'): no d-pad. The right thumb has
 // the pedals, a tall GAS at the edge and BRAKE beside it, so it rolls from one to
-// the other without lifting; the left thumb has the two lane buttons and SLING.
-// The same keys as the keyboard: Right, Left, Up, Down, Space.
+// the other without lifting; the left thumb has a wide steering slab, two halves
+// with a dead strip between them: a thumb slides across and changes hands without
+// lifting. The same keys as the keyboard: Up is the gas, Down the brake.
 export function layoutRace(opts = {}) {
   const L = layoutTouch(opts);
   const { W = GAME_W, H = GAME_H } = opts;
   const { b, m, g } = L;
-  const r = Math.round(b / 2);
   const pw = Math.round(b * 1.2);
   const ph = Math.round(b * 2.2);
   const py = H - m - ph / 2;
-  const gas = { id: 'right', shape: 'pedal', x: W - m - pw / 2, y: py, r: pw / 2, w: pw, h: ph, label: 'GAS' };
-  const brake = { id: 'left', shape: 'pedal', x: gas.x - pw - g, y: py + Math.round(ph * 0.1), r: pw / 2, w: pw, h: Math.round(ph * 0.8), label: 'BRAKE' };
-  const down = { id: 'down', x: m + r, y: H - m - r, r, label: '', arrow: 'down' };
-  const up = { id: 'up', x: m + r, y: down.y - 2 * r - g, r, label: '', arrow: 'up' };
-  const sling = { id: 'jump', x: up.x + 2.1 * r + g, y: (up.y + down.y) / 2, r: Math.round(r * 1.1), label: 'SLING' };
+  const gas = { id: 'up', shape: 'pedal', x: W - m - pw / 2, y: py, r: pw / 2, w: pw, h: ph, label: 'GAS' };
+  const brake = { id: 'down', shape: 'pedal', x: gas.x - pw - g, y: py + Math.round(ph * 0.1), r: pw / 2, w: pw, h: Math.round(ph * 0.8), label: 'BRAKE' };
+  const dead = 12;
+  const sw = Math.round(b * 1.8); // one half of the slab
+  const sh = Math.round(b * 1.6);
+  const sy = H - m - sh / 2;
+  const left = { id: 'left', shape: 'pedal', slab: true, x: m + sw / 2, y: sy, r: sw / 2, w: sw, h: sh, label: '', arrow: 'left' };
+  const right = { id: 'right', shape: 'pedal', slab: true, x: m + sw + dead + sw / 2, y: sy, r: sw / 2, w: sw, h: sh, label: '', arrow: 'right' };
+  const slab = { mid: m + sw + dead / 2, dead, x1: right.x + sw / 2, top: sy - sh / 2 };
   const pause = L.buttons.find((x) => x.id === 'pause');
-  const top = up.y - r;
   return {
     ...L,
     pad: null,
-    buttons: [gas, brake, up, down, sling, pause],
+    slab,
+    buttons: [gas, brake, left, right, pause],
     clusters: {
-      left: { x: 0, y: top, w: sling.x + sling.r + m, h: H - top },
+      left: { x: 0, y: slab.top, w: slab.x1 + m, h: H - slab.top },
       right: { x: brake.x - pw / 2 - m, y: gas.y - ph / 2, w: W - (brake.x - pw / 2 - m), h: H - (gas.y - ph / 2) },
     },
   };
+}
+
+// a thumb on the slab, with room to wander: it reads by which side of the dead strip
+// it is on, so sliding off the plate's edge does not let go of the wheel
+function slabAt(L, x, y) {
+  const S = L.slab;
+  const slop = L.b * 0.6;
+  if (x > S.x1 + slop || y < S.top - slop) return null;
+  if (Math.abs(x - S.mid) <= S.dead / 2) return [];
+  return [x < S.mid ? 'left' : 'right'];
 }
 
 // the pad by angle: right inside ±60° of east, up inside 40–140°, so a
@@ -158,10 +172,14 @@ export function controlsAt(L, x, y, { play = true } = {}) {
     const dirs = padDirections(L.pad, x, y);
     if (dirs.length) return dirs;
   }
+  if (play && L.slab) {
+    const side = slabAt(L, x, y);
+    if (side) return side;
+  }
   let best = null;
   let bestD = Infinity;
   for (const btn of [...L.buttons, ...(L.context || [])]) {
-    if (!play && btn.id !== 'pause') continue;
+    if (btn.slab || (!play && btn.id !== 'pause')) continue;
     // a pedal is a tall plate: its hit area is its own rectangle, a little large
     if (btn.w && Math.abs(x - btn.x) <= btn.w * 0.56 && Math.abs(y - btn.y) <= btn.h * 0.56) {
       const dp = Math.abs(x - btn.x);

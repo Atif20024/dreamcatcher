@@ -1,20 +1,34 @@
 // The race: pure maths, no Phaser (tests/race.test.js drives it with bots).
 // One track, Jo's car and whoever else is on the road, stepped at a fixed
 // 120 Hz (`advance` holds the accumulator, so a slow frame is more steps and
-// never a different race). Distances are metres and speeds m/s (1 m = 44 px
-// lives in the scene). The depth axis is the road's width: `y` is in lanes,
-// 0 far, 1 middle, 2 near, and a bend that is taken too fast pushes the car
-// along it, towards the outside of the bend.
+// never a different race). Distances are metres and speeds m/s. Across the road
+// `x` is in road widths: 0 the middle, ±1 the edges, ±1.25 the straw or the wall,
+// plus is right. In a bend the outside holds more speed and is a longer way round.
 //
-//   const r = new Race(track, { rivals: [{ id: 'roche', lane: 1, d: 9 }] });
-//   const steps = r.advance({ throttle, brake, laneUp, laneDown, sling }, ms);
-//   r.jo, r.cars, r.t, r.result, r.drain()   (events since the last drain)
+// THE CONTRACT (stages B and C build on this):
+//   const r = new Race(track, { rivals: [{ id, d, x, style, pull, top }], tune });   track: compiled or raw (road.js)
+//   r.advance({ throttle, brake, steer }, ms)   steer -1..1. Returns the steps taken
+//   r.alpha()                  between the last two steps, for the picture
+//   r.jo, r.rivals, r.cars     { d, prevD, x, prevX, v, grip, steer, throttle, braking, slip, onVerge, draft, inDraft, armed, slingT, launchT, bogT, state, ghost, lampD, finished, rubs, spins, slings, offroads, lifts, resets }
+//   r.t (below 0 on the grid), r.result, r.track, r.obstacles, r.lamps, r.nextBend(d), r.bendAt(d), r.beat(), r.wantsBrake(car, opts)
+//   r.drain(): launch, jump_start, sling, armed, verge, straw, bale, bump, spin, back, reset, lamp, rub, hit, cue, rival_home, finish,
+//     oil_drop { id, d, x, len, wide }, oil { id, d }, crossing_bell | crossing_shut | crossing_open { d }; bump carries why: 'gate' at a shut crossing
+//     rivals.js adds block_tell, block_move, mistake, fade; race/script.js adds the story's (its head lists them)
+//   new Race(track, { rivals, tune, script, seed }): seed makes a race's dice repeatable; r.script is the state machine for the view to read
+//   r.oil [{ d, x, len, wide, by }], r.crossings [{ d, bell, state: 'open'|'bell'|'shut', rung }], r.rand()
+//   a cue's `lap` (track.lapLen): { d, lap: 2, id } fires at d + lapLen, and the event carries both: { id, d (on the road), lap }
+//   r.toLamp(r.jo, true)       Restart from the lamp
+//   track.gate: { time } | { place } | { scripted: true }. r.result: { place, time, gap, passed, flags }; gatePassed(gate, result) says the same for a saved one
+//   tune.untuned: the engine runs hot after hotAfter of the race (car.js sets it)
+//   A rival style is one function in rivals.js: (race, car) => { throttle, brake, steer }.
+import { compile } from './road.js';
+import { rivalInput } from './rivals.js';
 
-export const CAR_LEN = 3.8; // m (167 px)
+export const CAR_LEN = 3.8; // m
 export const STEP = 1 / 120;
 const MAX_FRAME = 0.05; // a hitch costs at most this much race time
 
-// Why each number is what it is: docs/redesign/round2/RACER_STAGE1_REPORT.md, then _R2_REPORT.md
+// Why each number is what it is: docs/redesign/RACER_REBUILD_PLAN.md §5 and docs/redesign/round2/RACER_STAGE1_REPORT.md
 export const TUNE = Object.freeze({
   vMax: 36, // m/s: 130 km/h, the design's honest 1958 top speed
   accel: 8.5, // m/s² off the line
@@ -25,23 +39,30 @@ export const TUNE = Object.freeze({
   fadeFrom: 2.5, // s of held brake before the drums fade …
   fadeTo: 5, // … to this …
   fadeMin: 0.7, // … at this strength
-  laneTime: 0.45, // s per lane
-  laneScrub: 0.015, // a lane change at speed costs this much of it (weaving is not free)
-  lineSpeed: 2, // m/s: a bend's outside lane holds this much more than its middle, the inside this much less
+  steerRate: 1.3, // widths/s at the top speed …
+  steerLow: 0.35, // … and this share of it at a crawl, so parking is calm
+  curvePull: 0.6, // widths/s outward per unit of curve, × (v/vMax)²: about 0.15 at any bend's limit, so the wheel must be held
+  lineSpeed: 2, // m/s: a bend's outside edge holds this much more than its middle, the inside this much less
   lineLen: 0.08, // and the outside is this much longer a way round, the inside this much shorter
-  slipPush: 0.28, // lanes/s per m/s over a bend's speed
+  slipPush: 0.22, // widths/s per m/s over a bend's speed
   slipScrub: 0.6, // m/s² per m/s over it (a slide costs speed)
   slipOver: 1, // a tyre that has let go grips again only this far under the limit, per m/s it went over …
   slipOverMax: 0.5, // … and never further than this share of it
-  slipSteer: 0.5, // a lane press in a slide steers at this share of the glide
+  slipSteer: 0.5, // in a slide the wheel fights at this share of its rate
+  edge: 1, // |x| past this is the verge
+  off: 1.25, // and past this the straw, or the wall
+  strawBack: 1.2, // where the straw hands the car back
+  vergeDrag: 4, // m/s²
   gripMin: 0.75, // bald tyres: never worse than a fair 25 percent
-  wearBrake: 0.02, // grip/s under hard braking
-  wearLane: 0.006, // grip per lane change at speed
+  wearBrake: 0.02, // grip/s under hard braking …
+  wearBrakeOver: 12, // … above this speed
   wearSlip: 0.015, // grip/s per m/s of slide
+  wearVerge: 0.04, // grip/s
   wearBale: 0.03,
   wearStraw: 0.1, // a bend's straw scrubs the tyres hard: taking the bale wall instead of the brake must cost about the race's slack
   draftNear: 1.5, // car lengths, bumper to bumper
   draftFar: 4,
+  draftWide: 0.25, // road widths either side of his line
   draftFill: 1.2, // s to a full bar
   draftLeak: 0.25, // bar/s lost out of the draft
   draftKeep: 0.5, // a full bar stays armed down to this
@@ -50,18 +71,27 @@ export const TUNE = Object.freeze({
   slingTime: 2, // … for 2 s …
   slingCool: 4, // … then a 4 s cool-down
   slingPull: 1.8, // and this much more pull, so the 2 s are felt
-  launchWindow: 0.35, // s after GO: a tap here is a good start
+  slingMinV: 10, // m/s: no sling from a crawl
+  launchWindow: 0.35, // s after GO: a tap of the gas here is a good start
+  launchEarly: 0.1, // s before GO that still counts as on the green
   launchPull: 1.25,
   launchTime: 2.5,
+  bogTime: 0.3, // s of no pull for gas held before the green
   liftHold: 0.3, // s off both pedals that Ottavia can hear as a lift …
   liftSpeed: 25, // m/s: … above this …
   liftZone: 120, // m: … and this far clear of the next bend (a brake for a bend is no lift)
+  carWide: 0.4, // road widths: who can touch whom
+  sameLine: 0.15, // this close across the road, a touch is nose to tail
+  rubPush: 0.12, // widths: a rub shoves the two apart
   rubLoss: 0.1, // both lose 10 percent
   hitLoss: 0.25, // a real hit
   hitClosing: 6, // m/s closing speed that makes a tap a hit
   contactGap: 0.8, // s before the same two cars can touch again
   hardHit: 8, // m/s: slower than this a hard thing is a bump, not a spin
   baleLoss: 0.4,
+  strawLoss: 0.65, // one hit per bend: a car that never brakes pays about 1 s a bend, or the bales are a free brake …
+  strawHold: 1.5, // … s of no pull while it drags clear of the hay …
+  strawScrape: 14, // … and m/s² while it stays pressed against the bales
   spinTime: 1.2, // s of visible spin (the picture) …
   resetAt: 2, // … at the lamp by here (the screen is dark) …
   backAt: 3, // … and driving again at this: the design's 3 s
@@ -69,6 +99,8 @@ export const TUNE = Object.freeze({
   ghost: 1, // s after a reset that nothing can touch it
   chalkReact: 0.2, // s: Ottavia's chalk leaves this much road for the foot to move
   bumpGap: 0.5, // s between the knocks of a car pressing on a cart
+  hotAfter: 0.6, // of the race: an untuned engine runs hot from here …
+  hotTop: 0.96, // … and tops out at this
   rollCost: 3, // s a car standing still has yet to lose to one at the top speed (raceLost)
   catchSlack: 0.5, // s a sling and a draft can still win back (raceLost)
   beatSlotWidth: 0.2, // of the window's half: the slot where the beat has stopped
@@ -76,6 +108,50 @@ export const TUNE = Object.freeze({
   beatMax: 9, // Hz at its roughest, far from it
   beatHear: 3, // misses (window half-widths) at which the two engines are fully pulled together …
   beatFar: 5, // … and at which the rival's note is its own again
+  bandMax: 0.06, // rubber band: at most this share of a rival's top speed; never the bend, which is grip and not top
+  bandBehind: 0.5, // of it for a car behind Jo: a lead earned should mostly stay earned
+  bandNear: 40, // m apart: none this close, so a duel is a duel …
+  bandFar: 240, // m: … and all of it this far
+  oilWobble: 0.6, // s
+  oilShake: 0.9, // widths/s at its worst: a twitch that a held wheel gets back
+  oilDrag: 2, // m/s² while it lasts
+  oilLen: 7, // m
+  oilWide: 0.35, // road widths
+  oilHard: 26, // m/s: a car braking from this leaves its sump on the road
+  crossingBell: 3.5, // s of bell and red lamps …
+  crossingShut: 4, // … and the gate is down this long
+  wearGate: 0.05, // a shut gate met at speed: never a spin, but it is not nothing, so braking for it pays
+  blockSpeed: 28, // m/s: nobody is in anybody's mirror off the line or out of a bend
+  blockMirror: 0.5, // s in his air before he looks up
+  blockTell: 0.45, // s from the look to the move: what the tell gives you
+  blockMove: 0.8, // s across
+  blockGap: 4, // s: never twice in this
+  blockClear: 60, // m: the door is not in the bend, nor this close to one
+  blockMin: 0.3, // widths: he always moves at least this, so it can be seen
+  blockLimit: 0.8, // and never further out than this
+  mistakeAir: 3, // s in his air and he is thinking about you …
+  mistakeEarly: 10, // m: … and brakes this early at the next bend, once a race …
+  mistakeSlow: 0.8, // … and takes it at this share of his pace: 8 m alone is a gap no car fits in
+  fadeGrip: 0.2, // a diver's tyres under this are gone …
+  fadeTop: 0.9, // … and so is his top speed
+  weave: 0.25, // widths either side, behind you
+  weaveRate: 1.6, // rad/s
+  pitBox: 3, // s: nose in the box
+  pitClean: 2, // s: and the crew has done the drill
+  pitMiss: 5, // s: stopped short or long
+  pitThrough: 0, // the grip you have left if you don't stop: there is no second lap in them
+  stopHelp: 3.4, // s stood still: with the stop and the pull away, that is the 6 s on the clock
+  stopNear: 40, // m from his car: that is stopping for him
+  wheelNear: 60, // m ahead of Jo: the wheel waits for this
+  heldV: 18, // m/s: at less than this there is no air to be in
+  aldoDrift: 1.5, // s his tail lamps drift before they go out
+  darkStop: 3.5, // s from there to the end of race 2: the car stops, and 2 s on the dark
+  teoPassTop: 1.35, // going by, at the hairpin's exit: the one place a script gives a rival speed, and it is on a straight
+  teoPassPull: 1.8,
+  wornStart: 0.6, // the jar's tyres
+  pitLook: 150, // m: a rival starts for his stall from here
+  pitLine: 0.85, // where a rival's stall is, off the road's line
+  wheelExit: 10, // m before the bend's exit: the wheel has waited long enough
 });
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -92,13 +168,12 @@ export function brakeDistance(v, safe, gf = 1, t = TUNE) {
   return Math.log((B + t.coastAero * v * v) / (B + t.coastAero * safe * safe)) / (2 * t.coastAero);
 }
 
-// A lane is a racing line. In a bend, y becomes how far out the car is running:
-// 0 the inside lane (the side it turns towards), 1 the outside (the side it throws you)
-export const lineOf = (b, y) => clamp(b.side > 0 ? y / 2 : (2 - y) / 2, 0, 1);
+// How far out the car is running in a bend: 1 the outside edge (the side it throws you), -1 the inside
+export const outward = (b, x) => clamp(x * b.side, -1, 1);
 // what this line holds: the outside is faster …
-export const bendSafe = (b, y, gf = 1, t = TUNE) => (b.safe + (lineOf(b, y) * 2 - 1) * (b.lineSpeed ?? t.lineSpeed)) * gf;
+export const bendSafe = (b, x = 0, gf = 1, t = TUNE) => (b.safe + outward(b, x) * (b.lineSpeed ?? t.lineSpeed)) * gf;
 // … and longer (metres driven per metre of road)
-export const bendLen = (b, y, t = TUNE) => 1 + (lineOf(b, y) * 2 - 1) * (b.lineLen ?? t.lineLen);
+const bendLen = (b, x, t) => 1 + outward(b, x) * (b.lineLen ?? t.lineLen);
 
 // what the engine note follows (no gears: one long pull). 0.18 idle … 1 at the
 // top speed; the throttle lifts it a little, as it does on a real car
@@ -107,23 +182,23 @@ export function revs(v, throttle = false, vMax = TUNE.vMax) {
   return Math.min(1.15, r + (throttle ? 0.05 : 0));
 }
 
-// Where to get on the brake for a line, from speed v. A chalk mark leaves the foot its moment.
-export const brakePoint = (b, y, v = TUNE.vMax, gf = 1, t = TUNE) => b.from - brakeDistance(v, bendSafe(b, y, gf, t), gf, t);
-export const chalkAt = (b, lane, t = TUNE) => brakePoint(b, lane, t.vMax, 1, t) - t.vMax * t.chalkReact;
+// Where to get on the brake for a line, from speed v. A chalk mark (one, for the
+// road's middle from the top speed) leaves the foot its moment.
+export const brakePoint = (b, x = 0, v = TUNE.vMax, gf = 1, t = TUNE) => b.from - brakeDistance(v, bendSafe(b, x, gf, t), gf, t);
+export const chalkAt = (b, t = TUNE) => brakePoint(b, 0, t.vMax, 1, t) - t.vMax * t.chalkReact;
 
-// Which side the road turns: a bend that throws you to the near verge turns away
-// from it. Driving right across the screen, the near verge is on Jo's right hand.
+// Which side the road turns: away from the side it throws you.
 export const turnSide = (b) => (b.side > 0 ? 'LEFT' : 'RIGHT');
 
 // HEAR THE DRAFT. The two engines beat against each other, and the beat slows to
-// nothing in the perfect slot behind a rival: the middle of the draft window, in
-// its lane. `hz` is the beat, 0 in the slot; `hear` (0..1) is how far the rival's
+// nothing in the perfect slot behind a rival: the middle of the draft window, on
+// his line. `hz` is the beat, 0 in the slot; `hear` (0..1) is how far the rival's
 // note has been pulled to Jo's. Null when there is nobody to tune to.
 export function draftBeat(jo, r, t = TUNE) {
   if (r.d <= jo.d || r.state !== 'run' || jo.state !== 'run') return null;
   const half = (t.draftFar - t.draftNear) / 2;
   const off = ((r.d - jo.d - CAR_LEN) / CAR_LEN - (t.draftNear + half)) / half; // 0 the slot, ±1 the window's ends
-  const miss = Math.hypot(off, (jo.y - r.y) / 0.4); // (0.4: the draft's own lane test)
+  const miss = Math.hypot(off, (jo.x - r.x) / t.draftWide);
   if (miss >= t.beatFar) return null;
   const w = t.beatSlotWidth;
   let hz = 0;
@@ -131,40 +206,58 @@ export function draftBeat(jo, r, t = TUNE) {
   return { id: r.id, hz, hear: clamp((t.beatFar - miss) / (t.beatFar - t.beatHear), 0, 1) };
 }
 
+// A rival far ahead eases and one far behind presses: on top speed only, and only at a distance.
+export function rubberBand(race, c, t = race.tune) {
+  const ahead = c.d - race.jo.d;
+  return 1 - Math.sign(ahead) * (ahead < 0 ? t.bandBehind : 1) * t.bandMax * clamp((Math.abs(ahead) - t.bandNear) / (t.bandFar - t.bandNear), 0, 1);
+}
+
+// Did this finish pass the track's gate? A scripted race, or a road with no gate, has nothing to fail.
+export function gatePassed(gate, { place, time }) {
+  if (gate?.time !== undefined) return time <= gate.time;
+  if (gate?.place !== undefined) return place <= gate.place;
+  return true;
+}
+
 // Can Jo still make the gate? Flat-out arithmetic on what is left, the bends the
-// same for everybody: a rival is out of reach when it gets home a sling's worth
-// sooner than Jo can, from the speed he has.
+// same for everybody: a time is out of reach when he cannot get home inside it, and
+// a rival when it gets home a sling's worth sooner than Jo can, from the speed he has.
 export function raceLost(race, t = race.tune) {
   const L = race.track.length;
   const jo = race.jo;
-  if (race.result || race.track.passPlace === undefined) return false;
+  const gate = race.track.gate;
+  if (race.result || !gate || gate.scripted) return false;
   const v = jo.state === 'run' ? jo.v : t.rollOut; // (in the dark he is about to be handed back at this)
   const joEta = (L - jo.d) / t.vMax + t.rollCost * (1 - Math.min(1, v / t.vMax));
-  const out = race.rivals.filter((r) => r.finished !== null || (L - r.d) / (t.vMax * r.top) + t.catchSlack < joEta);
-  return out.length >= race.track.passPlace;
+  if (gate.time !== undefined) return race.t + joEta > gate.time;
+  const out = race.rivals.filter((r) => !r.doomed && (r.finished !== null || (L - r.d) / (t.vMax * r.top) + t.catchSlack < joEta)); // (the story knows who does not finish)
+  return out.length >= gate.place;
 }
 
-export function newCar({ id = 'jo', d = 0, lane = 1, pull = 1, top = 1 } = {}) {
+export function newCar({ id = 'jo', d = 0, x = 0, pull = 1, top = 1, style = 'clean', wear = 1, ...rest } = {}) {
   return {
     id,
+    style,
     d,
     prevD: d,
     v: 0,
-    y: lane,
-    prevY: lane,
-    lane,
-    fromLane: lane,
+    x,
+    prevX: x,
+    steer: 0,
+    onVerge: false,
     grip: 1,
     brakeHeld: 0,
     draft: 0,
     inDraft: false,
+    draftOf: null, // whose air the bar was filled in
     armed: false,
     slingT: 0,
     slingCool: 0,
     launchT: 0,
+    bogT: 0,
     slip: 0,
     slipPeak: 0,
-    steerT: 0,
+    strawOf: null, // the straw takes one hit per bend
     braking: false,
     throttle: false,
     state: 'run', // run | spin | reset
@@ -184,28 +277,47 @@ export function newCar({ id = 'jo', d = 0, lane = 1, pull = 1, top = 1 } = {}) {
     under: new Map(), // bend → m/s under its line's limit at the way in (the best try at it)
     bumpAt: -Infinity,
     touchAgain: new Map(), // other car id → when they may next touch
+    wear, // tyres go at this many times the rate
+    wobbleT: 0, // on oil
+    order: null, // the script's word: a style-shaped function, in place of the style
+    ...rest,
   };
 }
 
 export class Race {
-  // track: { length, countdown, gridLane, bends: [{ from, to, safe, side, outside }],
-  //          lamps: [m], obstacles: [{ d, lane, kind: 'cart' | 'bale' }] }
-  constructor(track, { rivals = [], tune = TUNE } = {}) {
-    this.track = track;
+  constructor(track, { rivals = [], tune = TUNE, script = null, seed = 1 } = {}) {
+    this.track = track.segments ? track : compile(track);
     this.tune = tune;
-    this.jo = newCar({ id: 'jo', lane: track.gridLane ?? 1 });
+    this.jo = newCar({ id: 'jo' });
     this.rivals = rivals.map((r) => newCar(r));
     this.cars = [this.jo, ...this.rivals];
-    this.obstacles = (track.obstacles || []).map((o) => ({ ...o, gone: false }));
-    this.lamps = [...(track.lamps || [])].sort((a, b) => a - b);
+    this.obstacles = this.track.obstacles.map((o) => ({ ...o, gone: false }));
+    this.lamps = this.track.lamps;
+    const lapLen = this.track.lapLen ?? this.track.length;
+    this.cues = this.track.cues.map((q) => ({ ...q, at: q.d + ((q.lap ?? 1) - 1) * lapLen }));
+    this.oil = [];
+    this.crossings = (this.track.things || []).filter((o) => o.kind === 'crossing').map((o) => ({ ...o, state: 'open', t: 0, rung: false }));
+    this.seed = seed >>> 0;
+    this.script = script;
     this.lampRivals = null; // where everybody was when Jo passed his last lamp
-    this.t = -(track.countdown ?? 3); // the lights: racing starts at 0
+    this.t = -(this.track.countdown ?? 3); // the lights: racing starts at 0
     this.acc = 0;
     this.events = [];
     this.result = null;
-    this.edges = { laneUp: false, laneDown: false, sling: false };
-    this.launchTried = false;
+    this.launchTried = this.t >= 0; // (no lights, no launch)
     this.launched = false; // the green was hit
+    this.gasWas = false;
+    this.gridGas = false; // gas down since before the green
+    this.script?.start?.(this);
+  }
+
+  // this race's dice (mulberry32): the same seed is the same race
+  rand() {
+    this.seed = (this.seed + 0x6d2b79f5) >>> 0;
+    let z = this.seed;
+    z = Math.imul(z ^ (z >>> 15), z | 1);
+    z ^= z + Math.imul(z ^ (z >>> 7), z | 61);
+    return ((z ^ (z >>> 14)) >>> 0) / 4294967296;
   }
 
   emit(type, data = {}) {
@@ -218,19 +330,13 @@ export class Race {
     return e;
   }
 
-  // the frame's time → fixed steps. Edges (a lane key, the sling key) wait for
-  // the first step they can land on, so a press in a short frame is never lost
+  // the frame's time → fixed steps
   advance(input = {}, ms = 16.67) {
-    const e = this.edges;
-    e.laneUp ||= !!input.laneUp;
-    e.laneDown ||= !!input.laneDown;
-    e.sling ||= !!input.sling;
     this.acc += Math.min(ms / 1000, MAX_FRAME);
     let n = 0;
     while (this.acc >= STEP) {
       this.acc -= STEP;
-      this.step({ throttle: !!input.throttle, brake: !!input.brake, laneUp: e.laneUp, laneDown: e.laneDown, sling: e.sling });
-      e.laneUp = e.laneDown = e.sling = false;
+      this.step(input);
       n += 1;
     }
     return n;
@@ -242,11 +348,11 @@ export class Race {
   }
 
   bendAt(d) {
-    return (this.track.bends || []).find((b) => d >= b.from && d < b.to) || null;
+    return this.track.bends.find((b) => d >= b.from && d < b.to) || null;
   }
 
   nextBend(d) {
-    return (this.track.bends || []).find((b) => b.to > d) || null;
+    return this.track.bends.find((b) => b.to > d) || null;
   }
 
   // the nearest rival ahead Jo can hear: the beat of the two engines (see draftBeat)
@@ -259,42 +365,47 @@ export class Race {
     return best;
   }
 
-  // what is coming, per lane, for the sight strip (the view is 14-17 m ahead)
-  ahead(range = 150) {
-    const c = this.jo;
-    const out = [];
-    for (const o of this.obstacles) {
-      const dist = o.d - c.d;
-      if (!o.gone && dist > 0 && dist < range) out.push({ kind: o.kind, lane: o.lane, dist, v: 0 });
-    }
-    for (const r of this.rivals) {
-      const dist = r.d - c.d;
-      if (dist > 0 && dist < range) out.push({ kind: 'car', lane: r.lane, dist, v: r.v });
-    }
-    return out;
+  // on the numbers Jo brakes by: is it time to brake for the next bend? k shaves
+  // the speed aimed for, margin is road left spare, x is the line it will take
+  wantsBrake(c, { k = 1, margin = 0, x = c.x } = {}) {
+    const t = this.tune;
+    const b = this.nextBend(c.d);
+    if (!b) return false;
+    const gf = gripFactor(c.grip, t);
+    if (c.d >= b.from) return c.v > bendSafe(b, c.x, gf, t) * k;
+    const aim = bendSafe(b, x, gf, t) * k;
+    return c.v > aim && brakeDistance(c.v, aim, gf, t) + margin >= b.from - c.d;
   }
 
   step(input) {
     const h = STEP;
+    const t = this.tune;
     this.t += h;
+    const gas = !!input.throttle;
+    const tapped = gas && !this.gasWas;
+    this.gasWas = gas;
     if (this.t < 0) {
       // the grid: a tap this close before GO still counts as on the green
-      if (input.sling && !this.launchTried) {
-        if (this.t > -0.1) this.tryLaunch();
-        else {
-          this.launchTried = true;
-          this.emit('jump_start'); // too early: no good start, nothing worse
-        }
-      }
-      for (const c of this.cars) c.throttle = c === this.jo && !!input.throttle;
+      if (tapped && !this.launchTried && this.t > -t.launchEarly) this.tryLaunch();
+      this.gridGas = gas && !this.launched;
+      for (const c of this.cars) c.throttle = c === this.jo && gas;
       return;
     }
-    if (input.sling && !this.launchTried && this.t <= this.tune.launchWindow) this.tryLaunch();
-    else if (input.sling) this.trySling(this.jo);
+    if (!this.launchTried) {
+      if (this.gridGas && gas) {
+        this.launchTried = true;
+        this.jo.bogT = t.bogTime;
+        this.emit('jump_start');
+      } else if (tapped && this.t <= t.launchWindow) this.tryLaunch();
+      else if (this.t > t.launchWindow) this.launchTried = true;
+    }
+    if (this.script) input = this.script.step(this, input) ?? input;
+    this.crossingsStep(h);
     this.drive(this.jo, input, h);
-    for (const c of this.rivals) this.drive(c, this.rivalInput(c), h);
+    for (const c of this.rivals) this.drive(c, rivalInput(this, c), h);
     this.contacts();
     this.drafts(h);
+    this.passCues();
     this.checkFinish();
   }
 
@@ -307,7 +418,7 @@ export class Race {
 
   trySling(c) {
     const t = this.tune;
-    if (!c.armed || c.slingCool > 0 || c.state !== 'run' || c.v < 10) return false;
+    if (!c.armed || c.slingCool > 0 || c.state !== 'run' || c.v < t.slingMinV) return false;
     c.slingT = t.slingTime;
     c.slingCool = t.slingTime + t.slingCool;
     c.armed = false;
@@ -317,55 +428,33 @@ export class Race {
     return true;
   }
 
-  // the placeholder rival: holds its lane, brakes for the bends on the same
-  // numbers as Jo, steps round what is on the road. No rubber band.
-  rivalInput(c) {
-    const t = this.tune;
-    const b = this.nextBend(c.d);
-    const gf = gripFactor(c.grip, t);
-    let brake = false;
-    if (b) {
-      const safe = bendSafe(b, c.y, gf, t) * 0.97;
-      brake = c.d >= b.from ? c.v > safe : brakeDistance(c.v, safe, gf, t) + 6 >= b.from - c.d;
-    }
-    let laneUp = false;
-    let laneDown = false;
-    const block = this.obstacles.find((o) => !o.gone && o.lane === c.lane && o.d > c.d && o.d - c.d < c.v * 1.6);
-    if (block && c.y === c.lane) {
-      if (c.lane < 2) laneDown = true;
-      else laneUp = true;
-    }
-    return { throttle: !brake, brake, laneUp, laneDown };
-  }
-
   drive(c, input, h) {
     const t = this.tune;
     c.prevD = c.d;
-    c.prevY = c.y;
+    c.prevX = c.x;
     if (c.finished !== null) input = { throttle: false, brake: c.v > 14 }; // past the line, it rolls down by itself
     if (c.ghost > 0) c.ghost -= h;
     c.slingCool = Math.max(0, c.slingCool - h);
     c.slingT = Math.max(0, c.slingT - h);
     c.launchT = Math.max(0, c.launchT - h);
+    c.bogT = Math.max(0, c.bogT - h);
     if (c.state !== 'run') return this.recover(c, h);
-
-    // lanes: a press moves the target, the car glides there
-    if (input.laneUp && c.lane > 0) this.changeLane(c, -1);
-    if (input.laneDown && c.lane < 2) this.changeLane(c, 1);
-    // (a slide wins over the glide unless a lane press is fighting it)
-    c.steerT = Math.max(0, c.steerT - h);
-    if (c.slip <= 0 || c.steerT > 0) {
-      const dy = c.lane - c.y;
-      const glide = (h / t.laneTime) * (c.slip > 0 ? t.slipSteer : 1);
-      c.y = Math.abs(dy) <= glide ? c.lane : c.y + Math.sign(dy) * glide;
+    // (held to another car's position by its style: it does not drive the road, so the road does nothing to it)
+    if (input.rail) {
+      Object.assign(c, input.rail, { throttle: !!input.throttle, braking: !!input.brake, slip: 0, slipPeak: 0 });
+      this.passLamps(c);
+      return undefined;
     }
+    const grip0 = c.grip;
 
     // the pedals (the brake wins)
     const gf = gripFactor(c.grip, t);
-    const vTop = t.vMax * c.top * (1 + (c.inDraft ? t.draftSpeed : 0) + (c.slingT > 0 ? t.slingSpeed : 0));
+    const hot = t.untuned && c === this.jo && c.d > this.track.length * t.hotAfter ? t.hotTop : 1; // she left the bench still beating
+    const band = c === this.jo || c.finished !== null ? 1 : rubberBand(this, c, t);
+    const vTop = t.vMax * c.top * hot * band * (1 + (c.inDraft ? t.draftSpeed : 0) + (c.slingT > 0 ? t.slingSpeed : 0));
     const coast = t.coast + t.coastAero * c.v * c.v;
     // what Ottavia hears from the pit wall: off both pedals, at speed, with no bend to blame
-    const coasting = !input.throttle && !input.brake && c.v > t.liftSpeed && c.finished === null && !(this.track.bends || []).some((x) => c.d >= x.from - t.liftZone && c.d < x.to);
+    const coasting = !input.throttle && !input.brake && c.v > t.liftSpeed && c.finished === null && !this.track.bends.some((x) => c.d >= x.from - t.liftZone && c.d < x.to);
     if (coasting && c.liftT < t.liftHold && c.liftT + h >= t.liftHold) c.lifts += 1;
     c.liftT = coasting ? c.liftT + h : 0;
     c.throttle = !!input.throttle && !input.brake;
@@ -375,10 +464,10 @@ export class Race {
       c.brakeHeld += h;
       const k = c.brakeHeld <= t.fadeFrom ? 1 : Math.max(t.fadeMin, 1 - ((c.brakeHeld - t.fadeFrom) / (t.fadeTo - t.fadeFrom)) * (1 - t.fadeMin));
       a = -(t.brake * gf * k + coast);
-      if (c.v > 12) c.grip -= t.wearBrake * h;
+      if (c.v > t.wearBrakeOver) c.grip -= t.wearBrake * h;
     } else {
       c.brakeHeld = Math.max(0, c.brakeHeld - h);
-      if (input.throttle && c.v < vTop) {
+      if (input.throttle && c.v < vTop && c.bogT <= 0) {
         const pull = t.accel * c.pull * (c.slingT > 0 ? t.slingPull : 1) * (c.launchT > 0 ? t.launchPull : 1);
         a = pull * (1 - Math.pow(c.v / vTop, t.accelPow));
       } else a = -coast;
@@ -386,66 +475,84 @@ export class Race {
 
     // a bend: over its line's speed the car slides towards the outside, and scrubs
     const b = this.bendAt(c.d);
-    const limit = b ? bendSafe(b, c.y, gf, t) : 0;
+    const limit = b ? bendSafe(b, c.x, gf, t) : 0;
     c.slipPeak = b ? Math.max(c.slipPeak, c.v - limit) : 0;
     c.slip = b ? Math.max(0, c.v - (limit - Math.min(t.slipOver * c.slipPeak, t.slipOverMax * limit))) : 0;
     if (c.slip <= 0) c.slipPeak = 0;
     if (c.slip > 0) {
       a -= t.slipScrub * c.slip;
-      c.y += b.side * t.slipPush * c.slip * h;
-      if (c.steerT <= 0) c.lane = clamp(Math.round(c.y), 0, 2);
       c.grip -= t.wearSlip * c.slip * h;
-      this.offRoad(c, b);
     }
-    c.grip = clamp(c.grip, 0, 1);
+    this.lateral(c, input, b, h);
+    if (c.wobbleT > 0) a -= t.oilDrag;
+
+    // the verge: a mistake you can drive out of
+    const verge = Math.abs(c.x) > t.edge;
+    if (verge) {
+      a -= t.vergeDrag;
+      c.grip -= t.wearVerge * h;
+      if (!c.onVerge) this.emit('verge', { id: c.id });
+    }
+    c.onVerge = verge;
+
+    c.grip = clamp(grip0 - (grip0 - c.grip) * c.wear, 0, 1);
     c.v = Math.max(0, c.v + a * h);
-    c.d += (c.v * h) / (b ? bendLen(b, c.y, t) : 1);
+    c.d += (c.v * h) / (b ? bendLen(b, c.x, t) : 1);
     const into = this.bendAt(c.d);
-    if (into && c.prevD < into.from) c.under.set(into, Math.min(c.under.get(into) ?? Infinity, bendSafe(into, c.y, gf, t) - c.v));
+    if (into && c.prevD < into.from) c.under.set(into, Math.min(c.under.get(into) ?? Infinity, bendSafe(into, c.x, gf, t) - c.v));
     if (c.state === 'run' && c.ghost <= 0) this.hitObstacles(c);
+    this.hitCrossings(c);
+    this.hitOil(c, h);
     this.passLamps(c);
     return undefined;
   }
 
-  changeLane(c, dir) {
-    if (c.y === c.lane) c.fromLane = c.lane; // (mid-glide it still came from where the glide began)
-    c.lane += dir;
-    c.steerT = this.tune.laneTime;
-    if (c.v > 20) {
-      c.grip -= this.tune.wearLane;
-      c.v *= 1 - this.tune.laneScrub;
-    }
-    this.emit('lane', { id: c.id, lane: c.lane });
+  // the wheel, against what the bend does to the car
+  lateral(c, input, b, h) {
+    const t = this.tune;
+    const speed = Math.min(1, c.v / t.vMax);
+    c.steer = clamp(input.steer ?? 0, -1, 1);
+    // (a parked car does not slide sideways; on the gas it can creep off a cart's tail)
+    if (c.v > 0.5 || input.throttle) c.x += c.steer * t.steerRate * (t.steerLow + (1 - t.steerLow) * speed) * (c.slip > 0 || c.wobbleT > 0 ? t.slipSteer : 1) * h;
+    if (c.wobbleT > 0) c.x += Math.sin((c.wobbleT / t.oilWobble) * Math.PI * 4) * t.oilShake * speed * h;
+    if (b) c.x += b.side * (t.curvePull * Math.abs(b.curve) * speed * speed + t.slipPush * c.slip) * h;
+    this.offRoad(c, b);
   }
 
   offRoad(c, b) {
-    const over = b.side > 0 ? c.y > 2.45 : c.y < -0.45;
-    if (!over) return;
-    if (b.outside === 'wall') {
+    const t = this.tune;
+    if (Math.abs(c.x) <= t.off) return;
+    const side = Math.sign(c.x);
+    const outside = b && b.side === side ? b.outside : null;
+    if (outside === 'wall' && c.v > t.hardHit) {
       this.spin(c, 'wall');
-      return;
+    } else if (outside === 'straw' && c.strawOf !== b) {
+      // the straw: soft, costly, and it puts the car back on the road
+      c.strawOf = b;
+      c.x = side * t.strawBack;
+      c.v *= 1 - t.strawLoss;
+      c.bogT = t.strawHold;
+      c.slip = c.slipPeak = 0;
+      c.grip -= t.wearStraw;
+      c.offroads += 1;
+      this.emit('straw', { id: c.id });
+    } else {
+      c.x = side * t.off;
+      if (outside === 'straw') c.v = Math.max(0, c.v - t.strawScrape * STEP); // leaning on the bales is no way round a bend
     }
-    // the straw: soft, costly, and it puts the car back on the road
-    c.y = b.side > 0 ? 2.45 : -0.45;
-    c.v *= 1 - this.tune.baleLoss;
-    c.slip = c.slipPeak = 0; // (the straw has it: one hit, not one every step)
-    c.grip -= this.tune.wearStraw;
-    c.offroads += 1;
-    this.emit('straw', { id: c.id });
   }
 
   hitObstacles(c) {
     const t = this.tune;
     for (const o of this.obstacles) {
-      if (o.gone || Math.abs(c.y - o.lane) > 0.55) continue;
-      const len = o.len ?? (o.kind === 'cart' ? 3 : 1);
-      if (c.d + CAR_LEN / 2 < o.d || c.d - CAR_LEN / 2 > o.d + len) continue;
+      if (o.gone || Math.abs(c.x - o.x) > (t.carWide + o.wide) / 2) continue;
+      if (c.d + CAR_LEN / 2 < o.d || c.d - CAR_LEN / 2 > o.d + o.len) continue;
       if (o.kind === 'bale') {
         o.gone = true;
         c.v *= 1 - t.baleLoss;
         c.grip -= t.wearBale;
         c.offroads += 1;
-        this.emit('bale', { id: c.id, d: o.d, lane: o.lane });
+        this.emit('bale', { id: c.id, d: o.d, x: o.x });
       } else if (c.v > t.hardHit) {
         this.spin(c, o.kind);
       } else {
@@ -458,16 +565,79 @@ export class Race {
     }
   }
 
+  // a thing that leaves its sump on the road; it stays there
+  dropOil(c) {
+    const t = this.tune;
+    const o = { d: c.d, x: c.x, len: t.oilLen, wide: t.oilWide, by: c.id, gone: false };
+    this.oil.push(o);
+    this.emit('oil_drop', { id: c.id, d: o.d, x: o.x, len: o.len, wide: o.wide });
+  }
+
+  hitOil(c, h) {
+    const t = this.tune;
+    if (c.wobbleT > 0) {
+      c.wobbleT = Math.max(0, c.wobbleT - h);
+      return;
+    }
+    if (c.ghost > 0 || c.v < 5) return;
+    const o = this.oil.find((q) => q.by !== c.id && c.d >= q.d && c.d <= q.d + q.len && Math.abs(c.x - q.x) < (t.carWide + q.wide) / 2);
+    if (!o || c.oiledOn === o) return;
+    c.oiledOn = o; // (one wobble a patch)
+    c.wobbleT = t.oilWobble;
+    this.emit('oil', { id: c.id, d: o.d });
+  }
+
+  // Jo's approach rings it, once: the same question for whoever is driving
+  crossingsStep(h) {
+    const t = this.tune;
+    for (const o of this.crossings) {
+      o.t += h;
+      if (o.state === 'open' && !o.rung && this.jo.d >= o.d - o.bell && this.jo.d < o.d) {
+        Object.assign(o, { state: 'bell', t: 0, rung: true });
+        this.emit('crossing_bell', { d: o.d });
+      } else if (o.state === 'bell' && o.t >= t.crossingBell) {
+        Object.assign(o, { state: 'shut', t: 0 });
+        this.emit('crossing_shut', { d: o.d });
+      } else if (o.state === 'shut' && o.t >= t.crossingShut) {
+        o.state = 'open';
+        this.emit('crossing_open', { d: o.d });
+      }
+    }
+  }
+
+  // a shut gate is a bump and a stop, whatever the speed: it never spins you
+  hitCrossings(c) {
+    const t = this.tune;
+    for (const o of this.crossings) {
+      const stop = o.d - CAR_LEN / 2 - 0.05;
+      if (o.state !== 'shut' || c.d <= stop || c.prevD > stop + 0.1) continue;
+      if (c.v > t.hardHit) c.grip = clamp(c.grip - t.wearGate, 0, 1);
+      c.d = stop;
+      c.v = 0;
+      if (this.t >= c.bumpAt) this.emit('bump', { id: c.id, why: 'gate' });
+      if (this.t >= c.bumpAt) c.bumpAt = this.t + t.bumpGap;
+    }
+  }
+
   passLamps(c) {
     for (const l of this.lamps) {
       if (l > c.lampD && c.d >= l) {
         c.lampD = l;
         if (c === this.jo) {
-          this.lampRivals = this.rivals.map((r) => ({ r, d: r.d, v: r.v, y: r.y, lane: r.lane, finished: r.finished, state: r.state }));
+          this.lampRivals = this.rivals.map((r) => ({ r, d: r.d, v: r.v, x: r.x, finished: r.finished, state: r.state }));
           this.emit('lamp', { d: l });
         }
       }
     }
+  }
+
+  // a scripted moment fires once, the first time Jo reaches it (going back to a lamp does not fire it again)
+  passCues() {
+    this.cues = this.cues.filter((q) => {
+      if (this.jo.d < q.at) return true;
+      this.emit('cue', { id: q.id, d: q.at, lap: q.lap });
+      return false;
+    });
   }
 
   // a hard thing: the car spins, and the lamp has it back in TUNE.backAt seconds
@@ -501,11 +671,11 @@ export class Race {
   toLamp(c, now = false) {
     const t = this.tune;
     c.d = c.prevD = c.lampD;
-    c.y = c.prevY = c.lane = c.fromLane = 1;
+    c.x = c.prevX = 0;
     c.v = 0;
     c.slip = c.slipPeak = 0;
     c.brakeHeld = 0;
-    Object.assign(c, { slingT: 0, slingCool: 0, armed: false, draft: 0, inDraft: false, steerT: 0 }); // (nothing carries over from before the lamp)
+    Object.assign(c, { slingT: 0, slingCool: 0, armed: false, draft: 0, inDraft: false, draftOf: null, strawOf: null, onVerge: false, bogT: 0 }); // (nothing carries over from before the lamp)
     c.resets += 1;
     c.state = now ? 'run' : 'reset';
     c.stateT = t.resetAt;
@@ -516,27 +686,28 @@ export class Race {
     // the road goes back with Jo: everybody where they were when he passed that
     // lamp. The clock does not, so a spin still costs its time (no lamp: no change)
     if (c === this.jo && this.lampRivals) {
-      for (const { r, d, v, y, lane, finished, state } of this.lampRivals) {
-        Object.assign(r, { d, prevD: d, v, y, prevY: y, lane, fromLane: lane, finished, state, slip: 0, slipPeak: 0, ghost: t.ghost });
+      for (const { r, d, v, x, finished, state } of this.lampRivals) {
+        if (r.out) continue; // (what the story has broken stays broken)
+        Object.assign(r, { d, prevD: d, v, x, prevX: x, finished, state, slip: 0, slipPeak: 0, ghost: t.ghost });
       }
     }
     this.emit('reset', { id: c.id, d: c.lampD, now });
   }
 
-  // cars touch only within a lane and a car's length (a glide counts)
+  // cars touch only within a car's width and a car's length
   contacts() {
     const t = this.tune;
     const c = this.jo;
     for (const r of this.rivals) {
       if (c.state !== 'run' || r.state !== 'run' || c.ghost > 0 || r.ghost > 0) continue;
-      if (Math.abs(c.d - r.d) >= CAR_LEN || Math.abs(c.y - r.y) >= 0.6) continue;
+      if (Math.abs(c.d - r.d) >= CAR_LEN || Math.abs(c.x - r.x) >= t.carWide) continue;
       if ((c.touchAgain.get(r.id) ?? -Infinity) > this.t) continue;
       c.touchAgain.set(r.id, this.t + t.contactGap);
       const [back, front] = c.d < r.d ? [c, r] : [r, c];
-      const sameLane = Math.abs(c.y - r.y) < 0.2;
+      const sameLine = Math.abs(c.x - r.x) < t.sameLine;
       const closing = back.v - front.v;
       c.rubs += 1;
-      if (sameLane && closing > t.hitClosing) {
+      if (sameLine && closing > t.hitClosing) {
         // a real hit slows both
         back.v *= 1 - t.hitLoss;
         front.v *= 1 - t.hitLoss;
@@ -546,8 +717,12 @@ export class Race {
         // a rub: a small push, a sound, both lose 10 percent
         c.v *= 1 - t.rubLoss;
         r.v *= 1 - t.rubLoss;
-        if (sameLane) back.d = front.d - CAR_LEN - 0.05;
-        else if (c.y !== c.lane) c.lane = c.fromLane; // the door is shut: back where you came from
+        if (sameLine) back.d = front.d - CAR_LEN - 0.05;
+        else {
+          const away = Math.sign(c.x - r.x);
+          c.x += away * t.rubPush;
+          r.x -= away * t.rubPush;
+        }
         this.emit('rub', { id: r.id });
       }
     }
@@ -560,7 +735,10 @@ export class Race {
     if (c.state === 'run') {
       for (const r of this.rivals) {
         const gap = r.d - c.d - CAR_LEN;
-        if (Math.abs(c.y - r.y) < 0.4 && gap >= t.draftNear * CAR_LEN && gap <= t.draftFar * CAR_LEN) inD = true;
+        if (Math.abs(c.x - r.x) < t.draftWide && gap >= t.draftNear * CAR_LEN && gap <= t.draftFar * CAR_LEN) {
+          inD = true;
+          c.draftOf = r;
+        }
       }
     }
     c.inDraft = inD;
@@ -570,6 +748,12 @@ export class Race {
       c.armed = true;
       this.emit('armed');
     } else if (c.armed && c.draft < t.draftKeep) c.armed = false;
+    // the sling fires itself: out of his line with the bar full, while he is still there to pass
+    const r = c.draftOf;
+    if (c.armed && !inD && r) {
+      const gap = r.d - c.d - CAR_LEN;
+      if (Math.abs(c.x - r.x) >= t.draftWide && gap >= -CAR_LEN && gap <= t.draftFar * CAR_LEN) this.trySling(c);
+    }
   }
 
   checkFinish() {
@@ -586,7 +770,7 @@ export class Race {
       const gaps = this.rivals.map((r) => (r.finished !== null ? r.finished - this.t : (L - r.d) / Math.max(r.v, 1)));
       const gap = gaps.length ? gaps.reduce((a, b) => (Math.abs(b) < Math.abs(a) ? b : a)) : null;
       const [slowBend, slowBy] = [...c.under].reduce((w, e) => (e[1] > w[1] ? e : w), [null, 0]);
-      this.result = { place, time: this.t, gap, flags: { rubs: c.rubs, spins: c.spins, slings: c.slings, lifts: c.lifts, offroads: c.offroads, resets: c.resets, launched: this.launched, slowest: slowBend && { name: slowBend.name, under: slowBy }, clean: !c.rubs && !c.spins && !c.offroads } };
+      this.result = { place, time: this.t, gap, passed: gatePassed(this.track.gate, { place, time: this.t }), flags: { rubs: c.rubs, spins: c.spins, slings: c.slings, lifts: c.lifts, offroads: c.offroads, resets: c.resets, launched: this.launched, slowest: slowBend && { name: slowBend.name, under: slowBy }, clean: !c.rubs && !c.spins && !c.offroads } };
       this.emit('finish', this.result);
     }
   }

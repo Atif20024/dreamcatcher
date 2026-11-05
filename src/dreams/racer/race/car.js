@@ -7,5 +7,5 @@ import { TUNE } from '../../../engines/race.js';
 export const SOFT_TYRES = Object.freeze({ gripMin: 0.85 });
 
 export function carTune(track, F = {}) {
-  return { ...TUNE, ...(track.tune || {}), ...(F.tyre_soft ? SOFT_TYRES : null), chalk: !!F.buy_chalk };
+  return { ...TUNE, ...(track.tune || {}), ...(F.tyre_soft ? SOFT_TYRES : null), chalk: !!F.buy_chalk, untuned: !F.tuned };
 }

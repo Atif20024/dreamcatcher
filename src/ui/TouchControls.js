@@ -355,7 +355,8 @@ export default class TouchControls {
         g.fillStyle(THEME.panel, lit ? PLATE_ON : PLATE_A).fillRect(b.x - b.w / 2, b.y - b.h / 2, b.w, b.h);
         g.lineStyle(2, lit ? THEME['brass-light'] : THEME['panel-edge'], lit ? 1 : 0.75).strokeRect(b.x - b.w / 2, b.y - b.h / 2, b.w, b.h);
         g.fillStyle(lit ? THEME['brass-light'] : THEME['panel-edge'], 0.5);
-        for (let ry = b.y - b.h / 2 + 10; ry < b.y + b.h / 2 - 6; ry += 14) if (Math.abs(ry - b.y) > 14) g.fillRect(b.x - b.w / 2 + 8, ry, b.w - 16, 3);
+        for (let ry = b.y - b.h / 2 + 10; ry < b.y + b.h / 2 - 6; ry += 14) if (Math.abs(ry - b.y) > (b.arrow ? 24 : 14)) g.fillRect(b.x - b.w / 2 + 8, ry, b.w - 16, 3);
+        if (b.arrow) arrow(g, b.x, b.y, 18, b.arrow, lit ? THEME['brass-light'] : THEME.ink);
         continue;
       }
       plate(b.x, b.y, b.r, on(b.id));

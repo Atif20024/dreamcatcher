@@ -7,7 +7,7 @@
 // The Coppa (race 6) has no hook: the dream stops before it, and stays `unfinished`.
 export const STAND_IN = 'test';
 export const HOOKS = [
-  { id: 'race1', story: 'Pinewood hill-climb', track: STAND_IN, needs: [] },
+  { id: 'race1', story: 'Pinewood hill-climb', track: 'pinewood', needs: [] },
   { id: 'race2', story: 'Harbour Night Cup', track: STAND_IN, needs: ['tyres_settled'] },
   { id: 'race3', story: 'Gull Bend return', track: STAND_IN, needs: ['gloves_left', 'jars_done'] },
   { id: 'race4', story: 'The Salt Road', track: STAND_IN, needs: ['signed'] },

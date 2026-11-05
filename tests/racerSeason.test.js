@@ -15,8 +15,8 @@ const T = TRACKS.test;
 
 describe('the season', () => {
   it('every hook is a stand-in on the test road, plainly', () => {
-    for (const h of HOOKS) expect(h.track).toBe(STAND_IN);
-    expect(atTheDoor({}).track).toBe(STAND_IN);
+    for (const h of HOOKS.slice(1)) expect(h.track).toBe(STAND_IN);
+    expect(atTheDoor({}).track).toBe('pinewood');
   });
   it('opens in order, and no hook skips what it needs', () => {
     expect(nextHook({}).id).toBe('race1');
@@ -193,8 +193,9 @@ describe('what nuts buy: tyres and chalk, never speed', () => {
       const c = r.jo;
       const b = r.nextBend(c.d);
       const gf = gripFactor(c.grip, tune);
-      const brake = !!b && (c.d >= b.from ? c.v > bendSafe(b, c.y, gf) * 0.98 : brakeDistance(c.v, bendSafe(b, c.lane, gf) * 0.98, gf) + 8 >= b.from - c.d);
-      r.step({ throttle: !brake, brake });
+      const aim = b && bendSafe(b, c.x, gf) * 0.98;
+      const brake = !!b && c.v > aim && (c.d >= b.from || brakeDistance(c.v, aim, gf) + 8 >= b.from - c.d);
+      r.step({ throttle: !brake, brake, steer: Math.max(-1, Math.min(1, -c.x / 0.05)) });
       n += 1;
     }
     return r.result ? r.result.time : Infinity;

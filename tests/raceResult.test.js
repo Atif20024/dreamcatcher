@@ -1,11 +1,12 @@
 // The race's hand-off, its pedals and its engine note.
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('phaser', () => ({ default: { Math: { RandomDataGenerator: class {} }, Display: { Color: {} }, GameObjects: { BitmapText: class {} } } }));
-import { applyResult, restarted, prizeOwed, softAid, flagOf, clock, costliest, SOFT_AID_AFTER } from '../src/dreams/racer/race/result.js';
+import { applyResult, restarted, prizeOwed, softAid, flagOf, clock, costliest, spoken, shownTime, SOFT_AID_AFTER } from '../src/dreams/racer/race/result.js';
 import { sanitizeFlags } from '../src/play/RunState.js';
-import { TRACKS, RACE_PAD } from '../src/dreams/racer/race/tracks.js';
+import { TRACKS } from '../src/dreams/racer/race/tracks.js';
+import { RACE_KEYS, RACE_PAD, stick, wheel, driveInput } from '../src/dreams/racer/race/controls.js';
+import { sheetPace } from '../src/dreams/racer/race/pace.js';
 import { InputMap } from '../src/input/InputMap.js';
-import { sightOf } from '../src/dreams/racer/race/RaceHud.js';
 import { layoutRace, controlsAt, keysAt } from '../src/input/touchLayout.js';
 import { engineNote, pickAudible, distanceGain, tuneToBeat, MAX_ENGINES } from '../src/audio/engineSynth.js';
 import { carFrames, CAR_SIZE, LIVERIES } from '../src/art/carKit.js';
@@ -33,12 +34,12 @@ describe('the result in the run', () => {
     expect(sanitizeFlags(fl)).toEqual(fl);
   });
   it('is paid once, and only the difference if a later run does better', () => {
-    let fl = applyResult({}, { ...T, passPlace: 2 }, { place: 2, time: 50 });
+    let fl = applyResult({}, { ...T, gate: { place: 2 } }, { place: 2, time: 50 });
     expect(prizeOwed(fl, 'test')).toBe(6);
     fl = { ...fl, [f('paid')]: 6 };
     expect(prizeOwed(fl, 'test')).toBe(0);
-    expect(prizeOwed(applyResult(fl, { ...T, passPlace: 2 }, { place: 2, time: 60 }), 'test')).toBe(0); // the same again pays nothing
-    expect(prizeOwed(applyResult(fl, { ...T, passPlace: 2 }, { place: 1, time: 40 }), 'test')).toBe(6);
+    expect(prizeOwed(applyResult(fl, { ...T, gate: { place: 2 } }, { place: 2, time: 60 }), 'test')).toBe(0); // the same again pays nothing
+    expect(prizeOwed(applyResult(fl, { ...T, gate: { place: 2 } }, { place: 1, time: 40 }), 'test')).toBe(6);
   });
   it('a worse run takes nothing away', () => {
     let fl = applyResult({}, T, { place: 1, time: 43 });
@@ -88,17 +89,27 @@ describe('what cost the most, on the card', () => {
   });
 });
 
-describe('the pedals (phone layout)', () => {
+describe('the pedals and the slab (phone layout)', () => {
   const L = layoutRace({ cssW: 844, cssH: 390 });
   const by = (id) => L.buttons.find((b) => b.id === id);
   it('presses the same keys as the keyboard', () => {
-    expect(keysAt(L, by('right').x, by('right').y)).toEqual(['ArrowRight']);
-    expect(keysAt(L, by('left').x, by('left').y)).toEqual(['ArrowLeft']);
     expect(keysAt(L, by('up').x, by('up').y)).toEqual(['ArrowUp']);
     expect(keysAt(L, by('down').x, by('down').y)).toEqual(['ArrowDown']);
-    expect(keysAt(L, by('jump').x, by('jump').y)).toEqual(['Space']);
+    expect(keysAt(L, by('left').x, by('left').y)).toEqual(['ArrowLeft']);
+    expect(keysAt(L, by('right').x, by('right').y)).toEqual(['ArrowRight']);
   });
-  it('has no d-pad and stays on screen, clear of itself', () => {
+  it('a thumb slides across the slab: a dead strip between the sides, and the plate edge does not let go', () => {
+    expect(keysAt(L, L.slab.mid, by('left').y)).toEqual([]);
+    expect(keysAt(L, L.slab.mid - L.slab.dead, by('left').y)).toEqual(['ArrowLeft']);
+    expect(keysAt(L, L.slab.mid + L.slab.dead, by('left').y)).toEqual(['ArrowRight']);
+    expect(keysAt(L, by('right').x, L.slab.top - 10)).toEqual(['ArrowRight']);
+    expect(keysAt(L, 2, 538)).toEqual(['ArrowLeft']);
+  });
+  it('steps aside under a menu, and pause stays', () => {
+    expect(keysAt(L, by('left').x, by('left').y, { play: false })).toEqual([]);
+    expect(keysAt(L, by('pause').x, by('pause').y, { play: false })).toEqual(['Escape']);
+  });
+  it('has no d-pad and stays on screen, clear of itself and of the speedometer', () => {
     expect(L.pad).toBeNull();
     for (const b of L.buttons) {
       const w = b.w ? b.w / 2 : b.r;
@@ -108,108 +119,84 @@ describe('the pedals (phone layout)', () => {
       expect(b.y - h).toBeGreaterThanOrEqual(0);
       expect(b.y + h).toBeLessThanOrEqual(540);
     }
-    expect(by('left').x + by('left').w / 2).toBeLessThanOrEqual(by('right').x - by('right').w / 2);
-  });
-  it('rolls from gas to brake without a dead gap', () => {
-    const y = by('left').y;
-    for (let x = by('left').x; x <= by('right').x; x += 4) expect(controlsAt(L, x, y).length).toBe(1);
-  });
-  it('only pause under a menu', () => {
-    expect(controlsAt(L, by('right').x, by('right').y, { play: false })).toEqual([]);
-    expect(controlsAt(L, by('pause').x, by('pause').y, { play: false })).toEqual(['pause']);
-  });
-  it('the left cluster leaves the car (its rear at x 156) alone at top speed', () => {
-    expect(L.clusters.left.w).toBeLessThan(250);
+    expect(L.slab.x1).toBeLessThan(346);
+    expect(by('down').x - by('down').w / 2).toBeGreaterThan(614);
   });
 });
 
-describe('the engine note', () => {
-  it('climbs with speed, opens on the throttle', () => {
-    expect(engineNote({ v: 30, throttle: true }).freq).toBeGreaterThan(engineNote({ v: 10, throttle: true }).freq);
-    expect(engineNote({ v: 20, throttle: true }).filter).toBeGreaterThan(engineNote({ v: 20, throttle: false }).filter);
-  });
-  it('swoops as a car passes', () => {
-    expect(engineNote({ v: 30, closing: 10 }).freq).toBeGreaterThan(engineNote({ v: 30, closing: -10 }).freq);
-  });
-  it('hears three cars at most: Jo and the two nearest', () => {
-    const cars = ['jo', 'a', 'b', 'c', 'd'].map((id, i) => ({ id, dx: i ? 100 - i * 10 : 0 }));
-    expect(pickAudible(cars).map((c) => c.id)).toEqual(['jo', 'd', 'c']);
-    expect(MAX_ENGINES).toBe(3);
-    expect(distanceGain(0)).toBe(1);
-    expect(distanceGain(80)).toBeLessThan(0.25);
-  });
-});
-
-describe('the draft by ear', () => {
-  const jo = engineNote({ v: 34, throttle: true, base: 52, detune: 6 });
-  const rival = engineNote({ v: 33, throttle: true, base: 65, detune: 9, closing: 1 });
-  it('in the slot the two notes are one, and nothing else in them beats', () => {
-    const t = tuneToBeat(jo, rival, { hz: 0, hear: 1 });
-    expect(t.rival.freq).toBeCloseTo(t.jo.freq, 6);
-    expect(t.rival.sub).toBeCloseTo(t.jo.freq / 2, 6);
-    expect(t.jo.detune).toBe(0);
-    expect(t.rival.detune).toBe(0);
-    expect(t.jo.flutter).toBe(0);
-    expect(t.rival.flutter).toBe(0);
-  });
-  it('out of it they stand hz apart, in the sub as well', () => {
-    const t = tuneToBeat(jo, rival, { hz: 4, hear: 1 });
-    expect(t.rival.freq - t.jo.freq).toBeCloseTo(4, 6);
-    expect(t.rival.sub - t.jo.freq / 2).toBeCloseTo(4, 6);
-  });
-  it('far off the rival keeps its own note, and a voice that was never pulled is unchanged', () => {
-    const t = tuneToBeat(jo, rival, { hz: 9, hear: 0 });
-    expect(t.rival.freq).toBeCloseTo(rival.freq, 6);
-    expect(t.jo.freq).toBe(jo.freq);
-    expect(t.jo.detune).toBe(jo.detune);
-  });
-});
-
-describe('the sight strip', () => {
-  it('reads time to contact: grows, then pulses under 1.5 s', () => {
-    const far = sightOf({ dist: 150, v: 0 }, 30, 0);
-    const near = sightOf({ dist: 50, v: 0 }, 36, 0.1);
-    expect(far.ttc).toBe(5);
-    expect(far.scale).toBe(1);
-    expect(near.ttc).toBeLessThan(1.5);
-    expect(near.scale).toBeGreaterThan(far.scale);
-    const samples = [0, 0.05, 0.1, 0.15, 0.2].map((t) => sightOf({ dist: 40, v: 0 }, 36, t).alpha);
-    expect(Math.max(...samples) - Math.min(...samples)).toBeGreaterThan(0.2);
-  });
-  it('a car pulling away is no contact at all', () => {
-    expect(sightOf({ dist: 40, v: 36 }, 30, 0).ttc).toBe(Infinity);
-  });
-});
-
-describe('a pad', () => {
+describe('the wheel and the pedals', () => {
   const pad = (axes = [0, 0], pressed = []) => ({ axes, buttons: Array.from({ length: 16 }, (_, i) => ({ pressed: pressed.includes(i), value: pressed.includes(i) ? 1 : 0 })) });
   const map = () => {
     const m = new InputMap();
+    for (const [a, c] of Object.entries(RACE_KEYS)) m.bind(a, 'keyboard', c);
     for (const [a, c] of Object.entries(RACE_PAD)) m.bind(a, 'gamepad', c);
     return m;
   };
-  const feed = (m, p) => m.update({ keys: new Set(), pad: p });
-  it('the triggers are the pedals, the d-pad too, and the d-pad changes lanes', () => {
+  it('a pad: triggers and face buttons are the pedals, the d-pad the wheel', () => {
     const m = map();
-    feed(m, pad([0, 0], [7]));
-    expect(m.isDown('right')).toBe(true);
-    feed(m, pad([0, 0], [6]));
-    expect(m.isDown('left')).toBe(true);
-    feed(m, pad([0, 0], [15]));
-    expect(m.isDown('right')).toBe(true);
-    feed(m, pad([0, 0], [12]));
-    expect(m.justDown('up')).toBe(true);
-    feed(m, pad([0, 0], [13]));
-    expect(m.justDown('down')).toBe(true);
+    for (const [btn, action] of [[7, 'up'], [0, 'up'], [6, 'down'], [1, 'down'], [14, 'left'], [15, 'right']]) {
+      m.update({ keys: new Set(), pad: pad([0, 0], [btn]) });
+      expect(m.isDown(action)).toBe(true);
+    }
   });
-  it('a thumb on the stick for the throttle cannot flick a lane by tilting', () => {
+  it('the stick is proportional past a dead zone of 0.18, and beats the keys', () => {
+    expect(stick(0.1)).toBe(0);
+    expect(stick(0.18)).toBe(0);
+    expect(stick(1)).toBeCloseTo(1);
+    expect(stick(-0.59)).toBeCloseTo(-0.5);
     const m = map();
-    feed(m, pad([1, 0]));
-    feed(m, pad([0.8, -0.6]));
-    expect(m.isDown('right')).toBe(true);
-    expect(m.isDown('up')).toBe(false);
-    feed(m, pad([0.8, 0.6]));
+    m.update({ keys: new Set(), pad: pad([0.59, 0]) });
+    expect(driveInput(m, pad([0.59, 0]), 0, 16).steer).toBeCloseTo(0.5);
+  });
+  it('a key takes the wheel over in under 100 ms and lets it go sooner', () => {
+    let w = 0;
+    for (let i = 0; i < 6; i++) w = wheel(w, 1, 16.67);
+    expect(w).toBe(1);
+    for (let i = 0; i < 4; i++) w = wheel(w, 0, 16.67);
+    expect(w).toBe(0);
+  });
+  it('Shift and W are gas too, and Ctrl is nothing (Ctrl+W shuts the tab)', () => {
+    const m = map();
+    for (const code of ['ArrowUp', 'KeyW', 'ShiftLeft']) {
+      m.update({ keys: new Set([code]), pad: null });
+      expect(m.isDown('up')).toBe(true);
+    }
+    m.update({ keys: new Set(['ControlLeft']), pad: null });
     expect(m.isDown('down')).toBe(false);
+  });
+});
+
+describe('the sheet', () => {
+  const pace = sheetPace(TRACKS.pinewood);
+  it('Aldo is on the line exactly at his time, and never goes backwards', () => {
+    expect(Math.abs(pace.dAt(34) - TRACKS.pinewood.length)).toBeLessThan(5); // (sampled every quarter second)
+    expect(pace.at(TRACKS.pinewood.length)).toBeCloseTo(34, 0);
+    let last = -1;
+    for (let t = 0; t <= 34; t += 0.5) {
+      expect(pace.dAt(t)).toBeGreaterThanOrEqual(last);
+      last = pace.dAt(t);
+    }
+    expect(pace.at(90)).toBeLessThan(pace.at(350));
+  });
+  it('a race with no time on a sheet has no pace', () => {
+    expect(sheetPace(TRACKS.test)).toBeNull();
+  });
+});
+
+describe('what a time gate pays and says', () => {
+  const T = TRACKS.pinewood;
+  it('over the time pays nothing; under it pays the prize', () => {
+    expect(prizeOwed(applyResult({}, T, { place: 1, time: 35 }), T.id)).toBe(0);
+    expect(prizeOwed(applyResult({}, T, { place: 1, time: 33.5 }), T.id)).toBe(T.prize[1]);
+    expect(prizeOwed(applyResult(applyResult({}, T, { place: 1, time: 35 }), T, { place: 1, time: 33.5 }), T.id)).toBe(T.prize[1]);
+  });
+  it('the timekeeper says it; a miss never reads as the time on the sheet', () => {
+    expect(spoken(33.8)).toBe('Thirty-three eight');
+    expect(spoken(35.1)).toBe('Thirty-five one');
+    expect(spoken(30.04)).toBe('Thirty nought');
+    expect(shownTime(34.04, T.gate, false)).toBeCloseTo(34.1);
+    expect(shownTime(33.9, T.gate, true)).toBe(33.9);
+    expect(shownTime(35, T.gate, false)).toBe(35);
   });
 });
 
