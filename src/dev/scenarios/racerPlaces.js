@@ -17,13 +17,15 @@
 //   racer-contrast      Jo at 3:1 or better in every room
 //   racer-touch-verbs   TUNE by a real touch on E
 //   racer-coins         the dream's budget of nuts is placed
+//   racer-quit-window   quit and Continue during the talk that follows a verb: the story's flag is already saved
 import { clearRun, getRun } from '../../utils/save.js';
 import { hud } from '../../ui/hud.js';
 import { dreamById } from '../../data/dreams.js';
 import { TRACKS } from '../../dreams/racer/race/tracks.js';
 import { paintSteps, freeTheme } from '../../dreams/racer/race/RaceRoad.js';
-import { HOOKS, doneOf, softPrice, PRICES } from '../../dreams/racer/season.js';
+import { HOOKS, doneOf, softPrice, PRICES, nextHook } from '../../dreams/racer/season.js';
 import { SOFT_TYRES } from '../../dreams/racer/race/car.js';
+import { LOOPS } from '../../audio/synthLoops.js';
 import { joContrast } from '../identityProbe.js';
 import { auditText } from '../readability.js';
 import { BUDGET } from '../../core/PerfBudget.js';
@@ -173,9 +175,18 @@ const tuneVerb = {
     rows.slot = { still: (await dc.run(1), s.tunePresenter.last.still), wave: s.tunePresenter.last.wave };
     // past it, let go: a miss, and the next hold turns it back
     await until(dc, () => engine().state().hz > 2, 200);
+    const say = s.caption.say;
+    let said = null;
+    s.caption.say = function (w, t, o) {
+      said = t;
+      return say.call(this, w, t, o);
+    };
     dc.release('KeyE');
     await dc.run(3);
+    s.caption.say = say;
     rows.miss = engine().state().misses;
+    rows.slotWider = engine().state().slot > 0.06;
+    rows.pastLine = said;
     dc.hold('KeyE');
     await until(dc, () => engine().state().hz === 0, 300);
     dc.release('KeyE');
@@ -183,6 +194,9 @@ const tuneVerb = {
     await dc.run(5);
     rows.tuned = !!s.F.tuned;
     rows.goalAfter = hud.s.objective;
+    // the room hears it: the idle's own beat is gone
+    const idle = s.graph.room('garage').data.ambience;
+    rows.idle = { beating: idle({}), tuned: idle(s.F), known: !!LOOPS[idle(s.F)] };
     // the flood, on the engine's own terms
     const t = s.def.encounters.tune.engine({});
     t.press();
@@ -195,7 +209,7 @@ const tuneVerb = {
     const r = dc.scene();
     await dc.run(2);
     rows.hot = { hot: r.hot, meter: !!r.heat, vMax: r.race.tune.vMax };
-    const ok = rows.far.hz > 1 && !rows.far.still && rows.far.wave > 0 && rows.slot.still && rows.slot.wave === 0 && rows.miss === 1 && rows.tuned && rows.flood >= 1 && rows.hot.hot && rows.hot.meter && rows.hot.vMax === 36;
+    const ok = rows.slotWider && /Past it/.test(rows.pastLine) && rows.idle.beating === 'pv_garage' && rows.idle.tuned === 'pv_garage_tuned' && rows.idle.known && rows.far.hz > 1 && !rows.far.still && rows.far.wave > 0 && rows.slot.still && rows.slot.wave === 0 && rows.miss === 1 && rows.tuned && rows.flood >= 1 && rows.hot.hot && rows.hot.meter && rows.hot.vMax === 36;
     return { pass: ok, detail: rows };
   },
 };
@@ -206,6 +220,13 @@ const shop = {
   async run(dc) {
     const s = await at(dc, 'garage', { tuned: true });
     const rows = {};
+    // Aldo's offer first: a rich man still cannot buy the set out from under it
+    s.levelCoins = 99;
+    await pressAt(dc, s, 'race:rack');
+    await until(dc, () => s.sceneBox.active, 30);
+    rows.beforeOffer = await talkThrough(dc, s, /Buy/);
+    rows.heldForAldo = !s.F.tyre_soft && s.levelCoins === 99 && rows.beforeOffer.some((t) => /Aldo's/.test(t));
+    s.F.tyres_settled = true;
     // short of the price: no buy offered
     s.levelCoins = 3;
     rows.promptRack = await pressAt(dc, s, 'race:rack');
@@ -233,7 +254,7 @@ const shop = {
     rows.tune = { gripMin: t.gripMin, chalk: t.chalk, vMax: t.vMax, accel: t.accel, brake: t.brake };
     rows.chalkMarks = r.side.filter((e) => e.img.type === 'Rectangle').length;
     rows.aid = r.aid;
-    const ok = rows.stillStock && rows.afterTyres.soft && rows.afterTyres.nuts === PRICES.chalk && rows.afterChalk.chalk && rows.afterChalk.nuts === 0 && t.gripMin === SOFT_TYRES.gripMin && t.chalk && t.vMax === 36 && t.accel === 8.5 && t.brake === 8 && rows.chalkMarks === TRACKS.test.bends.length * 3 && !rows.aid;
+    const ok = rows.heldForAldo && rows.stillStock && rows.afterTyres.soft && rows.afterTyres.nuts === PRICES.chalk && rows.afterChalk.chalk && rows.afterChalk.nuts === 0 && t.gripMin === SOFT_TYRES.gripMin && t.chalk && t.vMax === 36 && t.accel === 8.5 && t.brake === 8 && rows.chalkMarks === TRACKS.test.bends.length * 3 && !rows.aid;
     return { pass: ok, detail: rows };
   },
 };
@@ -310,12 +331,17 @@ const choice = {
       s.runConversation('ottavia_again', null);
       await dc.run(3);
       row.again = await talkThrough(dc, s, /Aldo/);
+      for (const id of ['tullio_after', 'nino_after']) {
+        s.runConversation(id, null);
+        await dc.run(3);
+        row[id] = await talkThrough(dc, s);
+      }
       out[name] = row;
     }
     const k = out.keep;
     const g = out.give;
     const line = (r, re) => r.some((t) => re.test(t));
-    const ok = k.soft && !g.soft && k.settled && g.settled && line(k.corridor, /bolted them on/) && !line(g.corridor, /bolted them on/) && line(g.corridor, /your tyres on/) && !line(k.corridor, /your tyres on/) && line(k.again, /grateful/) && k.silent;
+    const ok = k.soft && !g.soft && k.settled && g.settled && line(k.corridor, /bolted them on/) && !line(g.corridor, /bolted them on/) && line(g.corridor, /your tyres on/) && !line(k.corridor, /your tyres on/) && line(k.again, /grateful/) && k.silent && line(g.tullio_after, /twice/) && line(k.tullio_after, /His were old/) && line(g.nino_after, /Your tyres/) && line(k.nino_after, /His old tyres/);
     return { pass: ok, detail: out };
   },
 };
@@ -406,18 +432,31 @@ const corridor = {
     await dc.run(6);
     rows.climb.push(await hop(null, 10));
     rows.climbQuiet = s.F.ward_noise === n1;
-    // the chair: the conversation, then the gloves
+    // the chair says nothing yet; Ottavia has the talk; then the chair is the last, silent act
     put(9, 9);
+    await dc.run(10);
+    rows.chairFirst = !s.interaction.current;
+    put(14, 9);
     await dc.run(10);
     rows.prompt = s.interaction.current && s.interaction.current.prompt;
     dc.press('KeyE', 2);
     await until(dc, () => s.sceneBox.active, 30);
     rows.said = await talkThrough(dc, s, /Why/);
     await dc.run(5);
-    rows.left = !!s.F.gloves_left;
     rows.why = !!s.F.ott_why;
+    rows.leftTooSoon = !!s.F.gloves_left;
+    rows.chairGoal = hud.s.objective;
+    put(9, 9);
+    await dc.run(10);
+    rows.chairPrompt = s.interaction.current && s.interaction.current.prompt;
+    dc.press('KeyE', 2);
+    await dc.run(4);
+    rows.boxAtChair = s.sceneBox.active;
+    rows.left = !!s.F.gloves_left;
+    rows.savedLeft = !!getRun('racer').flags.gloves_left;
+    await dc.run(5);
     rows.goalAfter = hud.s.objective;
-    const ok = rows.walks && rows.noise === 1 && rows.backAt === 34 && rows.quietDrop && rows.climb.join() === '17,14,10' && rows.climbQuiet && /gloves/.test(rows.prompt) && rows.left && rows.why && rows.said.some((t) => /tide/.test(t));
+    const ok = rows.walks && rows.noise === 1 && rows.backAt === 34 && rows.quietDrop && rows.climb.join() === '17,14,10' && rows.climbQuiet && rows.chairFirst && /give her/.test(rows.prompt) && !rows.leftTooSoon && /chair/.test(rows.chairGoal) && /chair/.test(rows.chairPrompt) && !rows.boxAtChair && rows.left && rows.savedLeft && rows.why && rows.said.some((t) => /tide/.test(t)) && rows.said.some((t) => /told him/.test(t)) && !rows.said.some((t) => /tomorrow/.test(t));
     return { pass: ok, detail: rows };
   },
 };
@@ -435,12 +474,22 @@ const kitchen = {
     rows.goal2 = hud.s.objective;
     // short the rent: 2 rent, 6 tyres, 4 medicine
     for (const [jar, n] of [['rent', 2], ['tyres', 6], ['medicine', 4]]) for (let i = 0; i < n; i++) await pressAt(dc, s, `home:${jar}`);
+    // the twelfth coin commits nothing: a jar gives one back, and takes it again; then the tin closes
+    rows.waits = !s.F.jars_done && !s.sceneBox.active;
+    rows.closeShown = s.interaction.items.get('home:close').enabled();
+    await dc.run(2);
+    rows.closeGoal = hud.s.objective;
+    await pressAt(dc, s, 'home:medicine');
+    rows.tookBack = s.F.jar_medicine === 3 && !s.interaction.items.get('home:close').enabled();
+    await pressAt(dc, s, 'home:medicine');
+    rows.putBack = s.F.jar_medicine === 4;
+    await pressAt(dc, s, 'home:close');
     await until(dc, () => s.sceneBox.active, 60);
     rows.said = await talkThrough(dc, s);
     await dc.run(10);
     rows.flags = { short: s.F.rent_short, med: s.F.med_short, tyres: s.F.tyres_short, done: s.F.jars_done };
     rows.price = softPrice(s.F);
-    const ok = rows.card && rows.noJarYet && rows.tin && rows.flags.short && !rows.flags.med && !rows.flags.tyres && rows.flags.done && rows.said.includes('…') && !rows.said.some((t) => /rent is in the jar/.test(t)) && rows.price === PRICES.soft - 12;
+    const ok = rows.waits && rows.closeShown && /close/.test(rows.closeGoal) && rows.tookBack && rows.putBack && rows.card && rows.noJarYet && rows.tin && rows.flags.short && !rows.flags.med && !rows.flags.tyres && rows.flags.done && rows.said.includes('…') && !rows.said.some((t) => /rent is in the jar/.test(t)) && rows.price === PRICES.soft - 12;
     return { pass: ok, detail: rows };
   },
 };
@@ -623,6 +672,19 @@ const touchVerbs = {
     touch('touchend', 7, E.x, E.y);
     await until(dc, () => s.encounters.busy, 40);
     await dc.run(25);
+    // a way out by touch: the Q button steps away, nothing tuned
+    const Q = L.buttons.find((b) => b.id === 'alt');
+    touch('touchstart', 8, Q.x, Q.y);
+    await dc.run(2);
+    touch('touchend', 8, Q.x, Q.y);
+    await until(dc, () => !s.encounters.busy, 120);
+    rows.steppedAway = !s.encounters.busy && !s.F.tuned;
+    await dc.run(30);
+    touch('touchstart', 7, E.x, E.y);
+    await dc.run(3);
+    touch('touchend', 7, E.x, E.y);
+    await until(dc, () => s.encounters.busy, 40);
+    await dc.run(25);
     const engine = s.encounters.active.engine;
     // the same E button, held, then let up in the slot
     touch('touchstart', 7, E.x, E.y);
@@ -633,7 +695,7 @@ const touchVerbs = {
     await dc.run(4);
     rows.tuned = !!s.F.tuned;
     enableTouch(was);
-    return { pass: rows.turned && rows.tuned, detail: rows };
+    return { pass: rows.steppedAway && rows.turned && rows.tuned, detail: rows };
   },
 };
 
@@ -648,4 +710,65 @@ const coins = {
   },
 };
 
-export default [theme, coastProps, tuneVerb, shop, season, choice, cupMorning, corridor, kitchen, sponsor, chalk, pit, places, contrast, touchVerbs, coins];
+// the page goes away while the room is still talking: a Continue must not be a dead run
+const quitWindow = {
+  id: 'racer-quit-window',
+  expect: 'pass',
+  async run(dc) {
+    const rows = {};
+    const resume = async (s) => {
+      s.scene.restart({ dreamId: 'racer', resume: true });
+      await dc.run(10);
+      await until(dc, () => {
+        const n = dc.scene();
+        return n && n.sys.settings.key === 'Dream' && n.interaction && n.roomId;
+      });
+      await dc.run(10);
+      return dc.scene();
+    };
+    // the kitchen: the talk that follows the tin
+    let s = await at(dc, 'kitchen');
+    await pressAt(dc, s, 'home:tin');
+    for (const [jar, n] of [['rent', 6], ['tyres', 3], ['medicine', 3]]) for (let i = 0; i < n; i++) await pressAt(dc, s, `home:${jar}`);
+    await pressAt(dc, s, 'home:close');
+    rows.kitchenTalking = (await until(dc, () => s.sceneBox.active, 60)) >= 0;
+    s = await resume(s);
+    rows.kitchen = { jars: !!s.F.jars_done, hook: (nextHook({ ...s.F, done_race1: true }) || {}).id };
+    // Sable's: the talk that follows the last paper
+    s = await at(dc, 'sponsor', { met_sable: true });
+    for (const id of ['team', 'money', 'garage']) {
+      await pressAt(dc, s, `sable:${id}`);
+      await until(dc, () => s.modals && s.modals.active, 30);
+      for (let k = 0; k < 40 && !s.sceneBox.active; k++) {
+        dc.press('KeyE', 2);
+        await dc.run(10);
+      }
+      await talkThrough(dc, s, /Initial/);
+      await dc.run(6);
+    }
+    s = await resume(s);
+    rows.sable = { signed: !!s.F.signed, hook: (nextHook({ ...s.F, done_race1: true, done_race2: true }) || {}).id };
+    // the Gull road: the caption after the last mark
+    s = await at(dc, 'nightbefore');
+    for (const id of ['mark_brake', 'mark_turn', 'mark_apex']) await pressAt(dc, s, `gull:${id}`);
+    s = await resume(s);
+    rows.chalk = { apex: !!s.F.mark_apex, chalked: !!s.F.chalked };
+    // the corridor: quit between her talk and the chair, the chair still waits
+    s = await at(dc, 'hospital');
+    const land = (s.graph.room('hospital').ty + 10) * T - 22;
+    s.player.setPosition(s.interaction.items.get('ward:give').x, land);
+    s.player.body.reset(s.player.x, land);
+    await dc.run(6);
+    await pressAt(dc, s, 'ward:give');
+    await until(dc, () => s.sceneBox.active, 30);
+    await talkThrough(dc, s);
+    await dc.run(4);
+    s = await resume(s);
+    rows.ward = { told: !!s.F.ward_told, chair: s.interaction.items.get('ward:chair').enabled(), give: s.interaction.items.get('ward:give').enabled() };
+    const ok = rows.kitchenTalking && rows.kitchen.jars && rows.kitchen.hook === 'race3' && rows.sable.signed && rows.sable.hook === 'race4' && rows.chalk.apex && rows.chalk.chalked && rows.ward.told && rows.ward.chair && !rows.ward.give;
+    clearRun('racer');
+    return { pass: ok, detail: rows };
+  },
+};
+
+export default [theme, coastProps, tuneVerb, shop, season, choice, cupMorning, corridor, kitchen, sponsor, chalk, pit, places, contrast, touchVerbs, coins, quitWindow];

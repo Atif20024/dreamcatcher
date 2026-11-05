@@ -2,7 +2,8 @@
 import { describe, it, expect } from 'vitest';
 import { HOOKS, nextHook, atTheDoor, doneOf, STAND_IN, softPrice, PRICES, tinLeft, short, TIN, JARS, signPapers, PAPERS, SEASON_GOALS } from '../src/dreams/racer/season.js';
 import { applyResult, flagOf } from '../src/dreams/racer/race/result.js';
-import { tune, jetBeat, BEAT_MAX } from '../src/engines/tune.js';
+import { tune, jetBeat, BEAT_MAX, TUNE_SLOT, SLOT_PER_MISS, SLOT_MAX, DETENT_RATE } from '../src/engines/tune.js';
+import { RECIPES } from '../src/audio/eraLoops.js';
 import { carTune, SOFT_TYRES } from '../src/dreams/racer/race/car.js';
 import { TRACKS } from '../src/dreams/racer/race/tracks.js';
 import { Race, TUNE, gripFactor, bendSafe, brakeDistance } from '../src/engines/race.js';
@@ -101,6 +102,69 @@ describe('TUNE', () => {
     }
     expect(ms).toBeGreaterThan(1500);
     expect(ms).toBeLessThan(2600);
+  });
+  it('a poor hand cannot loop: each miss or flood widens the slot, up to its limit', () => {
+    const t = tune();
+    expect(t.state().slot).toBe(TUNE_SLOT);
+    const missAt = (test) => {
+      t.press();
+      while (!test(t.state().jet)) t.update(16);
+      t.release();
+    };
+    missAt((j) => j > -0.5);
+    expect(t.state().slot).toBeCloseTo(TUNE_SLOT + SLOT_PER_MISS);
+    missAt((j) => j > -0.4);
+    missAt((j) => j > -0.3);
+    expect(t.state().slot).toBe(SLOT_MAX);
+    const f = tune();
+    f.press();
+    while (!f.state().flooded) f.update(16);
+    expect(f.state().slot).toBeCloseTo(TUNE_SLOT + SLOT_PER_MISS);
+  });
+  it('the screw drags near the note, so the slot lasts over half a second, not a third', () => {
+    const t = tune();
+    t.press();
+    while (t.state().hz > 0) t.update(4);
+    let ms = 0;
+    while (t.state().hz === 0) {
+      t.update(4);
+      ms += 4;
+    }
+    expect(ms).toBeGreaterThan(600);
+    const free = tune({ start: 0.5 });
+    free.press();
+    free.update(100);
+    expect(free.state().jet - 0.5).toBeCloseTo(0.036);
+    const near = tune({ start: 0.1 });
+    near.press();
+    near.update(100);
+    expect(near.state().jet - 0.1).toBeCloseTo(0.036 * DETENT_RATE);
+  });
+  it('a miss knows which side it fell: early keeps turning, past turns back', () => {
+    const t = tune();
+    t.press();
+    while (t.state().jet < -0.4) t.update(16);
+    t.release();
+    expect(t.state().last).toBe('early');
+    t.press();
+    while (t.state().jet < 0.4) t.update(16);
+    t.release();
+    expect(t.state().last).toBe('past');
+    t.press();
+    while (t.state().jet > 0.3) t.update(16);
+    t.release();
+    expect(t.state().last).toBe('early'); // on its way back, still short of the note
+  });
+});
+
+describe('the garage idle', () => {
+  const hums = (k) => RECIPES[k].layers.filter(([n]) => n === 'hum').map(([, o]) => o.f);
+  it('beats against itself until she is tuned, then holds one note', () => {
+    const [a, b] = hums('pv_garage');
+    expect(b - a).toBe(2);
+    expect(hums('pv_garage_tuned')).toEqual([a]);
+    // whole cycles in the loop, or the seam would click
+    for (const f of [a, b]) expect(Number.isInteger(f * RECIPES.pv_garage.seconds)).toBe(true);
   });
 });
 

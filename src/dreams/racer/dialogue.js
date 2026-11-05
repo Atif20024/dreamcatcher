@@ -52,9 +52,15 @@ export const CONVERSATIONS = {
   }),
   aldo_settled: once('aldo_settled', 'aldo', 'Saturday. Follow me for the first lap. Then do as you like.'),
   nino_sweep: once('nino_sweep', 'nino', 'Signorina Ottavia says I sweep flat too. I did not know you could.'),
-  nino_after: once('nino_after', 'nino', 'They have put his car under the sheet. I swept round it.'),
+  nino_after: conv('nino_after', ['nino'], {
+    start: { if: 'gave_tyres', who: 'nino', text: 'They have put his car under the sheet. Your tyres are still on it. I swept round it.', end: true, else: 'kept' },
+    kept: { who: 'nino', text: 'They have put his car under the sheet. His old tyres are still on it. I swept round it.', end: true },
+  }, { replayable: true }),
   tullio_tyre: once('tullio_tyre', 'tullio', 'Out there the Roche boy covers his mirror better than he drives. The others just race you. Remember which is which.'),
-  tullio_after: once('tullio_after', 'tullio', 'Thirty years on these tyres. Thirty years. I checked them. Ask anyone.'),
+  tullio_after: conv('tullio_after', ['tullio'], {
+    start: { if: 'gave_tyres', who: 'tullio', text: 'Thirty years on tyres. Those were new, and I put them on him myself. I checked them twice. Ask anyone.', end: true, else: 'kept' },
+    kept: { who: 'tullio', text: 'Thirty years on these tyres. Thirty years. His were old, and I checked them. Ask anyone.', end: true },
+  }, { replayable: true }),
   // the morning after the Cup: Jo at the bench
   cup_morning: conv('cup_morning', ['nino', 'jo'], {
     start: { who: 'nino', text: 'They took him up the hill before it was light. His gloves were on the bench. Nobody has moved them.', next: 'b' },
@@ -72,13 +78,13 @@ export const CONVERSATIONS = {
     gave: { if: 'gave_tyres', who: 'ottavia', text: 'He had your tyres on. Good tyres. I keep wanting it to be the tyres.', next: 'late' },
     late: { who: 'jo', text: 'A car moved on him, late. I saw it.', next: 'all' },
     all: { who: 'ottavia', text: 'Everybody saw something.', next: 'flat' },
-    flat: { who: 'ottavia', text: "His engine was flat on Saturday. A hair. I heard it, and I thought: tomorrow. I'll tell him tomorrow.", next: 'pick' },
+    flat: { who: 'ottavia', text: 'I told him, the night before. A hair flat, I said, in the voice you use for the weather. It will keep, I said. And I let it.', next: 'pick' },
     pick: {
       who: 'jo',
       text: '…',
       choices: [
-        { text: "You couldn't have known.", next: 'couldnt', set: { ott_couldnt: true } },
-        { text: "Why didn't you say?", next: 'why', set: { ott_why: true } },
+        { text: "You couldn't have known it mattered.", next: 'couldnt', set: { ott_couldnt: true } },
+        { text: "Why didn't you say it louder?", next: 'why', set: { ott_why: true } },
         { text: 'Say nothing.', next: 'nothing', set: { ott_silent: true } },
       ],
     },
@@ -86,7 +92,7 @@ export const CONVERSATIONS = {
     why: { who: 'ottavia', text: 'He was tired. It was a hair. He has been kind to me.', next: 'chair' },
     nothing: { who: 'ottavia', text: 'Thank you.', next: 'chair' },
     chair: { who: 'ottavia', text: 'Put them on the chair. He will see them or he won\'t.', next: 'home' },
-    home: { who: 'ottavia', text: 'Go to my mother. The Cup money is on her dresser and she won\'t touch it.', set: { gloves_left: true }, end: true },
+    home: { who: 'ottavia', text: 'Go to my mother. The Cup money is on her dresser and she won\'t touch it.', set: { ward_told: true }, end: true },
   }),
   corridor_after: once('corridor_after', 'ottavia', 'Go on. I will sit a while.'),
   // the kitchen
@@ -115,7 +121,7 @@ export const CONVERSATIONS = {
   // the garage again: the corridor pays off, and whose car it is
   ottavia_again: conv('ottavia_again', ['ottavia', 'jo'], {
     start: { if: 'ott_couldnt', who: 'ottavia', text: "You told me I couldn't have known. It was kind. I have been angry with you for a month.", next: 'why' },
-    why: { if: 'ott_why', who: 'ottavia', text: 'You asked me why I did not say. I have a better answer now. I was afraid of being wrong in front of him.', next: 'nothing' },
+    why: { if: 'ott_why', who: 'ottavia', text: 'You asked me why I did not say it louder. I have a better answer now. I was afraid of being wrong in front of him.', next: 'nothing' },
     nothing: { if: 'ott_silent', who: 'ottavia', text: 'You said nothing, on the stairs. I have been grateful to you, in a bad temper.', next: 'orders' },
     orders: { if: 'sable_orders', who: 'ottavia', text: 'And Sable has your name on a paper that says hold station when you are told. I read it. I read everything now.', next: 'whose' },
     whose: { who: 'ottavia', text: 'He will not drive again. So tell me. Whose car is that, at the shutter?', next: 'pick' },
@@ -142,6 +148,8 @@ export const BARKS = [
 
 // the rack: what a soft set costs today (the kitchen's jar is off the price)
 export function rackConversation(F, nuts) {
+  // (nobody buys the one new set out from under Aldo's offer)
+  if (!F.tyres_settled) return once('rack', 'ottavia', "That set is Aldo's. Drive her first, then ask him.");
   const price = softPrice(F);
   const jar = F.jar_tyres ? ` The tyre jar has paid ${F.jar_tyres * 2} of that.` : '';
   if (F.tyre_soft) return once('rack', 'ottavia', F.kept_tyres ? 'The soft set is on her. Aldo paid. Look after them.' : 'The soft set is on her. They stay nearer new as they wear. They will not make her any faster. Nothing on that rack will.');

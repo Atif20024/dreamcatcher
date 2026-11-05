@@ -843,7 +843,9 @@ export default class DreamScene extends BaseLevel {
       this.backdrop.update(this.roomId, time, this.nearFrame());
       // the sound may cross where the picture may not: going in or out, the
       // room's loop ducks on the way down; the next one rises after the swap
-      const amb = this.graph.room(this.roomId).data.ambience || this.def.ambientLoop || null;
+      // (a room's loop may follow the run: a function of the flags)
+      const here = this.graph.room(this.roomId).data.ambience;
+      const amb = (typeof here === 'function' ? here(this.F) : here) || this.def.ambientLoop || null;
       const w = this.transitions.walking;
       const duck = w && w.dip === DIPS.inout && w.from === this.roomId;
       if (amb) ambience.set({ [amb]: duck ? 0 : 1 });

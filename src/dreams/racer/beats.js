@@ -20,16 +20,15 @@ export default {
     { say: { who: 'jo', text: 'On the chair, fingers together. They look like something left out for the morning.', ms: 3600 } },
     { sting: 'gate' },
   ],
-  jars_settled: [{ talk: 'jars_said' }, { set: 'jars_done' }, { sting: 'gate' }],
+  // (jars_done, signed and chalked are set by the verb, before its save)
+  jars_settled: [{ talk: 'jars_said' }, { sting: 'gate' }],
   sable_signed: [
     { sfx: 'buy' },
     { talk: 'sable_done' },
-    { set: 'signed' },
     { sting: 'gate' },
   ],
   chalk_done: [
     { say: { who: 'jo', text: 'Three marks. By day they will look like nothing. Back along the road.', ms: 3200 } },
-    { set: 'chalked' },
     { sting: 'gate' },
   ],
   // (F.pit_clean comes from the encounter: more than one miss and it is again)
