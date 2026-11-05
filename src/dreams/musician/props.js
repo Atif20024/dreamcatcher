@@ -104,7 +104,7 @@ const theatre_front = {
 
 const horn_shop = {
   // a music shop: a trumpet under a spot in the window (Jo's first note)
-  w: 340, h: 470, anchor: [0.5, 1],
+  lit: [[0, 0, 340, 356], [26, 360, 106, 88, 0]], w: 340, h: 470, anchor: [0.5, 1],
   paint(ctx, w, h, P) {
     building(ctx, w, h, { storeys: 2, ground: 'plain', bays: 3, wall: 0x7a5a48, roof: 'pitched', roofCol: 0x3a2a34, lit: 0.4 }, 5);
     // the shop window 2.4 × 2.2 m on a 0.5 m stall riser

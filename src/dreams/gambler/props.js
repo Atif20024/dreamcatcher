@@ -95,7 +95,7 @@ function tinyCard(ctx, x, y, back = false) {
 // arched cabin windows lit, the texas, the pilot house and two tall chimneys
 // with feathered crowns; the paddlebox with its fan of rays. 30 m of her.
 const lq_boat = {
-  w: Math.round(30 * K),
+  lit: Array.from({ length: 43 }, (_, i) => 18 + i * 30).flatMap((x) => [[x + 5, 479, 6, 2, 0], [x + 2, 481, 12, 3, 0], [x, 484, 16, 3, 0], [x, 487, 16, 40, 0]]), w: Math.round(30 * K),
   h: Math.round(17 * K),
   anchor: [0, 1],
   paint(ctx, w, h) {
@@ -1050,7 +1050,7 @@ const last_table = {
 // far side, and the lit saloon a long way down through the hole. The deck's top
 // is 44 px down, the hole x 42 to 138.
 const skylight_hatch = {
-  w: 180,
+  lit: [[42, 44, 96, 128, 0]], w: 180,
   h: 172,
   anchor: [0.5, 1],
   paint(ctx) {

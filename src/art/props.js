@@ -1,7 +1,8 @@
 // PropLibrary painters (plan 2.3.4, 4.5): props are painted canvases in
 // the game's painterly style (light from the top-left, weight at the foot,
 // grain). A prop definition:
-//   { id, w, h, anchor: [ax, ay] (0..1 of w/h), paint(ctx, w, h, P), light?: { x, y, r, color }, solid? }
+//   { id, w, h, anchor: [ax, ay] (0..1 of w/h), paint(ctx, w, h, P), light?: { x, y, r, color }, lit?: [[x, y, w, h, from?]], solid? }
+// `lit` is what shows over the night grade (Terrain.litRects, art/look.js).
 // Static props bake into the room's chunks; `live` props (lights, the clock
 // face an encounter animates) stay display objects. Dreams may add their own
 // props (dream.props) with the same shape; these are the shared ones.
