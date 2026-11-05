@@ -8,7 +8,8 @@
 //   this.scene.start('Race', { track: 'test' })
 //   → back: this.scene.start('Dream', { dreamId: 'racer', resume: true, quietResume: true })
 import Phaser from 'phaser';
-import { Race, raceLost } from '../engines/race.js';
+import { raceLost } from '../engines/race.js';
+import { raceFor } from '../dreams/racer/race/script.js';
 import { carTune } from '../dreams/racer/race/car.js';
 import { TRACKS } from '../dreams/racer/race/tracks.js';
 import { RoadView, freeRoad } from '../dreams/racer/race/RoadView.js';
@@ -105,7 +106,7 @@ export default class RaceScene extends Phaser.Scene {
     this.aid = softAid(flags, track.id);
     this.firstRace = flags[flagOf(track.id, 'best')] === undefined && !flags[flagOf(track.id, 'tries')];
     const tune = carTune(track, flags);
-    this.race = new Race(track, { rivals: track.rivals || (track.rival ? [track.rival] : []), tune });
+    this.race = raceFor(track, flags, { tune });
     this.hot = !flags.tuned; // she left the bench still beating: a warning to look at, not a retune
     this.ended = false;
     this.saidGo = false; // (scene.restart reuses this object)
