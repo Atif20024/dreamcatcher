@@ -1,18 +1,17 @@
-// The tracks (data only: the engine and the node tests read it). Stage 1 has
-// one test road, flat, on the Pinewood stretch of the Calvessa Coast. A bend's
-// `safe` is the speed it holds in m/s on new tyres; `side` is where it throws
-// you (1 towards the near verge, -1 towards the far one); `outside` is what
-// is there (straw is soft, a wall spins you back to the lamp).
+// The tracks (data, compiled once: the engine and the node tests read them). A
+// track is pieces in road order (src/engines/road.js): `{ straight: m }` or
+// `{ bend: 'L' | 'R', len, safe, outside, name, lineSpeed, lineLen, hill }`.
+// `safe` is the speed the road's middle holds in m/s on new tyres; `outside` is
+// what is there (straw is soft, a wall spins you back to the lamp). `things`
+// stand in the road by distance, x in road widths.
 //
-// A lane is a line (src/engines/race.js): in a bend `safe` is the middle lane's
-// speed, the outside holds `lineSpeed` more and is `lineLen` longer, the inside
+// In a bend the outside holds `lineSpeed` more and is `lineLen` longer, the inside
 // the reverse. What follows a bend decides which is best, so each is a choice:
 //   the sweeper   little to save on the inside, a long straight to carry speed down
-//   the kink      much to save, and the wall bend straight after it wastes any speed
-//   the wall bend much to save and a long straight after: the outside pays most, and it is by the wall
-// tests/race.test.js pins that no line wins them all, and lints every track: a
-// wall's outside pays, and skipping the brake at the straw costs the race's slack.
+//   the kink      much to save, and another bend straight after wastes any speed
+// tests/race.test.js pins that no line wins them all.
 import { COAST } from './themes.js';
+import { compile } from '../../../engines/road.js';
 
 // the pedals on a pad: the triggers and the d-pad's sides; lanes on the d-pad only,
 // so a thumb holding the stick for the throttle cannot flick a lane by tilting
@@ -24,30 +23,56 @@ export const RACE_PAD = {
 };
 
 export const TRACKS = {
-  test: {
+  // the flat road to tune on (dropped in stage F)
+  test: compile({
     id: 'test',
     title: 'PINEWOOD STRETCH',
     theme: COAST,
-    length: 1200,
     countdown: 3,
-    gridLane: 1,
-    passPlace: 1, // one placeholder rival: the real races pass on a top 3 (design §3)
+    gate: { place: 1 }, // one placeholder rival
     prize: { 1: 12, 2: 6 }, // brass nuts
-    target: 44.5, // Ottavia's time, on the card: the best the bots find, on the best lines
-    lamps: [250, 500, 700, 950], // never more than 250 m back, on a road this short
-    bends: [
-      { name: 'sweeper', from: 340, to: 430, safe: 24, side: 1, outside: 'straw', lineLen: 0.05, lineSpeed: 2 },
-      { name: 'kink', from: 720, to: 790, safe: 21, side: 1, outside: 'straw', lineLen: 0.16, lineSpeed: 1.5 },
-      { name: 'wall bend', from: 850, to: 935, safe: 19, side: -1, outside: 'wall', lineLen: 0.2, lineSpeed: 3 },
+    target: 44.5, // Ottavia's time, on the card
+    pieces: [
+      { straight: 340 },
+      { bend: 'L', len: 90, safe: 24, outside: 'straw', name: 'sweeper', lineLen: 0.05, lineSpeed: 2 },
+      { straight: 290 },
+      { bend: 'L', len: 70, safe: 21, outside: 'straw', name: 'kink', lineLen: 0.16, lineSpeed: 1.5 },
+      { straight: 60 },
+      { bend: 'R', len: 85, safe: 19, outside: 'wall', name: 'wall bend', lineLen: 0.2, lineSpeed: 3 },
+      { straight: 265 },
     ],
-    obstacles: [
-      { d: 540, lane: 2, kind: 'cart' },
-      { d: 610, lane: 0, kind: 'bale' },
-      { d: 660, lane: 1, kind: 'bale' },
-      { d: 1040, lane: 2, kind: 'cart' },
+    lamps: [330, 500, 710, 840, 950], // one at every bend's way in, so a spin costs seconds
+    things: [
+      { d: 540, x: 0.6, kind: 'cart' },
+      { d: 610, x: -0.6, kind: 'bale' },
+      { d: 660, x: 0, kind: 'bale' },
+      { d: 1040, x: 0.6, kind: 'cart' },
     ],
-    // (on the screen on the grid, a lane over: a launch held straight passes him at 5.4 s;
-    // pull in behind him and the draft is full by 1.2 s, with 3.6 s to his bumper)
-    rival: { id: 'roche', livery: 'roche', d: 13, lane: 2, pull: 1, top: 0.96 },
-  },
+    rival: { id: 'roche', livery: 'roche', d: 13, x: 0.5, pull: 1, top: 0.96, style: 'clean' },
+  }),
+
+  // Race 1: steer, gas, brake, the boards, the push in a bend. The climb hides the
+  // tight right behind its crest, and the boards start on the climb: trust them.
+  pinewood: compile({
+    id: 'pinewood',
+    title: 'PINEWOOD HILL-CLIMB',
+    theme: COAST,
+    countdown: 3,
+    gate: { time: 34 }, // earn the seat: under Aldo's time on the sheet
+    prize: { 1: 12 },
+    pieces: [
+      { straight: 100 },
+      { bend: 'R', len: 80, safe: 25, outside: 'straw', name: 'first sweeper', lineLen: 0.03, lineSpeed: 2 },
+      { straight: 180 },
+      { bend: 'L', len: 70, safe: 23, outside: 'straw', name: 'second sweeper', lineLen: 0.14, lineSpeed: 1.5 },
+      { straight: 10 },
+      { straight: 80, hill: 6 }, // the climb: its top is at 520 m
+      { straight: 30, hill: -2 }, // over the top, and the road drops out of sight
+      { bend: 'R', len: 70, safe: 19, outside: 'straw', name: 'blind right', lineLen: 0.08, lineSpeed: 2 },
+      { straight: 180 },
+    ],
+    lamps: [90, 350, 540],
+    things: [{ d: 300, x: 0, kind: 'cart' }],
+    cues: [{ d: 440, id: 'crest' }],
+  }),
 };

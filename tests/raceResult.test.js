@@ -33,12 +33,12 @@ describe('the result in the run', () => {
     expect(sanitizeFlags(fl)).toEqual(fl);
   });
   it('is paid once, and only the difference if a later run does better', () => {
-    let fl = applyResult({}, { ...T, passPlace: 2 }, { place: 2, time: 50 });
+    let fl = applyResult({}, { ...T, gate: { place: 2 } }, { place: 2, time: 50 });
     expect(prizeOwed(fl, 'test')).toBe(6);
     fl = { ...fl, [f('paid')]: 6 };
     expect(prizeOwed(fl, 'test')).toBe(0);
-    expect(prizeOwed(applyResult(fl, { ...T, passPlace: 2 }, { place: 2, time: 60 }), 'test')).toBe(0); // the same again pays nothing
-    expect(prizeOwed(applyResult(fl, { ...T, passPlace: 2 }, { place: 1, time: 40 }), 'test')).toBe(6);
+    expect(prizeOwed(applyResult(fl, { ...T, gate: { place: 2 } }, { place: 2, time: 60 }), 'test')).toBe(0); // the same again pays nothing
+    expect(prizeOwed(applyResult(fl, { ...T, gate: { place: 2 } }, { place: 1, time: 40 }), 'test')).toBe(6);
   });
   it('a worse run takes nothing away', () => {
     let fl = applyResult({}, T, { place: 1, time: 43 });
