@@ -18,7 +18,8 @@
 // that a lamp pool or the quay lights; elsewhere at night the draw distance halves), and
 // non-solid `things`: crowd, bunting, figure { who }, chair { gloves }, pitboard, gull_lamp,
 // pitbox { len }, crossing { bell }. `rivals` is the grid (`livery` is carArt's name).
-// `script` is the data race/script.js reads.
+// `script` is the data race/script.js reads. `target` is Ottavia's time on the card, the expert's number; `ease` is what
+// each failed try takes off the rivals' pace on this track (raceFor; TUNE.easePace otherwise).
 import { COAST } from './themes.js';
 import { compile } from '../../../engines/road.js';
 
@@ -27,15 +28,15 @@ import { compile } from '../../../engines/road.js';
 const ALDO = { id: 'aldo', livery: 'dante', style: 'station' };
 const TEO = { id: 'teo', livery: 'brasca', style: 'dive', top: 1.02, wear: 3, k: 1.05, margin: 2 };
 const DANTE = { id: 'dante', livery: 'dante', style: 'clean', top: 0.97, k: 0.97 };
-const CASSIAN = { id: 'cassian', livery: 'roche', style: 'block', top: 1, k: 0.99, margin: 4 };
+const CASSIAN = { id: 'cassian', livery: 'roche', style: 'block', top: 1.015, k: 1, margin: 2 };
 
 const COPPA_LAP = [
   { straight: 150 }, // the pit straight
   { bend: 'R', len: 60, safe: 18, outside: 'straw', name: 'harbour hairpin', lineLen: 0.12, lineSpeed: 2 },
   { straight: 290 }, // the Salt straight
-  { bend: 'L', len: 50, safe: 23, outside: 'straw', name: 'terraces', lineLen: 0.14, lineSpeed: 1.5, hill: -4 },
+  { bend: 'L', len: 50, safe: 23, outside: 'straw', name: 'terraces', lineLen: 0.24, lineSpeed: 1.5, hill: -4 },
   { straight: 20, hill: -4 },
-  { bend: 'R', len: 50, safe: 23, outside: 'straw', name: 'terraces out', lineLen: 0.14, lineSpeed: 1.5 },
+  { bend: 'R', len: 50, safe: 23, outside: 'straw', name: 'terraces out', lineLen: 0.24, lineSpeed: 1.5 },
   { straight: 140, hill: 8 },
   { bend: 'R', len: 130, safe: 23, outside: 'wall', name: 'Gull Bend', lineLen: 0.05, lineSpeed: 2 },
   { straight: 110 },
@@ -79,21 +80,26 @@ export const TRACKS = {
     title: 'PINEWOOD HILL-CLIMB',
     theme: COAST,
     countdown: 3,
-    gate: { time: 34 }, // earn the seat: under Aldo's time on the sheet
+    gate: { time: 37.5 }, // earn the seat: under Aldo's time on the sheet
+    target: 31.2, // Ottavia's time, on the card: the fastest run needs the right line for each bend, on the limit
     prize: { 1: 12 },
     pieces: [
       { straight: 100 },
       { bend: 'R', len: 80, safe: 25, outside: 'straw', name: 'first sweeper', lineLen: 0.03, lineSpeed: 2 },
       { straight: 180 },
-      { bend: 'L', len: 70, safe: 23, outside: 'straw', name: 'second sweeper', lineLen: 0.14, lineSpeed: 1.5 },
+      { bend: 'L', len: 70, safe: 23, outside: 'straw', name: 'second sweeper', lineLen: 0.22, lineSpeed: 1.5 },
       { straight: 10 },
       { straight: 80, hill: 6 }, // the climb: its top is at 520 m
       { straight: 30, hill: -2 }, // over the top, and the road drops out of sight
-      { bend: 'R', len: 70, safe: 19, outside: 'straw', name: 'blind right', lineLen: 0.08, lineSpeed: 2 },
+      { bend: 'R', len: 70, safe: 19, outside: 'straw', name: 'blind right', lineLen: 0.3, lineSpeed: 2 },
       { straight: 180 },
     ],
-    lamps: [90, 270, 350, 540],
-    things: [{ d: 300, x: 0, kind: 'cart' }],
+    lamps: [90, 270, 350, 540, 680],
+    things: [
+      { d: 300, x: 0, kind: 'cart' },
+      { d: 700, x: -0.7, kind: 'bale' }, // the run to the line: a door half a road wide to thread, at the top of third
+      { d: 700, x: 0.6, kind: 'cart' },
+    ],
     cues: [{ d: 440, id: 'crest' }],
   }),
 
@@ -147,19 +153,21 @@ export const TRACKS = {
     theme: COAST,
     countdown: 3,
     gate: { place: 3 },
+    target: 53, // (Ottavia's time: past Cassian, by the gap he gives)
+    ease: 0.13,
     prize: { 1: 18, 2: 12, 3: 8 },
     joLivery: 'heron',
     light: { from: 'noon', to: 'noon' },
     oil: true,
     pieces: [
       { straight: 380 },
-      { bend: 'L', len: 40, safe: 21, outside: 'straw', name: 'chicane', lineLen: 0.14, lineSpeed: 1.5 },
+      { bend: 'L', len: 40, safe: 21, outside: 'straw', name: 'chicane', lineLen: 0.3, lineSpeed: 1.5 },
       { straight: 10 },
-      { bend: 'R', len: 40, safe: 21, outside: 'straw', name: 'chicane out', lineLen: 0.14, lineSpeed: 1.5 },
+      { bend: 'R', len: 40, safe: 21, outside: 'straw', name: 'chicane out', lineLen: 0.3, lineSpeed: 1.5 },
       { straight: 430 },
       { bend: 'L', len: 80, safe: 26, outside: 'straw', name: 'salt pans', lineLen: 0.04, lineSpeed: 2 },
       { straight: 280 },
-      { bend: 'R', len: 70, safe: 18, outside: 'straw', name: 'the drop', lineLen: 0.12, lineSpeed: 2 },
+      { bend: 'R', len: 70, safe: 18, outside: 'straw', name: 'the drop', lineLen: 0.25, lineSpeed: 2 },
       { straight: 170 },
     ],
     lamps: [200, 370, 425, 620, 830, 890, 1100, 1250],
@@ -170,10 +178,12 @@ export const TRACKS = {
       { d: 52, kind: 'chair' },
       { d: 56, kind: 'pitboard' },
       { d: 640, x: -0.35, kind: 'cart' },
-      { d: 840, kind: 'crossing', bell: 110 },
-      { d: 820, kind: 'crowd', side: 1 },
-      { d: 860, kind: 'crowd', side: -1 },
-      { d: 860, kind: 'bunting' },
+      { d: 720, kind: 'crossing', bell: 180 }, // the bell goes just out of the chicane: what you carried out of it is whether you make it
+      { d: 700, kind: 'crowd', side: 1 },
+      { d: 740, kind: 'crowd', side: -1 },
+      { d: 740, kind: 'bunting' },
+      { d: 1120, x: -0.1, kind: 'cart' },
+      { d: 1420, x: -0.4, kind: 'bale' },
       { d: 1450, kind: 'crowd', side: 1 },
       { d: 1480, kind: 'bunting' },
     ],
@@ -184,7 +194,7 @@ export const TRACKS = {
     rivals: [
       { ...CASSIAN, d: 24, x: 0.45 },
       { ...DANTE, d: 12, x: -0.45 },
-      { ...TEO, d: -12, x: 0.3 },
+      { ...TEO, d: -12, x: 0.3, wear: 4 },
     ],
     script: { boards: [56] },
   }),
@@ -198,6 +208,8 @@ export const TRACKS = {
     theme: COAST,
     countdown: 3,
     gate: { place: 1 },
+    ease: 0.12,
+    target: 84,
     joLivery: 'heron',
     light: { from: 'night', to: 'dawn' },
     lit: [[0, 150], [890, 1150], [1890, 2000]],
@@ -231,8 +243,8 @@ export const TRACKS = {
     ],
     rivals: [
       { ...CASSIAN, d: 14, x: 0.45, doomed: true, newTyres: true }, // (rich: he buys a set on the day; nobody else does)
-      { ...DANTE, d: -10, x: -0.45, top: 0.91, k: 0.9 }, // (the plan's 0.97 leaves 3 s at the wheel, not the 7.5 the stop needs)
-      { ...TEO, d: -20, x: 0.45, wear: 2 },
+      { ...DANTE, d: -10, x: -0.45, top: 0.96, k: 0.93 }, // (off the plan's 0.97: a tidy car has about 4 s on him, in either branch)
+      { ...TEO, d: -20, x: 0.45, top: 0.97, k: 0.96, wear: 3 },
     ],
     script: {
       box: { d: 950, len: 12, zone: 40 },

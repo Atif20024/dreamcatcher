@@ -13,7 +13,7 @@
 import { brakeDistance, CAR_LEN, gripFactor, STEP } from './race.js';
 
 const LOOK = 1.6; // s of road ahead a driver reads for something standing in it
-const SPEED_K = 0.97; // of the limit: a rival leaves itself this much
+export const SPEED_K = 0.97; // of the limit: a rival leaves itself this much
 const MARGIN = 6; // m of braking road spare
 const STEER_SOFT = 0.05; // road widths: the wheel eases off this close to where it is going
 const CAR_TAIL = 2; // m: it is not past a thing until its tail is
@@ -209,6 +209,14 @@ export const stopAt = (d, secs = Infinity, x = null) => (race, c) => {
   }
   c.stopX = x ?? c.stopX ?? c.x;
   return { throttle: !brake, brake, steer: steerTo(c, traffic(race, c) ?? c.stopX) };
+};
+
+// Past the marshals: at no more than v up to d, then back to the style
+export const slowTo = (d, v) => (race, c) => {
+  if (c.d >= d) c.order = null;
+  const o = STYLES[c.style](race, c);
+  const brake = o.brake || c.v > v;
+  return { ...o, brake, throttle: !brake };
 };
 
 // Slews to x and stops: a car the story has finished with

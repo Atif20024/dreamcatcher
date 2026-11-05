@@ -3,15 +3,17 @@
 // and runs each step before anybody drives; it can hand Jo's input back changed, and
 // give a rival an `order`. The scene does not run it: it reads events and fields.
 //
-//   raceFor(track, flags, { tune, seed }): the race for a track, its grid and its script
+//   raceFor(track, flags, { tune, seed, tries }): the race for a track, its grid and its script. tries: failed tries so far (the help below); r.track is then the track to read the gate from
 //   r.script: { state, flags, lamp, board }
 //     flags  what the run has earned, for the save: held_aldo, broke_orders, helped_cassian, passed_cassian, done_race2 …
+//     air    race 2: true while Jo is holding Aldo's air, false once he has been out of it for airWarn, null before either
 //     lamp   the Gull lamp: 'lit' | 'dark' (null on a road without one)
 //     board  the pit board's word right now, or null: 'HOLD', 'SHORT', 'LONG', 'GO', 'TYRES'
 //
 // Events:
 //   gull_lamp { state }            the lamp changes
 //   aldo_wide, aldo_dark           his tail lamps drift for 1.5 s, then go out and his engine stops
+//   air { held }                   race 2: Jo is in Aldo's air with the bar full, or has been out of it for airWarn. r.script.air says the same now (null until the first)
 //   teo_through                    Teo goes by Jo at the hairpin's exit
 //   race_over { flags }            race 2's end, in place of `finish`: 2 s on the dark are already held, go to the garage
 //   board { text, gap }            Jo passing the slate on the pit wall
@@ -19,8 +21,8 @@
 //   pit { how: 'box'|'short'|'long', secs }, pit_go, pit_through    the stop, the crew's word, or no stop
 //   wheel { id, d, gap }           Cassian's wheel goes (gap: how far he was ahead of Jo)
 //   choice { how: 'stop' | 'pass' }, stop_go    Jo stops for him (6 s on the clock), or does not
-import { Race, CAR_LEN, STEP, TUNE, brakeDistance, gripFactor } from '../../../engines/race.js';
-import { stopAt, slew, holdOn } from '../../../engines/rivals.js';
+import { Race, CAR_LEN, STEP, brakeDistance, gripFactor } from '../../../engines/race.js';
+import { stopAt, slew, holdOn, slowTo, SPEED_K } from '../../../engines/rivals.js';
 import { carTune } from './car.js';
 
 const STOP_V = 0.5; // m/s: a car this slow has stopped
@@ -33,7 +35,7 @@ const stood = (jo) => {
 
 // RACE 2. Follow him. At the Gull Bend he goes wide, and there is no finish.
 function harbour() {
-  const s = { state: 'race', flags: {}, lamp: 'lit', board: null, t: 0 };
+  const s = { state: 'race', flags: {}, lamp: 'lit', board: null, t: 0, air: null, airT: 0, outT: 0, heldAt: -Infinity };
   s.start = (race) => {
     const teo = race.rivals.find((c) => c.id === 'teo');
     if (teo) teo.order = (r, c) => holdOn(r, c, -4.5, -3.5, r.jo.x + Math.sin(r.t * r.tune.weaveRate) * r.tune.weave);
@@ -66,6 +68,16 @@ function harbour() {
     }
 
     if (s.state === 'race') {
+      // in his air with the bar full, at a racing pace, long enough: that is holding it, and the HUD and the radio can say so
+      const inAir = jo.inDraft && jo.draftOf === aldo && jo.draft >= 1 && jo.v >= t.heldV;
+      s.airT = inAir ? s.airT + STEP : 0;
+      s.outT = inAir ? 0 : s.outT + STEP;
+      if (s.airT >= t.airHold) s.heldAt = race.t;
+      const held = s.airT >= t.airHold ? true : s.outT >= t.airWarn ? false : s.air;
+      if (held !== s.air) {
+        s.air = held;
+        race.emit('air', { held });
+      }
       // (a car that never comes: he drives on, and it happens up the road all the same)
       if (race.t >= patience && aldo.style === 'station') {
         aldo.style = 'clean';
@@ -77,7 +89,7 @@ function harbour() {
         s.state = 'wide';
         s.t = 0;
         // (the air, at a racing pace: the mentor nursing a car at a crawl is no air to have been in)
-        s.flags.held_aldo = (jo.inDraft || jo.armed) && jo.draftOf === aldo && jo.v >= t.heldV;
+        s.flags.held_aldo = race.t - s.heldAt <= t.airWindow && jo.v >= t.heldV;
         const b = race.track.bends.find((q) => q.name === gull);
         aldo.style = 'clean';
         aldo.order = slew(b.side * 1.1);
@@ -169,7 +181,7 @@ function coppa(F) {
       } else if (nose > box.d + box.len + box.zone) {
         s.pit = 'through';
         jo.grip = Math.min(jo.grip, t.pitThrough);
-        race.tune = { ...t, gripMin: TUNE.gripMin }; // (what is left of a soft set is not soft)
+        race.tune = { ...t, gripMin: t.pitThroughMin }; // (what is left of a soft set is not soft)
         s.board = 'TYRES';
         race.emit('pit_through');
       }
@@ -204,6 +216,7 @@ function coppa(F) {
         s.holdT = t.stopHelp;
         s.flags.helped_cassian = true;
         race.emit('choice', { how: 'stop' });
+        s.yellow = race.rivals.filter((c) => !c.out && c.d < cassian.d);
       } else if (jo.d > cassian.d + s.passBy) {
         s.wheel = 'passed';
         s.flags.passed_cassian = true;
@@ -217,6 +230,12 @@ function coppa(F) {
         race.emit('stop_go');
       } else out = stood(jo);
     }
+    // the marshals are out for a car on the road: whoever has yet to come by does it slowly, so the kind choice costs the clock and not the race
+    s.yellow = s.yellow?.filter((c) => {
+      if (c.d < cassian.d - t.yellowLook) return true;
+      if (c.state === 'run') c.order = slowTo(cassian.d + t.yellowPast, t.yellowV);
+      return false;
+    });
     return out;
   };
   return s;
@@ -224,7 +243,13 @@ function coppa(F) {
 
 const SCRIPTS = { harbour, salt, coppa };
 
-export function raceFor(track, F = {}, { tune = carTune(track, F), seed = 1 } = {}) {
+// The help a failed try buys, never announced: the rivals a little off their pace, or a little more time on the sheet.
+// Same track object at tries 0; r.track carries the eased gate, so whoever reads the number agrees with the check.
+export function raceFor(track, F = {}, { tune = carTune(track, F), seed = 1, tries = 0 } = {}) {
   const script = SCRIPTS[track.id]?.(F) ?? null;
-  return new Race(track, { rivals: track.rivals ?? (track.rival ? [track.rival] : []), tune, seed, script });
+  const n = Math.min(tries, tune.easeMax);
+  const road = n && track.gate?.time !== undefined ? { ...track, gate: { ...track.gate, time: track.gate.time + n * tune.easeTime } } : track;
+  const ease = n && track.gate?.place !== undefined ? Math.max(tune.easeFloor, 1 - n * (track.ease ?? tune.easePace)) : 1;
+  const rivals = (track.rivals ?? (track.rival ? [track.rival] : [])).map((r) => (ease === 1 || r.doomed ? r : { ...r, top: (r.top ?? 1) * ease, k: (r.k ?? SPEED_K) * ease }));
+  return new Race(road, { rivals, tune, seed, script });
 }
