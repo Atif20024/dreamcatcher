@@ -21,6 +21,7 @@ g.put(34, 6, '====');
 
 export const STAIR_FOOT = 34; // where a noisy man is sent back to
 export const CHAIR_COL = 9;
+export const OTTAVIA_COL = 14;
 
 export default {
   id: 'hospital',
@@ -45,7 +46,7 @@ export default {
     { prop: 'iron_tread', x: 31, y: 10, dy: 0, layer: 'back' },
     { prop: 'ward_door', x: 5, y: 10, layer: 'back' },
     { prop: 'wooden_chair', x: CHAIR_COL, y: 10, layer: 'back' },
-    { prop: 'bench', x: 14, y: 10, layer: 'back' },
+    { prop: 'bench', x: OTTAVIA_COL, y: 10, layer: 'back' },
     { prop: 'gloves_on_chair', x: CHAIR_COL, y: 8, dy: 24, when: 'gloves_left', live: true },
   ],
   lights: [{ x: 8, y: 5, r: 200, color: 0xf2d080 }],
@@ -56,7 +57,7 @@ export default {
   acoustics: 'room',
   events: null,
   music: { state: 'silent', key: 'corridor' },
-  objective: [{ text: 'gloves_goal' }, { text: 'to_kitchen', flag: 'gloves_left' }],
+  objective: [{ text: 'gloves_goal' }, { text: 'gloves_chair', flag: 'ward_told' }, { text: 'to_kitchen', flag: 'gloves_left' }],
   titleCard: 'THE CORRIDOR',
   goal: 'bring Aldo his gloves',
   walks: true, // Jo walks in here, of his own accord
@@ -66,7 +67,8 @@ export default {
     { type: 'checkpoint', id: 'cp_hospital', label: 'THE CORRIDOR', x: 6, y: 19 },
     { type: 'sign', text: 'VISITING 4 TILL 6', x: 12, y: 15, board: 0x2a3a38, ink: 0xdcecf4, rim: 0x8a9aa8, scale: 1, size: 'body' },
     { type: 'npc', id: 'agnese', cast: 'npc-pv-agnese', x: 15, y: 19, facing: 1, pace: [8, 26], talk: [{ conv: 'agnese_up', if: 'gloves_left' }, { conv: 'agnese' }] },
-    { type: 'npc', id: 'ottavia_ward', cast: 'npc-pv-ottavia', x: 14, y: 9, pose: 'sit', facing: -1, talk: [{ conv: 'corridor_after', if: 'gloves_left' }] },
+    // (before the talk, her [E] is in verbs/places.js: give her the gloves)
+    { type: 'npc', id: 'ottavia_ward', cast: 'npc-pv-ottavia', x: OTTAVIA_COL, y: 9, pose: 'sit', facing: -1, talk: [{ conv: 'corridor_after', if: 'gloves_left' }, { conv: 'corridor_after', if: 'ward_told' }] },
     { type: 'coins', id: 'c_h1', x: 34, y: 5, n: 4, dx: 1 },
   ],
 };

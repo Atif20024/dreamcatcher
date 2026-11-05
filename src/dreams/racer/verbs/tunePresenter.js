@@ -92,7 +92,7 @@ export function tuneWorld(scene, def, engine) {
       if (voices) voices.set(st.hz, st.jet, st.holding);
       if (outcome === 'miss') {
         sfx('click');
-        scene.caption.say('ottavia', 'Still beating. Back the other way.', { ms: 1800 });
+        scene.caption.say('ottavia', st.last === 'past' ? 'Past it. It will turn back.' : 'Not yet. Keep turning.', { ms: 1800 });
       }
       if (st.flooded && !api.flooded) {
         sfx('knock');

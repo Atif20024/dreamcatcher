@@ -374,7 +374,9 @@ export const RECIPES = {
   // THE LAST HAND, the Lantern Queen on the Verrane, 1884
   // the quay at dusk: water at the stone, the hull creaking, a bell buoy, gulls
   // THE LONG STRAIGHT: ratchets and a hammer, the quay, a ward's vent and one footfall, a kettle and a clock
-  pv_garage: { seconds: 11, seed: 81, rms: -38, layers: [['ticks', { every: 0.9, vol: 0.012, f: 2400 }], ['chisel', { vol: 0.016, every: 0.5, f: 1100, runs: 1 }], ['murmur', { vol: 0.012 }], ['echo', { delay: 0.07, taps: 2, fb: 0.28 }]] },
+  // (the Heron idling under it: two hums 2 Hz apart until she is tuned, then one note. Whole cycles in the 11 s)
+  pv_garage: { seconds: 11, seed: 81, rms: -38, layers: [['hum', { f: 110, vol: 0.006 }], ['hum', { f: 112, vol: 0.006 }], ['ticks', { every: 0.9, vol: 0.012, f: 2400 }], ['chisel', { vol: 0.016, every: 0.5, f: 1100, runs: 1 }], ['murmur', { vol: 0.012 }], ['echo', { delay: 0.07, taps: 2, fb: 0.28 }]] },
+  pv_garage_tuned: { seconds: 11, seed: 81, rms: -38, layers: [['hum', { f: 110, vol: 0.0085 }], ['ticks', { every: 0.9, vol: 0.012, f: 2400 }], ['chisel', { vol: 0.016, every: 0.5, f: 1100, runs: 1 }], ['murmur', { vol: 0.012 }], ['echo', { delay: 0.07, taps: 2, fb: 0.28 }]] },
   pv_quay: { seconds: 14, seed: 82, rms: -36, layers: [['lapping', { vol: 0.04, rate: 0.6 }], ['gulls', { vol: 0.02, rate: 0.12 }], ['wind', { vol: 0.012 }], ['chatter', { voices: 2, vol: 0.012 }]] },
   pv_ward: { seconds: 12, seed: 83, rms: -44, layers: [['pump', { vol: 0.016, hz: 0.2, k: 0.01 }], ['steps', { vol: 0.012, pace: 0.8, walks: 1 }], ['echo', { delay: 0.19, taps: 5, fb: 0.5 }]] },
   pv_kitchen: { seconds: 10, seed: 84, rms: -40, layers: [['bubbles', { vol: 0.02, rate: 2 }], ['ticks', { every: 1, vol: 0.016, f: 1500 }], ['echo', { delay: 0.05, taps: 1, fb: 0.2 }]] },

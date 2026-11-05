@@ -48,7 +48,7 @@ export class Encounters {
   }
 
   // input: an object with justDown(action) (the InputMap) — the encounter
-  // listens to its def.keys (default act1/confirm) and 'back' to step away
+  // listens to its def.keys (default act1/confirm) and def.leaveKeys (default 'back') to step away
   update(dt, input) {
     const a = this.active;
     if (!a || a.ending) return;
@@ -61,7 +61,7 @@ export class Encounters {
     if (input && a.engine.move && a.t > 250) for (const d of ['left', 'right', 'up', 'down']) if (input.justDown(d)) outcome = a.engine.move(d) || outcome;
     // a held note: the engine hears the key come up (optional)
     if (input && a.engine.release && input.justUp && keys.some((k) => input.justUp(k))) outcome = a.engine.release('act') || outcome;
-    if (input && a.def.canLeave !== false && input.justDown('back')) return this.finish({ ok: false, left: true });
+    if (input && a.def.canLeave !== false && (a.def.leaveKeys || ['back']).some((k) => input.justDown(k))) return this.finish({ ok: false, left: true });
     if (a.presenter && a.presenter.render) a.presenter.render(a.engine.state(), outcome);
     if (a.engine.done) this.finish(a.engine.result);
   }

@@ -13,6 +13,7 @@ g.put(5, 8, '=====');
 
 export const JAR_COLS = [13, 16, 19];
 export const TIN_COL = 7;
+export const CLOSE_COL = 11; // where the empty tin is shut, the table's near end
 
 export default {
   id: 'kitchen',
@@ -46,7 +47,7 @@ export default {
   acoustics: 'room',
   events: null,
   music: { state: 'quiet', key: 'kitchen' },
-  objective: [{ text: 'carry_tin' }, { text: 'split', flag: 'tin_taken' }, { text: 'drive', flag: 'jars_done' }],
+  objective: [{ text: 'carry_tin' }, { text: 'split', flag: 'tin_taken' }, { text: 'close_tin', flag: 'tin_empty' }, { text: 'drive', flag: 'jars_done' }],
   titleCard: 'THE CASTELLANE KITCHEN',
   goal: 'carry the prize tin to the table',
   entities: [

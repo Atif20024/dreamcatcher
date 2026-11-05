@@ -1,7 +1,8 @@
 // The other places' verbs (no keys of their own: [E] through Interaction, so touch
 // has them all). Each room: a goal on an arrival card, a verb, a fail state.
 //   the corridor   walk; a drop off the iron stairs fetches Sister Agnese (room.quiet)
-//   the kitchen    take the tin, SPLIT it into three jars that want more than it holds
+//   the kitchen    take the tin, SPLIT it into three jars that want more than it holds;
+//                  the last coin waits: take one back, or close the tin
 //   Sable's table  READ each paper, strike a clause, or initial it whole
 //   the Gull road  CHALK three marks in order
 // Also: `room.walks` (Jo walks of his own accord in there), and the warp's flags.
@@ -11,10 +12,10 @@ import { readDocument } from '../../../ui/ReadingPanel.js';
 import { sfx } from '../../../systems/audio.js';
 import { addCoins } from '../../../systems/wallet.js';
 import { JARS, tinLeft, short, PAPERS, signPapers } from '../season.js';
-import { JAR_COLS, TIN_COL } from '../rooms/kitchen.js';
+import { JAR_COLS, TIN_COL, CLOSE_COL } from '../rooms/kitchen.js';
 import { PAPER_COLS } from '../rooms/sponsor.js';
 import { MARKS } from '../rooms/nightbefore.js';
-import { CHAIR_COL } from '../rooms/hospital.js';
+import { CHAIR_COL, OTTAVIA_COL } from '../rooms/hospital.js';
 
 const T = 32;
 
@@ -41,15 +42,29 @@ function setupHospital(ctx) {
   const r = s.graph.room('hospital');
   ctx.state.quiet = { ground: null };
   const floor = (r.ty + 10) * T;
+  // the talk comes first, and it is hers
+  s.interaction.register({
+    id: 'ward:give',
+    x: (r.tx + OTTAVIA_COL) * T + T / 2,
+    y: floor - 20,
+    radius: 72,
+    prompt: 'give her the gloves',
+    enabled: () => !s.F.ward_told && !s.F.gloves_left && !!s.F['item:gloves'],
+    onUse: async () => {
+      await s.talkTo({ talk: [{ conv: 'corridor' }] }, s.npcs.get('ottavia_ward'));
+      s.saveRun();
+    },
+  });
+  // the last act, and nobody says anything
   s.interaction.register({
     id: 'ward:chair',
     x: (r.tx + CHAIR_COL) * T + T / 2,
     y: floor - 20,
     radius: 60,
-    prompt: 'put the gloves on the chair',
-    enabled: () => !s.F.gloves_left && !!s.F['item:gloves'],
-    onUse: async () => {
-      await s.runConversation('corridor', null);
+    prompt: 'set them on the chair',
+    enabled: () => !!s.F.ward_told && !s.F.gloves_left,
+    onUse: () => {
+      s.F.gloves_left = true;
       s.satchel = (s.satchel || []).filter((n) => n !== 'HIS GLOVES');
       hud.toolLine(1, 'accent').setText('').setVisible(false);
       s.saveRun();
@@ -117,7 +132,7 @@ function setupKitchen(ctx) {
   // a jar's count over it, on a plate: how many it has, and how many it wants
   const labels = JARS.map((j, i) => uiText(s, at(JAR_COLS[i]), floor - 110, '', { size: 'body', scale: 1, color: '#f2e6cc', align: 'center', bg: PLATE.dark }).setOrigin(0.5).setDepth(-7));
   ctx.state.jars = labels;
-  JARS.forEach((j, i) => {
+  ctx.state.jarItems = JARS.map((j, i) =>
     s.interaction.register({
       id: `home:${j.id}`,
       x: at(JAR_COLS[i]),
@@ -125,26 +140,44 @@ function setupKitchen(ctx) {
       radius: 40,
       prompt: `one for ${j.label.toLowerCase()}`,
       promptDy: 150,
-      enabled: () => F.tin_taken && !F.jars_done && tinLeft(F) > 0,
+      enabled: () => F.tin_taken && !F.jars_done && (tinLeft(F) > 0 || F[`jar_${j.id}`] > 0),
       onUse: () => {
-        F[`jar_${j.id}`] = (F[`jar_${j.id}`] || 0) + 1;
-        sfx('coin');
-        if (tinLeft(F) > 0) return;
-        // the tin is empty: the room says what that means
-        F.rent_short = short(F, 'rent');
-        F.rent_ok = !F.rent_short;
-        F.med_short = short(F, 'medicine');
-        F.tyres_short = short(F, 'tyres');
-        s.saveRun();
-        s.beats.play('jars_settled').catch((e) => console.warn('[dream] beat', e));
+        // an empty tin is not settled yet: a jar gives one back, until the tin is closed
+        const back = tinLeft(F) === 0;
+        F[`jar_${j.id}`] = (F[`jar_${j.id}`] || 0) + (back ? -1 : 1);
+        sfx(back ? 'click' : 'coin');
+        if (tinLeft(F) === 0) s.caption.say('jo', 'That is the tin. Close it, or take one back.', { ms: 2600 });
       },
-    });
+    })
+  );
+  s.interaction.register({
+    id: 'home:close',
+    x: at(CLOSE_COL),
+    y: floor - 20,
+    radius: 40,
+    prompt: 'close the tin',
+    enabled: () => F.tin_taken && !F.jars_done && tinLeft(F) === 0,
+    onUse: () => {
+      // the room says what that means
+      F.rent_short = short(F, 'rent');
+      F.rent_ok = !F.rent_short;
+      F.med_short = short(F, 'medicine');
+      F.tyres_short = short(F, 'tyres');
+      F.jars_done = true; // (before the save: a Continue during her talk is not a dead run)
+      sfx('snap');
+      s.saveRun();
+      s.beats.play('jars_settled').catch((e) => console.warn('[dream] beat', e));
+    },
   });
 }
 
 function updateKitchen(ctx) {
   const F = ctx.flags;
-  JARS.forEach((j, i) => ctx.state.jars[i].setText(`${j.label} ${F[`jar_${j.id}`] || 0}/${j.wants}`));
+  F.tin_empty = tinLeft(F) === 0; // (the objective's flag)
+  JARS.forEach((j, i) => {
+    ctx.state.jars[i].setText(`${j.label} ${F[`jar_${j.id}`] || 0}/${j.wants}`);
+    ctx.state.jarItems[i].item.prompt = F.tin_empty ? `take one back from ${j.label.toLowerCase()}` : `one for ${j.label.toLowerCase()}`;
+  });
 }
 
 function setupSponsor(ctx) {
@@ -182,6 +215,7 @@ function settlePapers(s) {
   addCoins(s.dreamId, advance);
   s.levelCoins += advance;
   s.updateCoinHud();
+  F.signed = true; // (before the save: a Continue during his talk is not a dead run)
   s.saveRun();
   s.caption.say('jo', `On signature: ${advance} brass nuts, counted out on the leather.`, { ms: 3000 });
   s.beats.play('sable_signed').catch((e) => console.warn('[dream] beat', e));
@@ -202,6 +236,7 @@ function setupGull(ctx) {
       enabled: () => !F[m.flag] && (i === 0 || !!F[MARKS[i - 1].flag]),
       onUse: () => {
         F[m.flag] = true;
+        if (i === MARKS.length - 1) F.chalked = true;
         sfx('click');
         s.saveRun();
         if (i === MARKS.length - 1) s.beats.play('chalk_done').catch((e) => console.warn('[dream] beat', e));

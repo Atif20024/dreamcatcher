@@ -36,12 +36,14 @@ export default {
     { prop: 'oil_drum', x: 17, y: 12, dx: 8 },
     { prop: 'hanging_lamp', x: 17, y: 2 },
     { prop: 'sheeted_car', x: 21, y: 12, when: 'done_race2', live: true },
+    // his gloves on his own car's cowl, until the Cup: Nino's line and the chair have something to remember
+    { prop: 'gloves_on_chair', x: 19, y: 11, dy: -17, unless: 'done_race2', live: true },
   ],
   lights: [{ x: 17, y: 5, r: 170, color: 0xffb060 }],
   enclosure: { backWall: 'blocks', wainscot: true, posts: 3, ceiling: true, pillars: false, frames: [], palette: { wall: 0x6a5240, wood: 0x3a2a20, accent: 0x1f7a78, deep: 0x1a1412, lit: 0xf2c078 } },
   light: { tint: 0xf2dcc0 },
   backdrop: null,
-  ambience: 'pv_garage',
+  ambience: (F) => (F.tuned ? 'pv_garage_tuned' : 'pv_garage'), // she stops beating, and the room hears it
   acoustics: 'room',
   events: null,
   music: { state: 'explore', key: 'garage', wall: 900 },
