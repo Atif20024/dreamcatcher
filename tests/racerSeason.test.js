@@ -15,8 +15,8 @@ const T = TRACKS.test;
 
 describe('the season', () => {
   it('every hook is a stand-in on the test road, plainly', () => {
-    for (const h of HOOKS) expect(h.track).toBe(STAND_IN);
-    expect(atTheDoor({}).track).toBe(STAND_IN);
+    for (const h of HOOKS.slice(1)) expect(h.track).toBe(STAND_IN);
+    expect(atTheDoor({}).track).toBe('pinewood');
   });
   it('opens in order, and no hook skips what it needs', () => {
     expect(nextHook({}).id).toBe('race1');

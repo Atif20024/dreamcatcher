@@ -15,13 +15,13 @@ export const BOARDS = [150, 100, 50]; // m before a bend
 const RUN_OFF = 120; // segments past the line, for the car rolling down and the road ahead of it
 
 export const CAM = {
-  height: 1.4, // m above the road
-  back: 4, // m behind the car's middle: its tail sits 2 m ahead of the lens
+  height: 2.2, // m above the road: high enough to see the road over her (at 1.4 m the car hid everything nearer than 25 m)
+  back: 5.3, // m behind the car's middle: her tail sits 3.4 m ahead of the lens, 190 px wide on the screen
   horizon: 0.42, // of the screen's height
   depth: 0.84, // focal length in half-screen widths
   near: 1, // m: nothing nearer than this is drawn
   draw: 60, // segments: 240 m, 6.7 s at the top speed
-  curveDraw: 0.1, // curve is drift at full speed; this makes it a road you can see round (about the true geometry of a 0.8 g bend)
+  curveDraw: 0.13, // curve is drift at full speed; this makes it a road you can see round (a little more than the true geometry of a 0.8 g bend: a bend must read at a glance)
 };
 
 // what stands in the road, and how much of it there is (len m, wide in road widths)

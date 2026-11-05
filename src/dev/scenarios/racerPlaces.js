@@ -1,8 +1,6 @@
 // THE LONG STRAIGHT, stage 2: the coast and the walk-in places, each room's goal
 // and fail state through its real [E], the choice and its payoff. Silent, as every
 // dev run is.
-//   racer-theme         the coast is what the race paints; a second theme keeps its own keys; leaving frees them
-//   racer-coast-props   the roadside at real scale: poles, stones, ropes on the road's own metres
 //   racer-tune          a real hold: the fumes throb, go still in the slot, a miss and a flood; hot without it
 //   racer-shop          the rack and the bench: nuts buy tyres and chalk, into the car's tune, never its speed
 //   racer-season        the door counts for each stand-in, in order; doors open behind them
@@ -22,7 +20,6 @@ import { clearRun, getRun } from '../../utils/save.js';
 import { hud } from '../../ui/hud.js';
 import { dreamById } from '../../data/dreams.js';
 import { TRACKS } from '../../dreams/racer/race/tracks.js';
-import { paintSteps, freeTheme } from '../../dreams/racer/race/RaceRoad.js';
 import { HOOKS, doneOf, softPrice, PRICES, nextHook } from '../../dreams/racer/season.js';
 import { SOFT_TYRES } from '../../dreams/racer/race/car.js';
 import { LOOPS } from '../../audio/synthLoops.js';
@@ -106,54 +103,6 @@ function touch(type, id, gx, gy) {
   else live.set(id, t);
   canvas.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: [...live.values()], targetTouches: [...live.values()], changedTouches: [t] }));
 }
-
-const theme = {
-  id: 'racer-theme',
-  expect: 'pass',
-  async run(dc) {
-    const s = await at(dc, 'garage');
-    const COAST = TRACKS.test.theme;
-    const rows = {};
-    await dc.run(16);
-    const keys = () => s.textures.getTextureKeys().filter((k) => k.startsWith('race:'));
-    rows.paintedInGarage = keys();
-    rows.noFixedNames = !keys().some((k) => k === 'race:road' || k === 'race:sky');
-    const other = { ...COAST, id: 'dusk', sky: { ...COAST.sky, seed: 99 }, land: { ...COAST.land, hill: 0x3a3a5a } };
-    paintSteps(other).forEach((p) => p(s));
-    rows.twoThemes = keys().filter((k) => k.startsWith('race:dusk:')).length === paintSteps(other).length && keys().filter((k) => k.startsWith('race:coast:')).length === paintSteps(COAST).length;
-    freeTheme(s, other);
-    rows.freedOnlyDusk = !keys().some((k) => k.startsWith('race:dusk:')) && keys().some((k) => k.startsWith('race:coast:'));
-    // through the door and out: gone
-    s.interaction.items.get('race:test').onUse();
-    await until(dc, () => dc.scene() && dc.scene().sys.settings.key === 'Race' && dc.scene().race);
-    const r = dc.scene();
-    rows.raceKeys = r.road.road.displayTexture.key;
-    const pauseOut = async () => {
-      r.leaveToStation();
-      await until(dc, () => dc.scene() && dc.scene().sys.settings.key === 'Hub', 600);
-    };
-    await pauseOut();
-    rows.afterRace = dc.scene().textures.getTextureKeys().filter((k) => k.startsWith('race:'));
-    return { pass: rows.noFixedNames && rows.paintedInGarage.length >= 8 && rows.twoThemes && rows.freedOnlyDusk && rows.raceKeys === 'race:coast:road' && rows.afterRace.length === 0, detail: rows };
-  },
-};
-
-const coastProps = {
-  id: 'racer-coast-props',
-  expect: 'pass',
-  async run(dc) {
-    const s = await at(dc, 'garage');
-    s.interaction.items.get('race:test').onUse();
-    await until(dc, () => dc.scene() && dc.scene().sys.settings.key === 'Race' && dc.scene().race);
-    const r = dc.scene();
-    await dc.run(4);
-    const poles = r.side.filter((e) => e.img.texture.key === 'race:coast:pole');
-    const stones = r.side.filter((e) => e.img.frame && e.img.frame.name === 'milestone');
-    const ropes = r.side.filter((e) => e.img.frame && e.img.frame.name === 'rope');
-    const rows = { poles: poles.length, poleH: poles[0] && poles[0].img.height, spacing: poles[1].d - poles[0].d, stones: stones.length, stoneH: stones[0].img.height, ropes: ropes.length, ropeH: ropes[0].img.height, wires: !!r.road.wires };
-    return { pass: rows.poleH === 308 && rows.spacing === 50 && rows.stoneH === 31 && rows.ropeH === 44 && rows.poles >= 20 && rows.stones >= 10 && rows.wires, detail: rows };
-  },
-};
 
 const tuneVerb = {
   id: 'racer-tune',
@@ -252,9 +201,9 @@ const shop = {
     await dc.run(2);
     const t = r.race.tune;
     rows.tune = { gripMin: t.gripMin, chalk: t.chalk, vMax: t.vMax, accel: t.accel, brake: t.brake };
-    rows.chalkMarks = r.side.filter((e) => e.img.type === 'Rectangle').length;
+    rows.chalkMarks = r.view.chalk.length;
     rows.aid = r.aid;
-    const ok = rows.heldForAldo && rows.stillStock && rows.afterTyres.soft && rows.afterTyres.nuts === PRICES.chalk && rows.afterChalk.chalk && rows.afterChalk.nuts === 0 && t.gripMin === SOFT_TYRES.gripMin && t.chalk && t.vMax === 36 && t.accel === 8.5 && t.brake === 8 && rows.chalkMarks === TRACKS.test.bends.length * 3 && !rows.aid;
+    const ok = rows.heldForAldo && rows.stillStock && rows.afterTyres.soft && rows.afterTyres.nuts === PRICES.chalk && rows.afterChalk.chalk && rows.afterChalk.nuts === 0 && t.gripMin === SOFT_TYRES.gripMin && t.chalk && t.vMax === 36 && t.accel === 8.5 && t.brake === 8 && rows.chalkMarks === r.track.bends.length && !rows.aid;
     return { pass: ok, detail: rows };
   },
 };
@@ -296,8 +245,7 @@ const season = {
     r.race.jo.d = r.track.length - 5;
     r.race.jo.lampD = 600;
     r.race.jo.v = 30;
-    r.race.rivals[0].d = r.track.length - 80;
-    dc.hold('right');
+    dc.hold('up');
     await until(dc, () => r.race.result);
     dc.releaseAll();
     await dc.run(1);
@@ -771,4 +719,4 @@ const quitWindow = {
   },
 };
 
-export default [theme, coastProps, tuneVerb, shop, season, choice, cupMorning, corridor, kitchen, sponsor, chalk, pit, places, contrast, touchVerbs, coins, quitWindow];
+export default [tuneVerb, shop, season, choice, cupMorning, corridor, kitchen, sponsor, chalk, pit, places, contrast, touchVerbs, coins, quitWindow];

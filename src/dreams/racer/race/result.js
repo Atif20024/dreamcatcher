@@ -25,7 +25,8 @@ export function applyResult(flags, track, { place, time }) {
   if (best === undefined || place < best || (place === best && time < out[f('time')])) {
     out[f('best')] = place;
     out[f('time')] = Math.round(time * 100) / 100;
-    out[f('prize')] = (track.prize && track.prize[place]) || 0;
+    // (a time gate has no second place to pay: the tin opens under the time)
+    out[f('prize')] = (track.gate?.time === undefined || time <= track.gate.time) && track.prize ? track.prize[place] || 0 : 0;
   }
   if (gatePassed(track.gate, { place, time })) out[f('passed')] = true;
   else out[f('tries')] = (out[f('tries')] || 0) + 1;
@@ -49,6 +50,20 @@ export function prizeOwed(flags, trackId) {
 // after three runs short of the gate, Ottavia whispers the brake marks (design §3)
 export const SOFT_AID_AFTER = 3;
 export const softAid = (flags, trackId) => (flags[flagOf(trackId, 'tries')] || 0) >= SOFT_AID_AFTER;
+
+// the seconds, said aloud as a timekeeper says them: 33.8 is "Thirty-three eight"
+const TENS = { 2: 'Twenty', 3: 'Thirty', 4: 'Forty', 5: 'Fifty' };
+const UNITS = ['', '-one', '-two', '-three', '-four', '-five', '-six', '-seven', '-eight', '-nine'];
+const WORDS = ['nought', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+export function spoken(t) {
+  const tenths = Math.round(t * 10);
+  const s = Math.floor(tenths / 10);
+  const tens = TENS[Math.floor(s / 10)];
+  return `${tens ? `${tens}${UNITS[s % 10]}` : s} ${WORDS[tenths % 10]}`;
+}
+
+// a miss by less than the clock's tenth must not read as the time on the sheet
+export const shownTime = (time, gate, passed) => (!passed && gate?.time !== undefined && Math.round(time * 10) <= Math.round(gate.time * 10) ? gate.time + 0.1 : time);
 
 export const clock = (t) => {
   const s = Math.max(0, t);
