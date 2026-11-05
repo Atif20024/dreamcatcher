@@ -292,20 +292,37 @@ const bales = {
   },
 };
 
-// a stack of crates (the line's freight), two high
-const crates = {
-  w: 70,
+// the bales and crates the quay's ledges stand on: flat-topped and exactly the
+// ledge's width, under its top in their own colours (materials.js cotton_top)
+const bale_wall = {
+  w: 160,
   h: 64,
   anchor: [0.5, 1],
-  paint(ctx, w, h) {
-    for (const [x, y, s] of [[2, 32, 32], [36, 32, 32], [18, 0, 32]]) {
-      box(ctx, x, y, s, s, 0x8a6a42, 0.22, 0.4);
+  paint(ctx) {
+    for (const [x, y] of [[-40, 0], [40, 0], [120, 0], [0, 32], [80, 32]]) {
+      // soft, bellied sacking, corded tight: not a dressed stone
+      gradientV(ctx, x + 1, y + 1, 78, 30, [[0, 0xf0e6cc, 1], [0.45, 0xd8ccb0, 1], [1, 0x9a8a6a, 1]]);
+      for (const [cx, cy] of [[1, 1], [77, 1], [1, 29], [77, 29]]) ctx.clearRect(x + cx, y + cy, 2, 2);
+      ctx.fillStyle = hex(0x3a2e20);
+      for (const hx of [14, 39, 64]) ctx.fillRect(x + hx, y + 1, 2, 30);
+      ctx.fillStyle = hex(0xf8f2e0); // cotton bursting at the cords
+      for (const hx of [14, 39, 64]) for (const hy of [7, 19]) ctx.fillRect(x + hx + (hy % 3), y + hy, 3, 2);
+    }
+  },
+};
+const crates = {
+  w: 96,
+  h: 64,
+  anchor: [0.5, 1],
+  paint(ctx) {
+    for (const y of [0, 32]) for (const x of [0, 32, 64]) {
+      box(ctx, x, y, 32, 32, 0x8a6a42, 0.22, 0.4);
       ctx.strokeStyle = hex(0x5a4228);
       ctx.lineWidth = 2;
-      ctx.strokeRect(x + 3, y + 3, s - 6, s - 6);
+      ctx.strokeRect(x + 3, y + 3, 26, 26);
       ctx.beginPath();
       ctx.moveTo(x + 3, y + 3);
-      ctx.lineTo(x + s - 3, y + s - 3);
+      ctx.lineTo(x + 29, y + 29);
       ctx.stroke();
     }
   },
@@ -1028,12 +1045,42 @@ const last_table = {
   },
 };
 
+// the open skylight in the hurricane deck (deck.js, cols 7 to 9): painted behind
+// the terrain. A white coaming on both lips, the glazed sash propped open on the
+// far side, and the lit saloon a long way down through the hole. The deck's top
+// is 44 px down, the hole x 42 to 138.
+const skylight_hatch = {
+  w: 180,
+  h: 172,
+  anchor: [0.5, 1],
+  paint(ctx) {
+    gradientV(ctx, 42, 44, 96, 128, [[0, 0x2a1810, 1], [0.08, 0x7a4a24, 1], [0.5, 0xd89a50, 1], [1, 0xf8d088, 1]]);
+    ctx.fillStyle = rgba(WALNUT_DK, 0.55);
+    for (let x = 50; x < 138; x += 16) ctx.fillRect(x, 60, 2, 112);
+    glow(ctx, 90, 172, 54, WARM, 0.55);
+    // the sash, hinged at the far lip and leaning away from the hole
+    ctx.save();
+    ctx.translate(138, 34);
+    ctx.rotate(0.42);
+    box(ctx, 0, -32, 32, 32, PINE_WHITE, 0.3, 0.3);
+    ctx.fillStyle = hex(0x7a94a8);
+    ctx.fillRect(3, -29, 26, 12);
+    ctx.fillRect(3, -15, 26, 12);
+    ctx.fillStyle = rgba(0xfff4dc, 0.5);
+    ctx.fillRect(5, -27, 8, 2);
+    ctx.fillRect(5, -13, 8, 2);
+    ctx.restore();
+    // the coaming: a low white curb round the hole, both lips
+    for (const x of [32, 134]) box(ctx, x, 28, 14, 16, PINE_WHITE, 0.3, 0.35);
+  },
+};
+
 export default {
-  lq_boat, gangway, gas_lamp, bollard, bales, crates, wharf_office, slate_easel, cabin_door, cabin_door_white,
+  lq_boat, gangway, gas_lamp, bollard, bales, bale_wall, crates, wharf_office, slate_easel, cabin_door, cabin_door_white,
   chandelier, back_bar, bar_counter, bandstand, faro_table, saloon_chair, clerestory, carpet_runner, stateroom,
   card_table, table_lamp, guard_view,
   purser_cage, safe, wall_lamp, stair_up,
-  chimney, escape_pipe, book_stand, rope_coil, ship_bell, texas_face, ratline, pilot_house,
+  chimney, escape_pipe, book_stand, rope_coil, ship_bell, texas_face, skylight_hatch, ratline, pilot_house,
   pilot_wheel, dawn_windows, last_table,
 };
 

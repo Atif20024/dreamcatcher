@@ -29,6 +29,8 @@ class CastBody {
   frame(time, talking, laughing, walk = null) {
     const k = this.key;
     if (walk) return walk;
+    // the clock has struck and the pie is warm (eatsWhen): she eats, and laughs saying so
+    if (this.pose === 'sit' && this.eatsWhen && this.scene.F[this.eatsWhen]) return talking ? `${k}-sitlaugh` : time % 3600 < 700 ? `${k}-siteat` : `${k}-sit`;
     if (this.pose === 'sit') return laughing && castFrame(this.scene, `${k}-sitlaugh`) ? `${k}-sitlaugh` : `${k}-sit`;
     if (talking && this.talkN) return `${k}-talk#${(Math.floor(time / 140) % this.talkN) + 1}`;
     if (this.pose === 'still') return k; // standing quite still: no idle loop (Lou's hands, at last)
@@ -46,7 +48,7 @@ export class Npc {
   // beat walked to and fro with pauses (a steward with his tray, a deckhand);
   // `follow: [x0, x1]` keeps a step behind Jo's shoulder inside that span
   // (Lou). Legs are stepped by the ground covered (Stride): no slide.
-  constructor(scene, { id, x, y, rig, cast = null, pose = null, outfit = 'street', facing = -1, task = null, depth = D.PLAYER - 1, turns = true, pace = null, follow = null, walks = false }) {
+  constructor(scene, { id, x, y, rig, cast = null, pose = null, outfit = 'street', facing = -1, task = null, depth = D.PLAYER - 1, turns = true, pace = null, follow = null, walks = false, eatsWhen = null }) {
     this.scene = scene;
     this.id = id;
     this.rig = rig || cast;
@@ -57,6 +59,7 @@ export class Npc {
     this.turns = turns && pose !== 'sit';
     if (cast) {
       this.body = new CastBody(scene, cast, x, y, depth, pose);
+      this.body.eatsWhen = eatsWhen;
       this.ok = this.body.ok;
       if ((pace || follow || walks) && pose !== 'sit') {
         this.stride = new Stride(scene, cast);

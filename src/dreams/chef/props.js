@@ -194,6 +194,24 @@ export default {
     box(c, 0, 20, w, 5, COPPER_DK, 0.3, 0.3);
     for (let x = 30; x < w; x += 70) box(c, x, 4, 6, 24, IRON_LT, 0.2, 0.3);
   } },
+  // what a yard lamp throws on the brick: the shade cuts it to a wedge, and a
+  // man stands dark against it (Jo's 3:1 in the first room rests on this)
+  yard_wash: { w: 300, h: 132, anchor: FLOOR, paint(c, w, h) {
+    const g = c.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, rgba(0xe8d8b0, 0.2));
+    g.addColorStop(1, rgba(0xe8d8b0, 0.11));
+    c.fillStyle = g;
+    // nested wedges, so the edge falls off in steps instead of a hard line
+    for (const k of [1, 0.84, 0.68, 0.52]) {
+      c.beginPath();
+      c.moveTo(w / 2 - 20, 0);
+      c.lineTo(w / 2 + 20, 0);
+      c.lineTo(w / 2 + (w / 2) * k, h);
+      c.lineTo(w / 2 - (w / 2) * k, h);
+      c.closePath();
+      c.fill();
+    }
+  } },
   // an enamel gooseneck on the yard wall, the kind every back door had
   yard_lamp: { w: 44, h: 40, anchor: TOP, light: { x: 22, y: 34, r: 210, color: 0xd8c8a0 }, paint(c, w, h) {
     c.fillStyle = hex(IRON);

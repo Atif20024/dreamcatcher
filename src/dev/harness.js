@@ -46,6 +46,7 @@ const dc = {
     try {
       for (let i = 0; i < n; i++) {
         clock += dtMs;
+        g.loop.now = clock; // (as TimeStep does: a scene starting up reads it)
         g.step(clock, dtMs);
       }
     } finally {

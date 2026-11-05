@@ -21,6 +21,7 @@ let sittings = 0;
 const seedOf = (F, base) => (F._seed ?? 0) * 101 + base + (sittings += 1) * 17;
 
 const purse = (F) => F.purse || (F.purse = newPurse());
+const faroStake = (F) => Math.min(40, purse(F).stack);
 
 export const slateEnc = {
   id: 'slate',
@@ -45,8 +46,8 @@ export const faroEnc = {
   id: 'faro',
   title: 'THE FARO BANK',
   engine: faro,
-  // forty of the stack goes to the bank; a comp may stake the first bet
-  params: (F) => ({ bank: 40, target: FARO_TARGET, seed: seedOf(F, 3), freeFirst: !!F.faro_free && !F.faro_free_used }),
+  // forty of the stack goes to the bank (or what he has, if less); a comp may stake the first bet
+  params: (F) => ({ bank: faroStake(F), target: FARO_TARGET, seed: seedOf(F, 3), freeFirst: !!F.faro_free && !F.faro_free_used }),
   view: 'lq_faro',
   camera: { zoom: 1.3 },
   keys: KEYS,
@@ -54,7 +55,8 @@ export const faroEnc = {
   onResult(scene, r) {
     const p = purse(scene.F);
     const st = r;
-    p.stack = Math.max(0, p.stack + (st.bank ?? 40) - 40);
+    const stake = faroStake(scene.F); // the stack does not move while he sits
+    p.stack = Math.max(0, p.stack + (st.bank ?? stake) - stake);
     p.turns += st.turns || 0;
     p.rake += st.rake || 0;
     if (scene.F.faro_free && (st.bets || 0) > 0) scene.F.faro_free_used = true;

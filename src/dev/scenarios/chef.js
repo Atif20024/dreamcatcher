@@ -676,4 +676,53 @@ const chefNoTwice = {
   },
 };
 
-export default [chefBoard, chefPlaces, chefCoins, chefRail, chefPocket, chefHands, chefCut, chefBurn, chefOldRun, chefPlaythrough, chefPlateHandover, chefBusy, chefHooks, chefContinue, chefNoTwice];
+// B10: a vent burns and knocks once per i-frames; it never launches Jo, so it
+// cannot pin him under a shelf. Stood on each vent (and under the shelf's end
+// beside the east one) for three cycles, then he walks off by real input.
+const chefVentNoPin = {
+  id: 'chef-vent-no-pin',
+  async run(dc) {
+    const s = await boot(dc, 'pit', { keepSafe: false });
+    s.invulnUntil = 0;
+    await dc.run(60);
+    const r = s.graph.room('pit');
+    const p = s.player;
+    const out = [];
+    for (const [col, dx, away] of [[23, 16, 'left'], [36, 16, 'right'], [35, 28, 'left']]) {
+      const x = (r.tx + col) * T + dx;
+      const y = p.y;
+      const put = () => {
+        p.setPosition(x, y);
+        p.body.reset(x, y);
+      };
+      put();
+      const h0 = s.F.burns || 0;
+      let minVy = 0;
+      let head = 0;
+      let headMax = 0;
+      for (let i = 0; i < 420; i++) {
+        s.health.hearts = s.health.max;
+        if (p.body.blocked.down && Math.abs(p.x - x) > 12) put();
+        minVy = Math.min(minVy, p.body.velocity.y);
+        head = p.body.blocked.up || p.body.touching.up ? head + 1 : 0;
+        headMax = Math.max(headMax, head);
+        await dc.run(1);
+      }
+      for (let i = 0; i < 90 && !p.body.blocked.down; i++) await dc.run(1);
+      put();
+      s.invulnUntil = Infinity;
+      s.health.setInvulnerable(s.time.now, 1e9);
+      dc.hold(away);
+      await dc.run(50);
+      dc.releaseAll();
+      const moved = Math.round(Math.abs(p.x - x));
+      s.invulnUntil = 0;
+      s.health.setInvulnerable(s.time.now, 0);
+      out.push({ col, hits: (s.F.burns || 0) - h0, minVy: Math.round(minVy), headMax, moved });
+    }
+    clearRun('chef');
+    return { pass: out.some((o) => o.hits > 0) && out.every((o) => o.minVy >= -240 && o.headMax < 3 && o.moved > 60), detail: out };
+  },
+};
+
+export default [chefVentNoPin, chefBoard,chefPlaces, chefCoins, chefRail, chefPocket, chefHands, chefCut, chefBurn, chefOldRun, chefPlaythrough, chefPlateHandover, chefBusy, chefHooks, chefContinue, chefNoTwice];

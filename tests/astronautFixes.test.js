@@ -90,6 +90,11 @@ describe('round 2', () => {
     expect(drop).toMatch(/this\.reeling = false/);
     expect(drop).toMatch(/setAllowGravity\(true\)/);
   });
+  it('A9: a hit never takes the core, so d4 stays true (saved runs too)', () => {
+    const drop = scene.slice(scene.indexOf('  dropCarry() {'), scene.indexOf('  // ------- update'));
+    expect(drop).toMatch(/if \(this\.carry !== 'core'\) this\.carry = null/);
+    expect(scene.slice(scene.indexOf('  applyRunExtra(x) {'), scene.indexOf('  devWarp() {'))).toMatch(/rescue_on.*this\.carry = 'core'/);
+  });
   it('S2: after a failed quiz Halvorsen does not say the questions were fine', () => {
     const fn = body('faceTheBoard');
     const failed = fn.slice(fn.indexOf('if (!res.passed)'), fn.indexOf('SEAT_QUESTION'));

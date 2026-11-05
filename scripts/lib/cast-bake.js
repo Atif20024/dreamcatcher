@@ -81,6 +81,7 @@ export async function bakeCast(ROOT, store) {
       add(`${key}-sit`, { pose: P.sit[0], held });
       add(`${key}-laugh`, { pose: P.laugh[0], held });
       add(`${key}-sitlaugh`, { pose: P.sitlaugh[0], held });
+      if (spec.eats) add(`${key}-siteat`, { pose: P.siteat[0], held });
       add(`${key}-free`, { pose: P.free[0], held: null });
       P.freewalk.forEach((p, i) => add(`${key}-free#${i + 1}`, { pose: p, held: null }));
     } else if (family === 'hub') {
@@ -164,7 +165,7 @@ export async function bakeCast(ROOT, store) {
       tall = (bot - top + 1) * S;
     }
     // keys whose frame is a seated pose (a sitter's base, -sit, -sitlaugh)
-    const seated = frames.filter((f) => f.pose === P.sit[0] || f.pose === P.sit[1] || f.pose === P.sitlaugh[0]).map((f) => f.key);
+    const seated = frames.filter((f) => f.pose === P.sit[0] || f.pose === P.sit[1] || f.pose === P.sitlaugh[0] || f.pose === P.siteat[0]).map((f) => f.key);
     report.push({ key, body: rig.body, h: tall, w: W * S, frames: frames.length, oldH, seated });
     // how the runtime plays it (src/art/stride.js): frames and screen px a frame
     gaits[key] = { gait: P.gait, walk: [P.walk.length, P.walkStep * S], run: hasRun ? [P.run.length, P.runStep * S] : null, runAbove: P.runAbove, idle: [family === 'foe' ? P.sig.length : P.task.length, IDLE_FPS] };

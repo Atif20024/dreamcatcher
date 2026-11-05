@@ -22,8 +22,9 @@ export default {
   regions: [
     { rect: [35, 16, 77, 16], material: 'main_deck' },
     { rect: [35, 17, 77, 19], material: 'hull_white' },
-    { rect: [9, 14, 16, 14], material: 'main_deck' },
-    { rect: [42, 14, 46, 14], material: 'main_deck' },
+    { rect: [9, 14, 13, 14], material: 'cotton_top' },
+    { rect: [14, 14, 16, 14], material: 'crate_top' },
+    { rect: [42, 14, 46, 14], material: 'cotton_top' },
   ],
   decor: [],
   props: [
@@ -34,9 +35,9 @@ export default {
     { prop: 'gas_lamp', x: 31, y: 16, layer: 'back' },
     { prop: 'bollard', x: 7, y: 16 },
     { prop: 'bollard', x: 32, y: 16, dx: 14 },
-    { prop: 'bales', x: 11, y: 16 },
+    { prop: 'bale_wall', x: 11, y: 16 },
     { prop: 'crates', x: 15, y: 16 },
-    { prop: 'bales', x: 44, y: 16 },
+    { prop: 'bale_wall', x: 44, y: 16 },
     { prop: 'slate_easel', x: 29, y: 16 },
     { prop: 'gangway', x: 35, y: 16 },
     { prop: 'cabin_door_white', x: 70, y: 16 },

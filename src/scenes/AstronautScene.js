@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { attachStride } from '../art/stride.js';
 import { personBody } from '../art/baked.js';
 import Player from '../entities/Player.js';
+import { vaultSpeed } from '../entities/motion.js';
 import BaseLevel from './BaseLevel.js';
 import { THEMES } from '../themes/index.js';
 import { lightThemeProps } from '../art/levelArt.js';
@@ -238,6 +239,7 @@ export default class AstronautScene extends BaseLevel {
   applyRunExtra(x) {
     if (x.stats) this.stats = { ...this.stats, ...x.stats };
     if (x.power !== undefined) this.power = x.power;
+    if (this.F.rescue_on && !this.F.reentry) this.carry = 'core'; // only the core starts the rescue
     if (this.F.rejected && !this.F.selected) this.greyOverlay(); // a run resumed in the second year
   }
 
@@ -843,7 +845,7 @@ export default class AstronautScene extends BaseLevel {
       await this.dialog.show([
         { name: 'Dr. Halvorsen', text: `Numbers first, candidate. The board sees them before it sees you.\n\n${this.shortStatLine()}` },
       ]);
-      this.setObjective(`train it up:\n${this.shortStatLine()}`);
+      this.setObjective(`a year to train.\n${this.shortStatLine()}`);
       this.doorLight.setFillStyle(0xf2d580);
       return;
     }
@@ -1460,7 +1462,7 @@ export default class AstronautScene extends BaseLevel {
     // deep shadow: visor country
     this.shadows = this.objAll('shadow').map((o) => {
       const w = (o.w || 6) * T;
-      return this.add.rectangle(o.wx - T / 2 + w / 2, this.worldH / 2, w, this.worldH, 0x020203, 0.88).setDepth(87);
+      return this.add.rectangle(o.wx - T / 2 + w / 2, this.worldH / 2, w, this.worldH, 0x020203, 0.8).setDepth(87);
     });
 
     // the probe and its core
@@ -1488,7 +1490,7 @@ export default class AstronautScene extends BaseLevel {
     }, { when: () => this.F.rescue_on });
 
     const pd = this.obj('priya_down');
-    this.priyaDown = this.add.image(pd.wx, pd.wy + 8, 'npc-priya').setDepth(D.FOE).setAngle(80).setVisible(false);
+    this.priyaDown = this.add.image(pd.wx, pd.wy + 8, 'npc-priya').setDepth(88).setAngle(80).setVisible(false); // over the deep shadow (87): her lamp is on her
     this.priyaLight = this.add.circle(pd.wx, pd.wy, 64, 0xf2e0a0, 0.3).setBlendMode('ADD').setDepth(D.FOE - 1).setVisible(false); // her helmet lamp: she's the one lit thing down there
     this.addInteract(pd.wx, pd.wy, 'Priya', () => {
       this.carryingPriya = true;
@@ -1688,6 +1690,9 @@ export default class AstronautScene extends BaseLevel {
     const nearSurface = this.built.charAt(Math.floor(p.x / T), Math.floor((p.y - 34) / T)) !== '~' || this.built.charAt(Math.floor(p.x / T), Math.floor((p.y - 58) / T)) !== '~';
     if (jumpJust && nearSurface) {
       this.vaultUntil = time + 300;
+      let top = Math.floor(p.y / T);
+      while (this.built.charAt(Math.floor(p.x / T), top - 1) === '~') top--;
+      this.vaultSurface = top * T;
       p.y -= 10; // clear the surface tile at once so the boost isn't re-damped
       b.setVelocityY(-540);
       sfx('jump');
@@ -2053,7 +2058,7 @@ export default class AstronautScene extends BaseLevel {
       this.reeling = false;
       this.player.body.setAllowGravity(true);
     }
-    this.carry = null;
+    if (this.carry !== 'core') this.carry = null; // the core stays on him: d4's "...Yeah." has to be true
     this.carryingPriya = false;
     this.updateSatchel();
     if (lostHer) this.setObjective('the crater. go back for her.');
@@ -2113,6 +2118,11 @@ export default class AstronautScene extends BaseLevel {
       const overWater = this.built.charAt(Math.floor(p.x / T), Math.floor((p.y + 26) / T)) === '~';
       if (overWater && !p.body.onFloor()) p.lastGrounded = time;
       p.update(time, delta);
+      // out of the water on a vault: the same height at any frame rate
+      if (time < this.vaultUntil) {
+        this.vaultUntil = 0;
+        p.body.setVelocityY(-vaultSpeed(p.body.bottom, this.vaultSurface));
+      }
       if (this.carryingPriya) {
         p.body.velocity.x = Phaser.Math.Clamp(p.body.velocity.x, -140, 140);
         if (p.body.velocity.y < -420) p.body.setVelocityY(-420);
@@ -2172,7 +2182,7 @@ export default class AstronautScene extends BaseLevel {
     this.visor.setAlpha(this.visorOn && this.power > 0 ? 0.16 : 0);
     this.visorText.setVisible(this.visorOn && this.power > 0);
     if (this.visorOn) this.visorText.setText(`VISOR — ${this.objectiveText.text || 'no objective'}\n${'★ '.repeat(3)}`);
-    for (const s of this.shadows || []) s.setAlpha(this.visorOn && this.power > 0 ? 0.35 : 0.88);
+    for (const s of this.shadows || []) s.setAlpha(this.visorOn && this.power > 0 ? 0.35 : 0.8);
 
     // the gym minigames
     this.updateTrack(time, delta);

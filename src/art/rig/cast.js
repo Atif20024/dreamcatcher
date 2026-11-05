@@ -416,6 +416,7 @@ export function castPoses(rig, heldIn, opts = {}) {
     laugh: [P({ head: 'laugh', lean: -1, chest: 1 }), P({ head: 'laugh' })].map(hold),
     sit: [P(SEATED), P({ ...SEATED, chest: 1 })].map(hold),
     sitlaugh: [P({ ...SEATED, head: 'laugh', lean: -1 })].map(hold),
+    siteat: [P({ ...SEATED, head: 'talk', lean: 1, heldArm: [70, 105] })].map(hold),
     free: IDLE.map(plain),
     freewalk: G.walk.map(gaitPlain),
     alert: FOE.alert.map(plain),

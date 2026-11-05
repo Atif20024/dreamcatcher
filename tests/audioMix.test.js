@@ -61,6 +61,10 @@ const PLACES = {
   painter_speziale: { stems: frame({ keys: PAINTER, voices: {} }), key: 'speziale', state: 'quiet', loops: { rn_speziale: 1 }, bed: null, acoustics: 'room' },
   painter_hall: { stems: frame({ keys: PAINTER, voices: {} }), key: 'hall', state: 'quiet', loops: { rn_hall: 1 }, bed: null, acoustics: 'hall' },
   painter_palazzo: { stems: frame({ keys: PAINTER, voices: {} }), key: 'palazzo', state: 'quiet', loops: { rn_palazzo: 1 }, bed: null, acoustics: 'room' },
+  // the rank's extra voice stays in the mix (painter/music.js)
+  painter_street_known: { stems: frame({ keys: PAINTER, voices: {} }), key: 'street_known', state: 'explore', loops: { rn_street: 1 }, bed: null, acoustics: 'open' },
+  painter_piazza_sealed: { stems: frame({ keys: PAINTER, voices: {} }), key: 'piazza_sealed', state: 'explore', loops: { rn_piazza: 1 }, bed: 'piazza', acoustics: 'open' },
+  painter_palazzo_signed: { stems: frame({ keys: PAINTER, voices: {} }), key: 'palazzo_signed', state: 'quiet', loops: { rn_palazzo: 1 }, bed: null, acoustics: 'room' },
   painter_chapel: { stems: frame({ keys: PAINTER, voices: {} }), key: 'chapel', state: 'tense', loops: { rn_chapel: 1 }, bed: null, acoustics: 'chapel' },
   chef_kitchen: { band: 'chef', state: 'explore', boost: { bass: 1 }, loops: { sizzle: 1 }, bed: 'kitchen', acoustics: 'room', bpm: 110 },
   writer_attic: { band: 'writer', state: 'quiet', loops: { typewriter: 1 }, bed: 'writer', acoustics: 'room', bpm: 84 },
