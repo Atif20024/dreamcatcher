@@ -14,6 +14,7 @@ const RULES = [
   ['gambler', /^((npc|foe)-lq-|foe-(floor-security|collector|runner|lounge-bouncer|pit)\b)/],
   ['clockmaker', /^npc-sh-/],
   ['chef', /^(npc-rv-|foe-sous-chef\b)/],
+  ['racer', /^npc-pv-/],
 ];
 
 export const ownerOf = (key) => (RULES.find(([, re]) => re.test(key)) || ['hub'])[0];
@@ -28,5 +29,5 @@ export const PLACE_OWNERS = {
   gambler: ['gambler'],
   clockmaker: ['clockmaker'],
   evening: ['evening', 'crowd'],
-  racer: ['racer'], // the cars and road props (src/art/carKit.js); no people of its own yet
+  racer: ['racer'], // the cars and road props (src/art/carKit.js), and Pereval Corse's people
 };

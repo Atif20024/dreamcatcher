@@ -58,6 +58,7 @@ const PLACES_TO_SAMPLE = [
   ['painter', 'via'],
   ['gambler', 'quay'],
   ['clockmaker', null],
+  ['racer', 'garage'],
   ['evening', 'square'],
 ];
 export const JO_CONTRAST_MIN = 3;

@@ -8,7 +8,7 @@ import { BUDGET } from '../../core/PerfBudget.js';
 
 const T = 32;
 const FLAGS = { clockmaker: { clock_wound: true, struck: true, yard_seen: true, green_lit: true, nell_lamp: true }, painter: { assistant: true } };
-const DREAMS = ['clockmaker', 'musician', 'painter', 'chef', 'gambler'];
+const DREAMS = ['clockmaker', 'musician', 'painter', 'chef', 'gambler', 'racer'];
 
 async function timed(dc, s, frames, until, each = null) {
   const cam = s.cameras.main;

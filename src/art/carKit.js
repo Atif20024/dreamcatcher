@@ -324,6 +324,28 @@ function lightLamp(c, on) {
   return m;
 }
 
+// a whitewashed stone at the verge, 0.7 m, a red cap and a number's mark
+function milestone() {
+  const m = img(20, Math.round(px(0.7)));
+  rect(m, 2, 4, 16, m.height - 4, 0xece6d4);
+  rect(m, 14, 4, 4, m.height - 4, 0xc4bca8);
+  rect(m, 4, 1, 12, 3, 0xece6d4);
+  rect(m, 2, 3, 16, 2, 0xa84a30);
+  rect(m, 6, 12, 8, 2, 0x4a4438);
+  rect(m, 6, 17, 8, 2, 0x4a4438);
+  return m;
+}
+
+// a post and its rope, 1 m high and 2 m along: what keeps the village off the road
+function ropePost() {
+  const w = Math.round(px(2));
+  const h = Math.round(px(1));
+  const m = img(w, h);
+  rect(m, 0, 2, 4, h - 2, 0x6a5238);
+  for (let x = 4; x < w; x++) put(m, x, 6 + Math.round(10 * (1 - ((2 * x) / w - 1) ** 2)), 0xc8b890);
+  return m;
+}
+
 // every frame of the `cars` atlas: name → image
 export function carFrames() {
   const out = {};
@@ -336,6 +358,8 @@ export function carFrames() {
   for (const n of ['150', '100', '50']) out[`board-${n}`] = board(n);
   out.chevron = chevron();
   out.wall = wall();
+  out.milestone = milestone();
+  out.rope = ropePost();
   out.finish = checker();
   out.puff = puff();
   out.spark = spark();

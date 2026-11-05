@@ -9,8 +9,9 @@
 //   → back: this.scene.start('Dream', { dreamId: 'racer', resume: true, quietResume: true })
 import Phaser from 'phaser';
 import { Race, TUNE, chalkAt, raceLost } from '../engines/race.js';
+import { carTune } from '../dreams/racer/race/car.js';
 import { TRACKS, RACE_PAD } from '../dreams/racer/race/tracks.js';
-import { RaceRoad, M, laneY, laneScale, ROAD_BOT, ROAD_TOP, ROAD_SLIDE } from '../dreams/racer/race/RaceRoad.js';
+import { RaceRoad, freeTheme, keyOf, M, laneY, laneScale, ROAD_BOT, ROAD_TOP, ROAD_SLIDE } from '../dreams/racer/race/RaceRoad.js';
 import { RaceHud } from '../dreams/racer/race/RaceHud.js';
 import { applyResult, restarted, softAid, prizeOwed, clock, flagOf, costliest } from '../dreams/racer/race/result.js';
 import { WHEEL_STEPS, WHEEL_DEG, CAR_SIZE } from '../art/carKit.js';
@@ -96,7 +97,8 @@ export default class RaceScene extends Phaser.Scene {
     const flags = (getRun(DREAM) || {}).flags || {};
     this.aid = softAid(flags, track.id);
     this.firstRace = flags[flagOf(track.id, 'best')] === undefined && !flags[flagOf(track.id, 'tries')];
-    this.race = new Race(track, { rivals: [track.rival] });
+    this.race = new Race(track, { rivals: [track.rival], tune: carTune(track, flags) });
+    this.hot = !flags.tuned; // she left the bench still beating: a warning to look at, not a retune
     this.ended = false;
     this.saidGo = false; // (scene.restart reuses this object)
     this.saidLights = false;
@@ -115,10 +117,11 @@ export default class RaceScene extends Phaser.Scene {
     this.radioUntil = 0;
     this.escUp = true;
     this.wheelTurn = {};
-    this.cameras.main.setBackgroundColor(0x8ec4e0);
+    this.cameras.main.setBackgroundColor(track.theme.background);
     hud.bind(this, 'hub'); // the grid without hearts: nothing here costs a heart
     createLampTextures(this);
-    this.road = new RaceRoad(this);
+    this.keepTheme = false; // (a restart keeps the textures: only leaving the race frees them)
+    this.road = new RaceRoad(this, track.theme);
     this.buildTrackside();
     this.joCar = this.makeCar(this.race.jo, 'heron');
     this.rivalCars = this.race.rivals.map((r) => this.makeCar(r, track.rival.livery || 'roche'));
@@ -128,7 +131,9 @@ export default class RaceScene extends Phaser.Scene {
     this.lines = Array.from({ length: 7 }, (_, i) => this.add.rectangle(-200, 200 + i * 40, 120, 2, 0xffffff, 0.75).setVisible(false).setDepth(70));
     this.airStreaks = Array.from({ length: AIR.streaks }, () => this.add.rectangle(-200, 0, 100, 2, 0xf2e6cc, 0).setOrigin(1, 0.5).setVisible(false));
     this.hudView = new RaceHud(this, track, { aid: this.aid, teachBrake: this.firstRace });
-    this.look = setupLook(this, { vignette: 0.55, grain: 0.03 });
+    this.look = setupLook(this, track.theme.look);
+    this.heat = this.hot ? hud.meter('race-heat', { label: 'HOT', color: '#d5443c', order: 3 }) : null;
+    if (this.heat) this.heat.set(0);
     musicDirector.stop();
     ambience.stop();
     buses.ensure();
@@ -136,6 +141,7 @@ export default class RaceScene extends Phaser.Scene {
     this.engine = new EngineSynth();
     this.cameras.main.fadeIn(340, ...NIGHT);
     if (this.aid) this.radio('I will whisper the brake marks. Listen for me.', 3200);
+    else if (this.hot) this.radio('You left her beating. Watch the temperature.', 3200);
     this.events.once('shutdown', () => this.teardown());
     this.renderWorld();
   }
@@ -143,8 +149,10 @@ export default class RaceScene extends Phaser.Scene {
   teardown() {
     if (this.engine) this.engine.destroy();
     this.engine = null;
+    if (!this.keepTheme) freeTheme(this, this.track.theme);
     hud.region('race-speedo', null);
     hud.region('race-strip', null);
+    if (this.heat) this.heat.setVisible(false);
     if (this.pauseMenu) this.pauseMenu.destroy();
   }
 
@@ -159,6 +167,7 @@ export default class RaceScene extends Phaser.Scene {
     this.side = [];
     const farY = ROAD_TOP + 3;
     const nearY = ROAD_BOT + 40;
+    for (const c of t.theme.scenery || []) for (let d = c.at; d < (c.to ?? t.length + 60); d += c.every) add(d, c.side === 'near' ? nearY : farY, c.frame, c.side === 'near' ? 58 : 4.4, 1, c.painted ? keyOf(t.theme, c.frame) : 'cars');
     add(14, farY, 'gantry', 4.5);
     add(t.length, farY, 'finish', 4.5);
     add(t.length, nearY, 'finish', 58);
@@ -173,7 +182,7 @@ export default class RaceScene extends Phaser.Scene {
         else add(d, farY + 6, 'wall', 4.6);
       }
       for (let d = b.from; d < b.to; d += 24) add(d, b.side > 0 ? farY : nearY, 'chevron', b.side > 0 ? 4.5 : 58);
-      if (this.aid) {
+      if (this.aid || this.race.tune.chalk) {
         // Ottavia's chalk on the road: where to brake from the top speed, lane by lane (a lane is a line)
         for (const lane of [0, 1, 2]) {
           const mark = this.add.rectangle(-400, laneY(lane) - 16, 8, 30, 0xf2e6cc, 0.8).setDepth(5.5);
@@ -234,6 +243,7 @@ export default class RaceScene extends Phaser.Scene {
     this.renderWorld(dt);
     this.hudView.update(this.race, this.viewAhead());
     this.updateAudio();
+    if (this.heat) this.heat.set(Math.min(1, jo.d / (this.track.length * 0.6)));
     if (this.look) this.look.update(time, dt, null);
     if (this.radioUntil && time > this.radioUntil) {
       hud.set('caption', '');
@@ -372,7 +382,7 @@ export default class RaceScene extends Phaser.Scene {
     // and slides it, towards the outside: the road the car is being thrown across
     this.lean += (turn - this.lean) * easeTurn;
     cam.scrollY = Math.round(-this.lean * ROAD_SLIDE);
-    this.road.update(jd, c.v, this.lean);
+    this.road.update(jd, c.v, this.lean, this.camX);
     const X = (d) => this.camX + (d - jd) * M;
     for (const s of this.side) {
       const x = X(s.d);
@@ -569,6 +579,7 @@ export default class RaceScene extends Phaser.Scene {
     if (countIt && !this.ended && this.race.t > 3) this.saveFlags((f) => restarted(f, this.track));
     this.pauseMenu.destroy();
     const cam = this.cameras.main;
+    this.keepTheme = true;
     cam.once('camerafadeoutcomplete', () => this.scene.restart({ track: this.track.id }));
     cam.fadeOut(300, ...NIGHT);
   }

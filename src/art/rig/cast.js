@@ -210,6 +210,10 @@ const HELD = {
   glass: { rows: ['Z.Z', 'ZAZ', '.Z.', 'ZZZ'], ox: 1, oy: 3, arm: [30, 90] },
   banjo: { rows: ['....F', '...F.', '..F..', '.ZAA.', 'ZAAAA', 'AAxAA', '.AAA.'], ox: 3, oy: 3, arm: [20, 70], back: [40, 50] },
   clarinet: { rows: ['F', 'F', 'F', 'F', 'F', 'A', 'A'], ox: 0, oy: 1, arm: [70, 100] },
+  // THE LONG STRAIGHT: a spanner, a rag, a tyre on the shoulder
+  spanner: { rows: ['Z.Z', 'ZZZ', '.F.', '.F.', '.F.'], ox: 1, oy: 3, arm: [36, 80] },
+  rag: { rows: ['ZA', 'AA', 'Ax'], ox: 0, oy: 1, arm: [34, 90], hand: 'open' },
+  tyre: { rows: ['.AAAA.', 'AAxxAA', 'Ax..xA', 'Ax..xA', 'AAxxAA', '.AAAA.'], ox: 3, oy: 3, arm: [70, 100] },
   // signature props (src/art/rig/costumes.js)
   // the lamplighter's: taller than she is, a hook and a wick at the top
   pole: { rows: ['ZF', 'F.', 'F.', 'F.', 'F.', 'F.', 'F.', 'F.', 'F.', 'F.', 'F.', 'F.', 'F.', 'F.', 'F.', 'F.', 'F.', 'F.', 'f.', 'f.'], ox: 0, oy: 14, arm: [12, 60] },

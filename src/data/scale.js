@@ -435,6 +435,17 @@ Object.assign(CAST_BODIES, {
   'npc-rv-commis2': { sex: 'm', hat: 'toque', apron: true },
 });
 
+// THE LONG STRAIGHT: Pereval Corse, 1958 (looks in src/dreams/racer/people.js)
+Object.assign(CAST_BODIES, {
+  'npc-pv-ottavia': { sex: 'f', hat: 'wrap' },
+  'npc-pv-aldo': { sex: 'm', hat: 'cap', beard: 'moustache' },
+  'npc-pv-tullio': { body: 'elderly', sex: 'm', hat: 'cap' },
+  'npc-pv-nino': { body: 'teen', sex: 'm', hat: 'none', hair: 'crop' },
+  'npc-pv-sable': { sex: 'm', hat: 'bowler' },
+  'npc-pv-signora': { body: 'elderly', sex: 'f', hat: 'wrap', apron: true },
+  'npc-pv-agnese': { sex: 'f', hat: 'wrap', apron: true },
+});
+
 // The Long Evening at scale (owner: "last stop is out of proportions"): the
 // props that were still old string art at knee height. Report:
 // docs/redesign/round2/LAST_STOP_SCALE_REPORT.md

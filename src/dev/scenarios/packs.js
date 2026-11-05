@@ -43,8 +43,7 @@ export default [
         }
         out[place] = { asked: artAsked.size, wrong: wrongFor(place) };
       }
-      // (the racer has no people of its own yet: Jo is the hub's)
-      return { pass: Object.entries(out).every(([k, o]) => !o.wrong.length && (o.asked || k === 'racer')), detail: out };
+      return { pass: Object.entries(out).every(([, o]) => !o.wrong.length && o.asked), detail: out };
     },
   },
 ];

@@ -138,6 +138,15 @@ export const FOE_GAITS = {
   // (the table also names people with a gait of their own)
   'npc-sh-keeper': 'hitch',
   'ev-p-ansel': 'hitch',
+  // THE LONG STRAIGHT: Ottavia is always on her way to something, Aldo is tired,
+  // Tullio has a tyre on his shoulder, Nino bounces, Mr Sable has never hurried,
+  // the Signora strolls (her body's gait), the night sister hurries on soft shoes
+  'npc-pv-ottavia': 'busy',
+  'npc-pv-aldo': 'plod',
+  'npc-pv-tullio': 'carry',
+  'npc-pv-nino': 'kid',
+  'npc-pv-sable': 'measured',
+  'npc-pv-agnese': 'hurried',
 };
 // people who stand still for a living get no run (saves atlas space)
 export const NO_RUN = new Set(['foe-heckler', 'foe-talker', 'foe-lq-crake']);
@@ -209,6 +218,10 @@ const LOOP = {
   // the keeper turning a small brass wheel over, looking at it
   wheel: [0, 1, 2, 3, 2, 1, 0, 0].map((t, i) => P({ heldArm: [36 + t * 4, 80 - t * 6], aB: [16, 40 + t * 8], head: i === 6 ? 'blink' : 'down', lean: 1 })),
   crate: [0, 0, 1, 1, 0, 0, 0, 0].map((t) => P({ hips: t ? -1 : 0, lean: -t, chest: t })),
+  // THE LONG STRAIGHT: a spanner taking up a nut, a rag at the hands, a tyre hitched higher
+  spanner: [0, 1, 2, 3, 2, 1, 0, 0].map((t, i) => P({ heldArm: [30 + t * 12, 70 - t * 8], head: i === 6 ? 'blink' : 'down', lean: t > 1 ? 1 : 0 })),
+  rag: [0, 1, 0, 1, 0, 2, 2, 0].map((t) => P({ heldArm: [34 + (t === 1 ? 8 : 0), 90], aB: t === 2 ? [12, 20] : [34, 90], head: t === 2 ? 'up' : 'down' })),
+  tyre: [0, 0, 1, 2, 1, 0, 0, 0].map((t) => P({ hips: t === 2 ? -1 : 0, lean: t ? -1 : 0, chest: t === 2 ? 1 : 0 })),
   case: [0, 0, 1, 1, 0, 0, 0, 0].map((t, i) => P({ chest: t, headFlip: i === 4 || i === 5 })),
 };
 LOOP.kite_string = LOOP.string;

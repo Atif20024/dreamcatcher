@@ -102,7 +102,170 @@ function house(ctx, x, ground, w, h, P, r, lit = 0.5) {
     }
 }
 
+// THE LONG STRAIGHT's coast, spring 1958. Each is at the real size its parallax
+// implies: the far cliffs about 2 px/m, the village 11, the pines 20.
+const COAST_PX = { village: 11, pines: 20 };
+
+function stoneHouse(ctx, x, ground, wM, storeys, P, r, s) {
+  const w = wM * s;
+  const h = storeys * 3.2 * s;
+  ctx.fillStyle = hex(mix(mix(P.house, P.deep, r.frac() * 0.14), P.sky, P.haze ?? 0));
+  ctx.fillRect(x, ground - h, w, h);
+  // courses of stone, a few picked out
+  for (let i = 0; i < 18; i++) {
+    ctx.fillStyle = rgba(i % 3 ? P.deep : P.light, 0.1);
+    ctx.fillRect(x + r.frac() * (w - 8), ground - r.frac() * h, 5 + r.frac() * 6, 2);
+  }
+  ctx.fillStyle = hex(mix(mix(P.roof, P.deep, r.frac() * 0.2), P.sky, P.haze ?? 0));
+  ctx.beginPath();
+  ctx.moveTo(x - 3, ground - h);
+  ctx.lineTo(x + w / 2, ground - h - w * 0.16);
+  ctx.lineTo(x + w + 3, ground - h);
+  ctx.closePath();
+  ctx.fill();
+  // shutters: closed against the sun
+  for (let f = 0; f < storeys; f++) {
+    for (let c = 0; c < Math.max(1, Math.floor(wM / 3.5)); c++) {
+      const wx = x + 0.9 * s + c * 3.5 * s;
+      const wy = ground - (f + 0.78) * 3.2 * s;
+      ctx.fillStyle = hex(P.window);
+      ctx.fillRect(wx, wy, 1.1 * s, 1.6 * s);
+      ctx.fillStyle = hex(mix(0x3a6a5a, P.sky, P.haze ?? 0));
+      ctx.fillRect(wx - 0.35 * s, wy, 0.35 * s, 1.6 * s);
+      ctx.fillRect(wx + 1.1 * s, wy, 0.35 * s, 1.6 * s);
+    }
+  }
+}
+
+// an umbrella pine: a bare leaning trunk, a flat dark crown
+function umbrellaPine(ctx, x, ground, s, P, r) {
+  const trunkH = (9 + r.frac() * 2.5) * s;
+  const lean = (r.frac() - 0.5) * 1.6 * s;
+  ctx.strokeStyle = hex(mix(P.trunk, P.sky, P.haze ?? 0));
+  ctx.lineWidth = 0.5 * s;
+  ctx.beginPath();
+  ctx.moveTo(x, ground);
+  ctx.quadraticCurveTo(x, ground - trunkH * 0.6, x + lean, ground - trunkH);
+  ctx.stroke();
+  for (const d of [-1, 1]) {
+    ctx.lineWidth = 0.2 * s;
+    ctx.beginPath();
+    ctx.moveTo(x + lean * 0.8, ground - trunkH * 0.8);
+    ctx.lineTo(x + lean + d * 2.4 * s, ground - trunkH - 0.2 * s);
+    ctx.stroke();
+  }
+  const leaf = mix(P.leaf, P.sky, P.haze ?? 0);
+  const rx = (3.6 + r.frac()) * s;
+  for (let i = 0; i < 26; i++) {
+    const a = i / 26;
+    const dome = 1 - (a * 2 - 1) ** 2;
+    ctx.fillStyle = hex(mix(leaf, i % 3 ? P.deep : P.light, i % 3 ? 0.18 : 0.1));
+    ctx.beginPath();
+    ctx.ellipse(x + lean + (a * 2 - 1) * rx, ground - trunkH - dome * 1.2 * s + (i % 2) * 0.3 * s, 0.9 * s, 0.5 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function cypress(ctx, x, ground, s, P) {
+  ctx.fillStyle = hex(mix(mix(P.leaf, P.deep, 0.4), P.sky, P.haze ?? 0));
+  ctx.beginPath();
+  ctx.moveTo(x, ground - 11 * s);
+  ctx.quadraticCurveTo(x + 1 * s, ground - 5 * s, x + 0.6 * s, ground);
+  ctx.lineTo(x - 0.6 * s, ground);
+  ctx.quadraticCurveTo(x - 1 * s, ground - 5 * s, x, ground - 11 * s);
+  ctx.fill();
+}
+
 const LAYERS = {
+  // limestone headlands going down into a thin strip of sea, the haze over them
+  coast_cliffs(P, seed) {
+    const H = 240;
+    return tileable(LAYER_W, H, (ctx, W) => {
+      const r = rand(seed);
+      ridge(ctx, W, H, 70, 70, mix(P.hill, P.sky, 0.62), seed + 1);
+      ctx.fillStyle = hex(mix(P.sea, P.sky, 0.3));
+      ctx.fillRect(-2, H - 26, W + 4, 26);
+      ctx.fillStyle = rgba(P.light, 0.35);
+      for (let i = 0; i < 40; i++) ctx.fillRect(r.frac() * W, H - 24 + r.frac() * 22, 8 + r.frac() * 20, 1);
+      for (let i = 0; i < 4; i++) {
+        const cx = (W * (i + r.frac() * 0.5)) / 4;
+        const w = 140 + r.frac() * 90;
+        const h = 70 + r.frac() * 60;
+        const b = H - 22;
+        ctx.fillStyle = hex(mix(P.hill, P.sky, 0.35));
+        ctx.beginPath();
+        ctx.moveTo(cx - w, b);
+        ctx.lineTo(cx - w * 0.5, b - h * 0.8);
+        ctx.lineTo(cx - w * 0.1, b - h);
+        ctx.lineTo(cx + w * 0.55, b - h * 0.86);
+        ctx.lineTo(cx + w * 0.72, b - h * 0.24);
+        ctx.lineTo(cx + w * 0.86, b);
+        ctx.fill();
+        // the white face and its strata; the scrub on top
+        ctx.fillStyle = rgba(P.light, 0.5);
+        ctx.fillRect(cx + w * 0.42, b - h * 0.8, w * 0.28, h * 0.8);
+        for (let k = 0; k < 7; k++) {
+          ctx.fillStyle = rgba(P.deep, 0.1);
+          ctx.fillRect(cx - w * 0.5, b - h * (0.1 + k * 0.1), w * 1.2, 2);
+        }
+        ctx.fillStyle = hex(mix(P.leaf, P.sky, 0.45));
+        for (let k = 0; k < 16; k++) ctx.fillRect(cx - w * 0.5 + (k / 16) * w, b - h * (0.84 + 0.16 * Math.sin((k / 16) * Math.PI * 0.9)) - 2, 9, 4);
+      }
+    });
+  },
+  // the stone village on its hill: terraced vines behind, a campanile over the roofs
+  coast_village(P, seed) {
+    const H = 290;
+    const s = COAST_PX.village;
+    return tileable(LAYER_W, H, (ctx, W) => {
+      const r = rand(seed);
+      ridge(ctx, W, H, 110, 60, mix(P.hill, P.sky, 0.3), seed + 2);
+      // terraces: dry walls along the hill, rows of vines between them
+      for (let y = H - 60; y > H - 165; y -= 18) {
+        ctx.fillStyle = rgba(P.deep, 0.16);
+        ctx.fillRect(-2, y, W + 4, 2);
+        ctx.fillStyle = rgba(P.leaf, 0.3);
+        for (let x = (y * 3) % 14; x < W; x += 10 + r.between(0, 16)) ctx.fillRect(x, y - 7, 6 + r.between(0, 6), 6);
+      }
+      const tower = 120 + r.between(0, 400);
+      for (let x = 0; x < W; ) {
+        const wM = 6 + r.frac() * 5;
+        stoneHouse(ctx, x, H, wM, r.between(2, 3), P, r, s);
+        x += wM * s + r.between(0, 1) * 18;
+      }
+      // the campanile: 22 m of stone and an open belfry
+      ctx.fillStyle = hex(mix(mix(P.house, P.light, 0.15), P.sky, P.haze ?? 0));
+      ctx.fillRect(tower, H - 22 * s, 4.4 * s, 22 * s);
+      ctx.fillStyle = hex(P.window);
+      ctx.fillRect(tower + 1.4 * s, H - 20.6 * s, 1.6 * s, 3 * s);
+      ctx.fillStyle = hex(mix(P.roof, P.sky, P.haze ?? 0));
+      ctx.beginPath();
+      ctx.moveTo(tower - 4, H - 22 * s);
+      ctx.lineTo(tower + 2.2 * s, H - 24.2 * s);
+      ctx.lineTo(tower + 4.4 * s + 4, H - 22 * s);
+      ctx.fill();
+      ctx.fillStyle = rgba(P.deep, 0.12);
+      ctx.fillRect(tower + 3.4 * s, H - 22 * s, 1 * s, 22 * s);
+    });
+  },
+  // umbrella pines and cypress, close to the road, over a low dry wall
+  coast_pines(P, seed) {
+    const H = 300;
+    const s = COAST_PX.pines;
+    return tileable(LAYER_W, H, (ctx, W) => {
+      const r = rand(seed);
+      for (let x = 20; x < W - 20; x += 110 + r.frac() * 170) {
+        if (r.frac() < 0.3) cypress(ctx, x, H, s, P);
+        else umbrellaPine(ctx, x, H, s, P, r);
+      }
+      ctx.fillStyle = hex(mix(P.house, P.deep, 0.2));
+      ctx.fillRect(-2, H - 1.2 * s, W + 4, 1.2 * s);
+      for (let i = 0; i < 200; i++) {
+        ctx.fillStyle = rgba(i % 3 ? P.deep : P.light, 0.16);
+        ctx.fillRect(r.frac() * W, H - 1.2 * s + r.frac() * 1.1 * s, 7, 3);
+      }
+    });
+  },
   // rolling hills with a far town on them: spire, roofs, a few lights
   hills_town(P, seed) {
     const H = 240;
@@ -482,6 +645,11 @@ export function paintBackdropLayer(kind, palette, seed = 1) {
   grain(g, 0, 0, c.width, c.height, 0.05, seed);
   cache.set(key, c);
   return c;
+}
+
+// let a painted canvas go (the cache would keep it for ever: the race frees its theme)
+export function forgetPainted(canvas) {
+  for (const [k, c] of cache) if (c === canvas) cache.delete(k);
 }
 
 // sky: { top, mid, bottom, sun?: {x, y, r, color}, stars?: n, clouds?: n, seed }
