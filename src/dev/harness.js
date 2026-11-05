@@ -138,7 +138,8 @@ const dc = {
       if (k !== 'UI' && k !== 'Boot' && s.sys.settings.status >= 1 && s.sys.settings.status <= 7) g.scene.stop(k);
     });
     // a framework dream gets its id and place as data (DreamScene)
-    g.scene.start(d.scene, d.framework ? { dreamId: dream, warp: place || null } : undefined);
+    // never undefined: Phaser would reuse the scene's last data, and an old resume restores the old run
+    g.scene.start(d.scene, d.framework ? { dreamId: dream, warp: place || null } : {});
     if (!g.scene.isActive('UI')) g.scene.start('UI');
     dc.step(2);
     return dc.state();
