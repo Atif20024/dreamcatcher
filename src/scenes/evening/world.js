@@ -135,6 +135,14 @@ const grassAt = (tx) => {
 export function bucketTerrain(scene) {
   const cols = [];
   const tiles = scene.children.list.filter((o) => o.texture && o.texture.key && o.texture.key.startsWith('eve_'));
+  // the hedge goes when the road opens: the deck under it is deck, not buried stone
+  const deck = tiles.filter((o) => o.tileRole === 'solid' && Math.floor(o.x / T) === EV.HEDGE[0] - 1);
+  for (const o of tiles) {
+    if (o.tileRole === 'solid' && EV.HEDGE.includes(Math.floor(o.x / T))) {
+      const d = deck.find((n) => n.ty === o.ty);
+      if (d) o.setTexture(d.texture.key).setTint(d.tintTopLeft);
+    }
+  }
   for (const o of tiles) {
     const tx = Math.floor(o.x / T);
     o.baseTint = o.tintTopLeft;
