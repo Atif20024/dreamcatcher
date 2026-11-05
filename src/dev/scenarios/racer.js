@@ -23,8 +23,15 @@
 //   racer-hud-diet      the static plates go, grip stays hidden, the call has its units and its side
 //   racer-card          the result card says what the run did, by the kind of gate
 //   racer-garage-lines  the bench and the rack offer their verbs (src/dev/scenarios/racerPlaces.js does them)
-import { getRun, clearRun, getSave } from '../../utils/save.js';
-import { flagOf } from '../../dreams/racer/race/result.js';
+//   racer-harbour       race 2: his lamps, the Gull lamp, the dark, the garage with done_race2
+//   racer-salt          race 3: HOLD, Cassian's tell (lamps twice, the head), the crossing and train, the oil
+//   racer-coppa         race 4: the lamp, the box, the wheel, stop or pass, the held note
+//   racer-journey       the four days: goal, day card, the pit wall, crowd, Jo's car, each its own; texture budget
+//   racer-night         the bend's whitewash against the verge past the headlights, in numbers
+//   racer-frame-days    frame time and draw calls on each day's busiest stretches, under the plan's budget
+//   racer-sounds-offline the untuned 2 Hz beat, gravel, tell, bell, crack, the crowd, the one note (rendered, no speakers)
+import { getRun, setRun, clearRun, getSave } from '../../utils/save.js';
+import { flagOf, clock } from '../../dreams/racer/race/result.js';
 import { CAR_LEN, TUNE } from '../../engines/race.js';
 import { TRACKS } from '../../dreams/racer/race/tracks.js';
 import { packsFor } from '../../art/baked.js';
@@ -63,9 +70,10 @@ async function toRace(dc) {
 // the flat road, with the rival and the wall: the same scene, restarted on it
 async function toTest(dc) {
   const r = await toRace(dc);
+  const old = r.race;
   r.keepTheme = true;
   r.scene.restart({ track: 'test' });
-  await until(dc, () => dc.scene() && dc.scene().race && dc.scene().track.id === 'test' && dc.scene().race !== r.race);
+  await until(dc, () => dc.scene() && dc.scene().race && dc.scene().track.id === 'test' && dc.scene().race !== old);
   return dc.scene();
 }
 
@@ -92,10 +100,40 @@ async function rollingTest(dc, jo = {}) {
   return r;
 }
 
+// To a race at once, with the run's flags, and (if d is given) under way there with everyone
+// on the grid's offsets from Jo. `__dc.race(...)` is this, for a person looking at the picture
+export async function warpRace(dc, track, { flags = {}, d, v = 28, x = 0 } = {}) {
+  const r0 = await toRace(dc);
+  const run = getRun('racer');
+  run.flags = { tuned: true, ...run.flags, ...flags };
+  setRun('racer', run);
+  const old = r0.race;
+  r0.keepTheme = true;
+  r0.scene.restart({ track });
+  await until(dc, () => dc.scene() && dc.scene().race && dc.scene().track.id === track && dc.scene().race !== old);
+  const r = dc.scene();
+  await dc.run(6); // (the sky and the land, one a frame)
+  if (d !== undefined) {
+    past(r, { d, v, x, prevX: x, lampD: r.track.lamps.filter((l) => l <= d).pop() ?? 0 });
+    for (const c of r.race.rivals) Object.assign(c, { d: c.d + d, prevD: c.d + d, v });
+    r.race.cues = r.race.cues.filter((q) => q.at > d);
+    r.race.t = 2; // (the lights are long gone)
+    // the Coppa's second lap: everybody has stopped, the lamp is lit
+    const stalls = r.track.script?.stalls;
+    if (stalls && d > r.track.script.box.d + r.track.script.box.len) {
+      Object.assign(r.race.script, { pit: 'done', lamp: 'lit' });
+      r.view.setPool(true);
+      for (const c of r.race.rivals) c.pitted = true;
+    }
+    await dc.run(1);
+  }
+  return r;
+}
+
 // the last few metres: over or under the sheet's time
 const nearLine = (r, inTime) => {
   const L = r.track.length;
-  r.race.t = inTime ? 28 : 40;
+  r.race.t = r.track.gate.time + (inTime ? -6 : 6);
   r.race.launchTried = true;
   Object.assign(r.race.jo, { d: L - 5, prevD: L - 5, lampD: 350, v: 30, x: 0, prevX: 0 });
 };
@@ -205,7 +243,7 @@ const failMessage = {
     rows.aidNow = r.aid;
     rows.chalk = r.view.chalk.length;
     rows.paid = getSave().wallet.total - wallet0;
-    return { pass: rows.tries.join() === '1,2,3' && rows.state.items[0] === 'again' && rows.aidNow === true && rows.chalk === TRACKS.pinewood.bends.length && rows.paid === 0 && /kindly/.test(rows.lines.join(' ')) && /0:34\.0/.test(rows.lines.join(' ')), detail: rows };
+    return { pass: rows.tries.join() === '1,2,3' && rows.state.items[0] === 'again' && rows.aidNow === true && rows.chalk === TRACKS.pinewood.bends.length && rows.paid === 0 && /kindly/.test(rows.lines.join(' ')) && rows.lines.join(' ').includes(clock(TRACKS.pinewood.gate.time)), detail: rows };
   },
 };
 
@@ -552,7 +590,7 @@ const platform = {
     rows.room = dc.scene().roomId;
     await dc.run(30);
     rows.objective = hud.s.objective;
-    return { pass: rows.bay === 155 && rows.g === 148 && rows.row.status === 'BOARDING' && !rows.train.out && rows.running === 7 && rows.caught === 0 && rows.turnstile > rows.train.gate + 100 && rows.intro === 'Intro' && rows.dream === 'racer' && rows.room === 'garage', detail: rows };
+    return { pass: rows.bay === 155 && rows.g === 148 && rows.row.status === 'BOARDING' && !rows.train.out && rows.running === 8 && rows.caught === 1 && rows.turnstile > rows.train.gate + 100 && rows.intro === 'Intro' && rows.dream === 'racer' && rows.room === 'garage', detail: rows };
   },
 };
 
@@ -815,7 +853,8 @@ const hudDiet = {
     rows.gripLatched = (race.jo.grip = 0.9, await dc.run(2), grip());
     rows.readability = dc.readability();
     const callOk = rows.calls.length > 0 && rows.calls.every((c) => /(LEFT|RIGHT|BRAKE)/.test(c));
-    return { pass: /Aldo/.test(rows.goalAt0) && rows.levelAt0 && rows.gripHidden && !rows.level && !rows.goal && !rows.footer && callOk && rows.calls.length < 8 && rows.gripShownWhenWorn && rows.gripLatched && !rows.readability.length, detail: rows };
+    // (the goal stays: it is what today is about; the name of the race has been read)
+    return { pass: /Aldo/.test(rows.goalAt0) && rows.levelAt0 && rows.gripHidden && !rows.level && /Aldo/.test(rows.goal) && !rows.footer && callOk && rows.calls.length < 8 && rows.gripShownWhenWorn && rows.gripLatched && !rows.readability.length, detail: rows };
   },
 };
 
@@ -845,7 +884,7 @@ const card = {
     dc.releaseAll();
     const lines = r.pauseMenu.lines.join(' | ');
     const rows = { seat, title, win: lines };
-    return { pass: /seat is yours/.test(seat) && /Aldo's time: 0:34\.0/.test(seat) && !/^P/.test(title) && /5 times/.test(lines) && /2 rubs/.test(lines) && /1 sling/.test(lines) && /behind you/.test(lines) && /Ottavia's time: 0:44\.5/.test(lines) && !/only twice/.test(lines), detail: rows };
+    return { pass: /seat is yours/.test(seat) && seat.includes(`Aldo's time: ${clock(TRACKS.pinewood.gate.time)}`) && !/^P/.test(title) && /5 times/.test(lines) && /2 rubs/.test(lines) && /Out of his air once/.test(lines) && /behind you/.test(lines) && lines.includes(`Ottavia's time: ${clock(TRACKS.test.target)}`) && !/only twice/.test(lines), detail: rows };
   },
 };
 
@@ -865,4 +904,397 @@ const garageLines = {
   },
 };
 
-export default [raceStart, finishReturn, failMessage, failFair, pause, touchDrive, draft, engineOffline, frameTime, textures, platform, beatState, beatOffline, again, spinPause, hitStop, bendVisible, crest, hudDiet, card, garageLines];
+// ---- races 2, 3 and 4 in the view ------------------------------------------------------
+const framesShown = (r) => r.view.pool.filter((p) => p.visible).map((p) => p.frame.name);
+const shownLike = (r, re) => framesShown(r).filter((n) => re.test(n));
+// held on the road, whatever the bend: these look at what the view does, not at how he drives
+const pinned = (r, x = -0.05) => async (dc, frames, test = null) => {
+  for (let i = 0; i < frames; i++) {
+    if (test && test()) return i;
+    r.race.jo.x = r.race.jo.prevX = typeof x === 'function' ? x() : x;
+    await dc.run(1);
+  }
+  return -1;
+};
+
+const harbourNight = {
+  id: 'racer-harbour',
+  expect: 'pass',
+  async run(dc) {
+    const cue = TRACKS.harbour.script.gullCue;
+    const r = await warpRace(dc, 'harbour', { d: cue - 80, v: 30 });
+    const race = r.race;
+    const s = race.script;
+    const aldo = race.rivals.find((c) => c.id === 'aldo');
+    const rows = { objective: hud.s.objective, lampBefore: s.lamp };
+    await dc.run(2);
+    rows.tailsLit = shownLike(r, /^tail-on/).length > 0;
+    rows.gullFrame = shownLike(r, /^gull/)[0];
+    const drive = pinned(r, () => aldo.x);
+    dc.hold('up');
+    await drive(dc, 400, () => s.state === 'wide');
+    dc.releaseAll();
+    rows.wide = r.hudView.radioTx.rawText;
+    rows.heldAldo = s.flags.held_aldo;
+    await until(dc, () => s.state === 'dark', 400);
+    await dc.run(2);
+    rows.lampAfter = s.lamp;
+    rows.lightsOut = r.view.tailOff.has(aldo);
+    rows.smoke = r.view.actors.filter((a) => a.frame === 'smoke').length;
+    rows.voices = r.engine.state().voices.map((v) => v.id);
+    rows.poolGone = r.view.shadeSeg[Math.floor(TRACKS.harbour.things.find((o) => o.kind === 'gull_lamp').d / 4)] < 3;
+    await until(dc, () => r.darkFaded, 300);
+    rows.pictureGoes = r.cameras.main.fadeEffect.isRunning;
+    await until(dc, () => dc.scene() && dc.scene().sys.settings.key === 'Dream', 400);
+    rows.flags = getRun('racer').flags;
+    rows.result = !!race.result;
+    return { pass: /Aldo's air/.test(rows.objective) && rows.lampBefore === 'lit' && rows.tailsLit && /ALDO: Wide/i.test(rows.wide) && rows.heldAldo === true && rows.lampAfter === 'dark' && rows.lightsOut && rows.smoke > 0 && !rows.voices.includes('aldo') && rows.poolGone && rows.pictureGoes && rows.flags.done_race2 === true && rows.flags.held_aldo === true && !rows.result, detail: { ...rows, flags: { done_race2: rows.flags.done_race2, held_aldo: rows.flags.held_aldo } } };
+  },
+};
+
+const saltDay = {
+  id: 'racer-salt',
+  expect: 'pass',
+  async run(dc) {
+    const rows = {};
+    // the orders: the slate, the goal, and what passing him costs
+    let r = await warpRace(dc, 'salt', { flags: { sable_orders: true, tyres_short: true } });
+    rows.radio = r.hudView.radioTx.rawText;
+    rows.objective = hud.s.objective;
+    rows.grip = hud.s.meters.find((m) => m.id === 'grip').visible;
+    r.race.t = 2;
+    Object.assign(r.race.jo, { d: 2, prevD: 2, v: 20 });
+    for (const c of r.race.rivals) c.v = 20;
+    await dc.run(20);
+    rows.slate = r.view.slateText;
+    rows.slateNear = shownLike(r, /__BASE|^slate/).length;
+    const dante = r.race.rivals.find((c) => c.id === 'dante');
+    Object.assign(r.race.jo, { d: dante.d + 30, prevD: dante.d + 30 });
+    await dc.run(3);
+    rows.broken = r.race.script.flags.broke_orders;
+    rows.brokeLine = r.hudView.radioTx.rawText;
+
+    // Cassian's tell: at speed, in his air, on a straight: the lamps twice and the head comes round
+    r = await warpRace(dc, 'salt', { d: 150, v: 33 });
+    const c = r.race.rivals.find((q) => q.id === 'cassian');
+    Object.assign(r.race.jo, { x: c.x, prevX: c.x, d: c.d - 12, prevD: c.d - 12, v: c.v });
+    dc.hold('up');
+    rows.tellAfter = await until(dc, () => c.tellAt > 0, 500);
+    await dc.run(1);
+    rows.look = shownLike(r, /^rear-roche-look/).length;
+    rows.lamps = shownLike(r, /^tail-lit/).length;
+    rows.tellLine = r.hudView.radioTx.rawText;
+    rows.sting = r.engine.state().sting;
+    // … twice: lit, dark, lit, dark
+    const seq = [];
+    for (let i = 0; i < 26; i++) {
+      seq.push(shownLike(r, /^tail-lit/).length > 0 && !c.braking ? 1 : 0);
+      await dc.run(1);
+    }
+    rows.flashes = seq.join('').replace(/0+/g, '0').replace(/1+/g, '1');
+    dc.releaseAll();
+
+    // the crossing: bell, lamps turn about, the arm comes down, a train goes by, and it all goes back
+    const xing = TRACKS.salt.things.find((q) => q.kind === 'crossing');
+    r = await warpRace(dc, 'salt', { d: xing.d - xing.bell - 40, v: 14 });
+    const o = r.race.crossings[0];
+    dc.hold('up');
+    await until(dc, () => o.state === 'bell', 300);
+    dc.releaseAll();
+    await dc.run(2);
+    rows.bell = r.engine.state().bell;
+    rows.bellLine = r.hudView.radioTx.rawText;
+    const posts = new Set();
+    const arms = new Set();
+    for (let i = 0; i < 200 && o.state === 'bell'; i++) {
+      await dc.run(1);
+      shownLike(r, /^cross[AB]/).forEach((n) => posts.add(n[5]));
+      shownLike(r, /^gate/).forEach((n) => arms.add(n[4]));
+    }
+    rows.posts = [...posts].sort().join('');
+    rows.arms = [...arms].sort().join('');
+    await dc.run(60);
+    rows.train = shownLike(r, /^train/).length;
+    const tx0 = r.view.crossT.x;
+    await dc.run(30);
+    rows.trainMoves = r.view.crossT.x - tx0;
+    await until(dc, () => o.state === 'open', 300);
+    await dc.run(2);
+    rows.bellAfter = r.engine.state().bell;
+    rows.trainAfter = shownLike(r, /^train/).length;
+
+    // Teo's oil: on the road, where he dropped it, and Jo has a line for it
+    r = await warpRace(dc, 'salt', { d: 300, v: 30, x: 0 });
+    const teo = r.race.rivals.find((q) => q.id === 'teo');
+    Object.assign(teo, { d: 340, prevD: 340, x: 0 });
+    r.race.dropOil(teo);
+    await dc.run(1);
+    rows.oilMarks = r.view.marks.flat().filter(Boolean).length;
+    Object.assign(r.race.jo, { d: 338, prevD: 338, x: 0, prevX: 0, v: 30, ghost: 0 });
+    await until(dc, () => r.race.jo.wobbleT > 0, 60);
+    await dc.run(1);
+    rows.oilLine = r.hudView.radioTx.rawText;
+    const ok = /last month/.test(rows.radio) && /Dante/.test(rows.objective) && rows.grip && rows.slate === 'HOLD' && rows.slateNear > 0 && rows.broken === true && /paper you signed/.test(rows.brokeLine)
+      && rows.tellAfter >= 0 && rows.look > 0 && /shut the door/.test(rows.tellLine) && rows.sting === 'tell' && rows.flashes.includes('1010')
+      && rows.bell && /bell/i.test(rows.bellLine) && rows.posts === 'AB' && rows.arms.includes('0') && rows.arms.includes('2') && rows.train > 0 && rows.trainMoves > 0 && !rows.bellAfter && rows.trainAfter === 0
+      && rows.oilMarks > 0 && /Oil/.test(rows.oilLine);
+    return { pass: ok, detail: rows };
+  },
+};
+
+const coppaDay = {
+  id: 'racer-coppa',
+  expect: 'pass',
+  async run(dc) {
+    const rows = {};
+    const flags = { sable_whole: true, mark_brake: true, mark_turn: true, mark_apex: true, pit_clean: true };
+    // the lamp: dark from the start, the only one; lit on the way past
+    const K = TRACKS.coppa;
+    const lapLamp = K.lapLen + K.script.lamp;
+    let r = await warpRace(dc, 'coppa', { d: K.script.lamp - 55, v: 28, x: 0, flags });
+    await dc.run(1);
+    rows.objective = hud.s.objective;
+    rows.gull = shownLike(r, /^gull/)[0];
+    rows.others = shownLike(r, /^lamp@/).length;
+    const drive0 = pinned(r);
+    dc.hold('up');
+    await drive0(dc, 200, () => r.race.script.lamp === 'lit');
+    dc.releaseAll();
+    await dc.run(1);
+    rows.lit = r.race.script.lamp;
+    rows.poolOn = r.view.shadeSeg[Math.floor(K.script.lamp / 4)];
+    rows.marks = r.view.marks.flat().filter(Boolean).length;
+
+    // the box: a stop on the paint, the slate says GO
+    r = await warpRace(dc, 'coppa', { d: K.script.box.d - 30, v: 15, x: 0, flags });
+    for (const c of r.race.rivals) c.pitted = true;
+    const box = r.track.script.box;
+    const stopAt = box.d + 6 - 1.9;
+    rows.call = (await until(dc, () => r.hudView.callTx.visible, 20), r.hudView.callTx.rawText);
+    Object.assign(r.race.jo, { d: stopAt, prevD: stopAt, v: 0.2 });
+    await until(dc, () => r.race.script.pit === 'in', 20);
+    await dc.run(30);
+    rows.crew = r.view.actors.filter((a) => a.frame === 'crew').length;
+    await until(dc, () => r.race.script.pit === 'done', 300);
+    await dc.run(2);
+    rows.go = r.view.slateText;
+
+    // the wheel, and stopping for him
+    r = await warpRace(dc, 'coppa', { d: lapLamp - 55, v: 28, x: -0.1, flags });
+    let drive = pinned(r);
+    dc.hold('up');
+    await drive(dc, 500, () => r.race.script.wheel === 'off');
+    await dc.run(2);
+    rows.sting = r.engine.state().sting;
+    rows.wheelCall = r.hudView.callTx.rawText;
+    rows.wheelLine = r.hudView.radioTx.rawText;
+    rows.brokeFrame = shownLike(r, /^rear-roche-broke/).length;
+    rows.wheelActor = r.view.actors.some((a) => a.frame === 'wheel');
+    rows.engineGone = !r.engine.state().voices.some((v) => v.id === 'cassian');
+    dc.releaseAll();
+    dc.hold('down');
+    await drive(dc, 400, () => r.race.script.wheel === 'helping');
+    dc.releaseAll();
+    await drive(dc, 90);
+    rows.joOut = r.view.joOut;
+    rows.people = [...new Set(r.view.actors.map((a) => a.frame))].filter((f) => /jo0|cassian|marshal/.test(f));
+    rows.stopLine = r.hudView.radioTx.rawText;
+    rows.camBack = +r.view.camBack.toFixed(1);
+    await drive(dc, 300, () => r.race.script.wheel === 'helped');
+    await dc.run(2);
+    rows.driveLine = r.hudView.radioTx.rawText;
+    // the line, first: the note, alone, and then her
+    for (const c of r.race.rivals) if (!c.out) Object.assign(c, { d: K.length - 120, prevD: K.length - 120 });
+    Object.assign(r.race.jo, { d: K.length - 5, prevD: K.length - 5, v: 30 });
+    dc.hold('up');
+    await drive(dc, 60, () => r.race.result);
+    dc.releaseAll();
+    rows.note = r.engine.state().held;
+    rows.voiceAlone = r.engine.state().voices.length;
+    rows.saved = (({ helped_cassian: a, passed_cassian: b }) => ({ a, b }))(getRun('racer').flags);
+    await drive(dc, 120);
+    rows.deadOn = r.hudView.radioTx.rawText;
+    await until(dc, () => r.pauseMenu.isOpen, 300);
+    rows.card = r.pauseMenu.lines.join(' | ');
+    r.pauseMenu.destroy();
+
+    // and driving by
+    r = await warpRace(dc, 'coppa', { d: lapLamp - 55, v: 28, x: -0.1 });
+    drive = pinned(r);
+    dc.hold('up');
+    await drive(dc, 700, () => r.race.script.wheel === 'passed');
+    dc.releaseAll();
+    rows.passed = r.race.script.flags.passed_cassian;
+    rows.passLine = r.hudView.radioTx.rawText;
+    const ok = /win the Coppa/.test(rows.objective) && /^gullDark/.test(rows.gull) && rows.others === 0 && rows.lit === 'lit' && rows.poolOn >= 3 && rows.marks > 0
+      && /PAINT/.test(rows.call) && rows.crew === 2 && rows.go === 'GO'
+      && rows.sting === 'crack' && /BRAKE TO STOP/.test(rows.wheelCall) && /his wheel/.test(rows.wheelLine) && rows.wheelActor && rows.engineGone
+      && rows.joOut && rows.people.length >= 3 && /I'm up/.test(rows.stopLine) && /Six seconds/.test(rows.driveLine) && rows.note > 0 && rows.voiceAlone === 1 && rows.saved.a === true && /dead on/.test(rows.deadOn) && /dead on/.test(rows.card)
+      && rows.passed === true && /Drive/.test(rows.passLine);
+    return { pass: ok, detail: rows };
+  },
+};
+
+// the race as a day: its goal in words, who is on the wall, what the crowd is, whose car; each its own
+const journey = {
+  id: 'racer-journey',
+  expect: 'pass',
+  async run(dc) {
+    const rows = {};
+    const count = (dress, re) => dress.flat().filter((t) => re.test(t.frame)).length;
+    for (const id of ['pinewood', 'harbour', 'salt', 'coppa']) {
+      const r = await warpRace(dc, id, { flags: { tyres_short: id === 'salt', sable_whole: id === 'coppa' } });
+      const d = r.view.dress;
+      await dc.run(2);
+      rows[id] = {
+        goal: hud.s.objective,
+        day: r.hudView.day.map((x) => x.rawText),
+        wall: ['aldo', 'ottavia', 'tullio', 'nino', 'chair', 'chairGloves'].filter((w) => count(d, new RegExp(`^${w}$`))),
+        crowd: count(d, /^crowd|^stand/),
+        bunting: count(d, /^bunting/),
+        atlas: r.view.atlasKey.split(':').slice(3).join(':'),
+        rivals: [...new Set(r.view.riv.values())],
+        sky: r.view.bands[15][0].verge[0].toString(16),
+      };
+      rows[id].texMB = +(Object.values(r.view.textureBytes()).reduce((a, b) => a + b, 0) / 1048576).toFixed(2);
+    }
+    const { pinewood: a, harbour: b, salt: c, coppa: e } = rows;
+    const ok = [a, b, c, e].every((x) => x.texMB < 6) && /Aldo/.test(a.goal) && /air/.test(b.goal) && /top 3/.test(c.goal) && /win/.test(e.goal)
+      && a.day.length === 3 && e.day.at(-1) === 'WIN'
+      && a.wall.join() === 'aldo' && b.wall.join() === 'ottavia,tullio' && c.wall.join() === 'ottavia,tullio,nino,chair' && e.wall.join() === 'ottavia,tullio,nino,chairGloves'
+      && a.crowd === 0 && e.crowd > b.crowd && e.crowd > c.crowd && a.bunting === 0 && e.bunting > c.bunting
+      && /heron:dust$/.test(c.atlas) && /heron:sable$/.test(e.atlas) && /dante$/.test(a.atlas)
+      && b.rivals.join() === 'aldo,brasca' && c.rivals.join() === 'roche,dante,brasca' && new Set([a.sky, b.sky, c.sky, e.sky]).size === 4;
+    return { pass: ok, detail: rows };
+  },
+};
+
+// night must let a player read a bend: the whitewash against the verge, well past the headlights;
+// the budgets, on the busiest road of each day
+const luma = (c) => {
+  const f = (s) => {
+    const v = ((c >> s) & 255) / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * f(16) + 0.7152 * f(8) + 0.0722 * f(0);
+};
+const contrast = (a, b) => (Math.max(luma(a), luma(b)) + 0.05) / (Math.min(luma(a), luma(b)) + 0.05);
+
+const nightReads = {
+  id: 'racer-night',
+  expect: 'pass',
+  async run(dc) {
+    const r = await warpRace(dc, 'coppa', { d: TRACKS.coppa.script.lamp - 55, v: 28 });
+    await dc.run(2);
+    const B = r.view.bands;
+    const at = (z) => B[Math.floor((z / 240) * 16)][0];
+    const rows = {
+      kerbVsVerge80: +contrast(at(80).kerb[0], at(80).verge[0]).toFixed(2),
+      kerbVsVerge150: +contrast(at(150).kerb[0], at(150).verge[0]).toFixed(2),
+      kerbVsSky: +contrast(at(150).kerb[0], r.view.L.nightHaze).toFixed(2),
+      roadVsVerge30: +contrast(at(30).road[0], at(30).verge[0]).toFixed(2),
+      beam: r.view.L.beam,
+    };
+    return { pass: rows.kerbVsVerge80 >= 3 && rows.kerbVsVerge150 >= 1.5 && rows.roadVsVerge30 >= 1.5 && rows.beam <= 120, detail: rows };
+  },
+};
+
+const framesNight = {
+  id: 'racer-frame-days',
+  expect: 'pass',
+  async run(dc) {
+    const gl = window.game.renderer.gl;
+    const px1 = new Uint8Array(4);
+    let draws = 0;
+    const drawArrays = gl.drawArrays;
+    gl.drawArrays = function (...a) {
+      draws += 1;
+      return drawArrays.apply(this, a);
+    };
+    const rows = {};
+    for (const [id, stretch] of [['harbour', [60, 500, TRACKS.harbour.script.gullCue - 80]], ['salt', [40, TRACKS.salt.things.find((q) => q.kind === 'crossing').d - 100, TRACKS.salt.length - 60]], ['coppa', [20, TRACKS.coppa.script.box.d - 30, TRACKS.coppa.length - 40]]]) {
+      const r = await warpRace(dc, id, { d: stretch[0], v: 30 });
+      dc.hold('up');
+      const times = [];
+      const sprites = [];
+      draws = 0;
+      for (let i = 0; i < 360; i++) {
+        if (i % 120 === 0) {
+          const d = stretch[i / 120];
+          Object.assign(r.race.jo, { d, prevD: d, v: 30, x: 0, prevX: 0 });
+        }
+        r.race.jo.x = 0;
+        r.view.slow = false;
+        const t0 = performance.now();
+        dc.step(1);
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px1);
+        times.push(performance.now() - t0);
+        sprites.push(r.view.stats.sprites);
+        if (i % 60 === 0) await new Promise((res) => setTimeout(res, 0));
+      }
+      dc.releaseAll();
+      times.sort((a, b) => a - b);
+      rows[id] = { avgMs: +(times.reduce((a, b) => a + b, 0) / times.length).toFixed(2), p95Ms: +times[Math.floor(times.length * 0.95)].toFixed(2), maxMs: +times[times.length - 1].toFixed(2), drawsPerFrame: +(draws / times.length).toFixed(1), spritesMax: Math.max(...sprites), texMB: +(Object.values(r.view.textureBytes()).reduce((a, b) => a + b, 0) / 1048576).toFixed(2) };
+    }
+    gl.drawArrays = drawArrays;
+    const list = Object.values(rows);
+    return { pass: list.every((x) => x.avgMs < 8 && x.p95Ms < 12 && x.texMB < 6), detail: rows };
+  },
+};
+
+const engineMore = {
+  id: 'racer-sounds-offline',
+  expect: 'pass',
+  async run() {
+    const rate = 44100;
+    const rms = (d) => Math.sqrt(d.reduce((a, x) => a + x * x, 0) / d.length);
+    const energyAt = (d, hz) => {
+      let re = 0;
+      let im = 0;
+      for (let i = 0; i < d.length; i++) {
+        re += d[i] * Math.cos((2 * Math.PI * hz * i) / rate);
+        im += d[i] * Math.sin((2 * Math.PI * hz * i) / rate);
+      }
+      return (2 * Math.hypot(re, im)) / d.length;
+    };
+    const render = async (secs, fn) => {
+      const ctx = new OfflineAudioContext(1, rate * secs, rate);
+      const e = new EngineSynth({ ctx, dest: ctx.destination });
+      fn(e);
+      const buf = await ctx.startRendering();
+      e.destroy();
+      return buf.getChannelData(0);
+    };
+    const jo = { id: 'jo', v: 30, throttle: true, dx: 0, closing: 0 };
+    const clean = await render(4, (e) => e.update({ cars: [{ ...jo, detune: 0 }], speed: 0 }));
+    const beating = await render(4, (e) => e.update({ cars: [jo], speed: 0, untuned: true }));
+    const verge = await render(1, (e) => e.update({ cars: [], speed: 0, verge: 20 }));
+    const quiet = await render(1, (e) => e.update({ cars: [], speed: 0 }));
+    const crowd = await render(2, (e) => e.update({ cars: [], speed: 0, murmur: 0.018 }));
+    const tell = await render(0.5, (e) => e.sting('tell'));
+    const crack = await render(0.5, (e) => e.sting('crack'));
+    const bell = await render(0.4, (e) => {
+      e.bell(true); // (its first stroke; the rest are on the page's clock)
+      e.bell(false);
+    });
+    const note = await render(3, (e) => e.holdNote(196));
+    const body = note.subarray(rate);
+    const rows = {
+      untuned: envelopeBeat(beating.subarray(rate), rate),
+      cleanNote: envelopeBeat(clean.subarray(rate), rate),
+      verge: +rms(verge.subarray(rate / 2)).toFixed(4),
+      quiet: +rms(quiet.subarray(rate / 2)).toFixed(4),
+      crowd: +rms(crowd.subarray(rate)).toFixed(4),
+      tell: +rms(tell).toFixed(4),
+      crack: +rms(crack).toFixed(4),
+      crackEnd: +rms(crack.subarray(rate * 0.4)).toFixed(4),
+      bell: +rms(bell).toFixed(4),
+      note: { f: +energyAt(body, 196).toFixed(4), octaveDown: +energyAt(body, 98).toFixed(4), octaveUp: +energyAt(body, 392).toFixed(4), third: +energyAt(body, 588).toFixed(4), beat: envelopeBeat(body, rate) },
+    };
+    const n = rows.note;
+    const pass = Math.abs(rows.untuned.hz - 2) <= 0.5 && rows.untuned.depth > 0.1 && rows.cleanNote.depth < rows.untuned.depth / 3 && rows.verge > rows.quiet * 3 && rows.crowd > 0.002 && rows.tell > 0.005 && rows.crack > rows.crackEnd && rows.bell > 0.005 && n.f > 3 * n.octaveDown && n.f > 3 * n.octaveUp && n.f > 3 * n.third && n.beat.depth < 0.05;
+    return { pass, detail: rows };
+  },
+};
+
+export default [raceStart, finishReturn, failMessage, failFair, pause, touchDrive, draft, engineOffline, frameTime, textures, platform, beatState, beatOffline, again, spinPause, hitStop, bendVisible, crest, hudDiet, card, garageLines, harbourNight, saltDay, coppaDay, journey, nightReads, framesNight, engineMore];

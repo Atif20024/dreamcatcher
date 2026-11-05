@@ -144,6 +144,11 @@ const dc = {
     dc.step(2);
     return dc.state();
   },
+  // to a race at once: __dc.race('salt', { flags: { tyres_short: true }, d: 300, v: 30, x: 0 })
+  async race(track, opts = {}) {
+    const { warpRace } = await import('./scenarios/racer.js');
+    return warpRace(dc, track, opts);
+  },
   // resolves once BootScene has loaded the atlases (real time, not steps)
   async ready() {
     // booted, and the first scene past its loader (a warp mid-load would

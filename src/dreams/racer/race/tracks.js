@@ -22,15 +22,6 @@
 import { COAST } from './themes.js';
 import { compile } from '../../../engines/road.js';
 
-// the pedals on a pad: the triggers and the d-pad's sides; lanes on the d-pad only,
-// so a thumb holding the stick for the throttle cannot flick a lane by tilting
-export const RACE_PAD = {
-  right: ['b7', 'b15', 'ax0+'],
-  left: ['b6', 'b14', 'ax0-'],
-  up: ['b12'],
-  down: ['b13'],
-};
-
 // Who they are on the road (RACER_REBUILD_PLAN §1). k and margin are pace: how much of a
 // bend's limit they take, how much braking road they leave
 const ALDO = { id: 'aldo', livery: 'dante', style: 'station' };
