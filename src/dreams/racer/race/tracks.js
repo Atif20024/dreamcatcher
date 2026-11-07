@@ -18,8 +18,7 @@
 // that a lamp pool or the quay lights; elsewhere at night the draw distance halves), and
 // non-solid `things`: crowd, bunting, figure { who }, chair { gloves }, pitboard, gull_lamp,
 // pitbox { len }, crossing { bell }. `rivals` is the grid (`livery` is carArt's name).
-// `script` is the data race/script.js reads. `target` is Ottavia's time on the card, the expert's number; `ease` is what
-// each failed try takes off the rivals' pace on this track (raceFor; TUNE.easePace otherwise).
+// `script` is the data race/script.js reads. `target` is Ottavia's time on the card, the expert's number.
 import { COAST } from './themes.js';
 import { compile } from '../../../engines/road.js';
 
@@ -100,7 +99,7 @@ export const TRACKS = {
       { d: 700, x: -0.7, kind: 'bale' }, // the run to the line: a door half a road wide to thread, at the top of third
       { d: 700, x: 0.6, kind: 'cart' },
     ],
-    cues: [{ d: 440, id: 'crest' }],
+    cues: [{ d: 200, id: 'line' }, { d: 440, id: 'crest' }], // (the line, once: out of the first sweeper, clear of the cart's board)
   }),
 
   // Race 2: follow him. The quay teaches the draft and the sling, the hairpin is where
@@ -155,7 +154,6 @@ export const TRACKS = {
     countdown: 3,
     gate: { place: 3 },
     target: 53, // (Ottavia's time: past Cassian, by the gap he gives)
-    ease: 0.13,
     prize: { 1: 18, 2: 12, 3: 8 },
     joLivery: 'heron',
     light: { from: 'noon', to: 'noon' },
@@ -164,7 +162,7 @@ export const TRACKS = {
       { straight: 380 },
       { bend: 'L', len: 40, safe: 21, outside: 'straw', name: 'chicane', lineLen: 0.3, lineSpeed: 1.5 },
       { straight: 10 },
-      { bend: 'R', len: 40, safe: 21, outside: 'straw', name: 'chicane out', lineLen: 0.3, lineSpeed: 1.5 },
+      { bend: 'R', len: 40, safe: 21, outside: 'straw', name: 'chicane out', lineLen: 0.3, lineSpeed: 3 },
       { straight: 430 },
       { bend: 'L', len: 80, safe: 26, outside: 'straw', name: 'salt pans', lineLen: 0.04, lineSpeed: 2 },
       { straight: 280 },
@@ -190,12 +188,12 @@ export const TRACKS = {
     ],
     cues: [
       { d: 20, id: 'last_months' },
-      { d: 500, id: 'the_cart' },
+      { d: 475, id: 'the_cart' }, // (out of the chicane: read before the bell, which comes 65 m on)
     ],
     rivals: [
       { ...CASSIAN, d: 24, x: 0.45 },
       { ...DANTE, d: 12, x: -0.45 },
-      { ...TEO, d: -12, x: 0.3, wear: 4 },
+      { ...TEO, d: -12, x: 0.3, wear: 5 }, // (bald by the crossing: his own word, and the reason the bell is his one bad bet)
     ],
     script: { boards: [56] },
   }),
@@ -209,7 +207,6 @@ export const TRACKS = {
     theme: COAST,
     countdown: 3,
     gate: { place: 1 },
-    ease: 0.12,
     target: 84,
     joLivery: 'heron',
     light: { from: 'night', to: 'dawn' },

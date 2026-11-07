@@ -122,7 +122,7 @@ export function layoutRace(opts = {}) {
   const sy = H - m - sh / 2;
   const left = { id: 'left', shape: 'pedal', slab: true, x: m + sw / 2, y: sy, r: sw / 2, w: sw, h: sh, label: '', arrow: 'left' };
   const right = { id: 'right', shape: 'pedal', slab: true, x: m + sw + dead + sw / 2, y: sy, r: sw / 2, w: sw, h: sh, label: '', arrow: 'right' };
-  const slab = { mid: m + sw + dead / 2, dead, x1: right.x + sw / 2, top: sy - sh / 2 };
+  const slab = { mid: m + sw + dead / 2, dead, sw, x1: right.x + sw / 2, top: sy - sh / 2 };
   const pause = L.buttons.find((x) => x.id === 'pause');
   return {
     ...L,
@@ -144,6 +144,17 @@ function slabAt(L, x, y) {
   if (x > S.x1 + slop || y < S.top - slop) return null;
   if (Math.abs(x - S.mid) <= S.dead / 2) return [];
   return [x < S.mid ? 'left' : 'right'];
+}
+
+// the wheel a thumb on the slab holds, -1..1: nothing in the dead strip, then more the further
+// from it, full lock at SLAB_LOCK of a half's width (a thumb need not find the plate's edge).
+// Null off the slab. The left and right keys still go down for the plates' light (slabAt)
+export const SLAB_LOCK = 0.8;
+export function slabSteer(L, x, y) {
+  if (!L.slab || !slabAt(L, x, y)) return null;
+  const S = L.slab;
+  const off = Math.abs(x - S.mid) - S.dead / 2;
+  return off <= 0 ? 0 : Math.sign(x - S.mid) * Math.min(1, off / (S.sw * SLAB_LOCK - S.dead / 2));
 }
 
 // the pad by angle: right inside ±60° of east, up inside 40–140°, so a

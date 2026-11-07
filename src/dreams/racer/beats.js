@@ -1,4 +1,7 @@
 // THE LONG STRAIGHT's beats: data, run on events.
+import { DRILL, numberWord, cap } from './race/words.js';
+import { MARKS } from './rooms/nightbefore.js';
+
 export default {
   // she stops beating: Ottavia heard it from across the room
   tuned: [
@@ -28,23 +31,23 @@ export default {
     { sting: 'gate' },
   ],
   chalk_done: [
-    { say: { who: 'jo', text: 'Three marks. By day they will look like nothing. Whether I lift at the last one is for Sunday.', ms: 3600 } },
+    { say: { who: 'jo', text: `${cap(numberWord(MARKS.length))} marks. By day they will look like nothing. Whether I lift at the last one is for Sunday.`, ms: 3600 } },
     { sting: 'gate' },
   ],
-  // (from the encounter: more than one miss and it is again; none, and the Coppa's stop is 2 s, not 3)
+  // (from the encounter: more than one miss and it is again; none, and the Coppa's stop is TUNE.pitClean, not pitBox)
   pit_done: [
     {
       if: 'pit_ok',
       then: [
         {
           if: 'pit_clean',
-          then: [{ say: { who: 'tullio', text: 'Wheel, wheel, fuel, flag. Two seconds. That is a crew. That is all a crew is.', ms: 3200 } }],
-          else: [{ say: { who: 'tullio', text: 'One late. Three seconds on the night, not two. It will do, and I will mention it.', ms: 3200 } }],
+          then: [{ say: { who: 'tullio', text: DRILL.clean, ms: 3200 } }],
+          else: [{ say: { who: 'tullio', text: DRILL.late, ms: 3200 } }],
         },
         { set: 'pit_drilled' },
         { sting: 'gate' },
       ],
-      else: [{ say: { who: 'tullio', text: 'On the night that is five seconds, and the road does not wait. Again, on her call.', ms: 3200 } }],
+      else: [{ say: { who: 'tullio', text: DRILL.miss, ms: 3200 } }],
     },
   ],
   // the Coppa is home, and the shutter is up: the orb is the note (rooms/garage.js)
@@ -62,8 +65,8 @@ export default {
     { say: { who: 'jo', text: 'They have raked the gravel and put out new straw. You would not know.', ms: 3200 } },
     {
       if: 'held_aldo',
-      then: [{ say: { who: 'jo', text: 'Two lengths back, I was. I could have read his number.', ms: 3200 } }],
-      else: [{ say: { who: 'jo', text: 'I was a long way back. I have tried being sorry about that, and glad.', ms: 3400 } }],
+      then: [{ say: { who: 'jo', text: 'In his air, I was. I could have read his number.', ms: 3200 } }],
+      else: [{ say: { who: 'jo', text: 'I was not close enough. I have tried being sorry about that, and glad.', ms: 3400 } }],
     },
   ],
   moment_letter: [{ say: { who: 'jo', text: 'A letter from a bus company on the mainland, wanting a fitter. Not answered. Not thrown away.', ms: 3800 } }],

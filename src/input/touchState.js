@@ -4,7 +4,7 @@
 // scene (src/ui/TouchControls.js); a scenario may switch them on and off.
 import { touchWanted } from './touchLayout.js';
 
-export const touchState = { on: false, forced: false, controls: null };
+export const touchState = { on: false, forced: false, controls: null, steer: null }; // steer: a thumb on the race's slab, -1..1, or null
 
 export function initTouch(win = typeof window !== 'undefined' ? window : null) {
   if (!win) return touchState;

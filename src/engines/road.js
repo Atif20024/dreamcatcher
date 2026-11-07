@@ -60,7 +60,8 @@ export function compile(track) {
   const length = d;
   const obstacles = (track.things || []).filter((o) => SIZE[o.kind]).map((o) => ({ x: 0, ...SIZE[o.kind], ...o }));
   const lamps = [...(track.lamps || [])].sort((a, b) => a - b);
-  const boards = bends.flatMap((b) => BOARDS.map((dist) => ({ kind: 'board', d: b.from - dist, dist, bend: b })));
+  // (one board at a time: a bend's board that would stand back in the bend before it is not put up, so a chicane reads as one)
+  const boards = bends.flatMap((b, i) => BOARDS.filter((dist) => !i || b.from - dist >= bends[i - 1].to).map((dist) => ({ kind: 'board', d: b.from - dist, dist, bend: b })));
   const out = { ...track, length, bends, hills, obstacles, lamps, boards, cues: track.cues || [] };
 
   out.segments = Array.from({ length: Math.ceil(length / SEG_LEN) + RUN_OFF }, (_, i) => {

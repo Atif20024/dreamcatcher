@@ -7,7 +7,7 @@ import { TUNE } from '../../../engines/race.js';
 export const SOFT_TYRES = Object.freeze({ gripMin: 0.85 });
 
 // Sable's clause, if it stood: thin oil. Tuned, she still runs hot, later and less than beating
-export const SABLE_OIL = Object.freeze({ hotAfter: 0.85, hotTop: 0.98 });
+export const SABLE_OIL = Object.freeze({ hotAfter: 0.7, hotTop: 0.965 });
 
 export function carTune(track, F = {}) {
   const oil = F.tuned && F.oil_sable ? SABLE_OIL : null;

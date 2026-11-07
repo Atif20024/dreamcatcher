@@ -11,9 +11,10 @@ export function gateCall(race, c) {
   for (const o of race.crossings) {
     const to = o.d - CAR_LEN / 2 - c.d;
     if (to < 0 || o.state === 'open') continue;
-    const left = o.state === 'bell' ? TUNE.crossingBell - o.t : 0;
-    if (o.state === 'bell' && to / Math.max((c.v + TUNE.vMax) / 2, 1) < left - BELL_MARGIN) continue;
-    const opens = left + (o.state === 'bell' ? TUNE.crossingShut : TUNE.crossingShut - o.t);
+    const t = race.tune;
+    const left = o.state === 'bell' ? t.crossingBell - o.t : 0;
+    if (o.state === 'bell' && to / Math.max((c.v + t.vMax) / 2, 1) < left - BELL_MARGIN) continue;
+    const opens = left + (o.state === 'bell' ? t.crossingShut : t.crossingShut - o.t);
     if (c.v > to / Math.max(opens, 0.1)) return true;
   }
   return false;
@@ -205,8 +206,8 @@ const BEST_LINE = { pinewood: [0.7, -0.7, -0.7], salt: [-0.7, -0.7, 0.7, -0.7], 
 export const best = (track) => (track.rivals?.some((c) => c.id === 'cassian') ? gapBot({ margin: 1, k: 1, line: BEST_LINE[track.id] }) : tidy({ margin: 1, k: 1, line: BEST_LINE[track.id] }));
 
 // run a whole race; returns the race, its log and when each thing happened
-export function runRace(track, F, bot, { seed = 1, secs = 240, tune } = {}) {
-  const r = raceFor(track, F, { seed, ...(tune ? { tune } : null) });
+export function runRace(track, F, bot, { seed = 1, secs = 240, tune, tries = 0 } = {}) {
+  const r = raceFor(track, F, { seed, tries, ...(tune ? { tune } : null) });
   const log = [];
   for (let i = 0; i < secs * 120 && !r.result && r.script?.state !== 'over'; i++) {
     r.step(bot(r));

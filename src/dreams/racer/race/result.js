@@ -27,7 +27,9 @@ export function applyResult(flags, track, { place, time }) {
     out[f('best')] = place;
     out[f('time')] = Math.round(time * 100) / 100;
     // (a time gate has no second place to pay: the tin opens under the time)
-    out[f('prize')] = (track.gate?.time === undefined || time <= track.gate.time) && track.prize ? track.prize[place] || 0 : 0;
+    // (and a run the help carried pays what the gate's place pays at most: the help puts him on the sheet, not up it)
+    const paysFor = track.eased && track.gate?.place ? Math.max(place, track.gate.place) : place;
+    out[f('prize')] = (track.gate?.time === undefined || time <= track.gate.time) && track.prize ? track.prize[paysFor] || 0 : 0;
   }
   if (gatePassed(track.gate, { place, time })) out[f('passed')] = true;
   else out[f('tries')] = (out[f('tries')] || 0) + 1;

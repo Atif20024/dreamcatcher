@@ -22,9 +22,11 @@ export function wheel(was, want, ms) {
   return want > was ? Math.min(want, was + step) : Math.max(want, was - step);
 }
 
-// the frame's pedals and wheel. pad: the raw gamepad, for the stick's own value
-export function driveInput(inputs, pad, was, ms) {
+// the frame's pedals and wheel. pad: the raw gamepad, for the stick's own value; thumb: the touch
+// slab's own value (-1..1, null with no thumb on it: touchLayout.slabSteer), taken as it stands
+export function driveInput(inputs, pad, was, ms, thumb = null) {
   const keys = (inputs.isDown('right') ? 1 : 0) - (inputs.isDown('left') ? 1 : 0);
   const axis = stick(pad && pad.axes ? pad.axes[0] : 0);
-  return { throttle: inputs.isDown('up'), brake: inputs.isDown('down'), steer: axis || wheel(was, keys, ms) };
+  const steer = thumb !== null && thumb !== undefined ? thumb : axis || wheel(was, keys, ms);
+  return { throttle: inputs.isDown('up'), brake: inputs.isDown('down'), steer };
 }

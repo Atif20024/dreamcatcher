@@ -314,7 +314,7 @@ const choice = {
     const k = out.keep;
     const g = out.give;
     const line = (r, re) => r.some((t) => re.test(t));
-    const ok = k.soft && !g.soft && k.settled && g.settled && line(k.corridor, /bolted them on/) && !line(g.corridor, /bolted them on/) && line(g.corridor, /your tyres on/) && !line(k.corridor, /your tyres on/) && line(k.again, /grateful/) && k.silent && line(g.tullio_after, /twice/) && line(k.tullio_after, /His were old/) && line(g.nino_after, /Your tyres/) && line(k.nino_after, /His old tyres/);
+    const ok = k.soft && !g.soft && k.settled && g.settled && !line(k.corridor, /bolted them on|your tyres on/) && line(k.again, /grateful/) && k.silent && line(g.tullio_after, /twice/) && line(k.tullio_after, /His were old/) && line(g.nino_after, /Your tyres/) && line(k.nino_after, /His old tyres/);
     return { pass: ok, detail: out };
   },
 };
@@ -1305,7 +1305,7 @@ const flowKeep = flow('keep', {
     airLine: r.said.corridor.some((t) => /right there/.test(t)),
     wall: r.shutShut && /sea wall/.test(r.goals.wall) && r.said.wall.some((t) => /third step/.test(t)) && r.said.wall.some((t) => /A length sooner/.test(t)),
     teo: r.said.teo.some((t) => /my gap/.test(t)) && r.said.teo.some((t) => /Watch my tyres/.test(t)),
-    dante: r.said.dante.some((t) => /come on the left/.test(t)) && r.said.danteAfter.some((t) => /noticed/.test(t)),
+    dante: r.said.dante.some((t) => /did not write it/.test(t)) && r.said.danteAfter.some((t) => /noticed/.test(t)),
     cassian: r.said.cassian.some((t) => /kept my letter/.test(t)) && r.said.cassian.some((t) => /Nobody stops/.test(t)),
     town: r.said.pia.some((t) => /Write your name/.test(t)) === false && r.said.rosa.length > 0 && r.said.beppe.length > 0,
     rocheFitted: r.fitted && r.said.coppaEve.some((t) => /Roche's rubber/.test(t)),
@@ -1314,10 +1314,10 @@ const flowKeep = flow('keep', {
     eve: r.said.saltEve.some((t) => /rent/.test(t)) && r.said.saltEve.some((t) => /jar paid/.test(t)) === false,
     rent: r.salt.best === 3 && r.salt.rentPaid && r.salt.nuts === 2, // third, 8, a fifth to Sable: 6; 4 to the rent
     held: !r.salt.broke,
-    letter: r.said.whose.some((t) => /black and gold/.test(t)) && r.said.whose.some((t) => /You held/.test(t)),
+    letter: r.said.whose.some((t) => /four tyres in black paper/.test(t)) && !r.said.whose.some((t) => /You held/.test(t)), // (HOLD is told by the card and Dante, not again here)
     lien: r.said.tullio.some((t) => /thirty days/i.test(t)),
     nino: r.said.nino.some((t) => /tide/.test(t)),
-    crew: r.crew.some((t) => /next month/.test(t)) && r.crew.some((t) => /rent was late/.test(t)) && r.crew.some((t) => /Sable on Monday/.test(t)) && r.crew.some((t) => /the letter/.test(t)),
+    crew: r.crew.some((t) => /rent was late/.test(t)) && r.crew.some((t) => /Sable on Monday/.test(t)) && !r.crew.some((t) => /next month|the letter/.test(t)), // (the tyres and the letter are told elsewhere: tullio_after, the ending)
     ending: /stopped for Roche/.test(r.lines.join(' ')) && /rent was late/.test(r.lines.join(' ')),
     caught: r.caught && r.back === 'Hub',
   }),
@@ -1339,14 +1339,14 @@ const flowGive = flow('give', {
   cassian: 'pass',
   want: (r) => ({
     backLine: r.said.corridor.some((t) => /from back there/.test(t)),
-    chest: r.chestBad && r.chestAfter.ok && !r.chestAfter.sat && r.chestAfter.nuts === 0 && r.signoraAtWall && r.crew.some((t) => /With soup/.test(t)) && /with soup/.test(r.lines.join(' ')),
+    chest: r.chestBad && r.chestAfter.ok && !r.chestAfter.sat && r.chestAfter.nuts === 0 && r.signoraAtWall && r.crew.some((t) => /with soup/i.test(t)) && /with soup/.test(r.lines.join(' ')),
     stoveCassian: r.said.cassian.some((t) => /burnt my letter/.test(t)),
     bought: r.boughtOut && r.worn === 1,
     good: r.said.saltEve.some((t) => /Good rubber/.test(t)) && r.said.saltEve.some((t) => /sheet pays/.test(t)),
     prize: r.salt.best === 2 && !r.salt.rentPaid,
     stove: r.said.whose.some((t) => /good paper/.test(t)),
     nolien: !r.said.tullio.some((t) => /thirty days/i.test(t)),
-    crew: r.crew.some((t) => /one new set/.test(t)) && r.crew.some((t) => /bank/.test(t)),
+    crew: r.crew.some((t) => /bank/.test(t)) && !r.crew.some((t) => /one new set/.test(t)),
     ending: /went by Roche/.test(r.lines.join(' ')) && /rent was paid/.test(r.lines.join(' ')) && /read the paper/.test(r.lines.join(' ')),
     caught: r.caught && r.back === 'Hub',
   }),

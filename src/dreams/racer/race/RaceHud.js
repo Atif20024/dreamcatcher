@@ -28,6 +28,7 @@ const SPLIT_MS = 3200;
 
 // what this race asks for, in a few words (the grid's goal line). Up for the first seconds, then the road has the room
 export function goalLine(gate, F = {}) {
+  if (gate?.was !== undefined) return `Aldo will take ${clock(gate.time)}`; // (after a miss: his own time stands, words.js aldoGrid)
   if (gate?.time !== undefined) return `under Aldo's time: ${clock(gate.time)}`;
   if (gate?.scripted) return "stay in Aldo's air";
   if (gate?.place === 1) return 'win the Coppa';
@@ -179,7 +180,7 @@ export class RaceHud {
 
     const time = race.result ? race.result.time : Math.max(0, t);
     // (the grid redraws on change: a tenth of a second is plenty)
-    if (track.gate?.time !== undefined) hud.set('coins', { text: `${clock(time)}  ALDO ${clock(track.gate.time)}` });
+    if (track.gate?.time !== undefined) hud.set('coins', { text: `${clock(time)}  ${track.gate.was !== undefined ? 'UNDER' : 'ALDO'} ${clock(track.gate.time)}` });
     else if (track.gate?.scripted) hud.set('coins', { text: clock(time) }); // (nobody is racing for a place here)
     else {
       const shown = race.result ? race.result.place : 1 + race.rivals.filter((r) => r.d > c.d).length;

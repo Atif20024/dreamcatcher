@@ -78,10 +78,10 @@ export function slateRows(F) {
 
 // the ledger: the win first, then what it cost, the note last. Nothing here is a loss
 export function endingLines(F) {
-  const roche = F.helped_cassian ? 'He stopped for Roche, six seconds, and won by less.' : F.passed_cassian ? 'He went by Roche. Roche had told him he would.' : 'Roche lost a wheel at the Gull Bend, and the road went on.';
+  const roche = F.helped_cassian ? 'He stopped for Roche, and won by less.' : F.passed_cassian ? 'He went by Roche. Roche had told him he would.' : 'Roche lost a wheel at the Gull Bend, and the road went on.';
   const home = F.rent_short ? 'The rent was late.' : 'The rent was paid.';
   const chest = medOk(F) ? 'She came to the wall, with soup.' : 'Her chest was only her chest.';
-  const paper = F.broke_orders ? 'He passed Dante on HOLD. Sable kept his fifth.' : F.sable_whole ? "Sable's clauses stood, every one." : 'He read the paper. Almost nobody reads the paper.';
+  const paper = F.broke_orders ? 'He passed Dante on HOLD, and paid Sable back for it.' : F.sable_whole ? "Sable's clauses stood, every one." : 'He read the paper. Almost nobody reads the paper.';
   return [
     'The Coppa Calvessa, 1958: Pereval Corse, first.',
     roche,
@@ -139,6 +139,27 @@ export const PAPERS = [
     b: { text: 'The Company may call in the debts of Pereval Corse at thirty days.', short: "Pereval's debts at thirty days", binds: 'sable_lien', pays: 10 },
   },
 ];
+
+// what a clause pays on signature (by the flag it binds)
+export const clausePay = (binds) => PAPERS.flatMap((p) => [p.a, p.b]).find((c) => c.binds === binds).pays;
+
+// What a clause left standing costs, later (verbs/garage.js payFor and payPrize):
+//   sable_cut      a fifth of every prize
+//   sable_orders   HOLD behind Mir at the Salt Road; go by and the paper wants its pay back, and the fifth
+//   sable_dinners  Thursdays at Sable's table, in a shirt the Signora will not wash: the laundry takes what it paid
+//   sable_lien     the thirty days: the purse on Monday, and Sable's man takes what it paid off the bench
+//   oil_sable      thin oil: she runs hot at the end (race/car.js)
+//   sable_name     the name on her bonnet, on the road (RoadView)
+
+// a prize, through Sable's papers: a fifth if that clause stands or HOLD was broken; and at the Salt Road (once,
+// `settles`) HOLD broken wants its pay back and the dinners' laundry what they paid. Never below nothing
+export function settlePrize(F, trackId, owed) {
+  const fifth = F.sable_cut || F.broke_orders ? Math.ceil(owed / 5) : 0;
+  const settles = trackId === 'salt' && !F.papers_settled;
+  const back = settles && F.broke_orders ? Math.min(owed - fifth, clausePay('sable_orders')) : 0;
+  const laundry = settles && F.sable_dinners ? Math.min(owed - fifth - back, clausePay('sable_dinners')) : 0;
+  return { fifth, back, laundry, paid: owed - fifth - back - laundry, settles };
+}
 
 // what the papers do, from the strikes: F.strike_<paper> is 'a', 'b' or 'none'.
 // The clause struck pays nothing; every clause left standing pays, and binds.

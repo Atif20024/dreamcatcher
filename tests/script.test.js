@@ -223,10 +223,10 @@ describe('the crossing', () => {
   it('a shut gate met at speed is a bump and a stop, never a spin, and it marks the tyres', () => {
     const r = raceFor(T, F);
     r.t = 0;
-    Object.assign(r.jo, { d: gate.d - 50, v: 34, lampD: 620 });
+    Object.assign(r.jo, { d: gate.d - 30, v: 34, lampD: 620 });
     r.crossings[0].state = 'shut';
     const log = [];
-    for (let i = 0; i < 240; i++) {
+    for (let i = 0; i < 150; i++) {
       r.step({ throttle: true });
       log.push(...r.drain());
     }
@@ -241,7 +241,7 @@ describe('the crossing', () => {
       const q = raceFor(T, F);
       q.t = 0;
       Object.assign(q.jo, { d: gate.d - 60, v: 34, lampD: 620 });
-      Object.assign(q.crossings[0], { state: 'shut', rung: true, t: 0 });
+      Object.assign(q.crossings[0], { state: 'bell', rung: true, t: TUNE.crossingBell - 1 }); // (it shuts before he can get there)
       for (let i = 0; i < 5 * 120; i++) {
         const to = gate.d - q.jo.d;
         // the driver who reads it arrives as it lifts, still rolling
@@ -420,12 +420,15 @@ describe('harder to master, not harder to finish', () => {
     expect(raceFor(c, F, { tries: 0 }).track).toBe(c);
     const eased = raceFor(c, F, { tries: 2 });
     const dante = c.rivals.find((q) => q.id === 'dante');
-    expect(eased.rivals.find((q) => q.id === 'dante').top).toBeCloseTo(dante.top * (1 - 2 * c.ease), 5);
-    expect(eased.rivals.find((q) => q.id === 'dante').k).toBeCloseTo(dante.k * (1 - 2 * c.ease), 5);
+    const two = 1 - TUNE.easeFirst - TUNE.easePace;
+    expect(eased.rivals.find((q) => q.id === 'dante').top).toBeCloseTo(dante.top * two, 5);
+    expect(eased.rivals.find((q) => q.id === 'dante').k).toBeCloseTo(dante.k * two, 5);
+    expect(eased.track.eased).toBe(2);
     expect(eased.rivals.find((q) => q.id === 'cassian').top).toBe(c.rivals.find((q) => q.id === 'cassian').top);
     const p = TRACKS.pinewood;
     const sheet = p.gate.time;
     expect(raceFor(p, F, { tries: 2 }).track.gate.time).toBe(sheet + 2 * TUNE.easeTime);
+    expect(raceFor(p, F, { tries: 2 }).track.gate.was).toBe(sheet); // (Aldo's own time stands)
     expect(raceFor(p, F, { tries: 99 }).track.gate.time).toBe(sheet + TUNE.easeMax * TUNE.easeTime);
     expect(p.gate.time).toBe(sheet); // (the track itself is never changed)
     expect(raceFor(c, F, { tries: 99 }).rivals.find((q) => q.id === 'dante').top).toBeCloseTo(dante.top * TUNE.easeFloor, 5);
@@ -604,15 +607,42 @@ describe('harder to master, not harder to finish', () => {
       expect(Math.max(...r.rivals.map((c) => c.finished)) - t0).toBeGreaterThan(1.5);
       expect(runRace(T, worn, tidy({ margin: 15, k: 0.95 })).r.result.place).toBeLessThanOrEqual(3);
     });
-    it('the bell goes as you come out of the chicane: gas down makes it, a lift does not, and the lift costs seconds', () => {
-      const base = tidy();
+    // (the owner's call: "make it or brake and wait" is a real choice. Gas makes it with time in hand, a lift of a
+    // second still makes it, and braking for the red lamps is a stop and a wait that costs seconds and not the sheet:
+    // a careful rival waits with you. On worn tyres a careful car is still on the sheet whichever it does)
+    const atBell = (r) => r.crossings[0].state === 'bell' && r.jo.d < gate.d;
+    const lift = (base) => {
+      let t0 = null;
+      return (r) => {
+        if (atBell(r) && t0 === null) t0 = r.t;
+        return t0 !== null && r.t - t0 < 1 ? { ...base(r), throttle: false, brake: false } : base(r);
+      };
+    };
+    const stopAtGate = (base) => (r) => {
+      const to = gate.d - CAR_LEN / 2 - 1 - r.jo.d;
+      return r.crossings[0].state !== 'open' && to > 0 && to < 3 + (r.jo.v * r.jo.v) / 15 ? { ...base(r), throttle: false, brake: true } : base(r);
+    };
+    it('the bell: gas makes it, a lift of a second still makes it, and a stop and a wait costs seconds', () => {
       const R = (bot) => runRace({ ...T, rivals: [] }, FIRST, bot);
-      const made = R(base);
+      const made = R(tidy());
       expect(made.log.filter((e) => e.type === 'bump' && e.why === 'gate')).toEqual([]);
-      const lifted = (r) => (r.jo.d > gate.d - gate.bell - 10 && r.jo.d < gate.d - gate.bell + 40 ? { ...base(r), throttle: false } : base(r));
-      const cost = R(lifted).r.result.time - made.r.result.time;
-      expect(cost).toBeGreaterThan(2);
-      expect(cost).toBeLessThan(6);
+      const lifted = R(lift(tidy()));
+      expect(lifted.log.filter((e) => e.type === 'bump' && e.why === 'gate')).toEqual([]);
+      expect(lifted.r.result.time - made.r.result.time).toBeLessThan(1.5);
+      const waited = R(stopAtGate(tidy())).r.result.time - made.r.result.time;
+      expect(waited).toBeGreaterThan(3);
+      expect(waited).toBeLessThan(9);
+    });
+    it('brake and wait is a real choice: on the sheet on new tyres and on worn ones, for a careful car', () => {
+      for (const flags of [FIRST, { tyres_short: true }]) {
+        for (const drive of [tidy(), tidy({ margin: 15, k: 0.95 })]) {
+          for (const [how, bot] of [['flat', drive], ['lift', lift(drive)], ['stop', stopAtGate(drive)]]) expect([how, flags.tyres_short, runRace(T, flags, bot).r.result.place]).toEqual([how, flags.tyres_short, expect.toBeOneOf([1, 2, 3])]);
+        }
+      }
+      // (and going for it pays: seconds on the sheet, and the pack behind is left at the gate)
+      const go = runRace(T, FIRST, tidy()).r;
+      expect(runRace(T, FIRST, stopAtGate(tidy())).r.result.time - go.result.time).toBeGreaterThan(3);
+      expect(go.rivals.filter((c) => c.d < go.jo.d && c.id !== 'cassian').every((c) => c.finished === null && go.jo.d - c.d > 100)).toBe(true);
     });
   });
 });
