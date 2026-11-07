@@ -820,6 +820,7 @@ async function harbourToDark(dc, r, missed, inAir) {
     return e;
   };
   if (inAir) Object.assign(race.jo, { draft: 1, inDraft: true, draftOf: aldo, armed: true });
+  race.script.heldAt = inAir ? race.t : -1e9; // (held long enough just now, or never: script.js's own test)
   dc.hold('up');
   await until(dc, () => race.script.state === 'over' || dc.scene() !== r, 700);
   dc.releaseAll();
@@ -981,7 +982,7 @@ const quitAnywhere = {
         return r.race.script.pit;
       } },
       choice: { flags: READY, set: async (r) => (await theWheel(dc, r, 'stop-now')).off, },
-      dark: { flags: { tuned: true, done_race1: true, tyres_settled: true }, set: async (r) => {
+      dark: { flags: { tuned: true, done_race1: true, tyres_settled: true, tide_asked: true }, set: async (r) => {
         r.race.t = 30;
         const cue = r.track.script.gullCue;
         Object.assign(r.race.jo, { d: cue + 1, prevD: cue + 1, v: 20 });
@@ -998,9 +999,11 @@ const quitAnywhere = {
       return dc.scene();
     };
     let ok = true;
+    try {
     for (const [name, st] of Object.entries(STATES)) {
       for (const to of ['garage', 'station']) {
         const s = await at(dc, 'garage', st.flags);
+        rows.at = `${name}>${to}`;
         const r = await shutter(dc, s, []);
         const at0 = await st.set(r);
         dc.releaseAll();
@@ -1014,12 +1017,24 @@ const quitAnywhere = {
         }
         // the door still works: the run goes on
         const hook = (nextHook(n.F) || {}).id;
+        // (quit in the dark and the Cup is already over: the story has moved on to his gloves, and the door says so)
+        if (!hook) {
+          const story = !!n.F.done_race2 && !n.F.gloves_left;
+          rows[`${name}>${to}`] = { state: at0, key, room: n.roomId, hook, story };
+          ok = ok && story && n.roomId === 'garage' && key === (to === 'station' ? 'Hub' : 'Dream');
+          continue;
+        }
         const again = await shutter(dc, n, []);
         const live = dc.scene().sys.settings.key === 'Race';
         again.pauseMenu.destroy();
         rows[`${name}>${to}`] = { state: at0, key, room: n.roomId, hook, live };
         ok = ok && live && n.roomId === 'garage' && key === (to === 'station' ? 'Hub' : 'Dream');
       }
+    }
+    } catch (e) {
+      rows.threw = String(e);
+      rows.scene = dc.scene() && dc.scene().sys.settings.key;
+      ok = false;
     }
     clearRun('racer');
     return { pass: ok, detail: rows };
