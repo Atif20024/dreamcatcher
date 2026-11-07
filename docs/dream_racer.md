@@ -2,6 +2,8 @@
 
 Design doc by a pro-gamer advisor. Read-only on code: nothing was built or run. All names, teams, cars, sponsors and places are invented. The general shape (small team, rich rival, a loss that changes the driver) is common to a hundred racing stories. No character, car, city or plot beat comes from any real game.
 
+**The season as built is `docs/redesign/RACER_REBUILD_PLAN.md`: four races, each with its own objective, and he wins. Where it differs from the text below, it stands.**
+
 **Owner's decisions (2026-11-01), which replace the text below where they differ:**
 - Driving is a separate scene, `RaceScene` (`src/scenes/RaceScene.js`, its own JS chunk), started from a door and handing back `{place, time, flags}`. It is not an encounter inside DreamScene, and there is no RaceDirector. The walk-in places stay on the DreamScene framework.
 - Every dream plays by touch: on-screen pedals and lane buttons through the same virtual keys. "Keyboard only" is gone.

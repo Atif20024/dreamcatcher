@@ -68,6 +68,7 @@ const HEADLINES = [
   () => 'FOUNTAIN "MOSTLY DECORATIVE", COUNCIL ADMITS',
   () => 'SEATS AVAILABLE ON ALL SERVICES, BOARD INSISTS',
   () => 'STATION QUIETER THAN USUAL, SAY THE FEW',
+  () => 'SECOND CLOCK STOPPED, FIRST CLOCK UNAWARE',
   () => 'LAST PIGEON DECLINES TO COMMENT',
   () => 'NO PASSENGERS',
 ];
@@ -81,6 +82,7 @@ const PEMBERTON = [
   (w) => `${w}. You look… thinner around the eyes.`,
   (w) => `${w}. I used to announce the delays. Now there's nobody to be late.`,
   (w) => `${w}. The platforms ring when you walk them now.`,
+  (w) => `${w}. I've stopped winding the second clock, sir. The first one hasn't noticed.`,
   (w) => `${w}. You could stay, sir. I'd put it in the ledger.`,
   () => "That's the board, sir. All of it. The one train left isn't a dream. It's been warm in there all night.",
 ];

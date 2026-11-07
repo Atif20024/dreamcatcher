@@ -444,6 +444,13 @@ Object.assign(CAST_BODIES, {
   'npc-pv-sable': { sex: 'm', hat: 'bowler' },
   'npc-pv-signora': { body: 'elderly', sex: 'f', hat: 'wrap', apron: true },
   'npc-pv-agnese': { sex: 'f', hat: 'wrap', apron: true },
+  'npc-pv-rosa': { sex: 'f', hat: 'wrap', apron: true },
+  'npc-pv-beppe': { body: 'elderly', sex: 'm', hat: 'cap' },
+  'npc-pv-pia': { body: 'child', sex: 'f', hair: 'bun', dress: true },
+  'npc-pv-gino': { body: 'child', hair: 'tuft' },
+  'npc-pv-teo': { sex: 'm', hat: 'cap' },
+  'npc-pv-dante': { sex: 'm', hat: 'none', hair: 'short' },
+  'npc-pv-cassian': { sex: 'm', hat: 'none', hair: 'short' },
 });
 
 // The Long Evening at scale (owner: "last stop is out of proportions"): the

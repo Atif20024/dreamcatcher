@@ -239,14 +239,13 @@ describe('platform 10', () => {
   });
 });
 
-describe('an unfinished dream counts for nothing', () => {
-  it('boards but is not running', () => {
-    expect(DREAMS.find((d) => d.id === 'racer').scene).toBe('Dream');
-    expect(runningDreams().map((d) => d.id)).not.toContain('racer');
-    expect(caughtRunning({ dreams: { racer: true } })).toBe(0);
-    expect(WEB_ORDER).not.toContain('racer');
+describe('the racer counts, now it has an ending', () => {
+  it('runs, and is on the web', () => {
+    expect(runningDreams().map((d) => d.id)).toContain('racer');
+    expect(caughtRunning({ dreams: { racer: true } })).toBe(1);
+    expect(WEB_ORDER).toContain('racer');
   });
-  it('leaves the headline alone', () => {
-    expect(headline(0)).toMatch(/^NINE PLATFORMS/);
+  it('the headline counts ten platforms', () => {
+    expect(headline(0)).toMatch(/^TEN PLATFORMS/);
   });
 });

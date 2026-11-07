@@ -11,10 +11,12 @@ import { uiText, PLATE } from '../../../ui/text.js';
 import { readDocument } from '../../../ui/ReadingPanel.js';
 import { sfx } from '../../../systems/audio.js';
 import { addCoins } from '../../../systems/wallet.js';
-import { JARS, tinLeft, short, PAPERS, signPapers } from '../season.js';
+import { JARS, tinLeft, short, PAPERS, signPapers, medOk, PRICES } from '../season.js';
+import { buy } from './garage.js';
 import { JAR_COLS, TIN_COL, CLOSE_COL } from '../rooms/kitchen.js';
 import { PAPER_COLS } from '../rooms/sponsor.js';
-import { MARKS } from '../rooms/nightbefore.js';
+import { MARKS, CASSIAN_COL } from '../rooms/nightbefore.js';
+import { TEO_COL } from '../rooms/quay.js';
 import { CHAIR_COL, OTTAVIA_COL } from '../rooms/hospital.js';
 
 const T = 32;
@@ -23,9 +25,9 @@ const T = 32;
 const WARP_FLAGS = {
   hospital: { done_race1: true, done_race2: true, cup_told: true, tyres_settled: true, kept_tyres: true, tuned: true, 'item:gloves': true, gloves: true },
   kitchen: { done_race2: true, gloves_left: true, tuned: true, cup_told: true, 'item:gloves': true },
-  sponsor: { done_race3: true, jars_done: true, gloves_left: true, tuned: true, cup_told: true, 'item:gloves': true },
-  nightbefore: { done_race5: true, signed: true, garage_again: true, jars_done: true, gloves_left: true, tuned: true, cup_told: true, 'item:gloves': true },
-  pitlane: { done_race5: true, signed: true, garage_again: true, jars_done: true, gloves_left: true, tuned: true, cup_told: true, 'item:gloves': true },
+  sponsor: { done_race2: true, jars_done: true, gloves_left: true, tuned: true, cup_told: true, 'item:gloves': true },
+  nightbefore: { done_race3: true, signed: true, garage_again: true, jars_done: true, gloves_left: true, tuned: true, cup_told: true, 'item:gloves': true },
+  pitlane: { done_race3: true, signed: true, garage_again: true, jars_done: true, gloves_left: true, tuned: true, cup_told: true, 'item:gloves': true },
 };
 
 // the arrival card: the board has the place's name; this plate says the one job
@@ -169,6 +171,39 @@ function setupKitchen(ctx) {
       s.beats.play('jars_settled').catch((e) => console.warn('[dream] beat', e));
     },
   });
+  // what the jar could not pay: twelve nuts, on the table, for the chemist
+  s.interaction.register({
+    id: 'home:chemist',
+    x: at(CLOSE_COL),
+    y: floor - 20,
+    radius: 40,
+    prompt: `leave ${PRICES.medicine} nuts for the chemist`,
+    enabled: () => !!F.jars_done && !medOk(F) && !s.sceneBox.active,
+    onUse: () => {
+      if ((s.levelCoins || 0) < PRICES.medicine) {
+        s.caption.say('jo', `I have not got ${PRICES.medicine}. I have got reasons.`, { ms: 2200 });
+        return;
+      }
+      buy(s, { item: 'medicine', price: PRICES.medicine });
+      s.beats.play('med_left').catch((e) => console.warn('[dream] beat', e));
+    },
+  });
+}
+
+// a scene that comes to Jo on his way past: once, when nothing else is going on
+function meets(ctx, room, col, reach, flag, convId, when) {
+  const s = ctx.scene;
+  const F = ctx.flags;
+  if (F[flag] || ctx.state.meeting || !when || s.sceneBox.active || s.beats.busy || s.transitions.busy) return;
+  const r = s.graph.room(room);
+  if (Math.abs(ctx.player.x - ((r.tx + col) * T + T / 2)) > reach * T) return;
+  ctx.state.meeting = true;
+  ctx.player.body.setVelocityX(0);
+  s.runConversation(convId, null).then(() => {
+    F[flag] = true;
+    ctx.state.meeting = false;
+    s.saveRun();
+  });
 }
 
 function updateKitchen(ctx) {
@@ -240,7 +275,7 @@ function setupGull(ctx) {
         sfx('click');
         s.saveRun();
         if (i === MARKS.length - 1) s.beats.play('chalk_done').catch((e) => console.warn('[dream] beat', e));
-        else s.caption.say('jo', i ? 'Turn in here. It looks too soon. It is not.' : 'Brake here. The board is a long way from the bend, in the dark.', { ms: 2600 });
+        else s.caption.say('jo', i ? 'Turn in here. He turned in here. It looks too soon. It is not.' : 'Brake here. The board is a long way from the bend, in the dark.', { ms: 2600 });
       },
     });
   });
@@ -272,6 +307,11 @@ export default {
       }
     }
     if (id === 'hospital') updateHospital(ctx);
+    const F = s.F;
+    F.med_ok = !!F.jars_done && medOk(F); // (the room's people and props read these)
+    F.chest_bad = !!F.done_race3 && !medOk(F);
     if (id === 'kitchen') updateKitchen(ctx);
+    if (id === 'quay') meets(ctx, 'quay', TEO_COL, 3, 'teo_met', 'teo_quay', F.jars_done && !F.done_race3);
+    if (id === 'nightbefore') meets(ctx, 'nightbefore', CASSIAN_COL, 4, 'cassian_met', 'cassian_gull', F.garage_again && !F.done_coppa);
   },
 };

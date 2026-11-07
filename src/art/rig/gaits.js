@@ -147,6 +147,13 @@ export const FOE_GAITS = {
   'npc-pv-nino': 'kid',
   'npc-pv-sable': 'measured',
   'npc-pv-agnese': 'hurried',
+  'npc-pv-rosa': 'busy',
+  'npc-pv-beppe': 'plod',
+  'npc-pv-pia': 'kid',
+  'npc-pv-gino': 'kid',
+  'npc-pv-teo': 'plod',
+  'npc-pv-dante': 'measured',
+  'npc-pv-cassian': 'measured',
 };
 // people who stand still for a living get no run (saves atlas space)
 export const NO_RUN = new Set(['foe-heckler', 'foe-talker', 'foe-lq-crake']);
