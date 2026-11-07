@@ -1,9 +1,9 @@
 // The story on the road, by bot: RACER_REBUILD_PLAN §7's promises about the scripts.
 import { describe, it, expect } from 'vitest';
 import { TUNE, CAR_LEN, raceLost } from '../src/engines/race.js';
-import { steerTo, dodge } from '../src/engines/rivals.js';
+import { steerTo, dodge, tellFlash } from '../src/engines/rivals.js';
 import { TRACKS } from '../src/dreams/racer/race/tracks.js';
-import { raceFor } from '../src/dreams/racer/race/script.js';
+import { raceFor, triedIt } from '../src/dreams/racer/race/script.js';
 import { tidy, gapBot, coppaBot, runRace, rusty, newcomer, best } from './raceBots.js';
 
 const F = { tuned: true };
@@ -430,6 +430,32 @@ describe('harder to master, not harder to finish', () => {
     expect(p.gate.time).toBe(sheet); // (the track itself is never changed)
     expect(raceFor(c, F, { tries: 99 }).rivals.find((q) => q.id === 'dante').top).toBeCloseTo(dante.top * TUNE.easeFloor, 5);
     expect(raceFor(TRACKS.harbour, F, { tries: 3 }).rivals.find((q) => q.id === 'teo').top).toBe(TRACKS.harbour.rivals.find((q) => q.id === 'teo').top);
+  });
+  it('only a real attempt is a try: a restart in the first half buys nothing, one past half does, a finish never double-counts', () => {
+    for (const T of [TRACKS.pinewood, TRACKS.salt, TRACKS.coppa]) {
+      const r = raceFor(T, F);
+      r.jo.d = T.length * 0.49;
+      expect(triedIt(r)).toBe(false); // (four restarts on the first bend are not four tries: no walkover)
+      r.jo.d = T.length * 0.5;
+      expect(triedIt(r)).toBe(true);
+      r.result = { place: 4, time: 99 };
+      expect(triedIt(r)).toBe(false); // (a finish is counted by applyResult, once)
+    }
+  });
+  it("Cassian's tell is lit 0.4 s or more, in two flashes, and holds to the move", () => {
+    let lit = 0;
+    let flashes = 0;
+    let was = false;
+    for (let s = 0; s < 1; s += 0.001) {
+      const on = tellFlash(s, TUNE.blockTell);
+      if (on) lit += 0.001;
+      if (on && !was) flashes += 1;
+      was = on;
+    }
+    expect(lit).toBeGreaterThanOrEqual(0.4);
+    expect(flashes).toBe(2);
+    expect(tellFlash(TUNE.blockTell - 0.01, TUNE.blockTell)).toBe(true);
+    expect(TUNE.blockTell).toBeGreaterThanOrEqual(0.4);
   });
   it('the expert has more to find: the best lines beat tidy by a visible margin, everywhere', () => {
     for (const T of [TRACKS.pinewood, TRACKS.salt, TRACKS.coppa]) {

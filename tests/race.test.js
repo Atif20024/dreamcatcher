@@ -892,7 +892,7 @@ describe('every track, by bot', () => {
     expect(T.obstacles.filter((o) => o.kind === 'cart').map((o) => o.d)).toEqual([300, 700]);
     expect(T.hills[0].to).toBe(520);
     expect(T.hills[0].to - T.hills[0].from).toBe(80);
-    expect(T.hills[0].y1).toBe(6);
+    expect(T.hills[0].y1).toBe(9); // (the plan said 6; raised so the hidden bend is really hidden, the boards still on the climb)
     // the seat is within reach of a tidy run, with a second to spare
     const { r } = lapOn(T, driver('in', { margin: 8 }));
     expect(r.result.time).toBeGreaterThan(28);

@@ -8,8 +8,8 @@
 //   this.scene.start('Race', { track: 'test' })
 //   → back: this.scene.start('Dream', { dreamId: 'racer', resume: true, quietResume: true })
 import Phaser from 'phaser';
-import { raceLost } from '../engines/race.js';
-import { raceFor } from '../dreams/racer/race/script.js';
+import { raceLost, TUNE } from '../engines/race.js';
+import { raceFor, triedIt } from '../dreams/racer/race/script.js';
 import { carTune } from '../dreams/racer/race/car.js';
 import { TRACKS } from '../dreams/racer/race/tracks.js';
 import { RoadView, freeRoad } from '../dreams/racer/race/RoadView.js';
@@ -34,7 +34,6 @@ import { RunState } from '../play/RunState.js';
 
 const DREAM = 'racer';
 const NIGHT = [0x14, 0x12, 0x2a];
-const SING_UNDER = 3; // m/s under a bend's limit at the way in: closer than this, it was the right brake
 const SPIN_DARK_AT = 1.6; // s into a spin the picture fades: 0.4 s to the dark, then the lamp (TUNE.resetAt)
 const ORDINAL = ['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth'];
 
@@ -46,6 +45,7 @@ const NAMES = { aldo: 'Aldo', teo: 'Brasca', dante: 'Dante', cassian: 'Roche', r
 const CUES = {
   crest: ['OTTAVIA', 'Right, over the top. Trust the board. You will not see it.'],
   stay_in_my_air: ['ALDO', "Stay in my air. Don't look at the water."],
+  tide: ['ALDO', "Tide's in, stranger. A length sooner."],
   out_and_she_sings: ['OTTAVIA', 'You are in his air. Now out, and she sings.'],
   the_cart: ['OTTAVIA', 'A cart, past the second straight, left of the crown. Go right.'],
   two_laps: ['OTTAVIA', 'Two laps. The box at the end of the first. Stop with your nose on the paint.'],
@@ -67,6 +67,9 @@ const STORY = {
 };
 const RUN_FLAGS = { salt: ['broke_orders'], coppa: ['helped_cassian', 'passed_cassian'] }; // (a script's flags that a new run answers again)
 const ONCE = new Set(['block_tell', 'mistake', 'fade', 'oil']);
+const HARD_NEAR = 150; // m to a bend's way in: from here the call is what he reads, and the radio keeps to a few words
+const HARD_SHORT = 28; // characters the radio may still say then
+const AIR = { out: ['ALDO', 'Where are you? In my air, Jo.'], back: ['OTTAVIA', 'There. Stay in it.'] };
 
 // Ottavia, on the radio (a few words, on a caption)
 const RADIO = {
@@ -74,12 +77,12 @@ const RADIO = {
   lights: 'Green, then gas.',
   jump_start: 'Early. Next time.',
   launch: 'That was the green. Good.',
-  armed: "You are in his air. Out, when you're ready.",
+  armed: 'In his air. Out, and she goes.',
   sling: 'Now she sings.',
   straw: 'Straw. Slower into that one.',
   bale: 'Mind the bales.',
   spin: 'Breathe. I have you at the lamp.',
-  lamp: 'Lamp. If it goes wrong now, it goes wrong from here.',
+  lamp: 'You passed a lamp. Spin, and you start from it.',
   rub: 'That was paint.',
   hit: 'That was more than paint.',
   verge: 'Off the verge. It eats the tyres.',
@@ -129,7 +132,7 @@ export default class RaceScene extends Phaser.Scene {
   }
 
   create() {
-    const track = this.track;
+    let track = this.track;
     this.modals = ModalManager.for(this);
     this.pauseMenu = new PauseMenu(this);
     this.inputs = attachInput(new InputMap());
@@ -141,7 +144,9 @@ export default class RaceScene extends Phaser.Scene {
     this.firstRace = ['pinewood', 'test'].includes(track.id) && flags[flagOf(track.id, 'best')] === undefined && !flags[flagOf(track.id, 'tries')];
     const tune = carTune(track, flags);
     this.flags = flags;
-    this.race = raceFor(track, flags, { tune });
+    // (the help a failed try buys rides in the race's own copy of the track: the HUD, the sheet and the card all read the gate from it)
+    this.race = raceFor(track, flags, { tune, tries: flags[flagOf(track.id, 'tries')] || 0 });
+    this.track = track = this.race.track;
     this.saidOnce = new Set();
     this.quiet = new Set(); // the engines that have stopped
     this.boardAt = null; // the slate Jo is coming up to
@@ -159,8 +164,8 @@ export default class RaceScene extends Phaser.Scene {
     this.holdMs = 0;
     this.steer = 0;
     this.sang = 0;
-    this.bendNow = null;
-    this.bendSlid = false;
+    this.lampOwed = false; // the first lamp's lesson, waiting for a quiet stretch of road
+    this.airSaid = new Set();
     this.radioUntil = 0;
     this.escUp = true;
     this.cameras.main.setBackgroundColor(track.theme.background);
@@ -179,8 +184,9 @@ export default class RaceScene extends Phaser.Scene {
     this.engine = new EngineSynth();
     this.cameras.main.fadeIn(340, ...NIGHT);
     if (this.aid) this.radio('I will whisper the brake marks. Listen for me.', 3200);
-    else if (track.id === 'pinewood') this.radio('Thirty-four seconds, I did it in. In that car. Go on.', 2600, 'ALDO');
+    else if (track.id === 'pinewood') this.radio(`${spoken(track.gate.time)}, I did it in. In that car. Go on.`, 2600, 'ALDO');
     else if (track.id === 'salt' && flags.tyres_short) this.radio('They are last month\'s. I said what the jar said. Brake early and they will last.', 4200);
+    else if (track.id === 'coppa') this.radio("Tide's coming in. I looked. Somebody has to.", 3200);
     else if (track.id === 'harbour') this.radio(this.hot ? 'She is running hot. Watch the temperature.' : 'Your first start. Green, then gas, and stay with him.', 3200);
     else if (this.hot) this.radio('She is running hot. Watch the temperature.', 3200);
     this.events.once('shutdown', () => this.teardown());
@@ -231,8 +237,8 @@ export default class RaceScene extends Phaser.Scene {
       this.spinDark = true;
       this.cameras.main.fadeOut(300, ...NIGHT);
     }
-    this.watchBend(jo);
     this.watchStory(jo);
+    if (this.lampOwed && !this.hardMoment() && this.radio(RADIO.lamp, 3000)) this.lampOwed = false;
     this.view.startFrame();
     this.view.update(dt);
     this.hudView.update(this.race);
@@ -311,31 +317,25 @@ export default class RaceScene extends Phaser.Scene {
     if (line) this.radio(line[1], Math.max(2400, line[1].length * 60), line[0], true);
   }
 
-  // the loan paid back: a bend taken close to its limit without a slide. She sings
-  watchBend(jo) {
-    const b = this.race.bendAt(jo.d);
-    if (b && !this.bendNow) {
-      this.bendNow = b;
-      this.bendSlid = false;
-    }
-    if (b && (jo.slip > 1 || jo.onVerge)) this.bendSlid = true; // (a tyre at its limit, not over it, is the point)
-    if (this.bendNow && b !== this.bendNow) {
-      const under = jo.under.get(this.bendNow) ?? Infinity;
-      if (!this.bendSlid && under <= SING_UNDER && jo.state === 'run') {
-        this.sang += 1;
-        this.hudView.flash('SHE SINGS');
-        sfx('click');
-      }
-      this.bendNow = null;
-    }
+  // a bend's way in is near, or he is in it: the call is what he reads now
+  hardMoment() {
+    const jo = this.race.jo;
+    const b = this.race.nextBend(jo.d);
+    return !!b && (jo.d >= b.from || b.from - jo.d < HARD_NEAR);
   }
 
-  // (a line of the story is not talked over: a rub or a lamp waits its turn, and is dropped)
-  radio(text, ms = 2400, who = 'OTTAVIA', story = false) {
-    if (!story && this.time.now < (this.storyUntil || 0)) return;
-    if (story) this.storyUntil = this.time.now + ms;
+  // (a line of the story is not talked over: a rub or a lamp waits its turn, and is dropped. Nor is a
+  // line still being read, and at a bend only a few words get through. Returns whether it was said)
+  radio(text, ms = 2400, who = 'OTTAVIA', story = false, urgent = false) {
+    const now = this.time.now;
+    if (!story && !urgent) {
+      if (now < (this.storyUntil || 0) || now < this.radioUntil - 600) return false;
+      if (text.length > HARD_SHORT && this.race.t > 0 && this.hardMoment()) return false;
+    }
+    if (story) this.storyUntil = now + ms;
     this.hudView.say(`${who}: ${text}`);
-    this.radioUntil = this.time.now + ms;
+    this.radioUntil = now + ms;
+    return true;
   }
 
   onEvent(e) {
@@ -408,7 +408,7 @@ export default class RaceScene extends Phaser.Scene {
         this.say('wheel');
         break;
       case 'choice':
-        if (e.how === 'stop') this.radio('Go. Go on, I\'m up. Go!', 3000, 'CASSIAN', true);
+        if (e.how === 'stop') this.radio('You stopped. Idiot. Go!', 3000, 'CASSIAN', true);
         else this.radio('…Drive.', 2400, 'OTTAVIA', true);
         break;
       case 'stop_go':
@@ -423,10 +423,27 @@ export default class RaceScene extends Phaser.Scene {
         cam.shake(120, 0.003);
         break;
       case 'armed':
-        if (!this.saidOnce.has('armed')) this.radio(RADIO.armed);
-        this.saidOnce.add('armed');
+        if (!this.saidOnce.has('armed') && this.radio(RADIO.armed)) this.saidOnce.add('armed');
         sfx('click');
         break;
+      case 'sing':
+        // the loan paid back: the bend taken on its limit, and she pulls out of it (race.js singPull)
+        this.sang += 1;
+        this.hudView.flash('SHE SINGS', TUNE.singTime * 1000);
+        chime('lamp', DREAM);
+        cam.shake(90, 0.002);
+        break;
+      case 'air': {
+        // race 2's whole ask: out of his air is said once, and getting back in is said once
+        const key = e.held ? (this.airSaid.has('out') ? 'back' : null) : 'out';
+        if (key && !this.airSaid.has(key)) {
+          this.airSaid.add(key);
+          this.radio(AIR[key][1], 2400, AIR[key][0], true);
+        }
+        if (e.held) this.hudView.flash('IN HIS AIR', 1400);
+        sfx('click');
+        break;
+      }
       case 'sling':
         this.radio(RADIO.sling, 1400);
         sfx('snap');
@@ -455,8 +472,7 @@ export default class RaceScene extends Phaser.Scene {
         break;
       case 'verge':
         cam.shake(90, 0.003);
-        if (!this.saidVerge) this.radio(RADIO.verge);
-        this.saidVerge = true;
+        if (!this.saidVerge) this.saidVerge = this.radio(RADIO.verge);
         break;
       case 'bump':
         sfx('knock');
@@ -465,14 +481,15 @@ export default class RaceScene extends Phaser.Scene {
         break;
       case 'lamp': {
         chime('lamp', DREAM);
-        if (!this.saidLamp) this.radio(RADIO.lamp); // (once: after that the chime says it)
+        // (once, on his first road, and when the road is quiet: after that the chime says it)
+        if (this.firstRace && !this.saidLamp) this.lampOwed = true;
         this.saidLamp = true;
         this.view.lightLamp(e.d);
         this.hudView.split(this.race, e.d);
         break;
       }
       case 'spin':
-        this.radio(RADIO.spin, 3000);
+        this.radio(RADIO.spin, 3000, 'OTTAVIA', false, true);
         sfx('fail');
         cam.shake(280, 0.014);
         this.holdMs = 90;
@@ -609,8 +626,7 @@ export default class RaceScene extends Phaser.Scene {
   restartRace(countIt) {
     if (this.leaving) return;
     this.leaving = true;
-    // (a try is a try once the race has run a little: Esc on the grid is no attempt)
-    if (countIt && !this.ended && this.race.t > 3) this.saveFlags((f) => restarted(f, this.track));
+    if (countIt) this.countTry();
     this.pauseMenu.destroy();
     const cam = this.cameras.main;
     this.keepTheme = true;
@@ -618,10 +634,16 @@ export default class RaceScene extends Phaser.Scene {
     cam.fadeOut(300, ...NIGHT);
   }
 
+  // (a try is a real attempt: one given up past half the road. A restart in the first half is no attempt, and buys no help)
+  countTry() {
+    if (!this.ended && triedIt(this.race)) this.saveFlags((f) => restarted(f, this.track));
+  }
+
   // back through the shutter: the dip through dark, the run resumes at the garage's lamp
   leaveToGarage() {
     if (this.leaving) return;
     this.leaving = true;
+    this.countTry();
     this.pauseMenu.destroy();
     const cam = this.cameras.main;
     cam.once('camerafadeoutcomplete', () => this.scene.start('Dream', { dreamId: DREAM, resume: true, quietResume: true }));
@@ -631,6 +653,7 @@ export default class RaceScene extends Phaser.Scene {
   leaveToStation() {
     if (this.leaving) return;
     this.leaving = true;
+    this.countTry();
     this.pauseMenu.destroy();
     trainWipe(this, () => this.scene.start('Hub'), { place: DREAM, event: 'return' });
   }

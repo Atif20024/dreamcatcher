@@ -231,6 +231,7 @@ const failMessage = {
       nearLine(r, false);
       await until(dc, () => r.pauseMenu.isOpen, 900);
       rows.tries.push(getRun('racer').flags[f('tries')]);
+      rows.gates = [...(rows.gates || []), r.track.gate.time]; // (the sheet this run was driven against: a failed try eases it, silently)
       rows.state = r.pauseMenu.state();
       rows.lines = r.pauseMenu.lines;
       rows.modal = r.modals.state();
@@ -243,7 +244,7 @@ const failMessage = {
     rows.aidNow = r.aid;
     rows.chalk = r.view.chalk.length;
     rows.paid = getSave().wallet.total - wallet0;
-    return { pass: rows.tries.join() === '1,2,3' && rows.state.items[0] === 'again' && rows.aidNow === true && rows.chalk === TRACKS.pinewood.bends.length && rows.paid === 0 && /kindly/.test(rows.lines.join(' ')) && rows.lines.join(' ').includes(clock(TRACKS.pinewood.gate.time)), detail: rows };
+    return { pass: rows.tries.join() === '1,2,3' && rows.state.items[0] === 'again' && rows.aidNow === true && rows.chalk === TRACKS.pinewood.bends.length && rows.paid === 0 && /kindly/.test(rows.lines.join(' ')) && rows.lines.join(' ').includes(clock(rows.gates.at(-1))) && rows.gates[0] === TRACKS.pinewood.gate.time && rows.gates[2] > rows.gates[0] && !/eas(y|ier)/i.test(rows.lines.join(' ')), detail: rows };
   },
 };
 
@@ -853,8 +854,8 @@ const hudDiet = {
     rows.gripLatched = (race.jo.grip = 0.9, await dc.run(2), grip());
     rows.readability = dc.readability();
     const callOk = rows.calls.length > 0 && rows.calls.every((c) => /(LEFT|RIGHT|BRAKE)/.test(c));
-    // (the goal stays: it is what today is about; the name of the race has been read)
-    return { pass: /Aldo/.test(rows.goalAt0) && rows.levelAt0 && rows.gripHidden && !rows.level && /Aldo/.test(rows.goal) && !rows.footer && callOk && rows.calls.length < 8 && rows.gripShownWhenWorn && rows.gripLatched && !rows.readability.length, detail: rows };
+    // (the goal and the name of the race have been read: the day card said the goal on the grid, and the road has the room)
+    return { pass: /Aldo/.test(rows.goalAt0) && rows.levelAt0 && rows.gripHidden && !rows.level && !rows.goal && !rows.footer && callOk && rows.calls.length < 8 && rows.gripShownWhenWorn && rows.gripLatched && !rows.readability.length, detail: rows };
   },
 };
 
@@ -884,7 +885,7 @@ const card = {
     dc.releaseAll();
     const lines = r.pauseMenu.lines.join(' | ');
     const rows = { seat, title, win: lines };
-    return { pass: /seat is yours/.test(seat) && seat.includes(`Aldo's time: ${clock(TRACKS.pinewood.gate.time)}`) && !/^P/.test(title) && /5 times/.test(lines) && /2 rubs/.test(lines) && /Out of his air once/.test(lines) && /behind you/.test(lines) && lines.includes(`Ottavia's time: ${clock(TRACKS.test.target)}`) && !/only twice/.test(lines), detail: rows };
+    return { pass: /seat is yours/.test(seat) && seat.includes(`Aldo's time: ${clock(p.track.gate.time)}`) && !/^P/.test(title) && /5 times/.test(lines) && /2 rubs/.test(lines) && /Out of his air once/.test(lines) && /behind you/.test(lines) && lines.includes(`Ottavia's time: ${clock(TRACKS.test.target)}`) && !/only twice/.test(lines), detail: rows };
   },
 };
 
@@ -1129,7 +1130,7 @@ const coppaDay = {
     const ok = /win the Coppa/.test(rows.objective) && /^gullDark/.test(rows.gull) && rows.others === 0 && rows.lit === 'lit' && rows.poolOn >= 3 && rows.marks > 0
       && /PAINT/.test(rows.call) && rows.crew === 2 && rows.go === 'GO'
       && rows.sting === 'crack' && /BRAKE TO STOP/.test(rows.wheelCall) && /his wheel/.test(rows.wheelLine) && rows.wheelActor && rows.engineGone
-      && rows.joOut && rows.people.length >= 3 && /I'm up/.test(rows.stopLine) && /Six seconds/.test(rows.driveLine) && rows.note > 0 && rows.voiceAlone === 1 && rows.saved.a === true && /dead on/.test(rows.deadOn) && /dead on/.test(rows.card)
+      && rows.joOut && rows.people.length >= 3 && /You stopped/.test(rows.stopLine) && /Six seconds/.test(rows.driveLine) && rows.note > 0 && rows.voiceAlone === 1 && rows.saved.a === true && /dead on/.test(rows.deadOn) && /dead on/.test(rows.card)
       && rows.passed === true && /Drive/.test(rows.passLine);
     return { pass: ok, detail: rows };
   },
