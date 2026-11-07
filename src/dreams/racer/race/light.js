@@ -4,6 +4,7 @@
 //   dark      0 a day's picture … 1 the road only as far as light reaches it
 //   ambient   what is left of a colour in the dark; warm: under a lamp or a headlight
 //   beam      m: how far the headlights carry (the plan's draw distance halved at night)
+//   headlamp  how much the headlights light what they reach: a 1958 lamp is a dim yellow thing, so at night the lamp pools are the light
 //   haze      what a distance fades to by day; nightHaze: by dark
 import { mix } from '../../../art/paint.js';
 
@@ -12,7 +13,7 @@ export const mul = (c, t) => {
   return f(16) | f(8) | f(0);
 };
 
-const DAY = { dark: 0, ambient: 0xffffff, warm: 0xffffff, beam: 240, nightHaze: 0xd8d4b4, land: 0xffffff, spriteAmbient: 0xffffff };
+const DAY = { dark: 0, ambient: 0xffffff, warm: 0xffffff, beam: 240, headlamp: 1, nightHaze: 0xd8d4b4, land: 0xffffff, spriteAmbient: 0xffffff };
 export const LIGHTS = {
   day: { ...DAY, haze: 0xd8d4b4 },
   noon: {
@@ -29,6 +30,7 @@ export const LIGHTS = {
     spriteAmbient: 0x9c7f88,
     warm: 0xffecc8,
     beam: 180,
+    headlamp: 0.8,
     nightHaze: 0x7a4e60,
     land: 0x8a6a78,
     sky: { top: 0x3a3a70, mid: 0xc06a68, bottom: 0xf0a860, bars: 0x6a3a58 },
@@ -37,10 +39,11 @@ export const LIGHTS = {
     ...DAY,
     dark: 1,
     haze: 0x161a34,
-    ambient: 0x424a78,
-    spriteAmbient: 0x4a5484,
+    ambient: 0x2c3258,
+    spriteAmbient: 0x3a4270,
     warm: 0xffe8c4,
     beam: 108,
+    headlamp: 0.6,
     nightHaze: 0x161a34,
     land: 0x3a4468,
     sky: { top: 0x070a1c, mid: 0x0e1230, bottom: 0x20264a, stars: 90 },
@@ -53,6 +56,7 @@ export const LIGHTS = {
     spriteAmbient: 0x9c94a8,
     warm: 0xffecd0,
     beam: 200,
+    headlamp: 0.85,
     nightHaze: 0x8a6e80,
     land: 0x7a6a80,
     sky: { top: 0x2c3a6c, mid: 0xc88a88, bottom: 0xffcc90, stars: 12, bars: 0xe88a70 },
@@ -65,6 +69,7 @@ const blend = (a, b, k) => ({
   spriteAmbient: mix(a.spriteAmbient, b.spriteAmbient, k),
   warm: mix(a.warm, b.warm, k),
   beam: a.beam + (b.beam - a.beam) * k,
+  headlamp: a.headlamp + (b.headlamp - a.headlamp) * k,
   haze: mix(a.haze, b.haze, k),
   nightHaze: mix(a.nightHaze, b.nightHaze, k),
   land: mix(a.land, b.land, k),
@@ -128,7 +133,7 @@ const POOL = [0, 0, 0, 0.5, 1]; // the rows: 0..2 the day's own shades, 3 and 4 
 // spread: how much of the light gets this far off the road (a lamp and a headlight both light the road, not the country)
 const litAt = (L, z, level, reflect = 0, spread = 1) => {
   const beam = Math.max(0, Math.min(1, 1 - (z - 18) / Math.max(1, L.beam - 18))) ** 1.3;
-  return Math.max(beam * spread, POOL[level] * (1 - 0.3 * Math.min(1, z / 240)) * spread, reflect * (1 - (Math.min(1, z / 230)) ** 2));
+  return Math.max(beam * L.headlamp * spread, POOL[level] * (1 - 0.3 * Math.min(1, z / 240)) * spread, reflect * (1 - (Math.min(1, z / 230)) ** 2));
 };
 
 // the bands the road is painted in: [16 distances][5 rows] of each colour, at this light

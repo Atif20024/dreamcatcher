@@ -42,8 +42,9 @@ const SLOW_IN = 14; // ms of work: ten frames averaging over this: the view draw
 const SLOW_OUT = 9; // … and under this it comes back
 const SLOW_NEAR = 20; // segments drawn in full whatever the frame costs
 // what stands by the road goes as it comes level with the car: a trunk or a sign beside the lens is a block at the screen's edge, not a thing
-const NEAR_GONE = [3.5, 6]; // m: gone by here (small things, tall things) …
-const NEAR_FULL = [8, 14]; // … whole from here
+const NEAR_GONE = [3.5, 5]; // m: gone by here (small things, tall things), by when they are at the screen's edge …
+const NEAR_FULL = [6, 8]; // … whole from here (quickly: a half-there trunk is a ghost, not a tree)
+const NEAR_FADES = /^(pine|cypress|pole|chevron|board|lamp|quayLamp|tamarisk|windpump|gull)/; // (thin things: a house or a stand beside you is still a house)
 const OIL_SHEEN = [24, 170]; // m: from here out, a spill too thin to paint is a glint on the road, so it can be read at 100 m
 const GULL_BLOOM = 1.6; // s: the Gull lamp's light coming up
 
@@ -1004,7 +1005,7 @@ export class RoadView {
   // one image of the pool on a strip: scaled, cut off at the crest, sunk in the haze
   place(n, t, s) {
     const tall = t.m > 4 ? 1 : 0;
-    const nearK = t.ob ? 1 : Math.min(1, (s.z - NEAR_GONE[tall]) / (NEAR_FULL[tall] - NEAR_GONE[tall]));
+    const nearK = t.ob || !NEAR_FADES.test(t.frame) ? 1 : Math.min(1, (s.z - NEAR_GONE[tall]) / (NEAR_FULL[tall] - NEAR_GONE[tall]));
     if (nearK <= 0) return 0;
     const hPx = t.m * s.scale;
     const x = s.x + t.x * s.halfW;
@@ -1244,11 +1245,14 @@ export class RoadView {
       if (!s || !s.visible || s.z < OIL_SHEEN[0] || s.z > OIL_SHEEN[1]) continue;
       const y = Math.round(s.y + P);
       if (y > s.clip + P) continue;
-      const half = Math.max(3, Math.round(o.wide * 0.45 * s.halfW));
+      // (wider than the spill itself, as a sheen is: the sky in it carries further than the oil does)
+      const half = Math.max(6, Math.round(o.wide * 0.9 * s.halfW));
       const x = Math.round(s.x + o.x * s.halfW);
       const T = this.L.dark ? spriteTint(this.L, s.z, this.shadeSeg[s.seg.i] ?? 0, 0.8) : 0xffffff;
       g.fillStyle(mul(0x1a1622, T)).fillRect(x - half, y - 1, half * 2, 3);
-      for (let k = -half; k < half; k += 4) g.fillStyle(mul((k / 4) % 2 ? 0x8a6ab8 : 0x6ab8c8, T)).fillRect(x + k, y - 1, Math.min(3, half - k), 1);
+      // the shine on top of it, two rows of the sky's colours broken up: it glints, where tar would not
+      const SHEEN = [0xc8a8f0, 0x9af0f8, 0xffffff, 0x9af0f8, 0xf0c8f0];
+      for (let k = -half, i = 0; k < half; k += 2, i++) g.fillStyle(mul(SHEEN[i % 5], T)).fillRect(x + k, y - 2 - ((i >> 1) % 2), 2, 2);
     }
   }
 

@@ -238,7 +238,6 @@ export const TRACKS = {
       { d: 968, kind: 'pitboard' },
     ],
     cues: [
-      { d: 20, id: 'two_laps' },
       { d: 850, id: 'the_box' },
       { d: 300, lap: 2, id: 'second_lap' },
     ],

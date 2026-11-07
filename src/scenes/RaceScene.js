@@ -46,9 +46,8 @@ const CUES = {
   crest: ['OTTAVIA', 'Right, over the top. Trust the board. You will not see it.'],
   stay_in_my_air: ['ALDO', "Stay in my air. Don't look at the water."],
   tide: ['ALDO', "Tide's in, stranger. A length sooner."],
-  out_and_she_sings: ['OTTAVIA', 'You are in his air. Now out, and she sings.'],
+  out_and_she_sings: ['OTTAVIA', 'You are in his air. Now out, and she goes.'],
   the_cart: ['OTTAVIA', 'A cart, past the second straight, left of the crown. Go right.'],
-  two_laps: ['OTTAVIA', 'Two laps. The box at the end of the first. Stop with your nose on the paint.'],
   the_box: ['OTTAVIA', 'The box. Stop on the paint, or there is no second lap.'],
   second_lap: ['OTTAVIA', 'New tyres. Now spend them.'],
 };
@@ -67,6 +66,8 @@ const STORY = {
 };
 const RUN_FLAGS = { salt: ['broke_orders'], coppa: ['helped_cassian', 'passed_cassian'] }; // (a script's flags that a new run answers again)
 const ONCE = new Set(['block_tell', 'mistake', 'fade', 'oil']);
+const NOW = new Set(['block_tell', 'mistake', 'oil', 'crossing_bell', 'gate', 'wheel', 'aldo_wide', 'pit_through']); // (the rest of the story waits for a straight)
+const WAIT_MAX = 6000; // ms a story line waits for a quiet road before it is dropped
 const HARD_NEAR = 150; // m to a bend's way in: from here the call is what he reads, and the radio keeps to a few words
 const HARD_SHORT = 28; // characters the radio may still say then
 const AIR = { out: ['ALDO', 'Where are you? In my air, Jo.'], back: ['OTTAVIA', 'There. Stay in it.'] };
@@ -78,7 +79,7 @@ const RADIO = {
   jump_start: 'Early. Next time.',
   launch: 'That was the green. Good.',
   armed: 'In his air. Out, and she goes.',
-  sling: 'Now she sings.',
+  sling: 'There she goes.', // (she sings in a bend taken right: the sling is another thing)
   straw: 'Straw. Slower into that one.',
   bale: 'Mind the bales.',
   spin: 'Breathe. I have you at the lamp.',
@@ -93,7 +94,7 @@ function cardLines(track, { place, time, gap, flags: run }, pass, flags, owed, s
   const gate = track.gate || {};
   const him = NAMES[nearest] || 'Him';
   const manners = run.clean ? 'Clean.' : run.spins ? `${run.spins} ${run.spins === 1 ? 'spin' : 'spins'}.` : run.rubs ? `${run.rubs} ${run.rubs === 1 ? 'rub' : 'rubs'}.` : 'Not clean.';
-  const slings = run.slings ? ` Out of his air ${run.slings === 1 ? 'once' : `${run.slings} times`}, and she sang.` : '';
+  const slings = run.slings ? ` Out of his air ${run.slings === 1 ? 'once' : `${run.slings} times`}, and she went.` : '';
   const lines = [];
   if (gate.time !== undefined) {
     const said = spoken(shownTime(time, gate, pass));
@@ -165,6 +166,7 @@ export default class RaceScene extends Phaser.Scene {
     this.steer = 0;
     this.sang = 0;
     this.lampOwed = false; // the first lamp's lesson, waiting for a quiet stretch of road
+    this.waiting = null; // a line of the story, waiting the same way
     this.airSaid = new Set();
     this.radioUntil = 0;
     this.escUp = true;
@@ -239,6 +241,11 @@ export default class RaceScene extends Phaser.Scene {
     }
     this.watchStory(jo);
     if (this.lampOwed && !this.hardMoment() && this.radio(RADIO.lamp, 3000)) this.lampOwed = false;
+    if (this.waiting && (this.time.now > this.waiting.until || !this.hardMoment())) {
+      const [who, text] = this.waiting.line;
+      if (this.time.now <= this.waiting.until) this.radio(text, Math.max(2400, text.length * 60), who, true);
+      this.waiting = null;
+    }
     this.view.startFrame();
     this.view.update(dt);
     this.hudView.update(this.race);
@@ -314,7 +321,12 @@ export default class RaceScene extends Phaser.Scene {
       this.saidOnce.add(key);
     }
     const line = STORY[key];
-    if (line) this.radio(line[1], Math.max(2400, line[1].length * 60), line[0], true);
+    if (!line) return;
+    if (!NOW.has(key) && this.hardMoment()) {
+      this.waiting = { line, until: this.time.now + WAIT_MAX };
+      return;
+    }
+    this.radio(line[1], Math.max(2400, line[1].length * 60), line[0], true);
   }
 
   // a bend's way in is near, or he is in it: the call is what he reads now
@@ -438,7 +450,7 @@ export default class RaceScene extends Phaser.Scene {
         const key = e.held ? (this.airSaid.has('out') ? 'back' : null) : 'out';
         if (key && !this.airSaid.has(key)) {
           this.airSaid.add(key);
-          this.radio(AIR[key][1], 2400, AIR[key][0], true);
+          this.radio(AIR[key][1], 2400, AIR[key][0], key === 'out'); // (getting back in is good news: it gives way to the story)
         }
         if (e.held) this.hudView.flash('IN HIS AIR', 1400);
         sfx('click');

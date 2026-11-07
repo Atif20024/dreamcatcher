@@ -160,7 +160,8 @@ export class RaceHud {
     this.bar.setFillStyle(c.slingT > 0 ? 0x88e8ff : c.singT > 0 ? 0xffe070 : THEME['brass-light']);
     // race 2 asks one thing: whether he is in Aldo's air. The dash and the bar say it the moment he is not
     const air = race.script?.air;
-    const word = this.scene.time.now < this.flashUntil ? this.flashText : c.slingT > 0 ? 'OUT!' : air === false ? 'NO AIR' : c.armed && c.slingCool <= 0 ? 'FULL' : '';
+    const story = ['wide', 'dark', 'over'].includes(race.script?.state); // (his lights going out is not a moment for the dash to say FULL)
+    const word = story ? '' : this.scene.time.now < this.flashUntil ? this.flashText : c.slingT > 0 ? 'OUT!' : air === false ? 'NO AIR' : c.armed && c.slingCool <= 0 ? 'FULL' : '';
     if (this._last.sling !== word) this.slingTx.setColor(word === 'NO AIR' ? 'danger' : 'accent');
     this.setText('sling', this.slingTx, word);
     if (this.draft && air !== undefined && this._last.air !== air) {
@@ -196,17 +197,21 @@ export class RaceHud {
     const inBend = b && c.d >= b.from;
     const dist = b ? b.from - c.d : Infinity;
     const told = this.storyCall(race);
-    const call = (dist < 260 || inBend) && !race.result && !told && !['wide', 'dark', 'over'].includes(race.script?.state);
+    const call = (dist < 260 || inBend) && !race.result && !told && !['wide', 'dark', 'over'].includes(race.script?.state) && race.script?.wheel !== 'helping'; // (stood by his car: no bend to call)
     this.notch.setVisible(!!call);
     if (call) {
       // the speed of the line Jo is on, to the nearest 5 km/h and easing with it: it must not flicker
       const gf = gripFactor(c.grip);
       const safe = bendSafe(b, c.x, gf);
       this.notch.x = BAR.x + Math.min(BAR.w - 3, safe / SPEED_SCALE);
-      const safeK = Math.round((safe * KMH) / 5) * 5;
+      // (and it holds its number until the line has really moved: a hair either side of a 5 km/h step must not flick it back and forth)
+      const raw = safe * KMH;
+      if (this.callBend !== b || Math.abs(raw - this.safeK) > 4) this.safeK = Math.round(raw / 5) * 5;
+      this.callBend = b;
+      const safeK = this.safeK;
       const side = turnSide(b);
       // (the distance moves in the boards' own 50 m steps: a tenth of a second is no time to read a number)
-      const tight = inBend ? `${side}: HOLD ${safeK} KM/H` : `${side} ${Math.ceil(dist / 50) * 50} M: ${safeK} KM/H`;
+      const tight = inBend ? `${side}: HOLD ${safeK} KM/H` : `${side} ${Math.max(50, Math.round(dist / 50) * 50)} M: ${safeK} KM/H`;
       const whisper = this.aid || (this.teachBrake && b === (track.bends || [])[0]);
       const brake = whisper && !inBend && v > safe && c.d >= brakePoint(b, c.x, v, gf) - v * TUNE.chalkReact;
       this.setText('call', this.callTx, brake ? 'BRAKE NOW' : tight);

@@ -690,6 +690,7 @@ const again = {
     const atWall = { lampD: 840, d: b.from + 2, prevD: b.from + 2, v: 36, x: 1.2 * b.side, prevX: 1.2 * b.side, ghost: 0 };
     Object.assign(race.jo, atWall);
     race.lampRivals = [{ r: race.rivals[0], d: 1000, v: 30, x: 0.5, finished: null, state: 'run' }];
+    Object.assign(race.rivals[0], { d: 1000, prevD: 1000 }); // (at the lamp's mark: what he makes while Jo is in the dark he keeps 70 percent of, spinKeep)
     // his own Restart from the lamp is his choice: no question on top of it, lost or not
     dc.press('esc', 3);
     await dc.run(3);
@@ -725,7 +726,7 @@ const again = {
     await until(dc, () => dc.scene() && dc.scene().race && dc.scene().race !== race && dc.scene().race.t < 0, 200);
     rows.fresh = dc.scene().race.jo.d === 0 && dc.scene().race.jo.spins === 0;
     rows.tried = (getRun('racer').flags || {})[flagOf('test', 'tries')] - tries0;
-    return { pass: rows.restartQuiet && rows.state.title === 'Again?' && rows.state.items[0] === 'again' && rows.joState === 'reset' && rows.dark && rows.rivalBack < 1040 && rows.drivenOn && rows.lit && rows.noNag && rows.fresh && rows.tried === 1, detail: rows };
+    return { pass: rows.restartQuiet && rows.state.title === 'Again?' && rows.state.items[0] === 'again' && rows.joState === 'reset' && rows.dark && rows.rivalBack < 1050 && rows.drivenOn && rows.lit && rows.noNag && rows.fresh && rows.tried === 1, detail: rows };
   },
 };
 
@@ -871,6 +872,7 @@ const card = {
     dc.releaseAll();
     const seat = p.pauseMenu.lines.join(' | ');
     const title = p.pauseMenu.state().title;
+    const sheet = p.track.gate.time; // (before the restart: the scene object is the same one, on another road after)
     // a place gate, with the rival on the road
     p.pauseMenu.destroy();
     const r = await toTest(dc);
@@ -885,7 +887,7 @@ const card = {
     dc.releaseAll();
     const lines = r.pauseMenu.lines.join(' | ');
     const rows = { seat, title, win: lines };
-    return { pass: /seat is yours/.test(seat) && seat.includes(`Aldo's time: ${clock(p.track.gate.time)}`) && !/^P/.test(title) && /5 times/.test(lines) && /2 rubs/.test(lines) && /Out of his air once/.test(lines) && /behind you/.test(lines) && lines.includes(`Ottavia's time: ${clock(TRACKS.test.target)}`) && !/only twice/.test(lines), detail: rows };
+    return { pass: /seat is yours/.test(seat) && seat.includes(`Aldo's time: ${clock(sheet)}`) && !/^P/.test(title) && /5 times/.test(lines) && /2 rubs/.test(lines) && /Out of his air once/.test(lines) && /behind you/.test(lines) && lines.includes(`Ottavia's time: ${clock(TRACKS.test.target)}`) && !/only twice/.test(lines), detail: rows };
   },
 };
 
@@ -923,7 +925,7 @@ const harbourNight = {
   expect: 'pass',
   async run(dc) {
     const cue = TRACKS.harbour.script.gullCue;
-    const r = await warpRace(dc, 'harbour', { d: cue - 80, v: 30 });
+    const r = await warpRace(dc, 'harbour', { d: cue - 160, v: 30 }); // (the bar fills, then airHold in it: holding, not passing through)
     const race = r.race;
     const s = race.script;
     const aldo = race.rivals.find((c) => c.id === 'aldo');
@@ -988,7 +990,7 @@ const saltDay = {
     rows.sting = r.engine.state().sting;
     // … twice: lit, dark, lit, dark
     const seq = [];
-    for (let i = 0; i < 26; i++) {
+    for (let i = 0; i < 40; i++) {
       seq.push(shownLike(r, /^tail-lit/).length > 0 && !c.braking ? 1 : 0);
       await dc.run(1);
     }
@@ -999,6 +1001,7 @@ const saltDay = {
     const xing = TRACKS.salt.things.find((q) => q.kind === 'crossing');
     r = await warpRace(dc, 'salt', { d: xing.d - xing.bell - 40, v: 14 });
     const o = r.race.crossings[0];
+    r.keepGoing = true; // (sat at the gate with the field gone up the road: she would ask "Again?", and the menu stops the clock)
     dc.hold('up');
     await until(dc, () => o.state === 'bell', 300);
     dc.releaseAll();
@@ -1007,17 +1010,17 @@ const saltDay = {
     rows.bellLine = r.hudView.radioTx.rawText;
     const posts = new Set();
     const arms = new Set();
-    for (let i = 0; i < 200 && o.state === 'bell'; i++) {
+    for (let i = 0; i < 500 && o.state === 'bell'; i++) {
       await dc.run(1);
       shownLike(r, /^cross[AB]/).forEach((n) => posts.add(n[5]));
       shownLike(r, /^gate/).forEach((n) => arms.add(n[4]));
     }
     rows.posts = [...posts].sort().join('');
     rows.arms = [...arms].sort().join('');
-    await dc.run(60);
+    await dc.run(30);
     rows.train = shownLike(r, /^train/).length;
     const tx0 = r.view.crossT.x;
-    await dc.run(30);
+    await dc.run(20);
     rows.trainMoves = r.view.crossT.x - tx0;
     await until(dc, () => o.state === 'open', 300);
     await dc.run(2);
@@ -1052,7 +1055,7 @@ const coppaDay = {
     // the lamp: dark from the start, the only one; lit on the way past
     const K = TRACKS.coppa;
     const lapLamp = K.lapLen + K.script.lamp;
-    let r = await warpRace(dc, 'coppa', { d: K.script.lamp - 55, v: 28, x: 0, flags });
+    let r = await warpRace(dc, 'coppa', { d: K.script.lamp - 120, v: 28, x: 0, flags }); // (it lights 70 m ahead of him: dark from further back)
     await dc.run(1);
     rows.objective = hud.s.objective;
     rows.gull = shownLike(r, /^gull/)[0];
