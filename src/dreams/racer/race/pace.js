@@ -18,7 +18,7 @@ function tidy(race) {
 
 // null unless the gate is a time. at(d): his time at that road; dAt(t): his road at that time
 export function sheetPace(track) {
-  const time = track.gate && track.gate.time;
+  const time = track.gate && (track.gate.was ?? track.gate.time); // (his own run: the bar a miss eases is not where he was)
   if (time === undefined) return null;
   const race = new Race(track);
   const ds = [];

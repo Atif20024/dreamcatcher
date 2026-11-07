@@ -199,7 +199,7 @@ describe('the ending', () => {
     expect(endingLines({ ...won, rent_short: true, rent_paid: true }).join(' ')).toMatch(/rent was late/);
     expect(endingLines({ ...won, rent_ok: true }).join(' ')).toMatch(/rent was paid/);
     expect(endingLines({ ...won, sable_whole: true }).join(' ')).toMatch(/every one/);
-    expect(endingLines({ ...won, broke_orders: true }).join(' ')).toMatch(/kept his fifth/);
+    expect(endingLines({ ...won, broke_orders: true }).join(' ')).toMatch(/paid Sable back/);
   });
   it('the chest is answered: the jar or the chemist, the wall or the window', () => {
     expect(medOk({})).toBe(true);

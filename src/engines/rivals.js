@@ -54,13 +54,19 @@ export function traffic(race, c) {
   return o.x + side * clear;
 }
 
-// a gate going down ahead that this car will not beat: stop for it
+// a gate going down ahead that this car will not beat: stop for it. A careful driver, or anyone
+// behind Jo (his brake lights and the lamps both in front of him), goes for it only with time in hand:
+// so going for it leaves the pack at the gate, and braking for it is not a place given away
 function gateAhead(race, c) {
   const t = race.tune;
+  const jo = race.jo;
+  const spare = c.style === 'clean' || c.d < jo.d ? t.crossingSpare : 0;
   return race.crossings.some((o) => {
-    const to = o.d - CAR_LEN / 2 - 1 - c.d;
+    // (a car already waiting at it is a queue: he stops behind it, not alongside)
+    const queue = jo !== c && jo.d > c.d && jo.d < o.d && o.d - jo.d < 12 ? o.d - jo.d + CAR_LEN + 1 : 0;
+    const to = o.d - CAR_LEN / 2 - 1 - c.d - queue;
     if (to < 0 || o.state === 'open') return false;
-    if (o.state === 'bell' && to / Math.max(c.v, 1) < t.crossingBell - o.t) return false;
+    if (o.state === 'bell' && to / Math.max(c.v, 1) < t.crossingBell - o.t - spare) return false;
     return brakeDistance(c.v, 0, gripFactor(c.grip, t), t) + 4 >= to;
   });
 }

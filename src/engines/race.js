@@ -125,8 +125,9 @@ export const TUNE = Object.freeze({
   oilLen: 7, // m
   oilWide: 0.35, // road widths
   oilHard: 26, // m/s: a car braking from this leaves its sump on the road
-  crossingBell: 5.7, // s of bell and red lamps: a car on full throttle out of the chicane makes it by a few tenths; a lift or a poor exit does not …
-  crossingShut: 2, // … and the gate is down this long
+  crossingBell: 6.4, // s of bell and red lamps: full throttle out of the chicane makes it with time in hand, a lift of a second still makes it, a brake does not …
+  crossingShut: 1.5, // … and the gate is down this long …
+  crossingSpare: 1.5, // … and a careful rival goes for it only with this in hand (a diver with none): brake and wait, and the careful wait with you
   wearGate: 0.05, // a shut gate met at speed: never a spin, but it is not nothing, so braking for it pays
   blockSpeed: 28, // m/s: nobody is in anybody's mirror off the line or out of a bend
   blockMirror: 0.5, // s in his air before he looks up
@@ -143,7 +144,7 @@ export const TUNE = Object.freeze({
   fadeTop: 0.9, // … and so is his top speed
   weave: 0.25, // widths either side, behind you
   weaveRate: 1.6, // rad/s
-  pitBox: 2.5, // s: nose in the box
+  pitBox: 2.5, // s: nose in the box (Tullio says these: words.js DRILL)
   pitClean: 1.5, // s: and the crew has done the drill
   pitMiss: 5, // s: stopped short or long
   pitThrough: 0, // the grip you have left if you don't stop: there is no second lap in them …
@@ -166,10 +167,11 @@ export const TUNE = Object.freeze({
   pitLook: 150, // m: a rival starts for his stall from here
   pitLine: 0.85, // where a rival's stall is, off the road's line
   wheelExit: 10, // m before the bend's exit: the wheel has waited long enough
-  easePace: 0.06, // per failed try: rivals' top speed and bend pace, on a place gate (a track's `ease` overrides it; raceFor) …
+  easeFirst: 0.12, // the first failed try: this off the rivals' top speed and bend pace, on a place gate (raceFor) …
+  easePace: 0.05, // … and this for each one after it …
   easeTime: 1.6, // … s more on the sheet, on a time gate …
-  easeMax: 6, // … no more tries than this count …
-  easeFloor: 0.5, // … and no rival goes slower than this share of himself
+  easeMax: 4, // … no more tries than this count …
+  easeFloor: 0.75, // … and no rival goes slower than this share of himself: a pack a little off, never parked
 });
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));

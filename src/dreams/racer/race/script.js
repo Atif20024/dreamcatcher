@@ -249,13 +249,16 @@ const SCRIPTS = { harbour, salt, coppa };
 // A finish short of the gate is always one (result.js applyResult); a restart in the first half never is
 export const triedIt = (race) => !race.result && race.jo.d >= race.track.length / 2;
 
-// The help a failed try buys, never announced: the rivals a little off their pace, or a little more time on the sheet.
-// Same track object at tries 0; r.track carries the eased gate, so whoever reads the number agrees with the check.
+// The help a failed try buys: the rivals a little off their pace, or a little more time on the sheet.
+// Same track object at tries 0. Else r.track is a copy that says so (`eased`: the tries that count) and carries the
+// eased gate, so whoever reads the number agrees with the check. A time gate keeps the man's own time as `was`:
+// Aldo did what he did, and says what he will take (words.js). A helped run is paid no more than the gate's place (result.js).
 export function raceFor(track, F = {}, { tune = carTune(track, F), seed = 1, tries = 0 } = {}) {
   const script = SCRIPTS[track.id]?.(F) ?? null;
   const n = Math.min(tries, tune.easeMax);
-  const road = n && track.gate?.time !== undefined ? { ...track, gate: { ...track.gate, time: track.gate.time + n * tune.easeTime } } : track;
-  const ease = n && track.gate?.place !== undefined ? Math.max(tune.easeFloor, 1 - n * (track.ease ?? tune.easePace)) : 1;
+  const timed = track.gate?.time !== undefined;
+  const road = n && (timed || track.gate?.place !== undefined) ? { ...track, eased: n, gate: timed ? { ...track.gate, time: track.gate.time + n * tune.easeTime, was: track.gate.time } : track.gate } : track;
+  const ease = n && track.gate?.place !== undefined ? Math.max(tune.easeFloor, 1 - tune.easeFirst - (n - 1) * tune.easePace) : 1;
   const rivals = (track.rivals ?? (track.rival ? [track.rival] : [])).map((r) => (ease === 1 || r.doomed ? r : { ...r, top: (r.top ?? 1) * ease, k: (r.k ?? SPEED_K) * ease }));
   return new Race(road, { rivals, tune, seed, script });
 }

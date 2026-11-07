@@ -22,7 +22,7 @@
 //   a landscape lock (both may be refused: errors are swallowed).
 // - The DOM listeners sit on window in the capture phase: a touch on a
 //   button never reaches Phaser (the HUD footer is a music button there).
-import { layoutTouch, layoutRace, layoutContext, controlsAt, keyOf, TOUCH_KEYS, toGame, isPortrait, GAME_W, GAME_H } from '../input/touchLayout.js';
+import { layoutTouch, layoutRace, layoutContext, controlsAt, slabSteer, keyOf, TOUCH_KEYS, toGame, isPortrait, GAME_W, GAME_H } from '../input/touchLayout.js';
 import { openSoftKeyboard, closeSoftKeyboard } from '../input/softKeyboard.js';
 import { routeZoneTap, zonesHideControls } from '../input/touchTaps.js';
 import { touchState } from '../input/touchState.js';
@@ -151,10 +151,11 @@ export default class TouchControls {
       }
     }
     const prev = this.fingers.get(id);
-    const onControl = (prev && prev.onControl) || (type === 'start' && keys.length > 0);
-    this.fingers.set(id, { x: p.x, y: p.y, keys, onControl });
-    // a finger landing off the buttons is a tap on the screen
-    if (type === 'start' && !keys.length && !this.portrait) this.taps.push(p);
+    const steer = this.portrait || !this.play ? null : slabSteer(L, p.x, p.y);
+    const onControl = (prev && prev.onControl) || (type === 'start' && (keys.length > 0 || steer !== null));
+    this.fingers.set(id, { x: p.x, y: p.y, keys, onControl, steer });
+    // a finger landing off the buttons (and off the slab's dead strip) is a tap on the screen
+    if (type === 'start' && !keys.length && steer === null && !this.portrait) this.taps.push(p);
     this.sync();
     return onControl;
   }
@@ -201,6 +202,8 @@ export default class TouchControls {
   sync() {
     const want = new Set();
     for (const f of this.fingers.values()) for (const k of f.keys) want.add(k);
+    // (the slab's own value, for a scene that drives: RaceScene reads it in place of the two keys)
+    touchState.steer = [...this.fingers.values()].find((f) => f.steer !== null && f.steer !== undefined)?.steer ?? null;
     for (const k of [...this.held]) {
       if (!want.has(k)) {
         this.held.delete(k);

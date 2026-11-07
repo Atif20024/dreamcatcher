@@ -887,7 +887,7 @@ const card = {
     dc.releaseAll();
     const lines = r.pauseMenu.lines.join(' | ');
     const rows = { seat, title, win: lines };
-    return { pass: /seat is yours/.test(seat) && seat.includes(`Aldo's time: ${clock(sheet)}`) && !/^P/.test(title) && /5 times/.test(lines) && /2 rubs/.test(lines) && /Out of his air once/.test(lines) && /behind you/.test(lines) && lines.includes(`Ottavia's time: ${clock(TRACKS.test.target)}`) && !/only twice/.test(lines), detail: rows };
+    return { pass: /seat is yours/.test(seat) && seat.includes(`Aldo's time: ${clock(sheet)}`) && !/^P/.test(title) && /five times/.test(lines) && /Two rubs/.test(lines) && /slung out of a car's air once/.test(lines) && /behind you/.test(lines) && lines.includes(`Ottavia's time: ${clock(TRACKS.test.target)}`) && !/only twice/.test(lines), detail: rows };
   },
 };
 
@@ -1133,7 +1133,7 @@ const coppaDay = {
     const ok = /win the Coppa/.test(rows.objective) && /^gullDark/.test(rows.gull) && rows.others === 0 && rows.lit === 'lit' && rows.poolOn >= 3 && rows.marks > 0
       && /PAINT/.test(rows.call) && rows.crew === 2 && rows.go === 'GO'
       && rows.sting === 'crack' && /BRAKE TO STOP/.test(rows.wheelCall) && /his wheel/.test(rows.wheelLine) && rows.wheelActor && rows.engineGone
-      && rows.joOut && rows.people.length >= 3 && /You stopped/.test(rows.stopLine) && /Six seconds/.test(rows.driveLine) && rows.note > 0 && rows.voiceAlone === 1 && rows.saved.a === true && /dead on/.test(rows.deadOn) && /dead on/.test(rows.card)
+      && rows.joOut && rows.people.length >= 3 && /You stopped/.test(rows.stopLine) && /That cost you/.test(rows.driveLine) && rows.note > 0 && rows.voiceAlone === 1 && rows.saved.a === true && /dead on/.test(rows.deadOn) && /dead on/.test(rows.card)
       && rows.passed === true && /Drive/.test(rows.passLine);
     return { pass: ok, detail: rows };
   },
@@ -1147,7 +1147,7 @@ const journey = {
     const rows = {};
     const count = (dress, re) => dress.flat().filter((t) => re.test(t.frame)).length;
     for (const id of ['pinewood', 'harbour', 'salt', 'coppa']) {
-      const r = await warpRace(dc, id, { flags: { tyres_short: id === 'salt', sable_whole: id === 'coppa' } });
+      const r = await warpRace(dc, id, { flags: { tyres_short: id === 'salt', sable_whole: id === 'coppa', sable_name: id === 'coppa' } });
       const d = r.view.dress;
       await dc.run(2);
       rows[id] = {

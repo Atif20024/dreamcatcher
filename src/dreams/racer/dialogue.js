@@ -7,7 +7,16 @@
 // (Only the Roche boy blocks, on the road: nothing here says otherwise. The life between
 // the races is told here, in the order a player walks it: the seat, the Heron, the loss,
 // the tin, the paper, the sheet, the letter, whose car, the chalk, the wall, the Coppa.)
-import { PRICES, softPrice, PAPERS } from './season.js';
+import { PRICES, softPrice, PAPERS, TIN, clausePay } from './season.js';
+import { TRACKS } from './race/tracks.js';
+import { spoken } from './race/result.js';
+import { numberWord, cap, ORDINAL } from './race/words.js';
+
+// (the numbers the game makes true: Aldo's own time, what third pays, what the tin holds, what HOLD was paid)
+const ALDO_TIME = spoken(TRACKS.pinewood.gate.time).toLowerCase();
+const SHEET = TRACKS.salt.gate.place; // (the Salt Road's sheet: top three)
+const THIRD_PAYS = numberWord(TRACKS.salt.prize[SHEET]);
+const HOLD_PAY = numberWord(clausePay('sable_orders'));
 
 export const CAST = {
   jo: { name: 'JO', portrait: 'portrait-jo', voicePitch: 1 },
@@ -51,14 +60,14 @@ export const CONVERSATIONS = {
   // the choice: the one new set in the building
   aldo_first: conv('aldo_first', ['aldo', 'jo'], {
     start: { who: 'aldo', text: 'A stranger with good hands is all this garage can afford. Ottavia will tell you the rest. She tells everyone.', next: 'b' },
-    b: { who: 'aldo', text: 'I did Pinewood in thirty-four, in that car, the year my knees worked. Beat it and there is a seat. Miss it and there is soup at the Castellanes.', next: 'c' },
+    b: { who: 'aldo', text: `I did Pinewood in ${ALDO_TIME}, in that car, the year my knees worked. Beat it and there is a seat. Miss it and there is soup at the Castellanes.`, next: 'c' },
     c: { who: 'jo', text: 'Can she really hear it?', next: 'd' },
     d: { who: 'aldo', text: 'I cannot tell one note from another. She tells me when the car is unhappy, and I say thank you. It is most of what I know.', end: true },
   }, { replayable: true }),
   aldo_tyres: conv('aldo_tyres', ['aldo', 'jo', 'ottavia'], {
-    start: { who: 'aldo', text: 'Under my time, stranger, in my second car. So the seat is yours, and the Heron with it. Sit, before you fall over.', next: 'b' },
+    start: { who: 'aldo', text: 'Under my time, in my second car. The seat is yours, and the Heron. Sit, before you fall over.', next: 'b' },
     b: { who: 'aldo', text: 'There is one new set of tyres in this building. Soft. I paid for them out of next month.', next: 'c' },
-    c: { who: 'aldo', text: 'The Harbour Cup is on Saturday, at night. They go on your Heron. You are young and you will use them.', next: 'pick' },
+    c: { who: 'aldo', text: 'The Harbour Cup is Saturday, at night. They go on your Heron.', next: 'pick' },
     pick: {
       who: 'jo',
       text: '…',
@@ -70,7 +79,7 @@ export const CONVERSATIONS = {
     keep: { who: 'aldo', text: "Good. Don't thank me, thank the bank. They don't know yet.", next: 'flat' },
     give: { who: 'aldo', text: 'You are a fool. Tullio! Put them on mine, before he thinks about it.', next: 'flat' },
     flat: { who: 'ottavia', text: 'Your car is a hair flat tonight, Aldo. It will keep till the morning.', next: 'end' },
-    end: { who: 'aldo', text: 'Everything keeps till the morning. Come down to the sea wall, stranger. I am there every day. It is the only appointment I keep.', set: { tyres_settled: true }, end: true },
+    end: { who: 'aldo', text: 'Everything keeps till the morning. Come down to the sea wall, stranger. It is the only appointment I keep.', set: { tyres_settled: true }, end: true },
   }),
   aldo_settled: once('aldo_settled', 'aldo', 'Saturday. Stay in my air along the quay, then do as you like. And leave my gloves on the cowl. I know where they are.'),
   // the sea wall: the one thing he has to teach, and it comes back at the door of the ward
@@ -94,7 +103,7 @@ export const CONVERSATIONS = {
   aldo_wall_again: once('aldo_wall_again', 'aldo', 'Still coming in. It does not need the two of us. Go and tune something.'),
   harbour_eve: conv('harbour_eve', ['tullio', 'aldo'], {    start: { if: 'gave_tyres', who: 'tullio', text: 'The new set is on him. You are on last year\'s. Do not be brave.', next: 'a', else: 'kept' },
     kept: { who: 'tullio', text: 'The new set is on you. His are old. He says they will do. He says that about everything.', next: 'a' },
-    a: { who: 'aldo', text: 'Tide is in by nine, stranger. A length sooner. And thank you. I forgot to say. It is most of what I know.', end: true },
+    a: { who: 'aldo', text: 'Tide is in by nine, stranger. And thank you. I forgot to say.', end: true },
   }),
   nino_sweep: once('nino_sweep', 'nino', 'Signorina Ottavia says I sweep flat too. I did not know you could.'),
   nino_seat: once('nino_seat', 'nino', 'You are the first driver who has not walked through my pile. I told Tullio. He said wait.'),
@@ -116,8 +125,8 @@ export const CONVERSATIONS = {
     b: { who: 'tullio', text: 'On the sheet. Nobody has written Pereval on a sheet since the winter. I went and looked at it twice.', end: true },
   }, { replayable: true }),
   tullio_pit: conv('tullio_pit', ['tullio'], {
-    start: { if: 'sable_lien', who: 'tullio', text: 'Sable has been asking about the debts. Thirty days, he said. The Coppa is in nine. I did not say anything. There was nothing to say.', next: 'broke', else: 'box' },
-    broke: { if: 'broke_orders', who: 'tullio', text: 'He started asking the morning after you went by Mir.', next: 'box' },
+    start: { if: 'sable_lien', who: 'tullio', text: 'Sable has been asking about the debts. Thirty days, he said. The Coppa is in nine. There was nothing to say.', next: 'dine', else: 'dine' },
+    dine: { if: 'sable_dinners', who: 'tullio', text: 'Mir says you sat next to the mayor\'s wife on Thursday. I did not ask what you said.', next: 'box' },
     box: { who: 'tullio', text: 'On the night you stop with your nose on the paint. Your nose. Mine is busy.', end: true },
   }, { replayable: true }),
   tullio_after: conv('tullio_after', ['tullio'], {
@@ -126,7 +135,7 @@ export const CONVERSATIONS = {
   }, { replayable: true }),
   // the morning after the Cup: Jo at the bench
   cup_morning: conv('cup_morning', ['nino', 'jo'], {
-    start: { who: 'nino', text: 'They took him up the hill before it was light. They brought his things down. His gloves are on the bench, and nobody has moved them.', next: 'b' },
+    start: { who: 'nino', text: 'They took him up the hill before it was light. His gloves are on the bench. Nobody has moved them.', next: 'b' },
     b: { who: 'jo', text: 'Tail lights, at the Gull Bend. Then no tail lights. Then the dust in my lamps, and his engine stopped.', next: 'c' },
     c: { who: 'nino', text: 'He is alive. Sister says he is alive. Will you take them up? I do not want to.', end: true },
   }),
@@ -135,14 +144,12 @@ export const CONVERSATIONS = {
   agnese_up: once('agnese_up', 'agnese', 'That is all he needs tonight. Go on home.'),
   agnese_late: conv('agnese_late', ['agnese'], {
     start: { who: 'agnese', text: 'The boy came for the gloves, and I let him. Mr Pereval has asked what the Salt Road paid. I told him I am a nun.', next: 'chest' },
-    chest: { if: 'chest_bad', who: 'agnese', text: 'The Castellane girl asked me what a bottle for the chest costs. Twelve. Neither of us said anything else.', end: true },
+    chest: { if: 'chest_bad', who: 'agnese', text: `The Castellane girl asked me what a bottle for the chest costs. ${cap(numberWord(PRICES.medicine))}. Neither of us said anything else.`, end: true },
   }, { replayable: true }),
   corridor: conv('corridor', ['ottavia', 'jo'], {
     start: { who: 'ottavia', text: 'You brought them.', next: 'awake' },
     awake: { who: 'jo', text: 'Is he awake?', next: 'tide' },
-    tide: { who: 'ottavia', text: 'He looks at the wall. He knows me. He asked what the tide was doing.', next: 'kept' },
-    kept: { if: 'kept_tyres', who: 'ottavia', text: 'He told me to put the new set on you, and I bolted them on myself. His old ones were on his car. So.', next: 'gave' },
-    gave: { if: 'gave_tyres', who: 'ottavia', text: 'He had your tyres on. Good tyres. I keep wanting it to be the tyres.', next: 'air' },
+    tide: { who: 'ottavia', text: 'He looks at the wall. He knows me. He asked what the tide was doing.', next: 'air' },
     air: { if: 'held_aldo', who: 'jo', text: 'I was in his air. I was right there.', next: 'late', else: 'back' },
     back: { who: 'jo', text: 'I was back. I saw it from back there.', next: 'late' },
     late: { who: 'jo', text: 'A car moved on him, late. Mustard. I saw it.', next: 'all' },
@@ -165,7 +172,7 @@ export const CONVERSATIONS = {
   }),
   corridor_after: once('corridor_after', 'ottavia', 'Go on. I will sit a while.'),
   // the kitchen
-  signora: once('signora', 'signora', 'The tin is on the dresser. Twelve. It goes in the jars, and I do not want to see you counting it twice.'),
+  signora: once('signora', 'signora', `The tin is on the dresser. ${cap(numberWord(TIN))}. It goes in the jars, and I do not want to see you counting it twice.`),
   signora_pit: once('signora_pit', 'signora', 'I have never once come to one of these. It is very loud. Here is soup. Do not spill it on the car.'),
   signora_after: conv('signora_after', ['signora'], {
     start: { if: 'chest_bad', who: 'signora', text: 'I am sitting because I choose to sit. It is only my chest. The soup is on the stove. Get it yourself.', end: true, else: 'late' },
@@ -175,12 +182,11 @@ export const CONVERSATIONS = {
     soup: { who: 'signora', text: 'There is soup. There is always soup.', end: true },
   }, { replayable: true }),
   jars_said: conv('jars_said', ['signora', 'jo'], {
-    start: { who: 'signora', text: 'At the cafe they say it was the money. At the harbour they say it was the boy in the black car. She says nothing. She washes her hands, and the black stays.', next: 'rent' },
-    rent: { if: 'rent_ok', who: 'signora', text: 'The rent is in the jar. Good. That is one thing nobody has to say.', next: 'silent' },
+    start: { if: 'rent_ok', who: 'signora', text: 'The rent is in the jar. Good. That is one thing nobody has to say.', next: 'silent' },
     silent: { if: 'rent_short', who: 'signora', text: '…', next: 'med' },
     med: { if: 'med_short', who: 'signora', text: 'It is only my chest. It has been only my chest for years.', next: 'tyres' },
     tyres: { if: 'tyres_short', who: 'signora', text: 'And the car wants what the car wants. It can want.', next: 'end' },
-    end: { who: 'signora', text: 'A man from Sable Oil left his card for the driver. It is under the clock. Oil people do not leave cards to be kind. Go on, then.', end: true },
+    end: { who: 'signora', text: 'A man from Sable Oil left his card for the driver, under the clock. Oil people do not leave cards to be kind.', end: true },
   }),
   // Mr Sable
   sable_first: conv('sable_first', ['sable', 'jo'], {
@@ -193,13 +199,13 @@ export const CONVERSATIONS = {
   sable_done: conv('sable_done', ['sable'], {
     start: { if: 'sable_whole', who: 'sable', text: 'Every clause. How refreshing. You will be hearing from us.', next: 'some' },
     some: { if: 'sable_struck', who: 'sable', text: 'You read them. Almost nobody reads them. Our regards to the Signorina.', next: 'mir' },
-    mir: { who: 'sable', text: 'The second car will be driven by a young man of ours, Mr Mir. He is careful. Sable Oil is fond of careful.', next: 'hold' },
+    mir: { who: 'sable', text: 'The second car is Mr Mir\'s, a young man of ours. He is careful. Sable Oil is fond of careful.', next: 'hold' },
     hold: { if: 'sable_orders', who: 'sable', text: 'When the slate says HOLD, it means behind Mr Mir. You have initialled that.', next: 'oil' },
     oil: { if: 'oil_sable', who: 'sable', text: 'Our oil will be sent round. It is a very modern oil. Your fitter will have views.', next: 'dine' },
     dine: { if: 'sable_dinners', who: 'sable', text: 'Thursday, at eight, a clean shirt. We shall want you sitting next to someone.', end: true },
   }),
   sable_after: conv('sable_after', ['sable'], {
-    start: { if: 'broke_orders', who: 'sable', text: 'Mr Mir tells me the slate was hard to read. We shall have it repainted. At your expense: a fifth of what you won.', end: true, else: 'b' },
+    start: { if: 'broke_orders', who: 'sable', text: `Mr Mir tells me the slate was hard to read. We shall have it repainted. At your expense: the ${HOLD_PAY} we paid you to hold, and a fifth of what you won.`, end: true, else: 'b' },
     b: { who: 'sable', text: 'We have your name, and you have our money. Good afternoon.', end: true },
   }, { replayable: true }),
   // Teo Brasca, on the quay, on Jo's way up to Sable's
@@ -227,11 +233,11 @@ export const CONVERSATIONS = {
   dante_first: conv('dante_first', ['dante', 'jo'], {
     start: { who: 'dante', text: 'Mir. Dante. I drive the second car. I am told you are good. I am told to say so.', next: 'seat' },
     seat: { who: 'dante', text: 'They offered me a seat here in the spring. I said no, he is still in it. Then he was not. I wanted you to hear that from me.', next: 'orders' },
-    orders: { if: 'sable_orders', who: 'dante', text: 'The paper says you stay behind me. I did not write it. If you come by, come on the left. I like to know.', end: true, else: 'free' },
+    orders: { if: 'sable_orders', who: 'dante', text: 'The paper says you stay behind me. I did not write it.', end: true, else: 'free' },
     free: { who: 'dante', text: 'I hold my line. It is the only thing anyone has ever said about me. Come by whenever you like.', set: { dante_met: true }, end: true },
   }),
   dante_idle: conv('dante_idle', ['dante'], {
-    start: { if: 'broke_orders', who: 'dante', text: 'You came by. On the left. Thank you. Mr Sable has spoken to me about my mirrors.', end: true, else: 'held' },
+    start: { if: 'broke_orders', who: 'dante', text: 'You came by. Thank you. Mr Sable has spoken to me about my mirrors.', end: true, else: 'held' },
     held: { if: 'done_race3', who: 'dante', text: 'You could have come by. I would not have said anything. I want you to know that I noticed.', end: true, else: 'b' },
     b: { who: 'dante', text: 'I am to stand here until someone tells me where the good spanner is. Nobody has.', end: true },
   }, { replayable: true }),
@@ -239,7 +245,7 @@ export const CONVERSATIONS = {
   cassian_gull: conv('cassian_gull', ['cassian', 'jo'], {
     start: { who: 'cassian', text: 'You chalk your own. I have a man for that. He is at dinner.', next: 'kept' },
     kept: { if: 'roche_kept', who: 'cassian', text: 'You kept my letter. The tyres are not a bribe. It is what we do when we like somebody.', next: 'rail', else: 'burnt' },
-    burnt: { if: 'roche_burnt', who: 'cassian', text: 'You burnt my letter. Nobody has burnt one before. I have been thinking about it all week.', next: 'rail' },
+    burnt: { if: 'roche_burnt', who: 'cassian', text: 'You burnt my letter. Nobody has burnt one before.', next: 'rail' },
     rail: { who: 'cassian', text: 'I was on the rail at the Harbour, with a drink. I saw the lamps go. I put the drink down. I would like that written somewhere.', next: 'ask' },
     ask: { who: 'jo', text: 'Would you stop?', next: 'no' },
     no: { who: 'cassian', text: 'At the Coppa? Nobody stops at the Coppa. It is what the purse is for.', next: 'new' },
@@ -273,16 +279,16 @@ export const CONVERSATIONS = {
   // the morning of the Salt Road: everything the kitchen and the desk decided, in one breath at the shutter
   salt_eve: conv('salt_eve', ['ottavia'], {
     start: { if: 'tyres_short', who: 'ottavia', text: 'Those are the tyres the jar paid for. You know what the jar paid.', next: 'rent', else: 'good' },
-    good: { who: 'ottavia', text: 'Good rubber on her, and I fitted it. Do not make me go home and say what it cost.', next: 'rent' },
-    rent: { if: 'rent_short', who: 'ottavia', text: 'My mother is short on the rent and has not said a word. Third pays eight. I am only telling you what third pays.', next: 'chest', else: 'sheet' },
-    sheet: { who: 'ottavia', text: 'Top three go on the sheet, and the sheet pays. Fourth pays nothing, and nobody writes it down.', next: 'chest' },
-    chest: { if: '!med_ok', who: 'ottavia', text: 'She coughed till four. It is only her chest. I am told. I was up, is all I am saying.', next: 'oil' },
-    oil: { if: 'oil_sable', who: 'ottavia', text: "And that is Sable's oil in her now. Thin. She will run hot by the end, and there is nothing on my bench for that.", next: 'end' },
+    good: { who: 'ottavia', text: 'Good rubber on her. I fitted it. Do not make me say what it cost.', next: 'rent' },
+    rent: { if: 'rent_short', who: 'ottavia', text: `My mother is short on the rent and has not said a word. ${ORDINAL[SHEET - 1]} pays ${THIRD_PAYS}. I am only telling you what ${ORDINAL[SHEET - 1].toLowerCase()} pays.`, next: 'chest', else: 'sheet' },
+    sheet: { who: 'ottavia', text: `Top ${numberWord(SHEET)} go on the sheet, and the sheet pays. ${ORDINAL[SHEET]} pays nothing, and nobody writes it down.`, next: 'chest' },
+    chest: { if: '!med_ok', who: 'ottavia', text: 'She coughed till four. It is only her chest, I am told.', next: 'oil' },
+    oil: { if: 'oil_sable', who: 'ottavia', text: "And that is Sable's oil in her. Thin. She will run hot by the end.", next: 'end' },
     end: { who: 'ottavia', text: 'The Roche boy is on pole. You have not met. Go and meet him.', end: true },
   }),
   // back from the Salt Road: he has been noticed
   roche_letter: conv('roche_letter', ['nino', 'jo'], {
-    start: { who: 'nino', text: 'A boy in a black coat brought this, for the driver. He would not come in. He looked at the ceiling.', next: 'read' },
+    start: { who: 'nino', text: 'A boy in a black coat brought this, for the driver. He would not come in.', next: 'read' },
     read: { who: 'jo', text: 'Black and gold paper. "A works seat with Roche Motori, next season. New tyres every race. A wage, paid on the day. Reply before the Coppa. C. Roche."', next: 'pick' },
     pick: {
       who: 'jo',
@@ -298,11 +304,10 @@ export const CONVERSATIONS = {
   // the garage again: the corridor pays off, and whose car it is
   ottavia_again: conv('ottavia_again', ['ottavia', 'jo'], {
     start: { if: 'ott_couldnt', who: 'ottavia', text: "You told me I couldn't have known. It was kind. I have been angry with you for a month.", next: 'why' },
-    why: { if: 'ott_why', who: 'ottavia', text: 'You asked me why I did not say it louder. I have a better answer now. I was afraid of being wrong in front of him.', next: 'nothing' },
+    why: { if: 'ott_why', who: 'ottavia', text: 'You asked me why I did not say it louder. I was afraid of being wrong in front of him.', next: 'nothing' },
     nothing: { if: 'ott_silent', who: 'ottavia', text: 'You said nothing, on the stairs. I have been grateful to you, in a bad temper.', next: 'orders' },
-    orders: { if: 'broke_orders', who: 'ottavia', text: 'You went by Mir with HOLD on the board. Sable will have his fifth out of that, and I would do it again in your place. Do not tell him.', next: 'letter', else: 'held' },
-    held: { if: 'sable_orders', who: 'ottavia', text: 'You held behind Mir, on a paper with your name on it. You did as you signed. I am not sure that is a compliment.', next: 'letter' },
-    letter: { if: 'roche_kept', who: 'ottavia', text: 'And there is black and gold paper in your pocket, and four tyres in black paper by my shutter. They came an hour after. I have not touched them.', next: 'whose', else: 'stove' },
+    orders: { if: 'broke_orders', who: 'ottavia', text: 'You went by Mir with HOLD on the board. Sable will make you pay for it. I would do it again.', next: 'letter' },
+    letter: { if: 'roche_kept', who: 'ottavia', text: 'And there are four tyres in black paper by my shutter. I have not touched them.', next: 'whose', else: 'stove' },
     stove: { if: 'roche_burnt', who: 'ottavia', text: 'And my stove smells of good paper. I did not ask you to do that.', next: 'whose' },
     whose: { who: 'ottavia', text: 'He will not drive again. So tell me. Whose car is that, at the shutter?', next: 'pick' },
     pick: {
@@ -318,7 +323,7 @@ export const CONVERSATIONS = {
     o: { who: 'ottavia', text: "Nobody has said that. Don't say it again. Drive.", next: 'end' },
     j: { who: 'ottavia', text: 'Good. Then I know who to blame.', next: 'end' },
     end: { who: 'ottavia', text: 'She is a hair flat, by the way. Not today. I have fixed it. I said so, out loud, to you.', next: 'nine' },
-    nine: { who: 'ottavia', text: 'The Coppa is in nine days. Walk the Gull road, on foot. Then go and let Tullio shout at you in the pit lane.', set: { garage_again: true }, end: true },
+    nine: { who: 'ottavia', text: 'Walk the Gull road, on foot. Then let Tullio shout at you in the pit lane.', set: { garage_again: true }, end: true },
   }),
   ottavia_ready: conv('ottavia_ready', ['ottavia'], {
     start: { if: 'race_coppa_tries', who: 'ottavia', text: 'I heard where you lifted. So did you. She is at the shutter.', end: true, else: 'walk' },
@@ -338,16 +343,12 @@ export const CONVERSATIONS = {
   // home with the Coppa: what it cost, out loud, and then the note
   coppa_home: conv('coppa_home', ['tullio', 'nino', 'ottavia', 'jo'], {
     start: { who: 'tullio', text: 'Wheel, wheel, fuel, flag. I am going to sit on this tyre now, and nobody is to speak to me.', next: 'cup' },
-    cup: { who: 'nino', text: 'They let me hold the cup. It is lighter than a broom. I gave it back.', next: 'tyres' },
-    tyres: { if: 'kept_tyres', who: 'ottavia', text: 'You started this on the set Aldo paid for out of next month. Next month came.', next: 'rent', else: 'gave' },
-    gave: { who: 'ottavia', text: 'You gave him the one new set in this building, and bought your own later, and said nothing. I noticed. I notice everything. It is the whole of what I can do.', next: 'rent' },
+    cup: { who: 'nino', text: 'They let me hold the cup. It is lighter than a broom. I gave it back.', next: 'rent' },
     rent: { if: 'rent_paid', who: 'ottavia', text: 'My mother says the rent was late. She says it as if she had not noticed.', next: 'mum' },
-    mum: { if: 'med_ok', who: 'ottavia', text: 'She came to the wall. With soup. Forty years, and she has never once come. She says it is very loud.', next: 'purse', else: 'window' },
-    window: { who: 'ottavia', text: 'She listened from the window. It is only her chest. She says you lifted at the hairpin. She has never heard an engine in her life.', next: 'purse' },
-    purse: { if: 'sable_lien', who: 'ottavia', text: "The purse goes to Sable on Monday, all of it, for the thirty days. So we keep the building. That is what winning buys. A building.", next: 'letter', else: 'bank' },
-    bank: { who: 'ottavia', text: 'The purse goes to the bank on Monday. They will not know what to do. Neither will I.', next: 'letter' },
-    letter: { if: 'roche_kept', who: 'jo', text: 'I still have the letter.', next: 'lett2', else: 'note' },
-    lett2: { who: 'ottavia', text: 'I know. It is good paper. Keep it. You will want to know, when you are old, that somebody asked.', next: 'note' },
+    mum: { if: 'med_ok', who: 'ottavia', text: 'She came to the wall, with soup. She has never once come. She says it is very loud.', next: 'purse', else: 'window' },
+    window: { who: 'ottavia', text: 'She listened from the window. She says you lifted at the hairpin. She has never heard an engine in her life.', next: 'purse' },
+    purse: { if: 'sable_lien', who: 'ottavia', text: "The purse goes to Sable on Monday, for the thirty days. So we keep the building. That is what winning buys.", next: 'note', else: 'bank' },
+    bank: { who: 'ottavia', text: 'The purse goes to the bank on Monday. They will not know what to do. Neither will I.', next: 'note' },
     note: { who: 'ottavia', text: 'You heard it, at the line. All those years, and the one time she is dead on it is in front of people looking at you.', next: 'stand' },
     stand: { who: 'ottavia', text: 'Go and stand by her. She is still ringing. Then wash, and go up the hill. He will ask you what the tide is doing. Look first.', set: { coppa_home: true }, end: true },
   }),

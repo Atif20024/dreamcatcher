@@ -75,7 +75,6 @@ export default {
     { type: 'npc', id: 'beppe', cast: 'npc-pv-beppe', x: 20, y: 15, facing: 1, talk: [{ conv: 'beppe' }] },
     { type: 'npc', id: 'pia', cast: 'npc-pv-pia', x: 30, y: 15, facing: -1, pace: [28, 32], talk: [{ conv: 'pia' }] },
     { type: 'npc', id: 'gino', cast: 'npc-pv-gino', x: 31, y: 15, facing: -1, pace: [29, 33], when: 'garage_again', talk: [{ conv: 'gino' }] },
-    { type: 'npc', id: 'gino2', cast: 'npc-pv-pia', x: 24, y: 15, facing: 1, pace: [22, 24], when: 'garage_again', talk: [{ conv: 'gino' }] },
     { type: 'npc', id: 'rosa', cast: 'npc-pv-rosa', x: 42, y: 15, facing: -1, pace: [40, 47], talk: [{ conv: 'rosa' }] },
     // Teo waits by the pole on the way to Sable's, then at the end table for good
     { type: 'npc', id: 'teo', cast: 'npc-pv-teo', x: TEO_COL, y: 15, facing: -1, when: 'jars_done', unless: 'done_race3', talk: [{ conv: 'teo_later' }] },

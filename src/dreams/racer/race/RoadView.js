@@ -367,7 +367,7 @@ export class RoadView {
     this.lightStep = -1;
     const k = (part) => keyOf(this.theme, part);
     const dust = !!(flags.tyres_short && track.id === 'salt');
-    const sable = !!(flags.sable_whole && track.id === 'coppa');
+    const sable = !!(flags.sable_name && (track.id === 'salt' || track.id === 'coppa')); // (the clause on her bonnet, from the day it stood)
     this.atlasKey = k(`atlas:${track.id}:${joLivery}${dust ? ':dust' : ''}${sable ? ':sable' : ''}`);
     const entered = track.rivals || (track.rival ? [track.rival] : []);
     const nameOf = (r) => rearOf(r.id, r.livery);
@@ -570,6 +570,7 @@ export class RoadView {
         const b = this.race.bendAt(c.d);
         this.smoke(c.d, c.x, 5);
         const side = b ? b.side : 1;
+        this.wreckMarks(c, -side);
         this.actors.push({
           actor: true, frame: 'wheel', m: 0.7, d: c.d, x: c.x, lift: 0, v: c.v * 1.05, vx: side * 0.5, phase: 0,
           step(a, h) {
@@ -614,6 +615,30 @@ export class RoadView {
         },
       });
     }
+  }
+
+  // where he went off, so it can be found at speed in the moment to choose: a column of smoke over the
+  // straw he is going into, and a marshal on the verge just past it, waving the road down
+  wreckMarks(c, side) {
+    const at = c.d + 20;
+    const x = side * 1.15;
+    for (let i = 0; i < 12; i++) {
+      const life = 2.2;
+      this.actors.push({
+        actor: true, frame: 'smoke', m: 2.4, d: at + (i % 3) - 1, x: x + (i % 2 ? 0.08 : -0.08), lift: 0.2, alpha: 0, t: -i * 0.4, life,
+        step(a, h) {
+          a.m += h * 2.2;
+          a.lift += h * 2.6;
+          a.alpha = Math.max(0, 0.85 * (1 - a.t / life));
+        },
+      });
+    }
+    this.actors.push({
+      actor: true, frame: 'marshal', m: 1.8, d: c.d + 8, x: side * 1.45, t: 0, life: 8,
+      step(a) {
+        a.lift = Math.abs(Math.sin(a.t * 9)) * 0.14; // (both arms going: a man waving the road down)
+      },
+    });
   }
 
   // Jo pulls up, runs to him, is waved off; two marshals come. Everything within the 3.4 s the script holds
@@ -1246,13 +1271,14 @@ export class RoadView {
       const y = Math.round(s.y + P);
       if (y > s.clip + P) continue;
       // (wider than the spill itself, as a sheen is: the sky in it carries further than the oil does)
-      const half = Math.max(6, Math.round(o.wide * 0.9 * s.halfW));
+      const half = Math.max(8, Math.round(o.wide * 0.9 * s.halfW));
       const x = Math.round(s.x + o.x * s.halfW);
       const T = this.L.dark ? spriteTint(this.L, s.z, this.shadeSeg[s.seg.i] ?? 0, 0.8) : 0xffffff;
       g.fillStyle(mul(0x1a1622, T)).fillRect(x - half, y - 1, half * 2, 3);
+      const tall = s.z > 60 ? 3 : 2; // (a little more glint at 100 m, where it has to be read)
       // the shine on top of it, two rows of the sky's colours broken up: it glints, where tar would not
       const SHEEN = [0xc8a8f0, 0x9af0f8, 0xffffff, 0x9af0f8, 0xf0c8f0];
-      for (let k = -half, i = 0; k < half; k += 2, i++) g.fillStyle(mul(SHEEN[i % 5], T)).fillRect(x + k, y - 2 - ((i >> 1) % 2), 2, 2);
+      for (let k = -half, i = 0; k < half; k += 2, i++) g.fillStyle(mul(SHEEN[i % 5], T)).fillRect(x + k, y - tall - ((i >> 1) % 2), 2, tall);
     }
   }
 

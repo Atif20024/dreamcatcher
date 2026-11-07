@@ -11,7 +11,9 @@ import { sfx } from '../../../systems/audio.js';
 import { LAYER_DEPTH } from '../../../world/RoomStreamer.js';
 import { CAR_SIZE } from '../../../art/carKit.js';
 import { prizeOwed, flagOf } from '../race/result.js';
-import { atTheDoor, notYet, nextHook, slateRows, JARS, PRIZE_TRACKS } from '../season.js';
+import { atTheDoor, notYet, nextHook, slateRows, JARS, PRIZE_TRACKS, clausePay, settlePrize } from '../season.js';
+import { TRACKS } from '../race/tracks.js';
+import { spoken } from '../race/result.js';
 import { uiText } from '../../../ui/text.js';
 import { BOX_COL } from '../rooms/pitlane.js';
 import { rackConversation, benchConversation } from '../dialogue.js';
@@ -26,9 +28,9 @@ const at0 = (r, col) => (r.tx + col) * T + T / 2;
 
 // back from a race short of its gate: somebody says so, once a try (the story waits, it does not end)
 const AGAIN = {
-  pinewood: ['aldo', 'Again. It was not a good day for me either, the day I did thirty-four.'],
+  pinewood: ['aldo', `Again. It was not a good day for me either, the day I did ${spoken(TRACKS.pinewood.gate.time).toLowerCase()}.`],
   salt: ['ottavia', 'Off the sheet. The sheet does not pay for trying. Go again.'],
-  coppa: ['ottavia', 'The Coppa is not second. Again, and you have it.'],
+  coppa: ['ottavia', 'The Coppa pays first, and nothing else. Again, and you have it.'],
 };
 function sayAgain(scene) {
   const F = scene.F;
@@ -87,15 +89,29 @@ function goRace(scene, ctx) {
 
 function payPrize(scene) {
   for (const id of PRIZE_TRACKS) payFor(scene, id);
+  callLien(scene);
+}
+
+// Sable's thirty days, once the Coppa is home: his man takes back off the bench what the clause paid
+function callLien(scene) {
+  const F = scene.F;
+  if (!F.done_coppa || !F.sable_lien || F.lien_called) return;
+  const took = Math.max(0, Math.min(scene.levelCoins, clausePay('sable_lien')));
+  F.lien_called = true;
+  scene.levelCoins -= took;
+  deductWorth(scene.dreamId, took * coinWorth(scene.dreamId));
+  scene.updateCoinHud();
+  scene.saveRun();
+  scene.caption.say('tullio', `Sable's man came for the thirty days. ${took} brass nuts off the bench, and the purse on Monday.`, { ms: 4200 });
 }
 
 function payFor(scene, trackId) {
   const F = scene.F;
   const owed = prizeOwed(F, trackId);
   if (owed <= 0) return;
-  // a fifth to Sable Oil, if that clause was left standing or the orders were broken: out of what reaches the wallet
-  const cut = F.sable_cut || F.broke_orders;
-  const paid = cut ? owed - Math.ceil(owed / 5) : owed;
+  // what Sable's papers take out of it before it reaches the wallet (season.js settlePrize)
+  const { fifth, back, laundry, paid, settles } = settlePrize(F, trackId, owed);
+  if (settles) F.papers_settled = true;
   // the Salt Road answers the rent: what the tin left short goes up the quay before Jo sees it
   const rentJar = JARS.find((j) => j.id === 'rent');
   const rent = trackId === 'salt' && F.rent_short && !F.rent_paid ? Math.min(paid, rentJar.wants - (F.jar_rent || 0)) : 0;
@@ -109,8 +125,10 @@ function payFor(scene, trackId) {
   // from before this has neither, and BaseLevel takes the coins back on a Continue)
   scene.saveRun();
   sfx('buy');
-  const after = cut ? ', after Sable' : '';
-  scene.caption.say('ottavia', rent ? `The prize tin: ${paid} brass nuts${after}. Nino has run ${rent} up the quay for the rent. ${kept} for you. Do not thank me.` : `The prize tin: ${paid} brass nuts${after}. Put them somewhere my mother will not find them.`, { ms: 4200 });
+  const after = fifth || back ? ', after Sable' : '';
+  const owing = back ? ` Sable took ${back} back for HOLD.` : '';
+  const shirt = laundry ? ` ${laundry} to the laundry, for his dinners.` : '';
+  scene.caption.say('ottavia', owing || shirt ? `The prize tin: ${paid} brass nuts${after}.${owing}${shirt}${rent ? ` Nino has run ${rent} up the quay for the rent.` : ''}` : rent ? `The prize tin: ${paid} brass nuts${after}. Nino has run ${rent} up the quay for the rent. ${kept} for you. Do not thank me.` : `The prize tin: ${paid} brass nuts${after}. Put them somewhere my mother will not find them.`, { ms: 4200 });
   return true;
 }
 
