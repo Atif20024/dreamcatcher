@@ -152,6 +152,7 @@ export default {
     tune: 'get her singing: tune the carburettor by ear, at the bench',
     drive_pinewood: 'Pinewood: the second car is at the shutter. Beat Aldo\'s time',
     aldo: 'the seat is yours: Aldo is at his car',
+    aldo_wall: 'Aldo said the sea wall: out on the quay, by the pine',
     drive_harbour: 'the Harbour Cup: the Heron is at the shutter. Stay in his air',
     take_gloves: 'his gloves are on the end of the bench: take them',
     to_hospital: 'bring Aldo his gloves: the hospital, up the quay',

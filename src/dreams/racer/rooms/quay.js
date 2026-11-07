@@ -5,6 +5,8 @@
 import { grid } from '../../painter/rooms/grid.js';
 import { SEASON_GOALS } from '../season.js';
 
+export const TEO_COL = 34;
+
 const g = grid(112, 18);
 g.fill(0, 16, 111, 17);
 g.fill(0, 0, 1, 15);
@@ -68,6 +70,18 @@ export default {
     { type: 'sign', text: 'PIT LANE', x: 86, y: 10, board: 0x2a2420, ink: 0xf2e6cc, scale: 1 },
     { type: 'portal', id: 'quay>gull', kind: 'door', x: 103, y: 15, to: { room: 'nightbefore', portal: 'gull>quay' }, door: { prompt: 'walk the Gull road', fade: 300, requires: ['garage_again'], locked: 'the Gull road: later', lockedLine: 'Not yet. You walk that road the night before, and it is not the night before.' } },
     { type: 'sign', text: 'GULL ROAD', x: 103, y: 10, board: 0x2a2420, ink: 0xf2e6cc, scale: 1 },
+    // the street's people: nobody knows him, then they nod, then they will not leave him alone
+    { type: 'npc', id: 'aldo_wall', cast: 'npc-pv-aldo', x: 15, y: 15, facing: 1, turns: false, when: 'tyres_settled', unless: 'done_race2', talk: [{ conv: 'aldo_wall_again', if: 'tide_asked' }, { conv: 'aldo_wall' }] },
+    { type: 'npc', id: 'beppe', cast: 'npc-pv-beppe', x: 20, y: 15, facing: 1, talk: [{ conv: 'beppe' }] },
+    { type: 'npc', id: 'pia', cast: 'npc-pv-pia', x: 30, y: 15, facing: -1, pace: [28, 32], talk: [{ conv: 'pia' }] },
+    { type: 'npc', id: 'gino', cast: 'npc-pv-gino', x: 31, y: 15, facing: -1, pace: [29, 33], when: 'garage_again', talk: [{ conv: 'gino' }] },
+    { type: 'npc', id: 'gino2', cast: 'npc-pv-pia', x: 24, y: 15, facing: 1, pace: [22, 24], when: 'garage_again', talk: [{ conv: 'gino' }] },
+    { type: 'npc', id: 'rosa', cast: 'npc-pv-rosa', x: 42, y: 15, facing: -1, pace: [40, 47], talk: [{ conv: 'rosa' }] },
+    // Teo waits by the pole on the way to Sable's, then at the end table for good
+    { type: 'npc', id: 'teo', cast: 'npc-pv-teo', x: TEO_COL, y: 15, facing: -1, when: 'jars_done', unless: 'done_race3', talk: [{ conv: 'teo_later' }] },
+    { type: 'npc', id: 'teo_table', cast: 'npc-pv-teo', x: 48, y: 15, facing: -1, turns: false, when: 'done_race3', talk: [{ conv: 'teo_later' }] },
+    // where Aldo stood, once he is not there: Jo looks for himself
+    { type: 'moment', id: 'm_tide', x: 15, y: 15, prompt: 'look at the third step', beat: 'moment_tide', when: 'done_race2' },
     { type: 'moment', id: 'm_sea', x: 50, y: 15, prompt: 'look along the coast', beat: 'moment_sea' },
     // roofs and awnings pay
     { type: 'coins', id: 'c_q1', x: 38, y: 11, n: 6, dx: 1 },

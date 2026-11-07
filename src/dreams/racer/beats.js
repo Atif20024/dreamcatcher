@@ -49,7 +49,13 @@ export default {
   ],
   // the Coppa is home, and the shutter is up: the orb is the note (rooms/garage.js)
   coppa_note: [{ sting: 'gate' }],
+  // twelve on the table, for the chemist
+  med_left: [
+    { sfx: 'click' },
+    { say: { who: 'signora', text: 'I did not see that. I do not see anything. Put your cap on.', ms: 2800 } },
+  ],
   // Small Moments
+  moment_tide: [{ say: { who: 'jo', text: 'The third step. The weed is wet. Coming in. There is nobody to say it to.', ms: 3400 } }],
   moment_radio: [{ say: { who: 'jo', text: 'The wireless on the shelf has a swing band on it, and Ottavia is frowning at the trumpet.', ms: 3600 } }],
   moment_sea: [{ say: { who: 'jo', text: 'A white road along the cliff, and the Coppa posters already going yellow in the salt.', ms: 3600 } }],
   moment_gull: [

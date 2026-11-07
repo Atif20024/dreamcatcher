@@ -902,7 +902,7 @@ const tragedy = {
   async run(dc) {
     const rows = { sceneMissed: [] };
     for (const [name, inAir] of [['air', true], ['back', false]]) {
-      const s = await at(dc, 'garage', { tuned: true, done_race1: true, tyres_settled: true, kept_tyres: true });
+      const s = await at(dc, 'garage', { tuned: true, done_race1: true, tyres_settled: true, kept_tyres: true, tide_asked: true });
       const said = [];
       const r = await shutter(dc, s, said);
       const out = await harbourToDark(dc, r, rows.sceneMissed, inAir);
@@ -1108,8 +1108,15 @@ const flow = (name, c) => ({
     dc.hold('up');
     s = await backFromCard(dc, r, rows.sceneMissed);
     await goal('seat');
+    rows.said.aldoFirst = null;
     rows.said.aldo = await talkAt(dc, s, 'npc:aldo', c.tyres);
+    await goal('wall');
+    // the sea wall, by the real door, before the shutter will open
+    rows.shutShut = !nextHook(s.F);
+    await through(dc, s, 'garage>quay', 'quay');
+    rows.said.wall = await talkAt(dc, s, 'npc:aldo_wall', c.tide);
     await goal('tyres');
+    await through(dc, s, 'quay>garage', 'garage');
     // the Harbour: the eve, the road, the dark
     r = await shutter(dc, s, (rows.said.harbourEve = []));
     let out = await harbourToDark(dc, r, rows.sceneMissed, c.air);
@@ -1142,6 +1149,11 @@ const flow = (name, c) => ({
     rows.said.signora = await talkThrough(dc, s);
     await goal('sable');
     await through(dc, s, 'kitchen>quay', 'quay');
+    // on the way to Sable's: Teo, by the pole
+    put(s, 'quay', 33, 15);
+    await until(dc, () => s.sceneBox.active, 60);
+    rows.said.teo = await talkThrough(dc, s, c.teo);
+    await until(dc, () => s.F.teo_met, 40);
     await through(dc, s, 'quay>sponsor', 'sponsor');
     rows.said.sable = await talkAt(dc, s, 'npc:sable');
     s.levelCoins = 0;
@@ -1161,6 +1173,9 @@ const flow = (name, c) => ({
     // the money has somewhere to go: the rack, if the advance reaches it
     await through(dc, s, 'sponsor>quay', 'quay');
     await through(dc, s, 'quay>garage', 'garage');
+    await until(dc, () => s.sceneBox.active, 120);
+    rows.said.dante = await talkThrough(dc, s);
+    await dc.run(6);
     if (c.buy) {
       s.levelCoins = 99;
       rows.said.rack = await talkAt(dc, s, 'race:rack', /Buy/);
@@ -1187,14 +1202,42 @@ const flow = (name, c) => ({
     rows.slate = slateRows(s.F);
     rows.said.whose = await talkAt(dc, s, 'npc:ottavia_back', c.whose);
     await goal('gull');
+    rows.said.danteAfter = await talkAt(dc, s, 'npc:dante');
+    if (c.roche) {
+      s.levelCoins = 0;
+      rows.said.rocheRack = await talkAt(dc, s, 'race:rack', /Roche/);
+      rows.fitted = !!s.F.roche_fitted && !!s.F.tyre_soft && s.levelCoins === 0;
+    }
+    // the chest: the jar was short, and twelve nuts are on the table, or not
     await through(dc, s, 'garage>quay', 'quay');
+    rows.said.pia = await talkAt(dc, s, 'npc:pia');
+    rows.said.rosa = await talkAt(dc, s, 'npc:rosa');
+    rows.said.beppe = await talkAt(dc, s, 'npc:beppe');
+    await through(dc, s, 'quay>kitchen', 'kitchen');
+    rows.chestBad = !!s.F.chest_bad && !!s.npcs.get('signora_sit');
+    rows.said.signoraLate = await talkAt(dc, s, s.F.chest_bad ? 'npc:signora_sit' : 'npc:signora');
+    if (c.paysChemist) {
+      s.levelCoins = 12;
+      await pressAt(dc, s, 'home:chemist');
+      await dc.run(4);
+      await until(dc, () => !s.beats.busy, 300);
+      await dc.run(4);
+      rows.chestAfter = { ok: !!s.F.med_ok, sat: !!s.npcs.get('signora_sit'), nuts: s.levelCoins };
+    }
+    await through(dc, s, 'kitchen>quay', 'quay');
     await through(dc, s, 'quay>gull', 'nightbefore');
-    for (const id of ['mark_brake', 'mark_turn', 'mark_apex']) await pressAt(dc, s, `gull:${id}`);
+    await pressAt(dc, s, 'gull:mark_brake');
+    put(s, 'nightbefore', 28, 13);
+    await until(dc, () => s.sceneBox.active, 60);
+    rows.said.cassian = await talkThrough(dc, s);
+    await dc.run(6);
+    for (const id of ['mark_turn', 'mark_apex']) await pressAt(dc, s, `gull:${id}`);
     await dc.run(10);
     await until(dc, () => !s.beats.busy, 300);
     await goal('pit');
     await through(dc, s, 'gull>quay', 'quay');
     await through(dc, s, 'quay>pit', 'pitlane');
+    rows.signoraAtWall = !!s.npcs.get('signora_pit');
     rows.said.nino = await talkAt(dc, s, 'npc:nino_pit');
     rows.said.tullio = await talkAt(dc, s, 'npc:tullio_pit');
     await pressAt(dc, s, 'enc:pitstop');
@@ -1221,15 +1264,21 @@ const flow = (name, c) => ({
     s = await backFromCard(dc, r, rows.sceneMissed);
     Object.assign(rows, await homeToStation(dc, s));
     const want = c.want(rows);
+    // what a first play reads: 40 characters a second, a beat for each press
+    const lines = Object.values(rows.said).flat().filter(Boolean).concat(rows.crew);
+    rows.reading = { lines: lines.length, chars: lines.join('').length, seconds: Math.round(lines.join('').length / 40 + lines.length * 0.6) };
     return { pass: Object.values(want).every(Boolean), detail: { ...rows, want } };
   },
 });
 
 const flowKeep = flow('keep', {
   tyres: /take them/,
+  tide: /Going out/,
+  teo: /late/,
+  roche: true,
   air: true,
   corridor: /Say nothing/,
-  jars: { rent: 2, tyres: 6, medicine: 4 }, // the rent goes short
+  jars: { rent: 2, tyres: 7, medicine: 3 }, // the rent and the chest go short, and nobody pays the chemist
   papers: [/bonnet/, /dinners/, /Sable oil/], // the orders, the fifth and the debts all stand
   hold: true,
   letter: /pocket/,
@@ -1239,6 +1288,13 @@ const flowKeep = flow('keep', {
     order: r.pinewood === 'pinewood',
     goals: /Beat Aldo/.test(r.goals.start) && /Aldo is at his car/.test(r.goals.seat) && /Harbour/.test(r.goals.tyres) && /gloves/.test(r.goals.morning) && /hospital/.test(r.goals.gloves) && /chair/.test(r.goals.chair) && /Castellanes/.test(r.goals.left) && /Sable/.test(r.goals.sable) && /Salt/.test(r.goals.salt) && /question/.test(r.goals.question) && /Gull/.test(r.goals.gull) && /pit lane/.test(r.goals.pit) && /Coppa/.test(r.goals.coppa),
     airLine: r.said.corridor.some((t) => /right there/.test(t)),
+    wall: r.shutShut && /sea wall/.test(r.goals.wall) && r.said.wall.some((t) => /third step/.test(t)) && r.said.wall.some((t) => /A length sooner/.test(t)),
+    teo: r.said.teo.some((t) => /my gap/.test(t)) && r.said.teo.some((t) => /Watch my tyres/.test(t)),
+    dante: r.said.dante.some((t) => /come on the left/.test(t)) && r.said.danteAfter.some((t) => /noticed/.test(t)),
+    cassian: r.said.cassian.some((t) => /kept my letter/.test(t)) && r.said.cassian.some((t) => /Nobody stops/.test(t)),
+    town: r.said.pia.some((t) => /Write your name/.test(t)) === false && r.said.rosa.length > 0 && r.said.beppe.length > 0,
+    rocheFitted: r.fitted && r.said.coppaEve.some((t) => /Roche's rubber/.test(t)),
+    chest: r.chestBad && !r.signoraAtWall && r.said.signoraLate.some((t) => /sitting because I choose/.test(t)) && r.crew.some((t) => /from the window/.test(t)) && /only her chest/.test(r.lines.join(' ')) && /Roche's tyres/.test(r.lines.join(' ')),
     orders: r.said.signed.some((t) => /behind Mr Mir/.test(t)),
     eve: r.said.saltEve.some((t) => /rent/.test(t)) && r.said.saltEve.some((t) => /jar paid/.test(t)) === false,
     rent: r.salt.best === 3 && r.salt.rentPaid && r.salt.nuts === 2, // third, 8, a fifth to Sable: 6; 4 to the rent
@@ -1254,9 +1310,12 @@ const flowKeep = flow('keep', {
 
 const flowGive = flow('give', {
   tyres: /your car/,
+  tide: /Coming in/,
+  teo: /Say nothing/,
+  paysChemist: true,
   air: false,
   corridor: /Why/,
-  jars: { rent: 6, tyres: 2, medicine: 4 }, // the tyres go short, and the advance buys them out
+  jars: { rent: 6, tyres: 3, medicine: 3 }, // the tyres go short and the advance buys them out; the chest goes short and twelve nuts answer it
   papers: [/Hold/, /fifth/, /debts/], // the bad clauses struck
   buy: true,
   hold: false,
@@ -1265,6 +1324,8 @@ const flowGive = flow('give', {
   cassian: 'pass',
   want: (r) => ({
     backLine: r.said.corridor.some((t) => /from back there/.test(t)),
+    chest: r.chestBad && r.chestAfter.ok && !r.chestAfter.sat && r.chestAfter.nuts === 0 && r.signoraAtWall && r.crew.some((t) => /With soup/.test(t)) && /with soup/.test(r.lines.join(' ')),
+    stoveCassian: r.said.cassian.some((t) => /burnt my letter/.test(t)),
     bought: r.boughtOut && r.worn === 1,
     good: r.said.saltEve.some((t) => /Good rubber/.test(t)) && r.said.saltEve.some((t) => /sheet pays/.test(t)),
     prize: r.salt.best === 2 && !r.salt.rentPaid,

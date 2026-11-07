@@ -6,7 +6,7 @@
 // for stand-ins it drove, and they must not count as the Coppa won.
 export const HOOKS = [
   { id: 'race1', story: 'Pinewood hill-climb', track: 'pinewood', needs: [] },
-  { id: 'race2', story: 'Harbour Night Cup', track: 'harbour', needs: ['tyres_settled'], eve: 'harbour_eve' },
+  { id: 'race2', story: 'Harbour Night Cup', track: 'harbour', needs: ['tyres_settled', 'tide_asked'], eve: 'harbour_eve' },
   { id: 'race3', story: 'The Salt Road Cup', track: 'salt', needs: ['gloves_left', 'jars_done', 'signed'], eve: 'salt_eve' },
   { id: 'coppa', story: 'The Coppa Calvessa', track: 'coppa', needs: ['garage_again', 'chalked', 'pit_drilled'], eve: 'coppa_eve' },
 ];
@@ -29,7 +29,8 @@ export function atTheDoor(F) {
 // the shutter stays down, and Jo knows why (the road is not a thing to do instead)
 export function notYet(F) {
   if (F.done_coppa) return 'She has done enough. So have I.';
-  if (!F.done_race2) return 'Aldo wants a word first. He is not a man who asks twice.';
+  if (!F.tyres_settled) return 'Aldo wants a word first. He is not a man who asks twice.';
+  if (!F.done_race2) return 'Aldo said the sea wall first. He will be out there, looking at weed.';
   if (!F.gloves_left) return 'His gloves first. The road will still be there.';
   if (!F.jars_done) return 'Not yet. There is a tin on a dresser, up the quay, and Ottavia asked.';
   if (!F.signed) return 'On what money? Sable Oil first, over the cafe.';
@@ -43,7 +44,8 @@ export const SEASON_GOALS = [
   { text: 'tune' },
   { text: 'drive_pinewood', flag: 'tuned' },
   { text: 'aldo', flag: 'done_race1' },
-  { text: 'drive_harbour', flag: 'tyres_settled' },
+  { text: 'aldo_wall', flag: 'tyres_settled' },
+  { text: 'drive_harbour', flag: 'tide_asked' },
   { text: 'take_gloves', flag: 'done_race2' },
   { text: 'to_hospital', flag: 'item:gloves' },
   { text: 'to_kitchen', flag: 'gloves_left' },
@@ -76,23 +78,28 @@ export function slateRows(F) {
 
 // the ledger: the win first, then what it cost, the note last. Nothing here is a loss
 export function endingLines(F) {
-  const roche = F.helped_cassian ? 'He stopped for Roche, six seconds, and won by less.' : F.passed_cassian ? 'He went by Roche. Roche was on his feet. He would say so, later.' : 'Roche lost a wheel at the Gull Bend, and the road went on.';
-  const home = F.rent_short ? 'The rent was late, and the Signora never said.' : 'The rent was paid.';
-  const paper = F.broke_orders ? 'He passed Dante with HOLD on the board, and Sable kept his fifth.' : F.sable_whole ? "Sable's clauses stood, every one." : 'He read the paper. Almost nobody reads the paper.';
+  const roche = F.helped_cassian ? 'He stopped for Roche, six seconds, and won by less.' : F.passed_cassian ? 'He went by Roche. Roche had told him he would.' : 'Roche lost a wheel at the Gull Bend, and the road went on.';
+  const home = F.rent_short ? 'The rent was late.' : 'The rent was paid.';
+  const chest = medOk(F) ? 'She came to the wall, with soup.' : 'Her chest was only her chest.';
+  const paper = F.broke_orders ? 'He passed Dante on HOLD. Sable kept his fifth.' : F.sable_whole ? "Sable's clauses stood, every one." : 'He read the paper. Almost nobody reads the paper.';
   return [
     'The Coppa Calvessa, 1958: Pereval Corse, first.',
     roche,
-    `${home} ${paper}`,
-    ...(F.roche_burnt ? ['The Roche letter went in the stove.'] : F.roche_kept ? ['The Roche letter stayed in his pocket, unanswered.'] : []),
-    'Up the hill he asked about the tide, then who won.',
+    `${home} ${chest}`,
+    paper,
+    ...(F.roche_burnt ? ['The Roche letter went in the stove.'] : F.roche_fitted ? ["He won on Roche's tyres, and sent them back washed."] : F.roche_kept ? ['The Roche letter stayed in his pocket, unanswered.'] : []),
+    'Up the hill: the tide, then did the stranger win.',
     'Ottavia heard the note before the flag. Dead on.',
     'Forty years on she hears it, and now somebody asks.',
   ];
 }
 
+// is the Signora's chest seen to? The jar, or twelve nuts for the chemist after it
+export const medOk = (F) => !F.med_short || !!F.med_paid;
+
 // ---- what nuts buy: tyres and chalk, never speed ------------------------------
 // (nuts, not worth: a nut is worth 3 in the wallet, dreams.js)
-export const PRICES = { soft: 32, chalk: 20 }; // (the advance and the prizes need somewhere to go)
+export const PRICES = { soft: 32, chalk: 20, medicine: 12 }; // (the advance and the prizes need somewhere to go)
 const TYRE_JAR_OFF = 2; // each coin in the kitchen's tyre jar takes this off the soft set …
 const SOFT_FLOOR = 12; // … down to this
 

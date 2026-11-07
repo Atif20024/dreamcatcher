@@ -121,8 +121,14 @@ export function buy(scene, { item, price }) {
   scene.levelCoins -= price;
   scene.coinsSinceCP = 0; // (what is spent is spent: a fall does not scatter it again)
   deductWorth(scene.dreamId, worth);
-  scene.F[item === 'soft' ? 'tyre_soft' : 'buy_chalk'] = true;
-  if (item === 'soft') scene.F.tyres_short = false; // (a new set is a new set, whatever the jar could not pay)
+  const F = scene.F;
+  if (item === 'chalk') F.buy_chalk = true;
+  else if (item === 'medicine') F.med_paid = true;
+  else {
+    F.tyre_soft = true;
+    F.tyres_short = false; // (a new set is a new set, whatever the jar could not pay)
+    if (item === 'roche') F.roche_fitted = true;
+  }
   scene.updateCoinHud();
   scene.saveRun();
   sfx('buy');
@@ -198,10 +204,11 @@ export default {
     }
     if (scene.beats.busy || scene.sceneBox.active || scene.transitions.busy || scene.time.now < ctx.state.calmAt) return;
     // what happens to Jo in this room, once each, in the order the story asks
-    const due = F.done_race2 && !F.cup_told ? 'cup_morning' : F.done_race3 && !F.letter_read && !F.garage_again ? 'roche_letter' : F.done_coppa && !F.coppa_home ? 'coppa_home' : null;
+    const due = F.done_race2 && !F.cup_told ? 'cup_morning' : F.signed && !F.done_race3 && !F.dante_met ? 'dante_first' : F.done_race3 && !F.letter_read && !F.garage_again ? 'roche_letter' : F.done_coppa && !F.coppa_home ? 'coppa_home' : null;
     if (due && !ctx.state.talking) {
       ctx.state.talking = true;
       if (due === 'cup_morning') F.cup_told = true;
+      if (due === 'dante_first') F.dante_met = true; // (his last line ends either branch)
       scene.runConversation(due, null).then(() => {
         ctx.state.talking = false;
         scene.saveRun();

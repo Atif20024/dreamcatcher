@@ -348,6 +348,24 @@ export default {
     ctx.fillRect(13, 14, 4, h - 18);
     ctx.fillRect(6, h - 4, 18, 4);
   }),
+  // four tyres in black paper, tied with gold: Roche Motori does nothing plainly
+  roche_tyres: prop(46, 74, (ctx, w, h) => {
+    for (let i = 0; i < 4; i++) {
+      const y = h - 18 * (i + 1);
+      ctx.fillStyle = hex(0x1a1a22);
+      ctx.fillRect(1, y, w - 2, 17);
+      ctx.fillStyle = hex(0xc8a050);
+      ctx.fillRect(w / 2 - 2, y, 4, 17);
+    }
+  }),
+  // a bottle from the chemist, on the kitchen table
+  chest_bottle: prop(12, 24, (ctx, w, h) => {
+    ctx.fillStyle = hex(0x3a6a5a);
+    ctx.fillRect(1, 8, w - 2, h - 8);
+    ctx.fillRect(4, 2, w - 8, 6);
+    ctx.fillStyle = hex(0xf2e6cc);
+    ctx.fillRect(2, 13, w - 4, 6);
+  }),
   // the season's slate, a chalk board on the garage wall (the words are live: verbs/garage.js)
   season_slate: prop(190, 92, (ctx, w, h) => {
     ctx.fillStyle = hex(0x3a2a20);

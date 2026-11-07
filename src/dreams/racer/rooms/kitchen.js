@@ -39,6 +39,7 @@ export default {
     { prop: 'iron_stove', x: 26, y: 12, layer: 'back' },
     ...JAR_COLS.map((x) => ({ prop: 'jar', x, y: 10, dy: 8, layer: 'back' })),
     { prop: 'hanging_lamp', x: 16, y: 2 },
+    { prop: 'chest_bottle', x: 18, y: 10, dy: 8, layer: 'back', when: 'med_ok', live: true },
   ],
   lights: [{ x: 16, y: 4, r: 170, color: 0xffb060 }, { x: 26, y: 9, r: 90, color: 0xff7a3a }],
   enclosure: { backWall: 'plaster', wainscot: true, posts: 0, ceiling: true, pillars: false, frames: [], palette: { wall: 0xd8c8a4, wood: 0x6a4a2c, accent: 0xb86a4a, deep: 0x5a4a34, lit: 0xf2e6cc } },
@@ -55,7 +56,9 @@ export default {
     { type: 'portal', id: 'kitchen>quay', kind: 'door', x: 3, y: 11, to: { room: 'quay', portal: 'quay>kitchen' }, door: { prompt: 'out to the quay', fade: 240 } },
     { type: 'spawn', id: 'start', x: 11, y: 11 },
     { type: 'checkpoint', id: 'cp_kitchen', label: 'THE CASTELLANE KITCHEN', x: 5, y: 11 },
-    { type: 'npc', id: 'signora', cast: 'npc-pv-signora', x: 25, y: 11, facing: 1, turns: false, talk: [{ conv: 'signora_after', if: 'jars_done' }, { conv: 'signora' }] },
+    { type: 'npc', id: 'signora', cast: 'npc-pv-signora', x: 25, y: 11, facing: 1, turns: false, unless: 'chest_bad', talk: [{ conv: 'signora_after', if: 'jars_done' }, { conv: 'signora' }] },
+    // short on the chest and nothing done about it: she is in the chair now, and the stove is on its own
+    { type: 'npc', id: 'signora_sit', cast: 'npc-pv-signora', x: 21, y: 11, pose: 'sit', facing: -1, when: 'chest_bad', talk: [{ conv: 'signora_after' }] },
     { type: 'moment', id: 'm_letter', x: 21, y: 11, prompt: 'read the letter by the clock', beat: 'moment_letter' },
     // on top of the dresser, for a boy who still climbs kitchens
     { type: 'coins', id: 'c_k1', x: 5, y: 7, n: 5, dx: 1 },

@@ -15,6 +15,8 @@ g.clear(50, 14, 53, 17); // the washout
 g.put(30, 11, '======');
 g.put(60, 11, '======');
 
+export const CASSIAN_COL = 30; // (he is walking it too, on the way to the turn-in)
+
 export const MARKS = [
   { flag: 'mark_brake', col: 16, prompt: 'chalk the braking board' },
   { flag: 'mark_turn', col: 40, prompt: 'chalk the turn-in' },
@@ -51,6 +53,7 @@ export default {
     { type: 'portal', id: 'gull>quay', kind: 'door', x: 3, y: 13, to: { room: 'quay', portal: 'quay>gull' }, door: { prompt: 'back to the quay', fade: 300 } },
     { type: 'checkpoint', id: 'cp_gull', label: 'THE NIGHT BEFORE', x: 6, y: 13 },
     { type: 'checkpoint', id: 'cp_gull2', label: 'THE GULL BEND', x: 44, y: 13 },
+    { type: 'npc', id: 'cassian', cast: 'npc-pv-cassian', x: CASSIAN_COL, y: 13, facing: -1, when: 'garage_again', talk: [{ conv: 'cassian_after' }] },
     { type: 'moment', id: 'm_gull', x: 47, y: 13, prompt: 'look at the straw', beat: 'moment_gull' },
     { type: 'sign', text: 'GULL BEND', x: 44, y: 9, board: 0x2a2420, ink: 0xf2e6cc, scale: 1 },
     { type: 'coins', id: 'c_n1', x: 30, y: 10, n: 6, dx: 1 },

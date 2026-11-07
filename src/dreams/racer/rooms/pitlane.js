@@ -45,6 +45,8 @@ export default {
     { type: 'checkpoint', id: 'cp_pit', label: 'THE PIT LANE', x: 7, y: 11 },
     { type: 'npc', id: 'tullio_pit', cast: 'npc-pv-tullio', x: 25, y: 11, facing: -1, talk: [{ conv: 'tullio_pit' }] },
     { type: 'npc', id: 'nino_pit', cast: 'npc-pv-nino', x: 19, y: 11, facing: 1, turns: false, talk: [{ conv: 'nino_pit' }] },
+    // the chest seen to, and she has come to see what all this is
+    { type: 'npc', id: 'signora_pit', cast: 'npc-pv-signora', x: 11, y: 11, facing: 1, turns: false, when: 'med_ok', talk: [{ conv: 'signora_pit' }] },
     { type: 'encounter', id: 'pitstop', x: BOX_COL, y: 11, anchor: { x: BOX_COL, y: 8 }, prompt: 'call the stop', unless: 'pit_drilled' },
     { type: 'coins', id: 'c_pl1', x: 28, y: 7, n: 7, dx: 1 },
   ],

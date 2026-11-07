@@ -1,6 +1,6 @@
 // THE LONG STRAIGHT: the four-race season, old saves, the ending, TUNE, what nuts buy, the tin, the papers.
 import { describe, it, expect } from 'vitest';
-import { HOOKS, nextHook, atTheDoor, notYet, doneOf, PRIZE_TRACKS, softPrice, PRICES, tinLeft, short, TIN, JARS, signPapers, PAPERS, SEASON_GOALS, slateRows, endingLines } from '../src/dreams/racer/season.js';
+import { HOOKS, nextHook, atTheDoor, notYet, doneOf, PRIZE_TRACKS, softPrice, PRICES, tinLeft, short, TIN, JARS, signPapers, PAPERS, SEASON_GOALS, slateRows, endingLines, medOk } from '../src/dreams/racer/season.js';
 import { applyResult, flagOf, prizeOwed } from '../src/dreams/racer/race/result.js';
 import quay from '../src/dreams/racer/rooms/quay.js';
 import { coppaBot, runRace } from './raceBots.js';
@@ -33,6 +33,9 @@ describe('the season', () => {
     expect(atTheDoor(F)).toEqual({ track: null, pending: null });
     expect(notYet(F)).toMatch(/Aldo/);
     F.tyres_settled = true;
+    expect(nextHook(F)).toBe(null); // the sea wall first
+    expect(notYet(F)).toMatch(/sea wall/);
+    F.tide_asked = true;
     expect(nextHook(F).id).toBe('race2');
     F[doneOf('race2')] = true;
     expect(notYet(F)).toMatch(/gloves/);
@@ -90,7 +93,8 @@ describe('the season', () => {
     expect(go({})).toBe('tune');
     expect(go({ tuned: true })).toBe('drive_pinewood');
     expect(go({ tuned: true, done_race1: true })).toBe('aldo');
-    expect(go({ tuned: true, done_race1: true, tyres_settled: true })).toBe('drive_harbour');
+    expect(go({ tuned: true, done_race1: true, tyres_settled: true })).toBe('aldo_wall');
+    expect(go({ tuned: true, done_race1: true, tyres_settled: true, tide_asked: true })).toBe('drive_harbour');
     expect(go({ tuned: true, done_race1: true, tyres_settled: true, done_race2: true })).toBe('take_gloves');
     const salt = { jars_done: true, signed: true };
     expect(go(salt)).toBe('drive_salt');
@@ -128,6 +132,7 @@ describe('old saves: from any run, the season reaches the Coppa', () => {
   const STEPS = {
     race: { can: (F) => !!nextHook(F), run: (F) => (F[doneOf(nextHook(F).id)] = true) },
     aldo: { can: (F) => F.done_race1 && !F.tyres_settled, run: (F) => (F.tyres_settled = true) },
+    wall: { can: (F) => F.tyres_settled && !F.done_race2 && !F.tide_asked, run: (F) => (F.tide_asked = true) },
     gloves: { can: (F) => F.done_race2 && !F['item:gloves'] && !F.gloves_left, run: (F) => (F['item:gloves'] = true) },
     ward: { can: (F) => open(F, 'quay>hospital') && F['item:gloves'] && !F.gloves_left, run: (F) => (F.gloves_left = true) },
     kitchen: { can: (F) => open(F, 'quay>kitchen') && !F.jars_done, run: (F) => (F.jars_done = true) },
@@ -136,7 +141,7 @@ describe('old saves: from any run, the season reaches the Coppa', () => {
     gull: { can: (F) => open(F, 'quay>gull') && !F.chalked, run: (F) => (F.chalked = true) },
     pit: { can: (F) => open(F, 'quay>pit') && !F.pit_drilled, run: (F) => (F.pit_drilled = true) },
   };
-  const GOAL_STEP = { tune: 'race', drive_pinewood: 'race', aldo: 'aldo', drive_harbour: 'race', take_gloves: 'gloves', to_hospital: 'ward', to_kitchen: 'kitchen', to_sable: 'sable', drive_salt: 'race', ottavia_again: 'whose', to_gull: 'gull', to_pit: 'pit', coppa: 'race', coppa_again: 'race' };
+  const GOAL_STEP = { tune: 'race', drive_pinewood: 'race', aldo: 'aldo', aldo_wall: 'wall', drive_harbour: 'race', take_gloves: 'gloves', to_hospital: 'ward', to_kitchen: 'kitchen', to_sable: 'sable', drive_salt: 'race', ottavia_again: 'whose', to_gull: 'gull', to_pit: 'pit', coppa: 'race', coppa_again: 'race' };
   const base = { tuned: true, done_race1: true, tyres_settled: true };
   const told = { ...base, done_race2: true, cup_told: true };
   const home = { ...told, 'item:gloves': true, gloves_left: true, jars_done: true };
@@ -195,6 +200,17 @@ describe('the ending', () => {
     expect(endingLines({ ...won, rent_ok: true }).join(' ')).toMatch(/rent was paid/);
     expect(endingLines({ ...won, sable_whole: true }).join(' ')).toMatch(/every one/);
     expect(endingLines({ ...won, broke_orders: true }).join(' ')).toMatch(/kept his fifth/);
+  });
+  it('the chest is answered: the jar or the chemist, the wall or the window', () => {
+    expect(medOk({})).toBe(true);
+    expect(medOk({ med_short: true })).toBe(false);
+    expect(medOk({ med_short: true, med_paid: true })).toBe(true);
+    expect(endingLines({ ...won, med_short: true }).join(' ')).toMatch(/only her chest/);
+    expect(endingLines({ ...won, med_short: true, med_paid: true }).join(' ')).toMatch(/with soup/);
+  });
+  it("what a kept letter did is in the lines", () => {
+    expect(endingLines({ ...won, roche_kept: true, roche_fitted: true }).join(' ')).toMatch(/Roche's tyres/);
+    expect(endingLines({ ...won, roche_burnt: true }).join(' ')).toMatch(/stove/);
   });
   it('a run with nothing on the road still reads as a win', () => {
     expect(endingLines({}).length).toBeGreaterThan(3);
