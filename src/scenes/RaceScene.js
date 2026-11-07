@@ -38,6 +38,36 @@ const SING_UNDER = 3; // m/s under a bend's limit at the way in: closer than thi
 const SPIN_DARK_AT = 1.6; // s into a spin the picture fades: 0.4 s to the dark, then the lamp (TUNE.resetAt)
 const ORDINAL = ['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth'];
 
+const BOARD_NEAR = 170; // m: Tullio has the slate up by here, and what is on it is on it for this pass
+const PA_LEVEL = 0.018; // the Coppa's public address, under everything
+const NAMES = { aldo: 'Aldo', teo: 'Brasca', dante: 'Dante', cassian: 'Roche', roche: 'Roche' };
+
+// the road's own lines, by cue or by event: [who, text]
+const CUES = {
+  crest: ['OTTAVIA', 'Right, over the top. Trust the board. You will not see it.'],
+  stay_in_my_air: ['ALDO', "Stay in my air. Don't look at the water."],
+  out_and_she_sings: ['OTTAVIA', 'You are in his air. Now out, and she sings.'],
+  the_cart: ['OTTAVIA', 'A cart, past the second straight, left of the crown. Go right.'],
+  two_laps: ['OTTAVIA', 'Two laps. The box at the end of the first. Stop with your nose on the paint.'],
+  the_box: ['OTTAVIA', 'The box. Stop on the paint, or there is no second lap.'],
+  second_lap: ['OTTAVIA', 'New tyres. Now spend them.'],
+};
+const STORY = {
+  aldo_wide: ['ALDO', "Wide. I'm wide."],
+  teo_through: ['OTTAVIA', 'Brasca. Let him go. Stay with Aldo.'],
+  orders_broken: ['OTTAVIA', 'That was the paper you signed. I read it. I read everything now.'],
+  block_tell: ['OTTAVIA', 'He has seen you. He will shut the door. The door is not in the bend.'],
+  mistake: ['OTTAVIA', 'There. He braked early. That is the door.'],
+  fade: ['OTTAVIA', "Brasca's gone off his tyres. Let him come back to you."],
+  crossing_bell: ['OTTAVIA', 'The bell. Make it, or brake and wait.'],
+  gate: ['OTTAVIA', 'Four seconds. Sit. It will open.'],
+  pit_through: ['OTTAVIA', 'You have no tyres for a second lap.'],
+  wheel: ['OTTAVIA', "That's a wheel. That's his wheel."],
+  oil: ['OTTAVIA', 'Oil. His sump. Hold the wheel.'],
+};
+const RUN_FLAGS = { salt: ['broke_orders'], coppa: ['helped_cassian', 'passed_cassian'] }; // (a script's flags that a new run answers again)
+const ONCE = new Set(['block_tell', 'mistake', 'fade', 'oil']);
+
 // Ottavia, on the radio (a few words, on a caption)
 const RADIO = {
   go: "Don't lift.",
@@ -53,15 +83,14 @@ const RADIO = {
   rub: 'That was paint.',
   hit: 'That was more than paint.',
   verge: 'Off the verge. It eats the tyres.',
-  crest: 'Right, over the top. Trust the board. You will not see it.',
 };
 
 // the card, from what the run actually did
-function cardLines(track, { place, time, gap, flags: run }, pass, flags, owed, sang) {
+function cardLines(track, { place, time, gap, flags: run }, pass, flags, owed, sang, nearest) {
   const gate = track.gate || {};
-  const him = (track.rivals?.[0] || track.rival)?.name || 'Him';
+  const him = NAMES[nearest] || 'Him';
   const manners = run.clean ? 'Clean.' : run.spins ? `${run.spins} ${run.spins === 1 ? 'spin' : 'spins'}.` : run.rubs ? `${run.rubs} ${run.rubs === 1 ? 'rub' : 'rubs'}.` : 'Not clean.';
-  const slings = run.slings ? ` ${run.slings} ${run.slings === 1 ? 'sling' : 'slings'}.` : '';
+  const slings = run.slings ? ` Out of his air ${run.slings === 1 ? 'once' : `${run.slings} times`}, and she sang.` : '';
   const lines = [];
   if (gate.time !== undefined) {
     const said = spoken(shownTime(time, gate, pass));
@@ -70,7 +99,11 @@ function cardLines(track, { place, time, gap, flags: run }, pass, flags, owed, s
   } else {
     const name = ORDINAL[place - 1] || `P${place}`;
     const lifts = run.lifts === 0 ? 'you never lifted' : run.lifts === 1 ? 'I heard you lift once' : run.lifts === 2 ? 'I heard you lift only twice' : `I heard you lift ${run.lifts} times`;
-    const say = place === 1 ? `${name}, and ${lifts}.` : pass ? `${name}. On the sheet. It will do.` : `${name}. He has the road and you have the next try.`;
+    let say = place === 1 ? `${name}, and ${lifts}.` : pass ? `${name}. On the sheet. It will do.` : `${name}. He has the road and you have the next try.`;
+    if (track.id === 'salt' && pass) say = `${name}. On the sheet. The sheet pays. Go and put it on her dresser.`;
+    if (track.id === 'coppa' && pass) say = "That's it. That's dead on.";
+    if (track.id === 'coppa' && !pass) say = `${name}. The Coppa is not ${name.toLowerCase()}. Again, and you have it.`;
+    if (track.id === 'salt' && flags.sable_orders && !flags.broke_orders && pass) say += ' You held. He will put that in the paper too.';
     const gapLine = gap === null ? '' : gap >= 0 ? `${him}: ${gap.toFixed(1)} s behind you. ` : `${him}: ${(-gap).toFixed(1)} s ahead. `;
     lines.push(`Ottavia: "${say}"`, `${gapLine}${manners}${slings}`);
   }
@@ -104,12 +137,19 @@ export default class RaceScene extends Phaser.Scene {
     for (const [action, codes] of Object.entries(RACE_PAD)) this.inputs.bind(action, 'gamepad', codes);
     const flags = (getRun(DREAM) || {}).flags || {};
     this.aid = softAid(flags, track.id);
-    this.firstRace = flags[flagOf(track.id, 'best')] === undefined && !flags[flagOf(track.id, 'tries')];
+    // (the keys and the green are taught once, on the first road of his life)
+    this.firstRace = ['pinewood', 'test'].includes(track.id) && flags[flagOf(track.id, 'best')] === undefined && !flags[flagOf(track.id, 'tries')];
     const tune = carTune(track, flags);
+    this.flags = flags;
     this.race = raceFor(track, flags, { tune });
-    this.hot = !flags.tuned; // she left the bench still beating: a warning to look at, not a retune
+    this.saidOnce = new Set();
+    this.quiet = new Set(); // the engines that have stopped
+    this.boardAt = null; // the slate Jo is coming up to
+    this.darkFaded = false;
+    this.hot = !!tune.untuned; // she runs hot (left beating on the bench, or Sable's oil): a warning to look at, not a retune
     this.ended = false;
     this.saidGo = false; // (scene.restart reuses this object)
+    this.storyUntil = 0;
     this.saidLights = false;
     this.saidLamp = false;
     this.saidVerge = false;
@@ -126,9 +166,9 @@ export default class RaceScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(track.theme.background);
     hud.bind(this, 'hub'); // the grid without hearts: nothing here costs a heart
     this.keepTheme = false; // (a restart keeps the textures: only leaving the race frees them)
-    this.view = new RoadView(this, track, this.race, { slow: touchState.on, chalk: this.aid || tune.chalk, joLivery: track.joLivery || (track.id === 'pinewood' ? 'dante' : 'heron') });
+    this.view = new RoadView(this, track, this.race, { slow: touchState.on, chalk: this.aid || tune.chalk, joLivery: track.joLivery || (track.id === 'pinewood' ? 'dante' : 'heron'), flags });
     this.pace = sheetPace(track);
-    this.hudView = new RaceHud(this, track, { aid: this.aid, teachBrake: this.firstRace, pace: this.pace });
+    this.hudView = new RaceHud(this, track, { aid: this.aid, teachBrake: this.firstRace, pace: this.pace, flags });
     this.look = setupLook(this, track.theme.look);
     this.heat = this.hot ? hud.meter('race-heat', { label: 'HOT', color: '#d5443c', order: 3 }) : null;
     if (this.heat) this.heat.set(0);
@@ -140,7 +180,9 @@ export default class RaceScene extends Phaser.Scene {
     this.cameras.main.fadeIn(340, ...NIGHT);
     if (this.aid) this.radio('I will whisper the brake marks. Listen for me.', 3200);
     else if (track.id === 'pinewood') this.radio('Thirty-four seconds, I did it in. In that car. Go on.', 2600, 'ALDO');
-    else if (this.hot) this.radio('You left her beating. Watch the temperature.', 3200);
+    else if (track.id === 'salt' && flags.tyres_short) this.radio('They are last month\'s. I said what the jar said. Brake early and they will last.', 4200);
+    else if (track.id === 'harbour') this.radio(this.hot ? 'She is running hot. Watch the temperature.' : 'Your first start. Green, then gas, and stay with him.', 3200);
+    else if (this.hot) this.radio('She is running hot. Watch the temperature.', 3200);
     this.events.once('shutdown', () => this.teardown());
     this.view.update(0, false);
   }
@@ -190,6 +232,7 @@ export default class RaceScene extends Phaser.Scene {
       this.cameras.main.fadeOut(300, ...NIGHT);
     }
     this.watchBend(jo);
+    this.watchStory(jo);
     this.view.startFrame();
     this.view.update(dt);
     this.hudView.update(this.race);
@@ -211,6 +254,63 @@ export default class RaceScene extends Phaser.Scene {
     }
   }
 
+  // what the road's script does over time, and the slate
+  watchStory(jo) {
+    const s = this.race.script;
+    // the Harbour: 1.5 s after his lights go, the picture goes too; the script holds 2 s on the dark
+    if (s?.state === 'dark' && s.t >= 1.5 && !this.darkFaded) {
+      this.darkFaded = true;
+      this.cameras.main.fadeOut(350, 4, 4, 10);
+    }
+    const slates = (this.track.things || []).filter((o) => o.kind === 'pitboard').flatMap((o) => (this.track.lapLen ? [o.d, o.d + this.track.lapLen] : [o.d]));
+    const next = slates.find((d) => d > jo.d - 2 && d - jo.d < BOARD_NEAR);
+    if (next === undefined) return;
+    // (the script's word is live; the rest is what Tullio wrote for this pass)
+    const word = this.scriptWord(jo);
+    if (next !== this.boardAt) {
+      this.boardAt = next;
+      this.boardText = this.boardWord(jo);
+    }
+    this.view.setSlate(word || this.boardText);
+  }
+
+  scriptWord(jo) {
+    const s = this.race.script;
+    const box = this.track.script?.box;
+    if (s?.board === 'GO' && box && jo.d > box.d + 100) return ''; // (he has gone: GO was for that stop)
+    return s?.board || '';
+  }
+
+  // what the pit wall has to say this time past: the plan's slate, in order of how much it matters
+  boardWord(jo) {
+    const r = this.race;
+    if (jo.grip < 0.4) return 'TYRES';
+    if (jo.lifts >= 2 && !this.saidOnce.has('lift')) {
+      this.saidOnce.add('lift');
+      return 'LIFT';
+    }
+    if (this.track.id === 'salt' && !this.saidOnce.has('aldo-board')) {
+      this.saidOnce.add('aldo-board');
+      return 'ALDO'; // (Tullio's hand, once)
+    }
+    const ahead = r.rivals.filter((c) => c.d > jo.d && !c.out).sort((a, b) => a.d - b.d)[0];
+    const behind = r.rivals.filter((c) => c.d <= jo.d && !c.out).sort((a, b) => b.d - a.d)[0];
+    const place = 1 + r.rivals.filter((c) => c.d > jo.d).length;
+    const other = ahead || behind;
+    if (!other) return `P${place}`;
+    const gap = Math.abs(other.d - jo.d) / Math.max(jo.v, 10);
+    return `P${place} ${ahead ? '+' : '-'}${gap.toFixed(1)}`;
+  }
+
+  say(key) {
+    if (ONCE.has(key)) {
+      if (this.saidOnce.has(key)) return;
+      this.saidOnce.add(key);
+    }
+    const line = STORY[key];
+    if (line) this.radio(line[1], Math.max(2400, line[1].length * 60), line[0], true);
+  }
+
   // the loan paid back: a bend taken close to its limit without a slide. She sings
   watchBend(jo) {
     const b = this.race.bendAt(jo.d);
@@ -230,15 +330,90 @@ export default class RaceScene extends Phaser.Scene {
     }
   }
 
-  radio(text, ms = 2400, who = 'OTTAVIA') {
+  // (a line of the story is not talked over: a rub or a lamp waits its turn, and is dropped)
+  radio(text, ms = 2400, who = 'OTTAVIA', story = false) {
+    if (!story && this.time.now < (this.storyUntil || 0)) return;
+    if (story) this.storyUntil = this.time.now + ms;
     this.hudView.say(`${who}: ${text}`);
     this.radioUntil = this.time.now + ms;
   }
 
   onEvent(e) {
     const cam = this.cameras.main;
-    if (e.id && e.id !== 'jo' && !['rub', 'hit', 'rival_home'].includes(e.type)) return;
+    this.view.react(e);
+    // (the rivals' own verge, sling and straw are nobody's business; the rest of these name who, or what)
+    if (e.id && e.id !== 'jo' && ['jump_start', 'launch', 'armed', 'sling', 'straw', 'bale', 'verge', 'bump', 'spin', 'back', 'reset', 'lamp', 'oil'].includes(e.type)) return;
     switch (e.type) {
+      case 'cue': {
+        const line = CUES[e.id];
+        if (e.id === 'crest' && this.track.id !== 'pinewood') break;
+        if (line) this.radio(line[1], Math.max(3000, line[1].length * 60), line[0], true);
+        break;
+      }
+      case 'block_tell':
+        if (this.engine) this.engine.sting('tell');
+        this.say('block_tell');
+        break;
+      case 'mistake':
+      case 'fade':
+      case 'teo_through':
+      case 'orders_broken':
+      case 'pit_through':
+        this.say(e.type);
+        break;
+      case 'oil':
+        this.say('oil');
+        sfx('knock');
+        cam.shake(180, 0.004);
+        break;
+      case 'crossing_bell':
+        if (this.engine) this.engine.bell(true);
+        this.say('crossing_bell');
+        break;
+      case 'crossing_open':
+        if (this.engine) this.engine.bell(false);
+        break;
+      case 'aldo_wide':
+        this.say('aldo_wide');
+        break;
+      case 'aldo_dark':
+        // his note stops; nobody says anything
+        this.quiet.add('aldo');
+        this.hudView.say('');
+        this.radioUntil = 0;
+        break;
+      case 'race_over':
+        this.saveFlags((f) => ({ ...applyResult(f, this.track, { place: 1, time: this.race.t }), ...e.flags }));
+        this.ended = true;
+        this.leaving = true;
+        this.scene.start('Dream', { dreamId: DREAM, resume: true, quietResume: true });
+        break;
+      case 'gull_lamp':
+        // (lit on the first pass: the chime, and Ottavia says nothing for once)
+        if (e.state === 'lit') chime('lamp', DREAM);
+        break;
+      case 'board':
+        break;
+      case 'pit':
+        this.radio(e.how === 'box' ? 'Good. Sit still.' : e.how === 'short' ? 'Short. They have to run to you.' : 'Long. They have to run to you.', 2400, 'TULLIO', true);
+        sfx('knock');
+        break;
+      case 'pit_go':
+        this.radio('Go.', 1600, 'TULLIO', true);
+        break;
+      case 'wheel':
+        this.quiet.add(e.id);
+        if (this.engine) this.engine.sting('crack');
+        cam.shake(160, 0.004);
+        this.say('wheel');
+        break;
+      case 'choice':
+        if (e.how === 'stop') this.radio('Go. Go on, I\'m up. Go!', 3000, 'CASSIAN', true);
+        else this.radio('…Drive.', 2400, 'OTTAVIA', true);
+        break;
+      case 'stop_go':
+        this.radio('Six seconds. You still have it. Drive.', 2800, 'OTTAVIA', true);
+        break;
       case 'jump_start':
         this.radio(RADIO.jump_start);
         break;
@@ -248,7 +423,8 @@ export default class RaceScene extends Phaser.Scene {
         cam.shake(120, 0.003);
         break;
       case 'armed':
-        this.radio(RADIO.armed);
+        if (!this.saidOnce.has('armed')) this.radio(RADIO.armed);
+        this.saidOnce.add('armed');
         sfx('click');
         break;
       case 'sling':
@@ -285,9 +461,7 @@ export default class RaceScene extends Phaser.Scene {
       case 'bump':
         sfx('knock');
         cam.shake(120, 0.005);
-        break;
-      case 'cue':
-        if (RADIO[e.id]) this.radio(RADIO[e.id], 3400);
+        if (e.why === 'gate') this.say('gate');
         break;
       case 'lamp': {
         chime('lamp', DREAM);
@@ -331,8 +505,17 @@ export default class RaceScene extends Phaser.Scene {
     if (!this.engine) return;
     const r = this.race;
     const jo = r.jo;
-    const car = (c, i) => ({ id: c.id, v: c.v, throttle: c.throttle, dx: c.d - jo.d, closing: i ? jo.v - c.v : 0, base: i ? 58 + i * 7 : 52, detune: i ? 9 : 6 });
-    this.engine.update({ cars: r.cars.map(car), slip: jo.slip, speed: jo.v, beat: r.beat() });
+    const car = (c, i) => ({ id: c.id, v: c.v, throttle: c.throttle, dx: c.d - jo.d, closing: i ? jo.v - c.v : 0, base: i ? 58 + i * 7 : 52, detune: i ? 9 : this.hot ? 6 : 0 }); // (tuned: Jo's own two oscillators are dead on)
+    const beat = r.beat();
+    this.engine.update({
+      cars: r.cars.filter((c) => !this.quiet.has(c.id)).map(car),
+      slip: jo.slip,
+      speed: jo.v,
+      beat: beat && !this.quiet.has(beat.id) ? beat : null,
+      untuned: this.hot,
+      verge: jo.onVerge ? jo.v : 0,
+      murmur: this.track.id === 'coppa' ? PA_LEVEL : 0,
+    });
   }
 
   // ---- the end of a race -----------------------------------------------------------
@@ -349,18 +532,32 @@ export default class RaceScene extends Phaser.Scene {
   onFinish(result) {
     this.ended = true;
     const pass = result.passed;
-    const flags = this.saveFlags((f) => applyResult(f, this.track, result));
+    const flags = this.saveFlags((f) => {
+      const out = applyResult(f, this.track, result);
+      // (the story's choices: the latest finish stands, except that a run short of the gate does not unsay one that passed)
+      if (pass || !f[flagOf(this.track.id, 'passed')]) {
+        for (const k of RUN_FLAGS[this.track.id] || []) delete out[k];
+        Object.assign(out, this.race.script?.flags);
+      }
+      return out;
+    });
     this.lastResult = { ...result, pass };
     hud.set('objective', pass ? 'back to the garage' : 'again');
     this.hudView.say('');
-    this.time.delayedCall(1400, () => this.sys.isActive() && this.showCard(result, pass, flags));
+    // the Coppa: first over the line, and the note. One note, held, dead on, and only then anyone speaks
+    const won = this.track.id === 'coppa' && pass;
+    if (won && this.engine) this.engine.holdNote();
+    if (won) this.time.delayedCall(1300, () => this.sys.isActive() && this.radio("That's it. That's dead on.", 2200, 'OTTAVIA', true));
+    this.time.delayedCall(won ? 3600 : 1400, () => this.sys.isActive() && this.showCard(result, pass, flags));
   }
 
   showCard(result, pass, flags) {
     const { place, time } = result;
     const id = this.track.id;
     const owed = prizeOwed(flags, id);
-    const lines = cardLines(this.track, result, pass, flags, owed, this.sang);
+    const jo = this.race.jo;
+    const nearest = this.race.rivals.reduce((w, c) => (!w || Math.abs(c.d - jo.d) < Math.abs(w.d - jo.d) ? c : w), null)?.id;
+    const lines = cardLines(this.track, result, pass, flags, owed, this.sang, nearest);
     if (!pass && softAid(flags, id)) lines.push('She will whisper the brake marks from now on.');
     const again = { id: 'again', label: pass ? 'Race it again' : 'Race again', action: () => this.restartRace(false) };
     const back = { id: 'garage', label: 'Back to the garage', action: () => this.leaveToGarage() };
@@ -373,7 +570,7 @@ export default class RaceScene extends Phaser.Scene {
     const main = () => [
       { id: 'resume', label: 'Resume', action: () => this.pauseMenu.destroy() },
       // (not in a spin: the lamp is already coming, the 3 s are not for sale)
-      ...(this.race.jo.state === 'run' ? [{ id: 'restart', label: 'Restart from the lamp', action: () => this.restartFromLamp() }] : []),
+      ...(this.race.jo.state === 'run' && !['wide', 'dark', 'over'].includes(this.race.script?.state) ? [{ id: 'restart', label: 'Restart from the lamp', action: () => this.restartFromLamp() }] : []),
       { id: 'restartRace', label: 'Restart this race', action: () => this.restartRace(true) },
       { id: 'garage', label: 'Back to the garage', action: () => this.leaveToGarage() },
       { id: 'station', label: 'Back to station', action: () => this.leaveToStation() },

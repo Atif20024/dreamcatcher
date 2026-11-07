@@ -11,6 +11,7 @@ import { THEME } from '../../../ui/theme.js';
 import { gripBand, TUNE, bendSafe, gripFactor, brakePoint, turnSide } from '../../../engines/race.js';
 import { touchState } from '../../../input/touchState.js';
 import { clock } from './result.js';
+import { DOT } from './carArt.js';
 
 const DEPTH = 140; // under the grid's own plates, over the world
 const KMH = 3.6;
@@ -25,27 +26,36 @@ const RADIO_Y = 96;
 const LIGHTS_Y = 146;
 const SPLIT_MS = 3200;
 
-// what this race asks for, in a few words (the grid's goal line)
-export function goalLine(gate) {
+// what this race asks for, in a few words (the grid's goal line). It stays up: it is what today is about
+export function goalLine(gate, F = {}) {
   if (gate?.time !== undefined) return `under Aldo's time: ${clock(gate.time)}`;
-  if (gate?.scripted) return 'stay in his air';
-  if (gate?.place === 1) return 'first over the line';
-  if (gate?.place) return `on the sheet: top ${gate.place}`;
+  if (gate?.scripted) return "stay in Aldo's air";
+  if (gate?.place === 1) return 'win the Coppa';
+  if (gate?.place) return F.sable_orders ? `top ${gate.place}: hold behind Dante` : `on the sheet: top ${gate.place}`;
   return 'to the line';
 }
 
+// the day: who Jo is this morning, and what he has come for. On the grid, under the lights
+export const DAY_CARD = {
+  pinewood: { line: 'A stranger with good hands, and a borrowed car.', goal: "EARN THE SEAT: BEAT ALDO'S TIME" },
+  harbour: { line: 'His first start for the team. Aldo goes first.', goal: "STAY IN ALDO'S AIR" },
+  salt: { line: 'Aldo is in the hospital. The sheet pays.', goal: 'FINISH IN THE TOP THREE' },
+  coppa: { line: 'Two laps of the whole coast. Whose car it is.', goal: 'WIN' },
+};
+
 export class RaceHud {
-  constructor(scene, track, { aid = false, teachBrake = false, pace = null } = {}) {
+  constructor(scene, track, { aid = false, teachBrake = false, pace = null, flags = {} } = {}) {
     const s = (this.scene = scene);
     this.track = track;
     this.aid = aid;
     this.pace = pace;
     this.teachBrake = teachBrake; // the first race: BRAKE NOW for the first bend only (design §5)
-    this.gripShown = !!track.gripMatters;
+    this.gripShown = !!track.gripMatters || !!flags.tyres_short || track.id === 'coppa'; // (the plan: from the lights, when they matter from the lights)
+    this.flags = flags;
     const obj = (o) => o.setScrollFactor(0).setDepth(DEPTH);
     const rect = (x, y, w, h, c, a = 1) => obj(s.add.rectangle(x, y, w, h, c, a).setOrigin(0, 0));
     hud.set('level', track.title);
-    hud.set('objective', goalLine(track.gate));
+    hud.set('objective', goalLine(track.gate, flags));
     hud.set('footer', touchState.on ? '' : '[Esc] pause');
     // a new car, a new way to hold it: the keys, until the plates go (a phone's are labelled)
     if (teachBrake && !touchState.on) hud.set('context', '↑ GAS  ↓ BRAKE  ←→ STEER');
@@ -70,20 +80,29 @@ export class RaceHud {
     const at = (d) => STRIP.x + (d / track.length) * STRIP.w;
     for (const b of track.bends || []) rect(at(b.from), STRIP.y, Math.max(3, at(b.to) - at(b.from)), STRIP.h, THEME.danger);
     for (const l of track.lamps || []) rect(at(l) - 1, STRIP.y - 3, 2, 10, THEME['brass-light']);
-    this.dots = scene.race.rivals.map(() => rect(STRIP.x, STRIP.y - 3, 4, 10, 0x8a8478));
+    this.dots = scene.race.rivals.map((r) => rect(STRIP.x, STRIP.y - 3, 4, 10, DOT[r.id] ?? 0x8a8478));
     this.dotAldo = pace ? rect(STRIP.x, STRIP.y - 3, 4, 10, 0xf2e6cc) : null;
     this.dotJo = rect(STRIP.x, STRIP.y - 3, 4, 10, 0x4ae0d0);
     this.at = at;
 
     // the call: the next bend, and how fast it goes
     this.callTx = uiText(s, 480, CALL_Y, '', { size: 'small', color: 'accent', screen: true, align: 'center', bg: PLATE.dark }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(DEPTH);
-    this.radioTx = uiText(s, 480, RADIO_Y, '', { size: 'small', color: 'ink', screen: true, align: 'center', bg: PLATE.dark }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(DEPTH).setVisible(false);
+    this.radioTx = uiText(s, 480, RADIO_Y, '', { size: 'small', color: 'ink', screen: true, align: 'center', bg: PLATE.dark, wrap: 720 }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(DEPTH).setVisible(false);
     // how Jo stands against the sheet, as he passes a lamp
     this.splitTx = uiText(s, 712, 12, '', { size: 'small', color: 'accent', screen: true, align: 'right', bg: PLATE.dark }).setOrigin(1, 0).setScrollFactor(0).setDepth(DEPTH).setVisible(false);
     this.splitUntil = 0;
 
     // the lights
     this.lights = [0, 1, 2].map((i) => obj(s.add.image(432 + i * 48, LIGHTS_Y, 'cars', 'light-off').setScale(2)));
+    // the day's card, under the lights: gone with the green
+    const day = DAY_CARD[track.id];
+    this.day = day
+      ? [
+          uiText(s, 480, LIGHTS_Y + 40, track.title, { size: 'display', scale: 1, color: 'accent', screen: true, align: 'center', bg: PLATE.dark }),
+          uiText(s, 480, LIGHTS_Y + 76, day.line, { size: 'small', color: 'ink', screen: true, align: 'center', bg: PLATE.dark }),
+          uiText(s, 480, LIGHTS_Y + 106, day.goal, { size: 'small', color: 'accent', screen: true, align: 'center', bg: PLATE.dark }),
+        ].map((x) => x.setOrigin(0.5, 0).setScrollFactor(0).setDepth(DEPTH))
+      : [];
     this._last = {};
     this.flashUntil = 0;
     this.flashText = '';
@@ -128,10 +147,17 @@ export class RaceHud {
       if (t < 1.2) l.setFrame(t >= 0 || t >= -3 + i * 1 ? lit : 'light-off');
     });
 
+    if (this.day.length && t >= -0.2) {
+      this.day.forEach((x) => x.setVisible(false));
+      this.day = [];
+    }
+
     this.setText('speed', this.speedTx, String(Math.round(v * KMH)));
-    this.bar.scaleX = Math.max(1, Math.min(BAR.w, v / SPEED_SCALE));
+    // (she left the bench still beating: the needle will not sit still)
+    const flicker = race.tune.untuned && v > 2 ? Math.sin(t * Math.PI * 4) * 3 : 0;
+    this.bar.scaleX = Math.max(1, Math.min(BAR.w, v / SPEED_SCALE + flicker));
     this.bar.setFillStyle(c.slingT > 0 ? 0x88e8ff : THEME['brass-light']);
-    this.setText('sling', this.slingTx, this.scene.time.now < this.flashUntil ? this.flashText : c.slingT > 0 ? 'SLING!' : c.armed && c.slingCool <= 0 ? 'FULL' : '');
+    this.setText('sling', this.slingTx, this.scene.time.now < this.flashUntil ? this.flashText : c.slingT > 0 ? 'OUT!' : c.armed && c.slingCool <= 0 ? 'FULL' : '');
     // the grip meter earns its place: on a race where it matters, or when the tyres are going
     const band = gripBand(c.grip);
     if (!this.gripShown && band !== 'green') {
@@ -144,6 +170,7 @@ export class RaceHud {
     const time = race.result ? race.result.time : Math.max(0, t);
     // (the grid redraws on change: a tenth of a second is plenty)
     if (track.gate?.time !== undefined) hud.set('coins', { text: `${clock(time)}  ALDO ${clock(track.gate.time)}` });
+    else if (track.gate?.scripted) hud.set('coins', { text: clock(time) }); // (nobody is racing for a place here)
     else {
       const shown = race.result ? race.result.place : 1 + race.rivals.filter((r) => r.d > c.d).length;
       hud.set('coins', { text: `P${shown}   ${clock(time)}` });
@@ -159,7 +186,8 @@ export class RaceHud {
     const b = race.nextBend(c.d);
     const inBend = b && c.d >= b.from;
     const dist = b ? b.from - c.d : Infinity;
-    const call = (dist < 260 || inBend) && !race.result;
+    const told = this.storyCall(race);
+    const call = (dist < 260 || inBend) && !race.result && !told && !['wide', 'dark', 'over'].includes(race.script?.state);
     this.notch.setVisible(!!call);
     if (call) {
       // the speed of the line Jo is on, to the nearest 5 km/h and easing with it: it must not flicker
@@ -174,6 +202,9 @@ export class RaceHud {
       const brake = whisper && !inBend && v > safe && c.d >= brakePoint(b, c.x, v, gf) - v * TUNE.chalkReact;
       this.setText('call', this.callTx, brake ? 'BRAKE NOW' : tight);
       this.callTx.setVisible(true);
+    } else if (told) {
+      this.setText('call', this.callTx, told);
+      this.callTx.setVisible(true);
     } else this.callTx.setVisible(false);
 
     // the plates that never change have been read by now: they go, and the road has the room
@@ -183,9 +214,25 @@ export class RaceHud {
     }
   }
 
+  // what the road is asking right now, when it is not a bend: the box, the choice
+  storyCall(race) {
+    const s = race.script;
+    const jo = race.jo;
+    if (!s || race.result) return '';
+    if (s.wheel === 'off') return 'ROCHE IS OUT: BRAKE TO STOP, OR DRIVE ON';
+    if (s.wheel === 'helping') return '';
+    const box = race.track.script?.box;
+    if (box && s.pit === 'ahead') {
+      const to = box.d - (jo.d + 1.9);
+      if (to < 120) return to > 0 ? `THE BOX ${Math.ceil(to / 10) * 10} M: STOP ON THE PAINT` : 'STOP ON THE PAINT';
+    }
+    if (s.pit === 'in') return `THE CREW: ${Math.ceil(s.holdT)}`;
+    return '';
+  }
+
   fadeStatics() {
     const grid = UI.scene && UI.scene.hudGrid;
-    for (const key of ['level', 'objective', 'footer', 'context']) {
+    for (const key of ['level', 'footer', 'context']) {
       const tx = grid && grid.texts[key];
       if (!tx || !hud.s[key]) continue;
       this.scene.tweens.add({ targets: tx, alpha: 0, duration: 500, onComplete: () => {
