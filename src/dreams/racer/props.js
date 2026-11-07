@@ -348,6 +348,54 @@ export default {
     ctx.fillRect(13, 14, 4, h - 18);
     ctx.fillRect(6, h - 4, 18, 4);
   }),
+  // four tyres in black paper, tied with gold: Roche Motori does nothing plainly
+  roche_tyres: prop(46, 74, (ctx, w, h) => {
+    for (let i = 0; i < 4; i++) {
+      const y = h - 18 * (i + 1);
+      ctx.fillStyle = hex(0x1a1a22);
+      ctx.fillRect(1, y, w - 2, 17);
+      ctx.fillStyle = hex(0xc8a050);
+      ctx.fillRect(w / 2 - 2, y, 4, 17);
+    }
+  }),
+  // a bottle from the chemist, on the kitchen table
+  chest_bottle: prop(12, 24, (ctx, w, h) => {
+    ctx.fillStyle = hex(0x3a6a5a);
+    ctx.fillRect(1, 8, w - 2, h - 8);
+    ctx.fillRect(4, 2, w - 8, 6);
+    ctx.fillStyle = hex(0xf2e6cc);
+    ctx.fillRect(2, 13, w - 4, 6);
+  }),
+  // the season's slate, a chalk board on the garage wall (the words are live: verbs/garage.js)
+  season_slate: prop(190, 92, (ctx, w, h) => {
+    ctx.fillStyle = hex(0x3a2a20);
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = hex(0x1e2a28);
+    ctx.fillRect(4, 4, w - 8, h - 8);
+    ctx.fillStyle = rgba(0xf2e6cc, 0.06);
+    ctx.fillRect(10, 12, w - 40, 3);
+    ctx.fillRect(30, 60, w - 50, 4);
+  }),
+  // the Coppa's poster: the road, the sea, a number; going yellow in the salt
+  coppa_poster: prop(60, 76, (ctx, w, h) => {
+    ctx.fillStyle = hex(0xe8dcc0);
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = hex(0x20305a);
+    ctx.fillRect(4, 4, w - 8, 40);
+    ctx.fillStyle = hex(0xf2b868);
+    ctx.beginPath();
+    ctx.arc(w - 18, 18, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = hex(0xb8302a);
+    ctx.beginPath();
+    ctx.moveTo(6, 44);
+    ctx.quadraticCurveTo(w / 2, 22, w - 12, 44);
+    ctx.lineTo(w - 22, 44);
+    ctx.quadraticCurveTo(w / 2, 32, 20, 44);
+    ctx.fill();
+    ctx.fillStyle = hex(0x2a2420);
+    for (let i = 0; i < 3; i++) ctx.fillRect(8, 50 + i * 7, w - 16 - i * 8, 3);
+  }),
   // an oil company's poster, in the taste of 1958: a sun and a can
   sable_poster: prop(90, 130, (ctx, w, h) => {
     ctx.fillStyle = hex(0xe8dcc0);

@@ -192,6 +192,7 @@ export const HER_LINES = {
     painter: "Gualtiero asks after you. He says you sweep like a boy who'd rather be painting.",
     gambler: "Lou says you got up from his chair. He's still telling people.",
     clockmaker: "Nobody thanked you for the clock on the green. Nell says that's how you know it's working.",
+    racer: "A bus went by at four. A woman on the canal said it was a hair flat. She was right, and I told her so.",
   },
   roast_page_three: {
     kept: "Page three. You kept it. I read it. Don't look like that.",

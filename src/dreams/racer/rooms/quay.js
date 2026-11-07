@@ -5,6 +5,8 @@
 import { grid } from '../../painter/rooms/grid.js';
 import { SEASON_GOALS } from '../season.js';
 
+export const TEO_COL = 34;
+
 const g = grid(112, 18);
 g.fill(0, 16, 111, 17);
 g.fill(0, 0, 1, 15);
@@ -39,6 +41,11 @@ export default {
     { prop: 'fishing_boat', x: 52, y: 16, dy: -6, layer: 'back' },
     { prop: 'barrel', x: 49, y: 16 },
     { prop: 'crate', x: 50, y: 16 },
+    // the week before the Coppa: the town has noticed
+    { prop: 'coppa_poster', x: 34, y: 14, layer: 'back', when: 'garage_again', live: true },
+    { prop: 'coppa_poster', x: 74, y: 14, layer: 'back', when: 'garage_again', live: true },
+    { prop: 'bunting', x: 55, y: 5, layer: 'back', when: 'garage_again', live: true },
+    { prop: 'bunting', x: 82, y: 5, layer: 'back', when: 'garage_again', live: true },
   ],
   backdrop: { set: 'coast_day', horizon: 15 },
   enclosure: { fgFoliage: [{ x: -1, w: 3 }] },
@@ -52,17 +59,29 @@ export default {
     { type: 'portal', id: 'quay>garage', kind: 'door', x: 3, y: 15, to: { room: 'garage', portal: 'garage>quay' }, door: { prompt: 'in to the garage', fade: 240 } },
     { type: 'checkpoint', id: 'cp_quay', label: 'THE QUAY', x: 12, y: 15 },
     { type: 'sign', text: 'PEREVAL CORSE', x: 7, y: 9, board: 0x1f7a78, ink: 0xf2e6cc, rim: 0xe8dcc0, scale: 1 },
-    { type: 'portal', id: 'quay>kitchen', kind: 'door', x: 26, y: 15, to: { room: 'kitchen', portal: 'kitchen>quay' }, door: { prompt: 'in to the Castellanes', fade: 240, requires: ['gloves_left'], locked: 'the Castellanes: shut', lockedLine: 'Nobody home. Ottavia is at the garage, and her mother goes to the market.' } },
+    { type: 'portal', id: 'quay>kitchen', kind: 'door', x: 26, y: 15, to: { room: 'kitchen', portal: 'kitchen>quay' }, door: { prompt: 'in to the Castellanes', fade: 240, requires: ['gloves_left'], locked: 'the Castellanes: shut', lockedLine: 'Nobody home. Her mother goes to the market, and I have no business there yet.' } },
     { type: 'sign', text: 'CASTELLANE', x: 26, y: 11, board: 0x4a3020, ink: 0xf2e6cc, scale: 1 },
-    { type: 'portal', id: 'quay>sponsor', kind: 'door', x: 37, y: 15, to: { room: 'sponsor', portal: 'sponsor>quay' }, door: { prompt: 'up to Sable Oil', fade: 240, requires: ['done_race3'], locked: 'Sable Oil: by appointment', lockedLine: 'By appointment, and a garage this small does not have one yet.' } },
+    { type: 'portal', id: 'quay>sponsor', kind: 'door', x: 37, y: 15, to: { room: 'sponsor', portal: 'sponsor>quay' }, door: { prompt: 'up to Sable Oil', fade: 240, requires: ['jars_done'], locked: 'Sable Oil: by appointment', lockedLine: 'By appointment, and a garage this small does not have one yet.' } },
     { type: 'sign', text: 'SABLE OIL', x: 44, y: 5, board: 0x2e4a3a, ink: 0xf2d580, rim: 0xc8a050, scale: 1 },
     { type: 'sign', text: 'CAFE', x: 44, y: 11, board: 0x4a3020, ink: 0xf2e6cc, scale: 1 },
     { type: 'portal', id: 'quay>hospital', kind: 'door', x: 64, y: 15, to: { room: 'hospital', portal: 'hospital>quay' }, door: { prompt: 'in, quietly', fade: 300, requires: ['done_race2'], locked: 'the hospital', lockedLine: 'Nobody I know is in there. I would like it to stay that way.' } },
     { type: 'sign', text: 'OSPEDALE', x: 64, y: 10, board: 0x4a5a58, ink: 0xf2e6cc, scale: 1 },
-    { type: 'portal', id: 'quay>pit', kind: 'door', x: 86, y: 15, to: { room: 'pitlane', portal: 'pit>quay' }, door: { prompt: 'through to the pit lane', fade: 240, requires: ['done_race5'], locked: 'the pit lane: shut', lockedLine: 'Shut till the Coppa. They only open it the week before.' } },
+    { type: 'portal', id: 'quay>pit', kind: 'door', x: 86, y: 15, to: { room: 'pitlane', portal: 'pit>quay' }, door: { prompt: 'through to the pit lane', fade: 240, requires: ['garage_again'], locked: 'the pit lane: shut', lockedLine: 'Shut till the Coppa. They only open it the week before.' } },
     { type: 'sign', text: 'PIT LANE', x: 86, y: 10, board: 0x2a2420, ink: 0xf2e6cc, scale: 1 },
-    { type: 'portal', id: 'quay>gull', kind: 'door', x: 103, y: 15, to: { room: 'nightbefore', portal: 'gull>quay' }, door: { prompt: 'walk the Gull road', fade: 300, requires: ['done_race5'], locked: 'the Gull road: later', lockedLine: 'Not yet. You walk that road the night before, and it is not the night before.' } },
+    { type: 'portal', id: 'quay>gull', kind: 'door', x: 103, y: 15, to: { room: 'nightbefore', portal: 'gull>quay' }, door: { prompt: 'walk the Gull road', fade: 300, requires: ['garage_again'], locked: 'the Gull road: later', lockedLine: 'Not yet. You walk that road the night before, and it is not the night before.' } },
     { type: 'sign', text: 'GULL ROAD', x: 103, y: 10, board: 0x2a2420, ink: 0xf2e6cc, scale: 1 },
+    // the street's people: nobody knows him, then they nod, then they will not leave him alone
+    { type: 'npc', id: 'aldo_wall', cast: 'npc-pv-aldo', x: 15, y: 15, facing: 1, turns: false, when: 'tyres_settled', unless: 'done_race2', talk: [{ conv: 'aldo_wall_again', if: 'tide_asked' }, { conv: 'aldo_wall' }] },
+    { type: 'npc', id: 'beppe', cast: 'npc-pv-beppe', x: 20, y: 15, facing: 1, talk: [{ conv: 'beppe' }] },
+    { type: 'npc', id: 'pia', cast: 'npc-pv-pia', x: 30, y: 15, facing: -1, pace: [28, 32], talk: [{ conv: 'pia' }] },
+    { type: 'npc', id: 'gino', cast: 'npc-pv-gino', x: 31, y: 15, facing: -1, pace: [29, 33], when: 'garage_again', talk: [{ conv: 'gino' }] },
+    { type: 'npc', id: 'gino2', cast: 'npc-pv-pia', x: 24, y: 15, facing: 1, pace: [22, 24], when: 'garage_again', talk: [{ conv: 'gino' }] },
+    { type: 'npc', id: 'rosa', cast: 'npc-pv-rosa', x: 42, y: 15, facing: -1, pace: [40, 47], talk: [{ conv: 'rosa' }] },
+    // Teo waits by the pole on the way to Sable's, then at the end table for good
+    { type: 'npc', id: 'teo', cast: 'npc-pv-teo', x: TEO_COL, y: 15, facing: -1, when: 'jars_done', unless: 'done_race3', talk: [{ conv: 'teo_later' }] },
+    { type: 'npc', id: 'teo_table', cast: 'npc-pv-teo', x: 48, y: 15, facing: -1, turns: false, when: 'done_race3', talk: [{ conv: 'teo_later' }] },
+    // where Aldo stood, once he is not there: Jo looks for himself
+    { type: 'moment', id: 'm_tide', x: 15, y: 15, prompt: 'look at the third step', beat: 'moment_tide', when: 'done_race2' },
     { type: 'moment', id: 'm_sea', x: 50, y: 15, prompt: 'look along the coast', beat: 'moment_sea' },
     // roofs and awnings pay
     { type: 'coins', id: 'c_q1', x: 38, y: 11, n: 6, dx: 1 },

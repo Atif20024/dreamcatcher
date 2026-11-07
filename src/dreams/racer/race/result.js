@@ -11,8 +11,9 @@
 //          race_<id>_prize    what the best place earned, in coins
 //          race_<id>_paid     coins already paid for this race
 //          race_<id>_tries    runs that ended short of the gate, or were restarted
-//          done_<hook>        the season's stand-in for that race has been driven (season.js)
+//          done_<hook>        that race's gate is passed, and the story goes on (season.js)
 import { gatePassed } from '../../../engines/race.js';
+import { HOOKS } from '../season.js';
 
 export const flagOf = (trackId, what) => `race_${trackId}_${what}`;
 
@@ -30,9 +31,10 @@ export function applyResult(flags, track, { place, time }) {
   }
   if (gatePassed(track.gate, { place, time })) out[f('passed')] = true;
   else out[f('tries')] = (out[f('tries')] || 0) + 1;
-  // shortcut: a STAND-IN opens the story on any finish; a real race will bring its own gate
-  if (out.season_pending) {
-    out[`done_${out.season_pending}`] = true;
+  // the story goes on when the gate is passed, on the road the door named (an old run's stale pending counts for nothing)
+  const hook = HOOKS.find((h) => h.id === out.season_pending);
+  if (hook && hook.track === track.id && gatePassed(track.gate, { place, time })) {
+    out[`done_${hook.id}`] = true;
     delete out.season_pending;
   }
   return out;
