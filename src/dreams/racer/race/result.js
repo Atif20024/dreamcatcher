@@ -56,14 +56,15 @@ export const SOFT_AID_AFTER = 3;
 export const softAid = (flags, trackId) => (flags[flagOf(trackId, 'tries')] || 0) >= SOFT_AID_AFTER;
 
 // the seconds, said aloud as a timekeeper says them: 33.8 is "Thirty-three eight"
-const TENS = { 2: 'Twenty', 3: 'Thirty', 4: 'Forty', 5: 'Fifty' };
+const TENS = { 2: 'Twenty', 3: 'Thirty', 4: 'Forty', 5: 'Fifty', 6: 'Sixty', 7: 'Seventy', 8: 'Eighty', 9: 'Ninety' };
 const UNITS = ['', '-one', '-two', '-three', '-four', '-five', '-six', '-seven', '-eight', '-nine'];
 const WORDS = ['nought', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
 export function spoken(t) {
   const tenths = Math.round(t * 10);
   const s = Math.floor(tenths / 10);
   const tens = TENS[Math.floor(s / 10)];
-  return `${tens ? `${tens}${UNITS[s % 10]}` : s} ${WORDS[tenths % 10]}`;
+  // a round ten keeps "point", or 40.7 would be heard as forty-seven
+  return `${tens ? `${tens}${UNITS[s % 10]}` : s}${s % 10 ? '' : ' point'} ${WORDS[tenths % 10]}`;
 }
 
 // a miss by less than the clock's tenth must not read as the time on the sheet

@@ -103,3 +103,55 @@ The tyres story is told seven times (`aldo_tyres`, `harbour_eve`, `nino_after`, 
 2. S2 (rivals stop crawling) and S6 (four wrong words), each a few lines.
 3. S7 cuts 1 to 3 and 5 (about 140 words, about 45 seconds) before the owner plays by hand; it makes the first play land near 9 minutes instead of over 10.
 4. S1 (give Salt and the Coppa lines a question), S3, S4, S5 together in one tuning pass with the bots, so the numbers do not chase each other.
+
+## Convergence check
+
+Branch `redesign` at 158780d. Read only, no game code changed. `npx vitest run` on race, rivals, script, racerSeason, raceResult, racerFinal, racerWords: 299 pass. Bots in the scratchpad (`g1.mjs` to `g6.mjs`) drive the real `raceFor`; seed 1, tuned car, new tyres unless said. Every number below is measured.
+
+### Verdict: nearly converged. Two small SHOULDs (a wrong spoken number, a wrong stated number), both one-line fixes. No MUST.
+
+### Last review's findings
+
+| Finding | Status | Evidence |
+|---|---|---|
+| M1a Aldo's time | **Fixed** | `dialogue.js:15` reads `TRACKS.pinewood.gate.time`; `gate.was` keeps his own time (`script.js` raceFor), `aldoGrid` says "thirty-seven five, I did it in. For you, thirty-nine one" after a miss; card "Aldo's time: 0:37.5. He will take 0:39.1." One false word remains: see N1. |
+| M1b/c crossing wait, Roche stop | **Fixed** | `gate`: "Sit. It will open."; `stop_go` and the ledger carry no number. |
+| M2 crossing a trap | **Fixed** | `crossingBell` 6.4, `crossingShut` 1.5. Tidy 53.4 P2; lift 1 s 54.0 P2; brake to a halt 59.2 P2 (all pass, also on worn tyres: lift 1 s 55.8 P2). Waiting costs 5.8 s and keeps the place. The line "Make it, or brake and wait" is now true. |
+| S1 lines are no question on Salt/Coppa | **Partly** | Pinewood spread 31.2 / 31.6 / 32.4 (best / all-out / all-in). Salt 53.2 / 53.7 / 53.6, Coppa 84.3 / 85.6 / 84.1 (all-in beats the "best" line). Never steering: Salt 53.4, Coppa 85.1 (loses 0.2 to 1 s). Chicane-out `lineSpeed` 3 moved Salt by under 0.5 s. See N5. |
+| S2 retry help crawls, farmable | **Partly** | Floor 0.75, max 4 tries. Prize capped at the gate's place (`result.js` `paysFor`): farming Salt at P1 pays 8, same as P3. Rivals still run at 0.88, 0.83, 0.78, 0.75 of themselves on tries 1 to 4: tidy Coppa lead 7.1 / 10.3 / 21.7 / 27.9 / 33.5 s. `newcomer` Coppa: P3, P2 (0.5 s), P2 (0.7 s), then wins on the fourth start (try 3, 103 s, 8.5 s clear). Salt: fails, passes P3 on try 1. Jo's own times are flat across tries (Salt tidy 53.4 / 53.5 / 53.6 / 53.6 / 53.6; brake bot 59.2 / 60.3 / 59.5): the help never slows a bot. |
+| S3 cart line cut | **Fixed** | Salt cue 475 m, bell 540 m: cart at 18.3 s, bell 20.7 s (newcomer 21.0 / 24.0), read time 1.5 s. "On the left. Go right." matches the cart at x -0.35. |
+| S4 Sable papers | **Fixed** | `settlePrize`: dinners pay back 2 once at the Salt (`tullio_pit` line is the setup/payoff pair with `sable_done`); breaking HOLD at P2 (12) takes 3 + 9 and pays 0, against 8 held. Break is now clearly worse. |
+| S5 Salt thin on worn tyres | **Fixed** | Teo `wear` 5 and the crossing queue: tidy worn P2 55.5, cautious worn P3 57.4 behind Dante 55.3, newcomer worn fails (P4 65.1) on try 0, passes P2 on try 2. |
+| S6 four wrong words | **Fixed** | `DRILL` reads TUNE ("a second and a half" / "two and a half seconds"); `gave` branch cut; "on the left" gone; "I was not close enough". |
+| S7 reading | **Fixed** | Cuts 1 to 5 done (`coppa_home` now 9 nodes). Nothing cut was a setup for a payoff: tyre story still has `aldo_tyres`, `harbour_eve`, `nino_after`, `tullio_after`, the rack; the tide ("Look first") has `corridor.tide` and `coppa_home.stand`; the letter has `cassian_gull`, `ottavia_again`, the ledger; the HOLD paper has `sable_done`, the card, `sable_after`, `dante_idle`, `tullio_pit`, the ledger. |
+| NITs | `gino2` Fixed; Aldo's "length sooner" Fixed; the 3.7 s quiet stretch not re-measured. |
+
+### The hunts
+
+- **Crossing decides the Salt on its own?** No. Going through puts Dante and Teo at the gate 3.9 s after Jo (26.0 s against 29.9 s), but they already finished about 6 s behind before the fix. A full stop keeps P2. The bell now costs time, not the gate; the Salt's pass is decided by braking and the tyres. NIT N4 is the other side of this: the choice is now soft.
+- **Never-steer bot on Pinewood, run 1:** 32.5 s against 37.5 (5.0 s of slack; the 32.9 figure was a slightly different bot). Steering is optional by 0.6 s. Acceptable for race 1: the `line` cue (`tracks.js` pinewood, d 200) and the notch teach it, and the first race has to be passable. It is a teaching race that does not require the wheel; I would leave it.
+- **Flat-out bot on Pinewood:** 39.0 s on run 1 (misses the 37.5 gate by 1.5), passes on run 2 (gate 39.1) by 0.1 s. The brake is therefore optional by run 2 on race 1. It is a knife-edge, not an exploit: the card names "the straw cost you the most" first. N3.
+- **Retry help making a bot slower:** no (see S2 row).
+- **Radio timing:** the new read-hold (1.5 s, 45 ms a character) never swallowed the bell (2.4 s after the cart) or the Pinewood `crest` (the `line` cue is at 9.3 s, `crest` at 18.0 s). The deferred slot holds one line; no loss seen.
+- **Numbers still false:** N1 and N2 below. Everything else I grepped (twelve, eight, thirty days, nine, Mir, fifth) matches the code.
+- **Payoffs:** all have their setup (see S7 row). `tullio_pit` `start` has `else: 'dine'` and `dine` has `next: 'box'`, so the chain reads when a flag is off.
+
+### New or remaining issues
+
+**SHOULD**
+
+**N1. `spoken()` reads 40.7 as "forty seven" and 60.2 as "60 two".** `src/dreams/racer/race/result.js:62-67`. With a units digit of 0 the hyphen is lost: Aldo says "For you, forty seven" on the grid after two missed tries (gate 40.7), the card reads "Aldo reads the watch: forty three" for 40.3, "Fifty three" for 50.3, and 60+ falls back to figures. A pupil hears 47 s for 40.7 s, in the lesson race. Measured: `spoken(40.7)` = "Forty seven", `spoken(60.2)` = "60 two". Fix: `return \`${tens ? tens + UNITS[s % 10] + (s % 10 ? '' : ',') : s} ${WORDS[tenths % 10]}\`` (so "forty, seven"), and add 60+ words to `TENS` or cap at 59.
+
+**N2. Sable's line names a number the payout does not take.** `src/dreams/racer/dialogue.js:208` says "the ten we paid you to hold" (`HOLD_PAY`), but `settlePrize` caps `back` at the prize left after the fifth: 9 at P2 (12), 6 at an eased P3 (8); the caption in `garage.js:~129` then says "Sable took 9 back". Two lines in the same minute disagree. Fix: in `dialogue.js:208` drop the number ("what we paid you to hold, and a fifth of what you won"), and remove `HOLD_PAY`.
+
+**NIT**
+
+**N3. Pinewood passes without the brake by run 2.** `tracks.js` pinewood `gate: { time: 37.5 }`, `race.js` `easeTime` 1.6. Flat out 39.0 s against 39.1. If the owner wants the brake to be required by run 2: `time: 36.5` (tidy 31.9 and the 85 percent timid 36.5 would sit at the line, so check `tests/raceBots.js` timid first) or `easeTime` 1.0. I would leave it: run 2 is a lesson already, and the card names the straw.
+
+**N4. After a miss on the Salt the duel disappears.** `rivals.js` `gateAhead`, `race.js` `easeFirst` 0.12: at tries 0 tidy is P2, 0.4 s behind Cassian; at try 1 Cassian's slowed car fails the bell with his spare and waits (gate at 29.5 s against 25.7 s), and tidy wins by 11.8 s (try 2: 13.2). A good run that missed once gets a runaway. Fix: `crossingSpare` applies to `c.style === 'clean'` only when Jo is within 12 m of the gate (the queue case), or give Cassian `ease` 0 on `salt` so he alone keeps his pace.
+
+**N5. Lines on Salt and Coppa are still a 0.5 to 1.5 s question; Coppa all-in beats the best line.** `tracks.js` coppa bends. Make `BEST_LINE.coppa` in `tests/raceBots.js` actually the best (it is 0.2 s worse than all-in) and give the outside one Coppa bend a real payoff (`lineSpeed` 3). Not a blocker: the finale's tension is the wheel and the stop, which are real.
+
+### What I would do
+
+Apply N1 and N2 (two lines, five minutes), then call it converged. N3 to N5 are tuning for the owner's hand play.

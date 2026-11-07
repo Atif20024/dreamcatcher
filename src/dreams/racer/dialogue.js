@@ -7,7 +7,7 @@
 // (Only the Roche boy blocks, on the road: nothing here says otherwise. The life between
 // the races is told here, in the order a player walks it: the seat, the Heron, the loss,
 // the tin, the paper, the sheet, the letter, whose car, the chalk, the wall, the Coppa.)
-import { PRICES, softPrice, PAPERS, TIN, clausePay } from './season.js';
+import { PRICES, softPrice, PAPERS, TIN } from './season.js';
 import { TRACKS } from './race/tracks.js';
 import { spoken } from './race/result.js';
 import { numberWord, cap, ORDINAL } from './race/words.js';
@@ -16,7 +16,6 @@ import { numberWord, cap, ORDINAL } from './race/words.js';
 const ALDO_TIME = spoken(TRACKS.pinewood.gate.time).toLowerCase();
 const SHEET = TRACKS.salt.gate.place; // (the Salt Road's sheet: top three)
 const THIRD_PAYS = numberWord(TRACKS.salt.prize[SHEET]);
-const HOLD_PAY = numberWord(clausePay('sable_orders'));
 
 export const CAST = {
   jo: { name: 'JO', portrait: 'portrait-jo', voicePitch: 1 },
@@ -205,7 +204,7 @@ export const CONVERSATIONS = {
     dine: { if: 'sable_dinners', who: 'sable', text: 'Thursday, at eight, a clean shirt. We shall want you sitting next to someone.', end: true },
   }),
   sable_after: conv('sable_after', ['sable'], {
-    start: { if: 'broke_orders', who: 'sable', text: `Mr Mir tells me the slate was hard to read. We shall have it repainted. At your expense: the ${HOLD_PAY} we paid you to hold, and a fifth of what you won.`, end: true, else: 'b' },
+    start: { if: 'broke_orders', who: 'sable', text: `Mr Mir tells me the slate was hard to read. We shall have it repainted. At your expense: what we paid you to hold, and a fifth of what you won.`, end: true, else: 'b' },
     b: { who: 'sable', text: 'We have your name, and you have our money. Good afternoon.', end: true },
   }, { replayable: true }),
   // Teo Brasca, on the quay, on Jo's way up to Sable's

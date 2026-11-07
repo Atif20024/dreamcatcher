@@ -195,7 +195,9 @@ describe('what a time gate pays and says', () => {
   it('the timekeeper says it; a miss never reads as the time on the sheet', () => {
     expect(spoken(33.8)).toBe('Thirty-three eight');
     expect(spoken(35.1)).toBe('Thirty-five one');
-    expect(spoken(30.04)).toBe('Thirty nought');
+    expect(spoken(30.04)).toBe('Thirty point nought');
+    expect(spoken(40.7)).toBe('Forty point seven');
+    expect(spoken(60.2)).toBe('Sixty point two');
     expect(shownTime(T.gate.time + 0.04, T.gate, false)).toBeCloseTo(T.gate.time + 0.1);
     expect(shownTime(T.gate.time - 0.1, T.gate, true)).toBe(T.gate.time - 0.1);
     expect(shownTime(T.gate.time + 1, T.gate, false)).toBe(T.gate.time + 1);

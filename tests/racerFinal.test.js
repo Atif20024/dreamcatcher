@@ -45,7 +45,7 @@ describe('the numbers in the lines', () => {
     new RegExp(`Pinewood in ${spoken(P.gate.time).toLowerCase()}`),
     new RegExp(`costs\\. ${numberWord(PRICES.medicine)}\\.`, 'i'),
     new RegExp(`dresser\\. ${numberWord(TIN)}\\.`, 'i'),
-    new RegExp(`the ${numberWord(clausePay('sable_orders'))} we paid you to hold`),
+    /what we paid you to hold/,
     new RegExp(`pays ${numberWord(S.prize[S.gate.place])}\\.`),
     new RegExp(`Top ${numberWord(S.gate.place)} go on the sheet`),
     new RegExp(`^${numberWord(PAPERS.length)} papers`, 'i'),
