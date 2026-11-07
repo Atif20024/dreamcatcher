@@ -231,6 +231,7 @@ const failMessage = {
       nearLine(r, false);
       await until(dc, () => r.pauseMenu.isOpen, 900);
       rows.tries.push(getRun('racer').flags[f('tries')]);
+      rows.gates = [...(rows.gates || []), r.track.gate.time]; // (the sheet this run was driven against: a failed try eases it, silently)
       rows.state = r.pauseMenu.state();
       rows.lines = r.pauseMenu.lines;
       rows.modal = r.modals.state();
@@ -243,7 +244,7 @@ const failMessage = {
     rows.aidNow = r.aid;
     rows.chalk = r.view.chalk.length;
     rows.paid = getSave().wallet.total - wallet0;
-    return { pass: rows.tries.join() === '1,2,3' && rows.state.items[0] === 'again' && rows.aidNow === true && rows.chalk === TRACKS.pinewood.bends.length && rows.paid === 0 && /kindly/.test(rows.lines.join(' ')) && rows.lines.join(' ').includes(clock(TRACKS.pinewood.gate.time)), detail: rows };
+    return { pass: rows.tries.join() === '1,2,3' && rows.state.items[0] === 'again' && rows.aidNow === true && rows.chalk === TRACKS.pinewood.bends.length && rows.paid === 0 && /kindly/.test(rows.lines.join(' ')) && rows.lines.join(' ').includes(clock(rows.gates.at(-1))) && rows.gates[0] === TRACKS.pinewood.gate.time && rows.gates[2] > rows.gates[0] && !/eas(y|ier)/i.test(rows.lines.join(' ')), detail: rows };
   },
 };
 
@@ -689,6 +690,7 @@ const again = {
     const atWall = { lampD: 840, d: b.from + 2, prevD: b.from + 2, v: 36, x: 1.2 * b.side, prevX: 1.2 * b.side, ghost: 0 };
     Object.assign(race.jo, atWall);
     race.lampRivals = [{ r: race.rivals[0], d: 1000, v: 30, x: 0.5, finished: null, state: 'run' }];
+    Object.assign(race.rivals[0], { d: 1000, prevD: 1000 }); // (at the lamp's mark: what he makes while Jo is in the dark he keeps 70 percent of, spinKeep)
     // his own Restart from the lamp is his choice: no question on top of it, lost or not
     dc.press('esc', 3);
     await dc.run(3);
@@ -724,7 +726,7 @@ const again = {
     await until(dc, () => dc.scene() && dc.scene().race && dc.scene().race !== race && dc.scene().race.t < 0, 200);
     rows.fresh = dc.scene().race.jo.d === 0 && dc.scene().race.jo.spins === 0;
     rows.tried = (getRun('racer').flags || {})[flagOf('test', 'tries')] - tries0;
-    return { pass: rows.restartQuiet && rows.state.title === 'Again?' && rows.state.items[0] === 'again' && rows.joState === 'reset' && rows.dark && rows.rivalBack < 1040 && rows.drivenOn && rows.lit && rows.noNag && rows.fresh && rows.tried === 1, detail: rows };
+    return { pass: rows.restartQuiet && rows.state.title === 'Again?' && rows.state.items[0] === 'again' && rows.joState === 'reset' && rows.dark && rows.rivalBack < 1050 && rows.drivenOn && rows.lit && rows.noNag && rows.fresh && rows.tried === 1, detail: rows };
   },
 };
 
@@ -853,8 +855,8 @@ const hudDiet = {
     rows.gripLatched = (race.jo.grip = 0.9, await dc.run(2), grip());
     rows.readability = dc.readability();
     const callOk = rows.calls.length > 0 && rows.calls.every((c) => /(LEFT|RIGHT|BRAKE)/.test(c));
-    // (the goal stays: it is what today is about; the name of the race has been read)
-    return { pass: /Aldo/.test(rows.goalAt0) && rows.levelAt0 && rows.gripHidden && !rows.level && /Aldo/.test(rows.goal) && !rows.footer && callOk && rows.calls.length < 8 && rows.gripShownWhenWorn && rows.gripLatched && !rows.readability.length, detail: rows };
+    // (the goal and the name of the race have been read: the day card said the goal on the grid, and the road has the room)
+    return { pass: /Aldo/.test(rows.goalAt0) && rows.levelAt0 && rows.gripHidden && !rows.level && !rows.goal && !rows.footer && callOk && rows.calls.length < 8 && rows.gripShownWhenWorn && rows.gripLatched && !rows.readability.length, detail: rows };
   },
 };
 
@@ -870,6 +872,7 @@ const card = {
     dc.releaseAll();
     const seat = p.pauseMenu.lines.join(' | ');
     const title = p.pauseMenu.state().title;
+    const sheet = p.track.gate.time; // (before the restart: the scene object is the same one, on another road after)
     // a place gate, with the rival on the road
     p.pauseMenu.destroy();
     const r = await toTest(dc);
@@ -884,7 +887,7 @@ const card = {
     dc.releaseAll();
     const lines = r.pauseMenu.lines.join(' | ');
     const rows = { seat, title, win: lines };
-    return { pass: /seat is yours/.test(seat) && seat.includes(`Aldo's time: ${clock(TRACKS.pinewood.gate.time)}`) && !/^P/.test(title) && /5 times/.test(lines) && /2 rubs/.test(lines) && /Out of his air once/.test(lines) && /behind you/.test(lines) && lines.includes(`Ottavia's time: ${clock(TRACKS.test.target)}`) && !/only twice/.test(lines), detail: rows };
+    return { pass: /seat is yours/.test(seat) && seat.includes(`Aldo's time: ${clock(sheet)}`) && !/^P/.test(title) && /5 times/.test(lines) && /2 rubs/.test(lines) && /Out of his air once/.test(lines) && /behind you/.test(lines) && lines.includes(`Ottavia's time: ${clock(TRACKS.test.target)}`) && !/only twice/.test(lines), detail: rows };
   },
 };
 
@@ -922,7 +925,7 @@ const harbourNight = {
   expect: 'pass',
   async run(dc) {
     const cue = TRACKS.harbour.script.gullCue;
-    const r = await warpRace(dc, 'harbour', { d: cue - 80, v: 30 });
+    const r = await warpRace(dc, 'harbour', { d: cue - 160, v: 30 }); // (the bar fills, then airHold in it: holding, not passing through)
     const race = r.race;
     const s = race.script;
     const aldo = race.rivals.find((c) => c.id === 'aldo');
@@ -987,7 +990,7 @@ const saltDay = {
     rows.sting = r.engine.state().sting;
     // … twice: lit, dark, lit, dark
     const seq = [];
-    for (let i = 0; i < 26; i++) {
+    for (let i = 0; i < 40; i++) {
       seq.push(shownLike(r, /^tail-lit/).length > 0 && !c.braking ? 1 : 0);
       await dc.run(1);
     }
@@ -998,6 +1001,7 @@ const saltDay = {
     const xing = TRACKS.salt.things.find((q) => q.kind === 'crossing');
     r = await warpRace(dc, 'salt', { d: xing.d - xing.bell - 40, v: 14 });
     const o = r.race.crossings[0];
+    r.keepGoing = true; // (sat at the gate with the field gone up the road: she would ask "Again?", and the menu stops the clock)
     dc.hold('up');
     await until(dc, () => o.state === 'bell', 300);
     dc.releaseAll();
@@ -1006,17 +1010,17 @@ const saltDay = {
     rows.bellLine = r.hudView.radioTx.rawText;
     const posts = new Set();
     const arms = new Set();
-    for (let i = 0; i < 200 && o.state === 'bell'; i++) {
+    for (let i = 0; i < 500 && o.state === 'bell'; i++) {
       await dc.run(1);
       shownLike(r, /^cross[AB]/).forEach((n) => posts.add(n[5]));
       shownLike(r, /^gate/).forEach((n) => arms.add(n[4]));
     }
     rows.posts = [...posts].sort().join('');
     rows.arms = [...arms].sort().join('');
-    await dc.run(60);
+    await dc.run(30);
     rows.train = shownLike(r, /^train/).length;
     const tx0 = r.view.crossT.x;
-    await dc.run(30);
+    await dc.run(20);
     rows.trainMoves = r.view.crossT.x - tx0;
     await until(dc, () => o.state === 'open', 300);
     await dc.run(2);
@@ -1051,7 +1055,7 @@ const coppaDay = {
     // the lamp: dark from the start, the only one; lit on the way past
     const K = TRACKS.coppa;
     const lapLamp = K.lapLen + K.script.lamp;
-    let r = await warpRace(dc, 'coppa', { d: K.script.lamp - 55, v: 28, x: 0, flags });
+    let r = await warpRace(dc, 'coppa', { d: K.script.lamp - 120, v: 28, x: 0, flags }); // (it lights 70 m ahead of him: dark from further back)
     await dc.run(1);
     rows.objective = hud.s.objective;
     rows.gull = shownLike(r, /^gull/)[0];
@@ -1129,7 +1133,7 @@ const coppaDay = {
     const ok = /win the Coppa/.test(rows.objective) && /^gullDark/.test(rows.gull) && rows.others === 0 && rows.lit === 'lit' && rows.poolOn >= 3 && rows.marks > 0
       && /PAINT/.test(rows.call) && rows.crew === 2 && rows.go === 'GO'
       && rows.sting === 'crack' && /BRAKE TO STOP/.test(rows.wheelCall) && /his wheel/.test(rows.wheelLine) && rows.wheelActor && rows.engineGone
-      && rows.joOut && rows.people.length >= 3 && /I'm up/.test(rows.stopLine) && /Six seconds/.test(rows.driveLine) && rows.note > 0 && rows.voiceAlone === 1 && rows.saved.a === true && /dead on/.test(rows.deadOn) && /dead on/.test(rows.card)
+      && rows.joOut && rows.people.length >= 3 && /You stopped/.test(rows.stopLine) && /Six seconds/.test(rows.driveLine) && rows.note > 0 && rows.voiceAlone === 1 && rows.saved.a === true && /dead on/.test(rows.deadOn) && /dead on/.test(rows.card)
       && rows.passed === true && /Drive/.test(rows.passLine);
     return { pass: ok, detail: rows };
   },

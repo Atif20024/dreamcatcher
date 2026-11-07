@@ -89,8 +89,8 @@ export const TRACKS = {
       { straight: 180 },
       { bend: 'L', len: 70, safe: 23, outside: 'straw', name: 'second sweeper', lineLen: 0.22, lineSpeed: 1.5 },
       { straight: 10 },
-      { straight: 80, hill: 6 }, // the climb: its top is at 520 m
-      { straight: 30, hill: -2 }, // over the top, and the road drops out of sight
+      { straight: 80, hill: 9 }, // the climb: its top is at 520 m, high enough that the right-hander is not there until it is
+      { straight: 30, hill: -3 }, // over the top, and the road drops out of sight
       { bend: 'R', len: 70, safe: 19, outside: 'straw', name: 'blind right', lineLen: 0.3, lineSpeed: 2 },
       { straight: 180 },
     ],
@@ -133,6 +133,7 @@ export const TRACKS = {
     ],
     cues: [
       { d: 80, id: 'stay_in_my_air' },
+      { d: 190, id: 'tide' }, // (between his first word and Ottavia's, on the quay: nothing to brake for here)
       { d: 300, id: 'out_and_she_sings' },
       { d: 490, id: 'brasca' },
       { d: 1040, id: 'gull' },
@@ -237,7 +238,6 @@ export const TRACKS = {
       { d: 968, kind: 'pitboard' },
     ],
     cues: [
-      { d: 20, id: 'two_laps' },
       { d: 850, id: 'the_box' },
       { d: 300, lap: 2, id: 'second_lap' },
     ],

@@ -26,6 +26,7 @@ import { stopAt, slew, holdOn, slowTo, SPEED_K } from '../../../engines/rivals.j
 import { carTune } from './car.js';
 
 const STOP_V = 0.5; // m/s: a car this slow has stopped
+const LAMP_SEEN = 70; // m: the Gull lamp lights this far ahead of Jo
 
 // Jo stood still by the story: the brake is on, and nobody drives into a car in a box
 const stood = (jo) => {
@@ -153,7 +154,8 @@ function coppa(F) {
     const t = race.tune;
     const jo = race.jo;
     const { box, lamp, gull, stalls } = race.track.script;
-    if (s.lamp === 'dark' && jo.d >= lamp) {
+    // (it lights as he comes up the hill to it, so the light is ahead of him and he sees it come up, not at his elbow)
+    if (s.lamp === 'dark' && jo.d >= lamp - LAMP_SEEN) {
       s.lamp = 'lit';
       race.emit('gull_lamp', { state: 'lit' });
     }
@@ -242,6 +244,10 @@ function coppa(F) {
 }
 
 const SCRIPTS = { harbour, salt, coppa };
+
+// A race given up counts as a try (and buys the help below) only once it was a real attempt: past half its road.
+// A finish short of the gate is always one (result.js applyResult); a restart in the first half never is
+export const triedIt = (race) => !race.result && race.jo.d >= race.track.length / 2;
 
 // The help a failed try buys, never announced: the rivals a little off their pace, or a little more time on the sheet.
 // Same track object at tries 0; r.track carries the eased gate, so whoever reads the number agrees with the check.

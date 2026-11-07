@@ -153,6 +153,12 @@ export function paintBody(ctx, L, yaw = 0, lit = false, { look = 0, empty = fals
   rect(ctx, lite, mid(55) - 29, 55, 58, 1);
   rect(ctx, L.trim, mid(59) - 34, 59, 68, 2);
   if (L.goldBand) rect(ctx, L.trim, mid(62) - 33, 62, 66, 2);
+  if (sable) {
+    // the oil company's yellow, as a band across her tail: small, and nowhere near the driver
+    rect(ctx, OUTLINE, mid(58) - 35, 57, 70, 6);
+    rect(ctx, 0xe0b040, mid(58) - 34, 58, 68, 4);
+    rect(ctx, 0xf6d98a, mid(58) - 34, 58, 68, 1);
+  }
   // the screen ahead of him, the dark of the cockpit round him, the hump behind his head
   const c = mid(30);
   rect(ctx, 0xbcd8e0, c - 12, 20, 24, 2);
@@ -164,12 +170,6 @@ export function paintBody(ctx, L, yaw = 0, lit = false, { look = 0, empty = fals
   rect(ctx, lite, hr - 6, 38, 3, 17);
   rect(ctx, dark, hr + 3, 38, 3, 17);
   rect(ctx, L.trim, hr - 2, 42, 4, 13);
-  if (sable) {
-    // her name on the deck, in the oil company's yellow
-    rect(ctx, OUTLINE, mid(48) - 29, 45, 58, 11);
-    rect(ctx, 0xe0b040, mid(48) - 28, 46, 56, 9);
-    stamp(ctx, 'SABLE OIL', Math.round(mid(48)) - Math.round(stampW('SABLE OIL') / 2), 47, 0x1a1420);
-  }
   if (empty) {
     tailPanel(ctx, L, mid, lit);
     return;
@@ -179,7 +179,7 @@ export function paintBody(ctx, L, yaw = 0, lit = false, { look = 0, empty = fals
   oval(ctx, L.shoulders, c, 31, 13, 7);
   rect(ctx, shade(L.shoulders, 0.72), c + 6, 28, 6, 8);
   rect(ctx, mix(L.shoulders, 0xffffff, 0.22), c - 10, 26, 6, 3);
-  const hy = c + yaw + look * 4;
+  const hy = c + yaw + look * 6;
   const helmet = L.helmet ?? JO_HELMET;
   oval(ctx, OUTLINE, hy, 16, 9, 9);
   oval(ctx, helmet, hy, 16, 8, 8);
@@ -187,11 +187,12 @@ export function paintBody(ctx, L, yaw = 0, lit = false, { look = 0, empty = fals
   rect(ctx, shade(helmet, 0.7), hy + 3, 15, 4, 6);
   rect(ctx, 0xe8dcc0, hy - 8, 17, 16, 2); // the strap
   if (look) {
-    // the face comes round: the one pale thing on a dark car, big enough to read from two lengths back
-    oval(ctx, OUTLINE, hy + look * 7, 16, 6, 8);
-    oval(ctx, SKIN, hy + look * 7, 16, 5, 7);
-    rect(ctx, 0x14101a, hy + look * 7 - 4, 13, 8, 3);
-    rect(ctx, 0xbcd8e0, hy + look * 7 - 3 + look, 13, 3, 2);
+    // the face comes right round: the one pale thing on a dark car, big enough to read from four lengths back
+    const fx = hy + look * 9;
+    oval(ctx, OUTLINE, fx, 15, 8, 10);
+    oval(ctx, SKIN, fx, 15, 7, 9);
+    rect(ctx, 0x14101a, fx - 6, 11, 12, 4);
+    rect(ctx, 0xbcd8e0, fx - 4 + look * 2, 12, 4, 2);
   }
   tailPanel(ctx, L, mid, lit);
 }

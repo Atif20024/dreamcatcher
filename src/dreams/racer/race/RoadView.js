@@ -14,6 +14,7 @@ import { CAR_LEN, TUNE, STEP, chalkAt } from '../../../engines/race.js';
 import { paintSky, forgetPainted } from '../../../art/backdrops/painted.js';
 import { mix, hex } from '../../../art/paint.js';
 import { carItems, CAR_M, rearOf, LAMP_Y } from './carArt.js';
+import { tellFlash } from '../../../engines/rivals.js';
 import { propItems, PROPS, EMISSIVE, REFLECTIVE, paintSlate } from './roadsideArt.js';
 import { LIGHTS, STEPS, lightOf, lightK, paintBands, groundOf, spriteTint, paintLightSky, mul } from './light.js';
 
@@ -40,6 +41,12 @@ const CAR_Y = Math.round(HORIZON + ((CAM.depth * W) / 2) * (CAM.height / (CAM.ba
 const SLOW_IN = 14; // ms of work: ten frames averaging over this: the view draws less …
 const SLOW_OUT = 9; // … and under this it comes back
 const SLOW_NEAR = 20; // segments drawn in full whatever the frame costs
+// what stands by the road goes as it comes level with the car: a trunk or a sign beside the lens is a block at the screen's edge, not a thing
+const NEAR_GONE = [3.5, 5]; // m: gone by here (small things, tall things), by when they are at the screen's edge …
+const NEAR_FULL = [6, 8]; // … whole from here (quickly: a half-there trunk is a ghost, not a tree)
+const NEAR_FADES = /^(pine|cypress|pole|chevron|board|lamp|quayLamp|tamarisk|windpump|gull)/; // (thin things: a house or a stand beside you is still a house)
+const OIL_SHEEN = [24, 170]; // m: from here out, a spill too thin to paint is a glint on the road, so it can be read at 100 m
+const GULL_BLOOM = 1.6; // s: the Gull lamp's light coming up
 
 const keyOf = (theme, part) => `race:${theme.id}:${part}`;
 const hash = (i, salt = 0) => {
@@ -517,6 +524,7 @@ export class RoadView {
 
   // Teo's sump, on the road: dark, with the sky's shine on it so it can be seen coming
   addOil(o) {
+    (this.oils ??= []).push(o);
     // (slices of a spill, narrow at its ends and never straight-edged: a patch of tar is what the road already has)
     const n = Math.ceil(o.len);
     for (let i = 0; i < n; i++) {
@@ -554,6 +562,7 @@ export class RoadView {
       }
       case 'gull_lamp':
         this.setPool(e.state === 'lit');
+        if (e.state === 'lit') this.bloomT = 0;
         break;
       case 'wheel': {
         const c = rival(e.id);
@@ -763,7 +772,9 @@ export class RoadView {
     }
     this.lastStrips = strips;
     this.drawRoad(strips);
+    this.drawOil(strips);
     this.drawThings(strips, camD);
+    this.drawBloom(dt);
     this.drawLand(dt, speedK, moving);
     this.drawCar(dt, speedK, jd, moving);
     this.drawDust(dt, c, moving);
@@ -781,17 +792,17 @@ export class RoadView {
     const vx = r ? r.scrX : W / 2;
     const vy = r ? r.scrY : HORIZON + 30;
     const hot = c.slingT > 0;
-    for (let i = 0; i < (hot ? 20 : 10); i++) {
+    // (a few short dashes on rays out of his tail, square pixels, faint: air going by, not scratches on the glass)
+    for (let i = 0; i < (hot ? 12 : 6); i++) {
       const ang = i * 2.399963;
       const ph = (this.airT + i * 0.283) % 1;
-      const reach = 40 + ph * ph * 520;
-      const len = (hot ? 40 : 18) + ph * (hot ? 150 : 70);
+      const reach = 30 + ph * ph * 300;
       const cx = Math.cos(ang);
-      const cy = Math.sin(ang) * 0.62;
-      const x0 = vx + cx * reach;
-      const y0 = vy + cy * reach;
-      g.lineStyle(ph > 0.6 ? 2 : 1, hot ? 0x88e8ff : 0xe8f4ff, this.airK * (0.15 + ph * 0.5));
-      g.lineBetween(x0, y0, x0 + cx * len, y0 + cy * len);
+      const cy = Math.sin(ang) * 0.5;
+      const dots = hot ? 4 : 3;
+      const gap = 6 + ph * (hot ? 18 : 10);
+      g.fillStyle(hot ? 0x88e8ff : 0xe8f4ff, this.airK * (hot ? 0.45 : 0.3) * Math.sin(ph * Math.PI));
+      for (let k = 0; k < dots; k++) g.fillRect(Math.round(vx + cx * (reach + k * gap)), Math.round(vy + cy * (reach + k * gap)), 2, 2);
     }
   }
 
@@ -993,6 +1004,9 @@ export class RoadView {
 
   // one image of the pool on a strip: scaled, cut off at the crest, sunk in the haze
   place(n, t, s) {
+    const tall = t.m > 4 ? 1 : 0;
+    const nearK = t.ob || !NEAR_FADES.test(t.frame) ? 1 : Math.min(1, (s.z - NEAR_GONE[tall]) / (NEAR_FULL[tall] - NEAR_GONE[tall]));
+    if (nearK <= 0) return 0;
     const hPx = t.m * s.scale;
     const x = s.x + t.x * s.halfW;
     const near = this.frames[`${this.frameOf(t)}@0`];
@@ -1011,6 +1025,8 @@ export class RoadView {
     const tint = glow || !this.L.dark ? 0xffffff : spriteTint(this.L, s.z, row, REFLECTIVE.has(f) ? 0.7 : 0, spread);
     if (t.slate && s.z < NEAR_SLATE) this.show(this.pool[n], '__BASE', x, y, hPx, shown, s.z, false, tint, this.slateKey, true);
     else this.show(this.pool[n], name, x, y, hPx, shown, s.z, t.flip, tint, this.atlasKey, glow || row >= 3);
+    if (nearK < 1) this.pool[n].setAlpha(this.pool[n].alpha * nearK);
+    if (f === 'gullLit') this.gullAt = { x, y: y - hPx * 0.8, h: hPx, seen: this.clockT };
     // a house's lit windows, over a wall the dark has taken
     if (this.L.dark > 0.15 && f.startsWith('shed') && shown >= hPx) {
       this.show(this.pool[n + 1], name.replace('@', 'w@'), x, y, hPx, hPx, 1, false);
@@ -1104,12 +1120,12 @@ export class RoadView {
     c.scrX = x;
     c.scrY = y - hPx * (1 - LAMP_Y);
     // the lamps: on at night until the story puts them out; bright on the brake; twice, plainly, in the tell
-    const flash = looking && tellFor < TUNE.blockTell && (tellFor < 0.12 || (tellFor > 0.22 && tellFor < 0.34));
+    const flash = looking && tellFlash(tellFor, TUNE.blockTell);
     const lit = (c.braking && c.v > 0.5) || flash;
     const on = this.L.dark > 0.2 && !this.tailOff.has(c);
     if (this.tailOff.has(c) || (!lit && !on) || shown < hPx) return 1;
     // (held in view by a minimum size: two sparks down the road are how you know where he is at night)
-    const grow = Math.max(flash ? 1.5 : 1, Math.min(4, 24 / Math.max(1, hPx)));
+    const grow = Math.max(flash ? 2.2 : 1, Math.min(4, (flash ? 40 : 24) / Math.max(1, hPx)));
     const tailH = hPx * grow;
     const frame = `tail-${lit ? 'lit' : 'on'}@${big && grow < 1.4 ? 0 : 1}`;
     this.show(this.pool[n + 1], frame, x, y + hPx * (1 - LAMP_Y) * (grow - 1), tailH, tailH, 1, false);
@@ -1190,9 +1206,10 @@ export class RoadView {
     for (const p of this.dust) {
       if (!p.visible) continue;
       p.life -= dt;
-      p.x += p.vx * (dt / 1000);
-      p.y += p.vy * (dt / 1000);
-      p.setAlpha(Math.max(0, p.life / 520) * 0.8).setScale(p.scaleX + dt * 0.006);
+      // (whole-pixel steps, in size and in alpha: a puff is as hard-edged as the car it came off)
+      const age = 520 - p.life;
+      p.setAlpha(p.life > 340 ? 1 : p.life > 160 ? 0.66 : 0.33).setScale(p.size + Math.floor(age / 170));
+      p.setPosition(Math.round(p.x0 + (p.vx * age) / 1000), Math.round(p.y0 + (p.vy * age) / 1000));
       if (p.life <= 0) p.setVisible(false);
     }
   }
@@ -1203,7 +1220,10 @@ export class RoadView {
     p.life = 520;
     p.vx = off * 0.9 + (Math.random() - 0.5) * 40;
     p.vy = 30 + Math.random() * 30;
-    p.setVisible(true).setTint(mul(tint, this.joTint)).setScale(1.2 * size).setAlpha(0.8).setPosition(W / 2 + this.carX + off, CAR_Y - 6);
+    p.size = size > 1.2 ? 2 : 1;
+    p.x0 = Math.round(W / 2 + this.carX + off);
+    p.y0 = CAR_Y - 6;
+    p.setVisible(true).setTint(mul(tint, this.joTint)).setScale(p.size).setAlpha(1).setPosition(p.x0, p.y0);
   }
 
   burst(n, tint) {
@@ -1213,6 +1233,48 @@ export class RoadView {
   sparkAt(side = 1) {
     this.sparkLife = 120;
     this.spark.setVisible(true).setPosition(W / 2 + this.carX + side * 70, CAR_Y - 50).setScale(2);
+  }
+
+  // a spill too far off to paint in slices: a band of oil's colours, two pixels deep at least, on the strip it lies on
+  drawOil(strips) {
+    if (!this.oils?.length) return;
+    const g = this.g;
+    const P = this.pitch;
+    for (const o of this.oils) {
+      const s = strips.find((q) => q.seg.d <= o.d + o.len / 2 && q.seg.d + SEG_LEN > o.d + o.len / 2);
+      if (!s || !s.visible || s.z < OIL_SHEEN[0] || s.z > OIL_SHEEN[1]) continue;
+      const y = Math.round(s.y + P);
+      if (y > s.clip + P) continue;
+      // (wider than the spill itself, as a sheen is: the sky in it carries further than the oil does)
+      const half = Math.max(6, Math.round(o.wide * 0.9 * s.halfW));
+      const x = Math.round(s.x + o.x * s.halfW);
+      const T = this.L.dark ? spriteTint(this.L, s.z, this.shadeSeg[s.seg.i] ?? 0, 0.8) : 0xffffff;
+      g.fillStyle(mul(0x1a1622, T)).fillRect(x - half, y - 1, half * 2, 3);
+      // the shine on top of it, two rows of the sky's colours broken up: it glints, where tar would not
+      const SHEEN = [0xc8a8f0, 0x9af0f8, 0xffffff, 0x9af0f8, 0xf0c8f0];
+      for (let k = -half, i = 0; k < half; k += 2, i++) g.fillStyle(mul(SHEEN[i % 5], T)).fillRect(x + k, y - 2 - ((i >> 1) % 2), 2, 2);
+    }
+  }
+
+  // the Gull lamp's light, lit for the first time in the Coppa: it comes up and stays, the one light that matters
+  drawBloom(dt) {
+    const gl = (this.bloom ??= this.scene.add.graphics().setDepth(11).setBlendMode('ADD'));
+    gl.clear();
+    if (this.bloomT !== undefined) this.bloomT += dt / 1000;
+    const a = this.gullAt;
+    if (!a || a.seen !== this.clockT || this.race.script?.lamp !== 'lit') return;
+    const up = this.bloomT === undefined ? 1 : Math.min(1, this.bloomT / 0.25);
+    const burst = this.bloomT === undefined ? 0 : Math.max(0, 1 - this.bloomT / GULL_BLOOM);
+    const r0 = Math.max(10, a.h * 0.32) * (1 + burst * 1.6);
+    // rings in whole rows, two pixels at a time: a glow as hard-edged as the picture
+    for (const [k, al] of [[1, 0.1], [0.66, 0.16], [0.36, 0.3]]) {
+      const r = r0 * k;
+      gl.fillStyle(0xffd88a, al * up * (1 + burst * 1.4));
+      for (let y = -r; y <= r; y += 2) {
+        const w = Math.round(Math.sqrt(r * r - y * y));
+        gl.fillRect(Math.round(a.x - w), Math.round(a.y + y), w * 2, 2);
+      }
+    }
   }
 
   lightLamp(d) {

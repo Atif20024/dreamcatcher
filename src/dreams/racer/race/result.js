@@ -82,7 +82,7 @@ export function costliest({ resets = 0, offroads = 0, rubs = 0, launched = true,
   const [cost, line] = [
     [resets * COST.lamp, 'Going back to the lamp cost you the most.'],
     [offroads * COST.straw, 'The straw cost you the most.'],
-    [rubs * COST.rub, 'Rubbing the Corsa cost you the most.'],
+    [rubs * COST.rub, 'Trading paint cost you the most.'],
     [launched ? 0 : COST.launch, `Missing the green cost you the most: it is worth ${COST.launch} s.`],
     [slowest ? slowest.under * COST.underPerMs : 0, slowest && `Slowest into the ${slowest.name}: ${Math.round(slowest.under * 3.6)} km/h under. That cost you the most.`],
   ].reduce((w, c) => (c[0] > w[0] ? c : w));

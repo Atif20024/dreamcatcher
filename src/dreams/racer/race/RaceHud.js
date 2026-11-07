@@ -22,11 +22,11 @@ const HUD_FADE_AT = 5; // s of racing: the plates that never change have been re
 const BAR = { x: SPEEDO.x + 86, y: SPEEDO.y + 21, w: SPEEDO.w - 94 };
 const SPEED_SCALE = (TUNE.vMax * 1.18) / BAR.w; // m/s per px of the bar
 const CALL_Y = 68;
-const RADIO_Y = 96;
+const RADIO = { x: 16, y: 84, wrap: 330 }; // Ottavia, up on the left over the sky: the middle above the horizon is the road's
 const LIGHTS_Y = 146;
 const SPLIT_MS = 3200;
 
-// what this race asks for, in a few words (the grid's goal line). It stays up: it is what today is about
+// what this race asks for, in a few words (the grid's goal line). Up for the first seconds, then the road has the room
 export function goalLine(gate, F = {}) {
   if (gate?.time !== undefined) return `under Aldo's time: ${clock(gate.time)}`;
   if (gate?.scripted) return "stay in Aldo's air";
@@ -87,7 +87,7 @@ export class RaceHud {
 
     // the call: the next bend, and how fast it goes
     this.callTx = uiText(s, 480, CALL_Y, '', { size: 'small', color: 'accent', screen: true, align: 'center', bg: PLATE.dark }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(DEPTH);
-    this.radioTx = uiText(s, 480, RADIO_Y, '', { size: 'small', color: 'ink', screen: true, align: 'center', bg: PLATE.dark, wrap: 720 }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(DEPTH).setVisible(false);
+    this.radioTx = uiText(s, RADIO.x, RADIO.y, '', { size: 'small', color: 'ink', screen: true, align: 'left', bg: PLATE.dark, wrap: RADIO.wrap }).setOrigin(0, 0).setScrollFactor(0).setDepth(DEPTH).setVisible(false);
     // how Jo stands against the sheet, as he passes a lamp
     this.splitTx = uiText(s, 712, 12, '', { size: 'small', color: 'accent', screen: true, align: 'right', bg: PLATE.dark }).setOrigin(1, 0).setScrollFactor(0).setDepth(DEPTH).setVisible(false);
     this.splitUntil = 0;
@@ -156,8 +156,18 @@ export class RaceHud {
     // (she left the bench still beating: the needle will not sit still)
     const flicker = race.tune.untuned && v > 2 ? Math.sin(t * Math.PI * 4) * 3 : 0;
     this.bar.scaleX = Math.max(1, Math.min(BAR.w, v / SPEED_SCALE + flicker));
-    this.bar.setFillStyle(c.slingT > 0 ? 0x88e8ff : THEME['brass-light']);
-    this.setText('sling', this.slingTx, this.scene.time.now < this.flashUntil ? this.flashText : c.slingT > 0 ? 'OUT!' : c.armed && c.slingCool <= 0 ? 'FULL' : '');
+    // (the sling's pull is blue, a sung bend's is gold: either way the bar says she is pulling harder)
+    this.bar.setFillStyle(c.slingT > 0 ? 0x88e8ff : c.singT > 0 ? 0xffe070 : THEME['brass-light']);
+    // race 2 asks one thing: whether he is in Aldo's air. The dash and the bar say it the moment he is not
+    const air = race.script?.air;
+    const story = ['wide', 'dark', 'over'].includes(race.script?.state); // (his lights going out is not a moment for the dash to say FULL)
+    const word = story ? '' : this.scene.time.now < this.flashUntil ? this.flashText : c.slingT > 0 ? 'OUT!' : air === false ? 'NO AIR' : c.armed && c.slingCool <= 0 ? 'FULL' : '';
+    if (this._last.sling !== word) this.slingTx.setColor(word === 'NO AIR' ? 'danger' : 'accent');
+    this.setText('sling', this.slingTx, word);
+    if (this.draft && air !== undefined && this._last.air !== air) {
+      this._last.air = air;
+      this.draft.setColor(air === false ? '#d5443c' : '#88b8d8');
+    }
     // the grip meter earns its place: on a race where it matters, or when the tyres are going
     const band = gripBand(c.grip);
     if (!this.gripShown && band !== 'green') {
@@ -187,17 +197,21 @@ export class RaceHud {
     const inBend = b && c.d >= b.from;
     const dist = b ? b.from - c.d : Infinity;
     const told = this.storyCall(race);
-    const call = (dist < 260 || inBend) && !race.result && !told && !['wide', 'dark', 'over'].includes(race.script?.state);
+    const call = (dist < 260 || inBend) && !race.result && !told && !['wide', 'dark', 'over'].includes(race.script?.state) && race.script?.wheel !== 'helping'; // (stood by his car: no bend to call)
     this.notch.setVisible(!!call);
     if (call) {
       // the speed of the line Jo is on, to the nearest 5 km/h and easing with it: it must not flicker
       const gf = gripFactor(c.grip);
       const safe = bendSafe(b, c.x, gf);
       this.notch.x = BAR.x + Math.min(BAR.w - 3, safe / SPEED_SCALE);
-      const safeK = Math.round((safe * KMH) / 5) * 5;
+      // (and it holds its number until the line has really moved: a hair either side of a 5 km/h step must not flick it back and forth)
+      const raw = safe * KMH;
+      if (this.callBend !== b || Math.abs(raw - this.safeK) > 4) this.safeK = Math.round(raw / 5) * 5;
+      this.callBend = b;
+      const safeK = this.safeK;
       const side = turnSide(b);
       // (the distance moves in the boards' own 50 m steps: a tenth of a second is no time to read a number)
-      const tight = inBend ? `${side}: HOLD ${safeK} KM/H` : `${side} ${Math.ceil(dist / 50) * 50} M: ${safeK} KM/H`;
+      const tight = inBend ? `${side}: HOLD ${safeK} KM/H` : `${side} ${Math.max(50, Math.round(dist / 50) * 50)} M: ${safeK} KM/H`;
       const whisper = this.aid || (this.teachBrake && b === (track.bends || [])[0]);
       const brake = whisper && !inBend && v > safe && c.d >= brakePoint(b, c.x, v, gf) - v * TUNE.chalkReact;
       this.setText('call', this.callTx, brake ? 'BRAKE NOW' : tight);
@@ -207,7 +221,8 @@ export class RaceHud {
       this.callTx.setVisible(true);
     } else this.callTx.setVisible(false);
 
-    // the plates that never change have been read by now: they go, and the road has the room
+    // the plates that never change have been read by now (the goal too: the day card said it on the grid, and
+  // the card says it again at the end): they go, and the road has the room
     if (t >= HUD_FADE_AT && !this.faded && !race.result) {
       this.faded = true;
       this.fadeStatics();
@@ -232,7 +247,7 @@ export class RaceHud {
 
   fadeStatics() {
     const grid = UI.scene && UI.scene.hudGrid;
-    for (const key of ['level', 'footer', 'context']) {
+    for (const key of ['level', 'footer', 'context', 'objective']) {
       const tx = grid && grid.texts[key];
       if (!tx || !hud.s[key]) continue;
       this.scene.tweens.add({ targets: tx, alpha: 0, duration: 500, onComplete: () => {

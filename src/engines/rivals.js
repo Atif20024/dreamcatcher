@@ -13,6 +13,11 @@
 import { brakeDistance, CAR_LEN, gripFactor, STEP } from './race.js';
 
 const LOOK = 1.6; // s of road ahead a driver reads for something standing in it
+// Cassian's tell, as the picture shows it: his lamps flash twice, plainly, and the second flash holds to the move
+// (blockTell), so the tell is lit for 0.4 s or more of its first half second. s: seconds since he looked up
+export const TELL_FLASHES = [[0, 0.2], [0.27, 0.5]];
+export const tellFlash = (s, tell = 0.45) => TELL_FLASHES.some(([a, b], i) => s >= a && s < (i ? Math.max(b, tell) : b));
+
 export const SPEED_K = 0.97; // of the limit: a rival leaves itself this much
 const MARGIN = 6; // m of braking road spare
 const STEER_SOFT = 0.05; // road widths: the wheel eases off this close to where it is going
