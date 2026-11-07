@@ -1,0 +1,100 @@
+// THE LAST HAND's encounters: the slate on the quay, the faro bank in the
+// saloon, the three card tables and the last table in the pilot house. The
+// engines are pure (src/engines/slate.js, faro.js, showdown.js); the
+// presenters are this dream's own (../table.js, registered in
+// src/play/encounterPresenters.js as lq_slate, lq_faro and lq_cards). The
+// purse lives in the run's flags (F.purse) and every table starts from it.
+//   t1  the Judge alone: one loud tell (he hums); Lou names the verb
+//   t2  Madame Sorrel and Nico Tarn: a subtle tell and a decoy; from here
+//       Lou only says what he sees (Jo maps it to a verb)
+//   t3  all three, and Lou's first tip there is wrong
+//   lasthand  kings and nines for both; STAND UP is the only way out
+import { slate } from '../../../engines/slate.js';
+import { faro, FARO_TARGET } from '../../../engines/faro.js';
+import { showdown } from '../../../engines/showdown.js';
+import { newPurse } from '../../../engines/purse.js';
+
+const KEYS = ['act1', 'confirm'];
+// a seed per sitting: the deal differs each time Jo sits down, the same run
+// replays the same (the harness can name one: F._seed)
+let sittings = 0;
+const seedOf = (F, base) => (F._seed ?? 0) * 101 + base + (sittings += 1) * 17;
+
+const purse = (F) => F.purse || (F.purse = newPurse());
+const faroStake = (F) => Math.min(40, purse(F).stack);
+
+export const slateEnc = {
+  id: 'slate',
+  title: 'THE SLATE',
+  engine: slate,
+  params: {},
+  view: 'lq_slate',
+  camera: { zoom: 1.35 },
+  keys: KEYS,
+  pose: 'interact',
+  // the three numbers become the night's purse (a fresh $100 of Lou's); the
+  // lines are chalked as a night at the tables (rebased at the card room door)
+  onResult(scene, r) {
+    const old = scene.F.purse || {};
+    scene.F.purse = { ...newPurse({ buyin: r.buyin, down: r.down, up: r.up }), comps: old.comps || 0, debt: old.debt || 0, compDebt: old.compDebt || 0 };
+    scene.F._t0 = scene.time.now;
+  },
+  onWin: 'slate_done',
+};
+
+export const faroEnc = {
+  id: 'faro',
+  title: 'THE FARO BANK',
+  engine: faro,
+  // forty of the stack goes to the bank (or what he has, if less); a comp may stake the first bet
+  params: (F) => ({ bank: faroStake(F), target: FARO_TARGET, seed: seedOf(F, 3), freeFirst: !!F.faro_free && !F.faro_free_used }),
+  view: 'lq_faro',
+  camera: { zoom: 1.3 },
+  keys: KEYS,
+  pose: 'sit',
+  onResult(scene, r) {
+    const p = purse(scene.F);
+    const st = r;
+    const stake = faroStake(scene.F); // the stack does not move while he sits
+    p.stack = Math.max(0, p.stack + (st.bank ?? stake) - stake);
+    p.turns += st.turns || 0;
+    p.rake += st.rake || 0;
+    if (scene.F.faro_free && (st.bets || 0) > 0) scene.F.faro_free_used = true;
+  },
+  onWin: 'faro_done',
+  onFail: (r) => (r.bust ? 'faro_bust' : null),
+};
+
+function table(id, seats, { params: more = {}, ...extra } = {}) {
+  return {
+    id,
+    title: 'SHOWDOWN',
+    engine: showdown,
+    params: (F) => {
+      const p = purse(F);
+      return { seats, stack: p.stack, tilt: p.tilt, buyin: p.buyin, debt: p.debt || 0, seed: seedOf(F, seats.length * 7 + 1), ...more };
+    },
+    view: 'lq_cards',
+    flag: `${id}_won`,
+    camera: { zoom: 1.25 },
+    keys: KEYS,
+    pose: 'sit',
+    onWin: 'table_won',
+    onFail: (r) => (r.bust ? 'bust' : null),
+    ...extra,
+  };
+}
+
+export const t1 = table('t1', ['judge']);
+export const t2 = table('t2', ['sorrel', 'nico'], { params: { lou: { wrongEvery: 4, describe: true } } });
+export const t3 = table('t3', ['judge', 'sorrel', 'nico'], { params: { lou: { wrongEvery: 4, firstWrong: true, describe: true } } });
+
+export const lasthand = {
+  ...table('lasthand', ['judge'], { params: { mode: 'final', lou: null } }),
+  title: 'THE LAST TABLE',
+  flag: null,
+  camera: { zoom: 1.3 },
+  canLeave: false, // up, or play: there is no walking off this one
+  onWin: 'stood_up',
+  onFail: (r) => (r.lostNight ? 'lost_night' : null),
+};

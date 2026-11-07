@@ -1,4 +1,5 @@
 import { buildHubMap } from './map.js';
+import { withObjectives } from '../objectives.js';
 
 // Crossroads Station — five rooms across, each two screens tall. The roof
 // (row 8) and the undercroft (rows 28-32) run through every room, so a
@@ -7,11 +8,14 @@ const FULL = buildHubMap();
 const slice = (x0, x1) => FULL.map((row) => row.slice(x0, x1 + 1));
 const L = (worldCol, x0) => worldCol - x0;
 
-// platform bays: [world col of the bay's first tile] per platform 1..8
-export const BAYS = [80, 87, 94, 101, 110, 117, 124, 131];
+// platform bays: [world col of the bay's first tile] per platform 1..9, G, 10
+// (platforms 9, G and 10 share a short shed past the luggage ramp)
+export const BAYS = [80, 87, 94, 101, 110, 117, 124, 131, 141, 148, 155];
+// a platform number or letter → its index in BAYS (10 stands past G, whose index is 9)
+export const bayIndex = (platform) => (platform === 'G' ? 9 : platform === 10 ? 10 : platform - 1);
 
 const bay = (x0, p) => {
-  const c = BAYS[p - 1];
+  const c = BAYS[bayIndex(p)];
   return [
     { type: 'platform', platform: p, x: L(c + 3, x0), y: 25, x0: L(c, x0), w: 7 },
     { type: 'board_post', platform: p, x: L(c + 1, x0), y: 24 },
@@ -21,32 +25,32 @@ const bay = (x0, p) => {
   ];
 };
 
-export default [
+const ROOMS = [
   {
     id: 'steps',
     section: 'steps',
     allowNoFoes: true,
+    horizon: 992, // the street: the facade and the pavement stand on it
     grid: slice(0, 29),
     music: { section: 'hub', bpm: 104, state: 'hub' },
-    bg: { far: 'rain_city', mid: 'station_facade', near: 'railings', landmark: 'station_sign' },
+    bg: { far: 'station_facade', mid: 'station_street', near: 'railings', landmark: 'station_sign' },
     objects: [
       { type: 'spawn', x: 3, y: 29 },
       { type: 'rain', x: 0, y: 0, w: 30 },
-      { type: 'kiosk', x: 6, y: 29 },
+      { type: 'kiosk', x: 4, y: 29 },
       { type: 'queue', x: 4, y: 29, to: 24 },
-      { type: 'npc', who: 'ro', x: 17, y: 25 },
-      { type: 'shoeshine', x: 18, y: 25 },
-      { type: 'door', x: 20, y: 25, chained: true },
+      { type: 'door', x: 19, y: 25, chained: true }, // WP3: full-size doors, 3 tiles apart
       { type: 'door', x: 22, y: 25, chained: false },
-      { type: 'door', x: 24, y: 25, chained: true },
+      { type: 'door', x: 25, y: 25, chained: true },
       { type: 'clock', x: 14, y: 3 },
-      { type: 'hall_entry', x: 26, y: 25 },
+      { type: 'hall_entry', x: 29, y: 25 }, // the front doorway (HubScene.buildThresholds)
     ],
   },
   {
     id: 'hall',
     section: 'hall',
     allowNoFoes: true,
+    horizon: 832, // the concourse floor: backdrops hang from it, not the undercroft
     grid: slice(30, 79),
     music: { section: 'hub', bpm: 104, state: 'hub' },
     bg: { far: 'hall_vault', mid: 'ticket_hall', near: 'ticket_booths', landmark: 'great_clock' },
@@ -66,6 +70,8 @@ export default [
       { type: 'cart', x: L(65, 30), y: 25 },
       { type: 'cart', x: L(68, 30), y: 25 },
       { type: 'lostfound', x: L(66, 30), y: 22 },
+      { type: 'npc', who: 'ro', x: L(74, 30), y: 25 },
+      { type: 'shoeshine', x: L(73, 30), y: 25 },
       { type: 'npc', who: 'busker', x: L(70, 30), y: 25 },
       { type: 'moment', id: 'moment1', x: L(70, 30), y: 25, kind: 'duet' },
       { type: 'npc', who: 'bilal', x: L(46, 30), y: 17 },
@@ -83,6 +89,7 @@ export default [
     id: 'platforms_a',
     section: 'platforms',
     allowNoFoes: true,
+    horizon: 832, // the concourse floor: backdrops hang from it, not the undercroft
     grid: slice(80, 109),
     music: { section: 'hub', bpm: 104, state: 'hub' },
     bg: { far: 'hall_vault', mid: 'shed_ribs', near: 'shed_lamps', landmark: 'train_shed' },
@@ -99,7 +106,8 @@ export default [
     id: 'platforms_b',
     section: 'platforms',
     allowNoFoes: true,
-    grid: slice(110, 139),
+    horizon: 832, // the concourse floor: backdrops hang from it, not the undercroft
+    grid: slice(110, 163), // platforms 5-8, then 9, G and 10 past the luggage ramp
     music: { section: 'hub', bpm: 104, state: 'hub' },
     bg: { far: 'hall_vault', mid: 'shed_ribs', near: 'shed_lamps', landmark: 'shed_clock' },
     objects: [
@@ -107,6 +115,9 @@ export default [
       ...bay(110, 6),
       ...bay(110, 7),
       ...bay(110, 8),
+      ...bay(110, 9),
+      ...bay(110, 'G'),
+      ...bay(110, 10),
       { type: 'water_tower', x: L(122, 110), y: 5 },
       { type: 'signal_box', x: L(114, 110), y: 32 },
       { type: 'lost_dreams', x: L(126, 110), y: 32 },
@@ -116,14 +127,28 @@ export default [
     id: 'gate',
     section: 'gate',
     allowNoFoes: true,
-    grid: slice(140, 149),
+    horizon: 832, // the concourse floor: backdrops hang from it, not the undercroft
+    grid: slice(164, 173),
     music: { section: 'hub', bpm: 104, state: 'hub' },
     bg: { far: 'gate_dark', mid: 'shed_ribs', near: 'railings', landmark: 'no_passengers' },
     objects: [
-      { type: 'turnstile', x: L(143, 140), y: 24 },
-      { type: 'gate', id: 'service_gate', x: L(146, 140), y: 12, h: 14, requires: ['meta.dreamsCaught>=2'] },
-      { type: 'sign', x: L(146, 140), y: 8, text: 'NO PASSENGERS' },
-      { type: 'gate_slot', x: L(146, 140), y: 30 },
+      { type: 'turnstile', x: L(167, 164), y: 24 },
+      { type: 'gate', id: 'service_gate', x: L(170, 164), y: 12, h: 14, requires: [], alwaysOpen: true },
+      { type: 'sign', x: L(170, 164), y: 8, text: 'NO PASSENGERS' },
+      { type: 'gate_slot', x: L(170, 164), y: 30 },
     ],
   },
 ];
+
+// Phase 1.4 (plan §2.7): each room's objective, each gate's sign
+const OBJECTIVES = {
+  "steps": "up the steps. the station.",
+  "hall": "board any train — or the last stop",
+  "platforms_a": "board any train — or the last stop",
+  "platforms_b": "board any train — or the last stop",
+  "gate": "the last stop"
+};
+
+const GATE_HINTS = {};
+
+export default withObjectives(ROOMS, OBJECTIVES, GATE_HINTS);

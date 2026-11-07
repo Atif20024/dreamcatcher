@@ -1,4 +1,12 @@
 import { sfx } from './audio.js';
+import { convKey } from '../play/RunState.js';
+import ModalManager from '../ui/ModalManager.js';
+import { uiText, CONVERSATION_SCALE } from '../ui/text.js';
+import { resolveArt } from '../art/baked.js';
+import { panel, drawPanel } from '../ui/Panel.js';
+import { pickRect } from '../input/touchLayout.js';
+import { rectOf } from '../input/touchTaps.js';
+import { touchState } from '../input/touchState.js';
 
 // Bottom-screen dialogue with letterbox bars, portrait, name tag and
 // typewriter text (40 cps). Advance with X/E/Space. scene.dialogActive
@@ -12,43 +20,40 @@ export default class DialogueBox {
   // entries: [{name, text, portrait, choices?: [{label, value}]}]
   // Resolves with the value of the last choice made (or null).
   show(entries) {
+    // C3: a resumed run does not replay a conversation it already heard
+    // (only plain ones: a conversation with a choice always plays)
+    const run = this.scene.run;
+    if (run && entries && entries.length) {
+      const key = convKey(entries);
+      if (!entries.some((e) => e.choices) && run.seenBeforeResume(key)) return Promise.resolve(null);
+      run.markConv(key);
+    }
     this.choiceValue = null;
     return new Promise((resolve) => {
       const s = this.scene;
       const cam = s.cameras.main;
       this.active = true;
       s.dialogActive = true;
-      s.physics.pause();
+      // one modal among the others (ModalManager): keys only while on top
+      this.handle = ModalManager.for(s).open({ kind: 'dialogue', freeze: 'physics', onKey: (e) => this.keyHandler && this.keyHandler(e), tap: (x, y) => this.tap(x, y) });
+      const add = (o) => this.handle.add(o);
 
       const depth = 200;
+      const boxH = 132;
+      const boxY = cam.height - 16 - boxH / 2;
       this.bars = [
-        s.add.rectangle(cam.width / 2, 24, cam.width, 48, 0x000000).setScrollFactor(0).setDepth(depth),
-        s.add.rectangle(cam.width / 2, cam.height - 24, cam.width, 48, 0x000000).setScrollFactor(0).setDepth(depth),
+        add(s.add.rectangle(cam.width / 2, 20, cam.width, 40, 0x000000).setScrollFactor(0).setDepth(depth)),
+        add(s.add.rectangle(cam.width / 2, cam.height - 8, cam.width, 16, 0x000000).setScrollFactor(0).setDepth(depth)),
       ];
-      this.box = s.add
-        .rectangle(cam.width / 2, cam.height - 92, cam.width - 80, 108, 0x14101c, 0.94)
-        .setScrollFactor(0)
-        .setDepth(depth)
-        .setStrokeStyle(2, 0x8a8aa8);
-      this.nameText = s.add
-        .text(78, cam.height - 138, '', { fontFamily: 'monospace', fontSize: '14px', color: '#f2d580' })
-        .setScrollFactor(0)
-        .setDepth(depth + 1);
-      this.bodyText = s.add
-        .text(150, cam.height - 118, '', {
-          fontFamily: 'monospace',
-          fontSize: '15px',
-          color: '#e8dcc8',
-          wordWrap: { width: cam.width - 250 },
-          lineSpacing: 5,
-        })
-        .setScrollFactor(0)
-        .setDepth(depth + 1);
-      this.hint = s.add
-        .text(cam.width - 60, cam.height - 52, '[X] ▸', { fontFamily: 'monospace', fontSize: '12px', color: '#8a8478' })
-        .setScrollFactor(0)
-        .setDepth(depth + 1);
-      this.portrait = s.add.image(105, cam.height - 92, '__WHITE').setScrollFactor(0).setDepth(depth + 1).setVisible(false);
+      this.box = add(panel(s, cam.width / 2, boxY, cam.width - 48, boxH, { depth }));
+      this.nameText = add(uiText(s, 152, boxY - boxH / 2 + 14, '', { size: 'small', color: 'accent' }).setScrollFactor(0).setDepth(depth + 1));
+      this.bodyText = add(
+        uiText(s, 152, boxY - boxH / 2 + 38, '', { size: 'body', scale: CONVERSATION_SCALE, color: 'ink', wrap: cam.width - 48 - 152 - 40, lineSpacing: 4 })
+          .setScrollFactor(0)
+          .setDepth(depth + 1)
+      );
+      this.hint = add(uiText(s, cam.width - 40, boxY + boxH / 2 - 12, touchState.on ? 'tap ▼' : '[E] ▼', { size: 'small', color: 'ink-dim' }).setOrigin(1, 1).setScrollFactor(0).setDepth(depth + 1));
+      this.portrait = add(s.add.image(88, boxY, '__WHITE').setScrollFactor(0).setDepth(depth + 1).setVisible(false));
 
       this.entries = entries;
       this.idx = 0;
@@ -79,8 +84,20 @@ export default class DialogueBox {
         }
         if (['KeyX', 'KeyE', 'Space'].includes(e.code)) this.advance();
       };
-      s.input.keyboard.on('keydown', this.keyHandler);
     });
+  }
+
+  // a tap (touch screens): on a choice, that choice; anywhere else, the
+  // confirm key (finish the line, the next line, close)
+  tap(x, y) {
+    if (!this.keyHandler) return;
+    if (this.choosing) {
+      const i = pickRect(this.choiceTexts.map((t) => rectOf(t, 4, 26)), x, y, 16);
+      if (i < 0) return;
+      this.choiceIdx = i;
+      this.renderChoices();
+    }
+    this.keyHandler({ code: 'KeyX' });
   }
 
   renderChoices() {
@@ -88,24 +105,65 @@ export default class DialogueBox {
     const cam = s.cameras.main;
     const entry = this.entries[this.idx];
     this.choiceTexts.forEach((t) => t.destroy());
-    this.choiceTexts = entry.choices.map((c, i) =>
-      s.add
-        .text(cam.width / 2 + (i - (entry.choices.length - 1) / 2) * 220, cam.height - 62, `${i === this.choiceIdx ? '▸ ' : '  '}${c.label}`, {
-          fontFamily: 'monospace',
-          fontSize: '14px',
-          color: i === this.choiceIdx ? '#f2d580' : '#8a8478',
+    const gap = Math.min(220, Math.floor((cam.width - 100) / Math.max(1, entry.choices.length)));
+    // choices: rows under the line, the cursor in accent (several choices
+    // side by side only when they fit)
+    const n = entry.choices.length;
+    const labels = entry.choices.map((c, i) => `${i === this.choiceIdx ? '→ ' : '  '}${c.label}`);
+    const across = this.choicesAcross(entry);
+    const top = this.bodyText.y + this.bodyText.height + 14;
+    this.choiceTexts = labels.map((l, i) =>
+      this.handle.add(
+        uiText(s, across ? cam.width / 2 + (i - (n - 1) / 2) * gap : 152, across ? this.boxTop + this.boxH - 26 : top + i * 18, l, {
+          size: 'small',
+          color: i === this.choiceIdx ? 'accent' : 'ink-dim',
         })
-        .setOrigin(0.5)
-        .setScrollFactor(0)
-        .setDepth(202)
+          .setOrigin(across ? 0.5 : 0, 0.5)
+          .setScrollFactor(0)
+          .setDepth(202)
+      )
     );
+  }
+
+  choicesAcross(entry) {
+    if (!entry.choices) return false;
+    const total = entry.choices.reduce((w, c) => w + (c.label.length + 2) * 12 + 40, 0);
+    return total < this.scene.cameras.main.width - 220;
+  }
+
+  // the box grows to the entry: its full text and its choices always fit
+  layoutFor(entry) {
+    const cam = this.scene.cameras.main;
+    this.bodyText.setText(entry.text || '');
+    const th = this.bodyText.height;
+    this.bodyText.setText('');
+    const choiceH = entry.choices ? (this.choicesAcross(entry) ? 30 : entry.choices.length * 18 + 14) : 0;
+    const boxH = Math.max(132, 38 + th + choiceH + 30);
+    const top = cam.height - 16 - boxH;
+    this.boxTop = top;
+    this.boxH = boxH;
+    this.box.clear();
+    drawPanel(this.box, 24, top, cam.width - 48, boxH);
+    this.nameText.setY(top + 14);
+    this.bodyText.setY(top + 38);
+    this.hint.setY(top + boxH - 10);
+    this.portrait.setY(Math.round(top + boxH / 2));
   }
 
   startEntry() {
     const e = this.entries[this.idx];
+    this.layoutFor(e);
     this.nameText.setText(e.name || '');
-    if (e.portrait && this.scene.textures.exists(e.portrait)) {
-      this.portrait.setTexture(e.portrait).setVisible(true);
+    // Jo speaks with his own face (an atlas portrait; `mood` picks the
+    // expression: smile, doubt, tired); everyone else by texture key
+    const isJo = !e.portrait && /^jo$/i.test(e.name || '');
+    const ref = isJo ? `portrait-jo${e.mood ? `-${e.mood}` : ''}` : e.portrait === 'portrait-jo' && e.mood ? `portrait-jo-${e.mood}` : e.portrait;
+    const art = resolveArt(this.scene, ref) || (isJo ? resolveArt(this.scene, 'portrait-jo') : null);
+    if (art) {
+      this.portrait.setTexture(art[0], art[1]).setVisible(true);
+      // big faces (the 96 px atlas portraits) are fitted to the box's left column
+      const fit = Math.min(1, 104 / Math.max(this.portrait.frame.realWidth, this.portrait.frame.realHeight));
+      this.portrait.setScale(fit).setOrigin(0.5);
     } else {
       this.portrait.setVisible(false);
     }
@@ -148,13 +206,13 @@ export default class DialogueBox {
 
   close() {
     const s = this.scene;
-    s.input.keyboard.off('keydown', this.keyHandler);
-    [...this.bars, this.box, this.nameText, this.bodyText, this.hint, this.portrait, ...this.choiceTexts].forEach((o) =>
-      o.destroy()
-    );
+    this.keyHandler = null;
+    if (this.typer) this.typer.remove();
+    const h = this.handle;
+    this.handle = null;
+    if (h) h.close();
     this.active = false;
     s.dialogActive = false;
-    if (!s.cardActive && !s.puzzleActive) s.physics.resume();
     this.resolve(this.choiceValue);
   }
 }

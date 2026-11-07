@@ -5,4 +5,6 @@ export default defineConfig({
   base: '/dreamcatcher/',
   // the preview tool hands out a free port via PORT when 5173 is taken
   server: { port: Number(process.env.PORT) || 5173, strictPort: false },
+  // agents' worktrees carry their own copy of the tests
+  test: { exclude: ['.claude/**', 'node_modules/**', 'dist/**'], hookTimeout: 180000 }, // audioMix renders every place in beforeAll
 });

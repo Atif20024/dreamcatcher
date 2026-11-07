@@ -1,4 +1,7 @@
 import { createFrames } from '../utils/pixelart.js';
+import { artAway } from '../art/baked.js';
+import { FOE_LOOKS } from '../dreams/painter/people.js';
+import { FOE_LOOKS as LQ_FOES } from '../dreams/gambler/people.js';
 
 // D4/C1.2 — every foe gets a silhouette you can name at a glance and frames
 // that move when it moves. Before this, seven of the fifteen kinds shared one
@@ -92,7 +95,10 @@ function paint(rows, held) {
 
 function person(hat, held) {
   const build = (legs) => paint([...HATS[hat], ...HEAD_TORSO, ...legs], held);
-  return [build(LEGS_STAND), build(LEGS_STRIDE), build(LEGS_PASS)];
+  const frames = [build(LEGS_STAND), build(LEGS_STRIDE), build(LEGS_PASS)];
+  // the look, for the cast rig bake (src/art/rig/cast.js)
+  frames.look = { hat, held };
+  return frames;
 }
 
 // --- the cast --------------------------------------------------------------
@@ -115,13 +121,40 @@ const P = (H, S, T, t, Pp, B, A, h) => ({
 export const PEOPLE = {
   // chef dream
   'foe-sous-chef': { art: person('toque', 'ladle'), pal: P(0xe8e4d8, 0x8a5a3b, 0xdcdcd4, 0x9a9a94, 0x2e3440, 0x1e1e28, 0xb8bcc8) },
-  'foe-dock-hand': { art: person('cap', 'crate'), pal: P(0x4a6a58, 0x9a6a48, 0x6a7a5a, 0x4a5a42, 0x3a3a44, 0x2a2118, 0x8a6844) },
   // musician dream
   'foe-bouncer': { art: person('crop', null), pal: P(0x2a2230, 0x6a4630, 0x2e2e3a, 0x20202a, 0x22222c, 0x14141a, 0xc03a2a) },
   'foe-heckler': { art: person('bandana', 'bottle'), pal: P(0x8a3a3a, 0xc09070, 0xb08858, 0x86643f, 0x44404c, 0x241f1a, 0x6a9a6a) },
   'foe-scalper': { art: person('fedora', 'tickets'), pal: P(0x3a4436, 0x8a6a4a, 0x55634d, 0x3d4838, 0x2e2e36, 0x1e1e28, 0xf2d580) },
   'foe-manager': { art: person('headset', 'clipboard'), pal: P(0x6a6a52, 0xc0a088, 0x9a9a76, 0x70705a, 0x3a3a44, 0x1e1e28, 0xe8e4d8) },
   'foe-roadie': { art: person('beanie', 'coil'), pal: P(0x1f1f26, 0x9a6a48, 0x33333d, 0x24242c, 0x2a2a32, 0x1a1a20, 0xd8a840) },
+  // the last hand: floor security in black, the Collector in a fedora, a chip
+  // runner in a red waistcoat, a lounge bouncer twice the shoulder, the Pit
+  'foe-floor-security': { art: person('cap', null), pal: P(0x14141c, 0x9a6a48, 0x1e1e2a, 0x12121a, 0x1a1a22, 0x0e0e14, 0xe9b84a) },
+  'foe-collector': { art: person('fedora', 'clipboard'), pal: P(0x2a2a30, 0xb08868, 0x4a4a56, 0x32323c, 0x2e2e38, 0x14141a, 0xd8d0c0) },
+  'foe-runner': { art: person('none', 'tickets'), pal: P(0x2a1a1a, 0xc09070, 0xa8243a, 0x6e1e2c, 0x1e1e28, 0x14141a, 0xe84a5a) },
+  'foe-lounge-bouncer': { art: person('crop', null), pal: P(0x1a1620, 0x6a4630, 0x2a1e2a, 0x1a121a, 0x1e1a22, 0x0e0e14, 0xe9b84a) },
+  'foe-pit': { art: person('none', 'clipboard'), pal: P(0x3a3a44, 0xd8b8a0, 0x3a2a3a, 0x241a26, 0x2a2230, 0x14141a, 0xe9b84a) },
+  // astronaut dream
+  'foe-gym-rat': { art: person('bandana', 'bottle'), pal: P(0xc03a2a, 0x9a6a48, 0xd8d4c8, 0xa8a49a, 0x3a3a44, 0xe8e4d8, 0x88b8d8) },
+  'foe-cleaner': { art: person('cap', 'coil'), pal: P(0x3a5a80, 0x8a5a3b, 0x4a6a8a, 0x3a5468, 0x2e3440, 0x1e1e28, 0xd8b858) },
+  'foe-security': { art: person('cap', 'clipboard'), pal: P(0x1e2a4a, 0xc09070, 0x2e3a5a, 0x222c44, 0x22222c, 0x14141a, 0xf2d580) },
+  // the writer's dream
+  'foe-landlady': { art: person('beanie', 'clipboard'), pal: P(0xc86a90, 0x8a5a3b, 0x6a4a5a, 0x4a3240, 0x3a2e3a, 0x1e1e28, 0xe8e4d8) },
+  'foe-talker': { art: person('fedora', 'bottle'), pal: P(0x4a3a2a, 0xb08868, 0x8a7a5a, 0x5a4e3a, 0x3a3a44, 0x1e1e28, 0xe8e4d8) },
+  'foe-guard': { art: person('cap', 'clipboard'), pal: P(0x2e4a3a, 0xc09070, 0x2e4a3a, 0x1e3428, 0x22222c, 0x14141a, 0xd8c8a0) },
+  'foe-proofreader': { art: person('headset', 'clipboard'), pal: P(0x6a6a72, 0xd8b8a0, 0xe8e4d8, 0xb8b4a8, 0x3a3a44, 0x1e1e28, 0xc03a2a) },
+  // the yellow house (outlines are Prussian blue in that dream; the shared
+  // rim stays, the palettes avoid black)
+  'foe-petitioner': { art: person('fedora', 'clipboard'), pal: P(0x4a4a52, 0xd8b090, 0x6b5a48, 0x4a3e30, 0x3a3a44, 0x1f3a5f, 0xe8e4d8) },
+  'foe-gendarme': { art: person('cap', null), pal: P(0x1e2a4a, 0xc09070, 0x1e2a4a, 0x14203a, 0x1e2a4a, 0x1f3a5f, 0xd8a840) },
+  'foe-gardener': { art: person('bandana', 'coil'), pal: P(0xd8b858, 0xb08868, 0x5a7a4a, 0x3e5a34, 0x6b4e2e, 0x1f3a5f, 0x3a7a5a) },
+  'foe-farmer': { art: person('bandana', 'ladle'), pal: P(0xb8903a, 0xb08868, 0x8a7a5a, 0x5a4e3a, 0x6b4e2e, 0x1f3a5f, 0x8a6a3a) },
+  'foe-shopkeeper': { art: person('crop', 'clipboard'), pal: P(0x3a5a6a, 0xd8b090, 0x5a8a9a, 0x3a5a6a, 0x3a3a44, 0x1f3a5f, 0xe8e4d8) },
+  // THE MASTER'S LADDER (src/dreams/painter/people.js): the rival's
+  // apprentices, the guild's inspectors, the foreman
+  ...Object.fromEntries(Object.entries(FOE_LOOKS).map(([k, l]) => [k, { art: person(l.hat, l.held), pal: P(...l.pal) }])),
+  // THE LAST HAND (src/dreams/gambler/people.js): Crake, the debt man
+  ...Object.fromEntries(Object.entries(LQ_FOES).map(([k, l]) => [k, { art: person(l.hat, l.held), pal: P(...l.pal) }])),
 };
 
 // --- creatures: things, not people -----------------------------------------
@@ -134,77 +167,7 @@ export const CREATURES = {
       ['.a......a.', '..a....a..', '..bBBBBb..', '.bBBBBBBb.', '..bBBBBb..', 'L..L..L..L'],
     ],
     pal: { b: 0x6a4526, B: 0xa8703c, a: 0x4a3220, L: 0x4a3220 },
-    size: 3,
-  },
-  'foe-rat': {
-    // pale body against a dark floor, ears and tail so the shape reads
-    art: [
-      ['..........', '.......EE.', 'ttt..BBBBB', '..tBBBBBBB', '..BBBBBBeB', '..BBBBBBBB', '..L..L..L.'],
-      ['..........', '.......EE.', '...t.BBBBB', 'ttt.BBBBBB', '..BBBBBBeB', '..BBBBBBBB', '.L..L..L..'],
-    ],
-    pal: { B: 0xa89a84, t: 0x7a6a58, E: 0xc0a894, e: 0x1a1a20, L: 0x6a5a4a },
-    size: 3,
-  },
-  'foe-grease': {
-    art: [
-      ['..GGGG..', '.GGGGGG.', 'GGwGGwGG', 'GGGGGGGG', '.GGGGGG.'],
-      ['..GGGG..', '.GGGGGG.', 'GGwGGwGG', 'GGGGGGGG', 'GGGGGGGG'],
-    ],
-    pal: { G: 0x5a606e, w: 0xd8ecf8 },
-    size: 4,
-  },
-  'foe-mill': {
-    art: [
-      ['..MMMM..', '..mMMm..', '.MMMMMM.', '.MMMMMM.', '.MmMMmM.', '.MMMMMM.', 'MMMMMMMM'],
-      ['...MMMM.', '...mMMm.', '..MMMMMM', '..MMMMMM', '.MmMMmM.', '.MMMMMM.', 'MMMMMMMM'],
-    ],
-    pal: { M: 0x8a6446, m: 0x5a3f2a },
-    size: 4,
-  },
-  'foe-meringue': {
-    art: [
-      ['...ww...', '..wWWw..', '.wWWWWw.', '.wWWWWw.', '..wwww..'],
-      ['..wwww..', '.wWWWWw.', 'wWWWWWWw', '.wWWWWw.', '..w..w..'],
-    ],
-    pal: { W: 0xf6f2ea, w: 0xd0c6ba },
-    size: 4,
-  },
-  'foe-cart': {
-    // a loaded delivery trolley: stacked crates, a handle, big wheels and a
-    // hazard stripe -- readable as "cart" from across the dock. Frame 2 has
-    // the load bouncing and the wheels turned.
-    art: [
-      [
-        '....CCCCCC......',
-        '....CcccCC......',
-        '..CCCCCCCCCC..h.',
-        '..CccccCcccC..h.',
-        '..CCCCCCCCCC..h.',
-        'SSSSSSSSSSSSSShh',
-        'SrSrSrSrSrSrSrSS',
-        'SSSSSSSSSSSSSSSS',
-        '.ww..........ww.',
-        'wWWw........wWWw',
-        'wWWw........wWWw',
-        '.ww..........ww.',
-      ],
-      [
-        '....CCCCCC......',
-        '....CcccCC......',
-        '..CCCCCCCCCC..h.',
-        '..CccccCcccC..h.',
-        '..CCCCCCCCCC..h.',
-        'SSSSSSSSSSSSSShh',
-        'SrSrSrSrSrSrSrSS',
-        'SSSSSSSSSSSSSSSS',
-        '.ww..........ww.',
-        'wWwW........wWwW',
-        'wWwW........wWwW',
-        '.ww..........ww.',
-      ],
-    ],
-    pal: { C: 0x8a6844, c: 0x5a4632, S: 0x9a9eaa, r: 0xc03a2a, h: 0x6a6e7a, w: 0x2a2a30, W: 0x5a5e6a },
-    size: 3,
+    size: 2,
   },
   'foe-walker': {
     art: [
@@ -225,8 +188,37 @@ export const CREATURES = {
   },
 };
 
+// the writer's creatures: a rejection slip on the wing, a pigeon on a ledge
+CREATURES['foe-slip'] = {
+  art: [
+    ['..eeeeee..', '.eEeeeeEe.', 'eeeEeeEeee', 'eeeeEEeeee', '.eeeeeeee.', '..e....e..'],
+    ['e........e', 'eeeeeeeeee', 'eEeeeeeeEe', 'eeeEeeEeee', '.eeeEEeee.', '..eeeeee..'],
+  ],
+  pal: { e: 0xe8e4d8, E: 0xc03a2a },
+  size: 3,
+};
+CREATURES['foe-pigeon'] = {
+  art: [
+    ['....gg..', '...gggw.', '.ggggg..', 'gggggg..', '.gggg...', '..f.f...'],
+    ['....gg..', '...gggw.', '.ggggg..', 'gggggg..', '.gggg...', '.f...f..'],
+  ],
+  pal: { g: 0x7a7a88, w: 0xf2c078, f: 0xc06a3a },
+  size: 2,
+};
+
+// the painter's crows: blue-black, two wingbeats
+CREATURES['foe-crow'] = {
+  art: [
+    ['k.........k', 'kk.......kk', '.kkk...kkk.', '..kkkKkkk..', '...kkkkkb..', '....kkk....', '....k.k....'],
+    ['...........', '....kkkk...', '..kkkKkkkb.', 'kkkkkkkkk..', '.kk.....kk.', '....k.k....', '...........'],
+  ],
+  pal: { k: 0x1f3a5f, K: 0x2a2a44, b: 0xd8a840 },
+  size: 2,
+};
+
 export function createFoeTextures(scene) {
   for (const [key, def] of Object.entries(PEOPLE)) {
+    if (artAway(scene.textures, key)) continue; // another dream's foe: its pack is not here
     createFrames(scene, key, def.art, def.pal, 2, { outline: OUTLINE });
   }
   for (const [key, def] of Object.entries(CREATURES)) {

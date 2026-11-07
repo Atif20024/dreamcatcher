@@ -1,9 +1,11 @@
 import Phaser from 'phaser';
+import { gaitInfo } from '../art/stride.js';
 import { D } from '../builders/depths.js';
 
-// Travelers: silhouettes with suitcases that walk IN — from the doors toward
-// the platforms — and never toward Jo. Pooled; the count is the station's
-// state (40 at 0 dreams, 0 at 5).
+// Travelers: painted soft silhouettes with suitcases that walk IN — from the
+// doors toward the platforms — and never toward Jo. Pooled; the count is the
+// station's state (40 at 0 dreams, 0 at 5). They step through the same
+// eight walk frames as everyone else, by distance, so feet never slide.
 export default class Silhouettes {
   constructor(scene, { count, y, x0, x1, spawnX }) {
     this.scene = scene;
@@ -19,13 +21,15 @@ export default class Silhouettes {
 
   add(x) {
     const s = this.scene.add
-      .image(x, this.y - 11, 'hub-traveler')
+      .image(x, this.y, 'hub-traveler')
+      .setOrigin(0.5, 1)
       .setDepth(D.INTERACT - 4)
-      .setAlpha(0.28)
-      .setTint(Phaser.Utils.Array.GetRandom([0x2a2a34, 0x2e2630, 0x262a30]));
+      .setAlpha(0.42)
+      .setTint(Phaser.Utils.Array.GetRandom([0x8a8aa0, 0x9a8a98, 0x8a9098, 0x7a7a90]));
     s.speed = Phaser.Math.Between(26, 54);
     s.phase = Math.random() * 100;
-    s.setScale(0.75 + Math.random() * 0.15);
+    s.stride = 0;
+    s.setScale(0.78 + Math.random() * 0.16);
     this.list.push(s);
   }
 
@@ -39,7 +43,16 @@ export default class Silhouettes {
     for (const s of this.list) {
       s.x += s.speed * dt;
       s.phase += s.speed * dt;
-      s.setTexture(Math.floor(s.phase / 22) % 2 ? 'hub-traveler#1' : 'hub-traveler');
+      // a frame per step of ground, scaled with the figure (a traveller drawn
+      // at 0.86 steps 0.86 as far), so the planted foot stays put; the rig's
+      // own walk carries the hip bob
+      const [n, stepPx] = gaitInfo('hub-traveler').walk;
+      const frame = (Math.floor(s.phase / (stepPx * s.scaleX)) % n) + 1;
+      if (frame !== s.stride) {
+        s.stride = frame;
+        s.setTexture(`hub-traveler#${frame}`).setOrigin(0.5, 1);
+        s.y = this.y;
+      }
       if (s.x > this.x1) s.x = this.spawnX - Phaser.Math.Between(0, 200);
     }
   }

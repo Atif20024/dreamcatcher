@@ -1,5 +1,7 @@
 # Reference poses — Jo
 
+> Phase 2: Jo is now the rig in `src/data/rigs/jo.js` (≈41 rows at 1×, drawn 2× ≈ 82 px). The grids below remain a shading/detail reference; the live poses are the tables in `src/data/rigs/jo.poses.js` and the rendered strips in `sheets/jo-*.png`.
+
 ## Jo, 20×40, shaded, contact pose (the target detail level)
 Letters: `k` outline · `H/h` hat base/hi · `s/S/d` skin base/hi/shadow · `e` eye · `J/L/D` shirt base/hi/shade · `B` belt · `p/P/q` pants base/hi/shade · `b/c` boots · `t/T` trumpet.
 ```
